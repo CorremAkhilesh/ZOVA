@@ -9,5 +9,10 @@
   },
   "devDependencies": {
     "typescript": "7.0.2"
+  },
+  "dependencies": {
+    "@zuvo/config": "workspace:*",
+    "@zuvo/protocol": "workspace:*",
+    "@zuvo/ui-tokens": "workspace:*"
   }
 }
