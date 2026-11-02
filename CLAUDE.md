@@ -108,15 +108,27 @@
 
 ### Redis
 
-- Local/dev: Redis Cloud free plan.
-- Staging/production: Redis container on the VPS.
-- Configured via `REDIS_URL` (`rediss://` = TLS). Required in production. In development it may be
-  empty: rate limiting falls back to in-memory, `/v1/ready` reports Redis as `skipped`, and the worker
-  refuses to start.
+| Environment        | Redis                                                                        |
+| ------------------ | ---------------------------------------------------------------------------- |
+| local PC           | Own Memurai **user process** on `127.0.0.1:6391` (`pnpm redis:start`)        |
+| staging/production | Redis container on the VPS: password-protected, internal Docker network only |
+| CI                 | `redis` service container in GitHub Actions                                  |
+
+- **Local:** no Windows service and no admin rights. `backend/scripts/redis.ts` generates the
+  config from `REDIS_URL` and runs `C:\Program Files\Memurai\memurai.exe` as the current user, with
+  config, data and log in `backend/storage/redis/` (gitignored). `pnpm dev` starts it automatically.
+- **Shared machine:** the local PC also runs a shared `Memurai` Windows service on port 6379, used
+  by other projects. **Never** use, reconfigure or stop it. The script refuses port 6379.
+- Every Zuvo Redis has a password, `maxmemory-policy noeviction` (BullMQ requires it) and AOF
+  persistence. It is never exposed publicly. The API and worker log a warning at startup if the
+  eviction policy is not `noeviction`.
+- Configured via `REDIS_URL` (`redis://:<password>@host:port`; `rediss://` = TLS). Required in
+  production. In development it may be empty: rate limiting falls back to in-memory, `/v1/ready`
+  reports Redis as `skipped`, and the worker refuses to start.
 
 ### Tests and external services
 
-- Tests **never** use MongoDB Atlas or Redis Cloud.
+- Tests **never** use MongoDB Atlas or the shared `Memurai` service on port 6379.
 - **MongoDB:** `mongodb-memory-server` in replica-set mode (so transactions work), started once per
   test run. Each test file uses its own `zuvo_test_<random>` database and drops it afterwards. With
   `NODE_ENV=test`, env validation **rejects** any `MONGODB_DB` that doesn't start with `zuvo_test_`.
@@ -124,8 +136,9 @@
   - **Unit tests (local + CI):** Redis is injected. Tests pass a small stub or `null`, which gives the
     in-memory rate limiter and a `skipped` readiness check. No Redis server is needed on Windows.
   - **Redis integration tests** (BullMQ, the Redis rate-limit store) run only when `REDIS_TEST_URL` is
-    set. CI sets it to a real `redis` service container. Locally they are skipped unless you point
-    `REDIS_TEST_URL` at a local Redis (Memurai or WSL). Never point it at Redis Cloud.
+    set. CI sets it to a real `redis` service container. Locally, set it to database 15 of the
+    local Memurai (`redis://:<password>@127.0.0.1:6391/15`). The tests only create and delete keys
+    under a random per-run prefix.
 
 ---
 
@@ -214,7 +227,7 @@
 ### Local (Windows PC)
 
 - **No Docker locally.** Run frontend + backend with Node (`pnpm dev`).
-- Connects to MongoDB Atlas (`zuvo_dev`) and Redis Cloud.
+- Connects to MongoDB Atlas (`zuvo_dev`) and its own local Memurai process (`127.0.0.1:6391`, started by `pnpm dev`).
 
 ### VPS (Ubuntu + Docker Engine + Docker Compose + Caddy auto-HTTPS)
 

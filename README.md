@@ -107,7 +107,34 @@ Endpoints:
 - <http://localhost:4000/docs>: API reference (not available in production)
 
 Backend tests use an in-memory MongoDB. The first run downloads the MongoDB binary, which is slow;
-later runs are fast. They never touch Atlas or Redis Cloud.
+later runs are fast. They never touch Atlas or the shared Memurai service. Redis integration tests run
+only when `REDIS_TEST_URL` is set in `backend\.env` (database 15 of Zuvo's local Redis).
+
+To send the test email through the queue instead of directly, start `dev:worker` and add `--queue`:
+`pnpm --filter @zuvo/backend mail:test -- --to you@corremadvisory.com --queue`
+
+### Local Redis (Memurai on port 6391)
+
+Locally, Zuvo runs its **own** Memurai process as your normal user: no Windows service and no admin
+rights. It listens on `127.0.0.1:6391`. Port and password come from `REDIS_URL` in `backend\.env`
+(`redis://:<password>@127.0.0.1:6391`). The script writes the config, data and log to
+`backend\storage\redis\`, which is gitignored.
+
+> This is a shared machine. The **`Memurai` Windows service on port 6379** belongs to other
+> projects. Never stop, restart or reconfigure it, and never point Zuvo at it. The scripts refuse to
+> use port 6379.
+
+```powershell
+pnpm redis:start    # starts it in the background (does nothing if it is already running)
+pnpm redis:status   # running/stopped, pid, uptime, eviction policy
+pnpm redis:stop     # saves data and stops it
+```
+
+`pnpm dev` (and `dev:worker`) run `redis:start` first, so you rarely need to start it yourself. It
+keeps running after you stop `pnpm dev`. Use `pnpm redis:stop` when you are done. It does not
+start again automatically after a reboot; the next `pnpm dev` starts it.
+
+If it does not start, check `backend\storage\redis\memurai.log`.
 
 ### Troubleshooting
 
