@@ -116,6 +116,31 @@
 - CSRF protection
 - Authorization checks on **every** route and socket event
 
+### Organization-only access
+- Only emails ending in `@corremadvisory.com` can sign up or log in. Everyone else is rejected.
+- Configurable via env `ALLOWED_EMAIL_DOMAINS` (comma-separated, default `corremadvisory.com`).
+- Enforced on the **backend** before any OTP is generated or any email is sent, and re-checked at
+  OTP verify and at session creation. The frontend check is only for UX.
+- Validation, in this order:
+  1. trim + lowercase
+  2. valid email format (exactly one `@`, no spaces)
+  3. **exact** match of the domain after the last `@` against the allow-list
+- Must reject (unit tests required for all of these when auth is built):
+  - `user@corremadvisory.com.evil.com`
+  - `user@evilcorremadvisory.com`
+  - `user@sub.corremadvisory.com`
+  - emails containing spaces
+  - emails with multiple `@`
+- Error for rejected domains: **"Only @corremadvisory.com email addresses can use Zuvo"**.
+  Rate limits still apply to rejected requests. (This error is exempt from the "same response" rule
+  above, which is about hiding whether an *allowed* email has an account.)
+- An admin can deactivate a user. Deactivation revokes all of that user's sessions immediately and
+  blocks future logins.
+
+### Email sender identity
+- Every email "From" display name must come from `shared/config/brand.ts` — never hard-coded.
+  `MAIL_FROM` in env holds only the address.
+
 ---
 
 ## 5. Environments & workflow
