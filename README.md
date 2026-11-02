@@ -5,7 +5,7 @@ PWA (Windows, macOS, Linux, Android and iPhone). Owned by Correm Advisory India 
 
 The full product and engineering brief lives in [CLAUDE.md](CLAUDE.md).
 
-> **Status:** monorepo foundation only — no application code yet.
+> **Status:** monorepo foundation + shared packages (`@zuvo/config`, `@zuvo/ui-tokens`, `@zuvo/protocol`). No app code yet.
 
 ---
 
@@ -81,7 +81,10 @@ ZUVO/
 └─ .github/         GitHub Actions workflows
 ```
 
-Folders other than `frontend/` and `backend/` are added as the project grows.
+Shared packages export TypeScript source directly (no build step). After changing design tokens, run
+`pnpm --filter @zuvo/ui-tokens generate` to regenerate `tokens.css` (a test fails if you forget).
+
+`infra/` and `.github/` are added as the project grows.
 
 ---
 

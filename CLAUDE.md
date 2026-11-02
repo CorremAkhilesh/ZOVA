@@ -55,6 +55,9 @@
 
 - pnpm workspaces + Turborepo + Biome + lefthook
 - Folders: `frontend/`, `backend/`, `shared/` (`protocol`, `config`, `ui-tokens`), `infra/`, `docs/`, `.github/`
+- Shared packages (`@zuvo/config`, `@zuvo/ui-tokens`, `@zuvo/protocol`) are internal "just-in-time"
+  packages: `exports` point at TypeScript source, no build step; the backend bundles them for production.
+- TypeScript 7 (native compiler) — see `docs/adr/0001-typescript-version.md`.
 
 ### frontend/
 
