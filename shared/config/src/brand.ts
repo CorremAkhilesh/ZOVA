@@ -4,9 +4,9 @@
  */
 export const brand = {
   name: 'Zuvo',
-  tagline: 'Conversations that move work forward.',
+  tagline: 'Fast, private chat for the Correm team',
   description:
-    'Zuvo is the private, fast and secure messenger for the Correm Advisory team — on every device, right in your browser.',
+    'Zuvo is fast, private chat for the Correm Advisory team on every device, right in the browser.',
   company: 'Correm Advisory India Pvt. Ltd.',
   domains: {
     organization: 'corremadvisory.com',
@@ -16,7 +16,7 @@ export const brand = {
     stagingApp: 'dev-app.zuvo.corremadvisory.com',
     stagingApi: 'dev-api.zuvo.corremadvisory.com',
   },
-  supportEmail: 'support@corremadvisory.com',
+  supportEmail: 'nova@corremadvisory.com',
   email: {
     /** Display name used in every outgoing email's "From" header. */
     senderName: 'Zuvo',
