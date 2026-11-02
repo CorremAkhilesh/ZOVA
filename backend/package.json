@@ -4,15 +4,18 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch --env-file=.env --clear-screen=false src/main.ts",
-    "dev:worker": "tsx watch --env-file=.env --clear-screen=false src/worker.ts",
+    "dev": "node scripts/redis.ts start && tsx watch --env-file=.env --clear-screen=false src/main.ts",
+    "dev:worker": "node scripts/redis.ts start && tsx watch --env-file=.env --clear-screen=false src/worker.ts",
     "build": "node scripts/build.ts",
     "start": "node --env-file-if-exists=.env --enable-source-maps dist/main.js",
     "start:worker": "node --env-file-if-exists=.env --enable-source-maps dist/worker.js",
     "mail:test": "tsx --env-file=.env src/scripts/mail-test.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "clean": "rimraf dist coverage .turbo"
+    "clean": "rimraf dist coverage .turbo",
+    "redis:start": "node scripts/redis.ts start",
+    "redis:stop": "node scripts/redis.ts stop",
+    "redis:status": "node scripts/redis.ts status"
   },
   "devDependencies": {
     "@types/node": "^24.19.2",

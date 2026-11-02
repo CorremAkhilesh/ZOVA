@@ -15,6 +15,9 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "clean": "turbo run clean && rimraf .turbo",
+    "redis:start": "pnpm --filter @zuvo/backend redis:start",
+    "redis:stop": "pnpm --filter @zuvo/backend redis:stop",
+    "redis:status": "pnpm --filter @zuvo/backend redis:status",
     "prepare": "lefthook install"
   },
   "devDependencies": {
