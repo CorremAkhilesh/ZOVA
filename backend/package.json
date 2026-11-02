@@ -1,0 +1,13 @@
+{
+  "name": "@zuvo/backend",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "clean": "rimraf dist coverage .turbo"
+  },
+  "devDependencies": {
+    "typescript": "7.0.2"
+  }
+}

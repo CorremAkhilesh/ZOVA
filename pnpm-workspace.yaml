@@ -1,0 +1,8 @@
+packages:
+  - frontend
+  - backend
+  - shared/*
+
+# lefthook's postinstall is not needed: the root "prepare" script installs the hooks.
+ignoredBuiltDependencies:
+  - lefthook
