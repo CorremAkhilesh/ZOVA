@@ -2,7 +2,7 @@ import { pino } from 'pino';
 import { EnvError, loadEnv } from './config/env.ts';
 import { createEmailWorker } from './jobs/email-worker.ts';
 import { loggerOptions } from './lib/logger.ts';
-import { createBullConnection } from './lib/redis.ts';
+import { checkEvictionPolicy, createBullConnection } from './lib/redis.ts';
 import { handleShutdown } from './lib/shutdown.ts';
 import { createMailer } from './mail/mailer.ts';
 
@@ -25,6 +25,7 @@ async function main() {
     await connection.quit();
   });
   await emailWorker.waitUntilReady();
+  await checkEvictionPolicy(connection, logger);
   logger.info('worker started: email queue');
 }
 

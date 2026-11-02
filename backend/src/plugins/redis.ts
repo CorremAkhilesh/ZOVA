@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import fp from 'fastify-plugin';
 import type { Redis } from 'ioredis';
-import { createRedis } from '../lib/redis.ts';
+import { checkEvictionPolicy, createRedis } from '../lib/redis.ts';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -29,6 +29,7 @@ async function setupRedis(app: FastifyInstance, options: RedisPluginOptions) {
 
   const redis = createRedis(options.url);
   redis.on('ready', () => app.log.info('redis connected'));
+  redis.once('ready', () => void checkEvictionPolicy(redis, app.log));
   redis.on('error', (error) => app.log.error({ err: error }, 'redis error'));
   redis.on('reconnecting', () => app.log.warn('redis reconnecting'));
   app.decorate('redis', redis);

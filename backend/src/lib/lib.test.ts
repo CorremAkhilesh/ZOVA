@@ -1,6 +1,8 @@
+import type { Redis } from 'ioredis';
 import { describe, expect, it } from 'vitest';
 import { maskCredentials } from './logger.ts';
 import { parseRange } from './range.ts';
+import { checkEvictionPolicy } from './redis.ts';
 import { withTimeout } from './timeout.ts';
 
 describe('parseRange', () => {
@@ -53,5 +55,48 @@ describe('withTimeout', () => {
   it('rejects with a labelled error when it takes too long', async () => {
     const slow = new Promise((resolve) => setTimeout(resolve, 200));
     await expect(withTimeout(slow, 10, 'slow op')).rejects.toThrow('slow op timed out after 10 ms');
+  });
+});
+
+describe('checkEvictionPolicy', () => {
+  const collect = () => {
+    const warnings: string[] = [];
+    return {
+      warnings,
+      logger: { warn: (_object: object, message: string) => warnings.push(message) },
+    };
+  };
+  const stub = (config: () => Promise<unknown>) => ({ config }) as unknown as Pick<Redis, 'config'>;
+
+  it('accepts noeviction silently', async () => {
+    const { warnings, logger } = collect();
+    const policy = await checkEvictionPolicy(
+      stub(async () => ['maxmemory-policy', 'noeviction']),
+      logger,
+    );
+    expect(policy).toBe('noeviction');
+    expect(warnings).toEqual([]);
+  });
+
+  it('warns about any other policy', async () => {
+    const { warnings, logger } = collect();
+    const policy = await checkEvictionPolicy(
+      stub(async () => ['maxmemory-policy', 'allkeys-lru']),
+      logger,
+    );
+    expect(policy).toBe('allkeys-lru');
+    expect(warnings[0]).toMatch(/not "noeviction"/);
+  });
+
+  it('warns instead of throwing when CONFIG GET is not allowed', async () => {
+    const { warnings, logger } = collect();
+    const policy = await checkEvictionPolicy(
+      stub(async () => {
+        throw new Error('NOPERM');
+      }),
+      logger,
+    );
+    expect(policy).toBeNull();
+    expect(warnings[0]).toMatch(/could not read/);
   });
 });
