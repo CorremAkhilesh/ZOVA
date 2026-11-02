@@ -9,6 +9,7 @@
 ## 1. Product
 
 ### Identity & delivery
+
 - A WhatsApp-like messenger with its **own** modern, clean, premium UI.
   - Deep indigo `#4F46E5` primary + teal accent, light and dark themes.
   - As easy as WhatsApp, but **never** copy WhatsApp's green, logo or layout.
@@ -16,6 +17,7 @@
   iPhone via Add to Home Screen. **No native apps.**
 
 ### v1 — core
+
 - Email OTP login, profile, unique `@username`
 - 1:1 chats + groups (≤ 256 members, admins, invite links)
 - Text, photos, videos, documents (≤ 100 MB), voice notes (waveform, playback speed)
@@ -27,6 +29,7 @@
 - English + Hindi
 
 ### v1 — advanced
+
 - Multi-device sync, drafts sync
 - Chat folders, Saved Messages, pinned messages
 - Scheduled messages, polls
@@ -39,6 +42,7 @@
 - New-login alerts
 
 ### v2
+
 - Voice/video calls, status/stories, communities/channels, E2E secret chats, passkeys
 
 ---
@@ -48,10 +52,12 @@
 > Change only via an ADR in `docs/adr/`.
 
 ### Monorepo
+
 - pnpm workspaces + Turborepo + Biome + lefthook
 - Folders: `frontend/`, `backend/`, `shared/` (`protocol`, `config`, `ui-tokens`), `infra/`, `docs/`, `.github/`
 
 ### frontend/
+
 - React 19, TypeScript strict, Vite
 - TanStack Router (file routes) + TanStack Query, Zustand
 - Tailwind v4 + shadcn/ui + Motion + lucide-react
@@ -60,6 +66,7 @@
 - Vitest + Testing Library + Playwright
 
 ### backend/
+
 - Node.js LTS, TypeScript strict
 - Fastify (+ Zod type provider)
 - Socket.IO with Redis adapter
@@ -70,9 +77,11 @@
 - Media stored on the VPS disk behind a `StorageDriver` interface (S3/R2 later)
 
 ### shared/protocol
+
 - Zod schemas for **every** REST DTO and Socket.IO event, used by both frontend and backend.
 
 ### Message storage
+
 - Messages are stored server-side in MongoDB so every device syncs full history.
 
 ---
@@ -80,13 +89,14 @@
 ## 3. Database
 
 ### MongoDB
+
 - MongoDB Atlas cluster `cluster0.zitp2pj.mongodb.net`, shared by local and VPS.
 - Separate databases on the same cluster, selected via the `MONGODB_DB` env variable:
 
-  | Database    | Used by                 |
-  |-------------|-------------------------|
-  | `zuvo_dev`  | local PC + staging      |
-  | `zuvo_prod` | production              |
+  | Database             | Used by                               |
+  | -------------------- | ------------------------------------- |
+  | `zuvo_dev`           | local PC + staging                    |
+  | `zuvo_prod`          | production                            |
   | `zuvo_test_<random>` | tests — throwaway, dropped afterwards |
 
 - Tests must **NEVER** touch `zuvo_dev` or `zuvo_prod`.
@@ -94,6 +104,7 @@
 - Proper indexes for every query, TTL indexes for expiring data, transactions where needed.
 
 ### Redis
+
 - Local/dev: Redis Cloud free plan.
 - Staging/production: Redis container on the VPS.
 - Configured via `REDIS_URL`.
@@ -117,6 +128,7 @@
 - Authorization checks on **every** route and socket event
 
 ### Organization-only access
+
 - Only emails ending in `@corremadvisory.com` can sign up or log in. Everyone else is rejected.
 - Configurable via env `ALLOWED_EMAIL_DOMAINS` (comma-separated, default `corremadvisory.com`).
 - Enforced on the **backend** before any OTP is generated or any email is sent, and re-checked at
@@ -133,11 +145,12 @@
   - emails with multiple `@`
 - Error for rejected domains: **"Only @corremadvisory.com email addresses can use Zuvo"**.
   Rate limits still apply to rejected requests. (This error is exempt from the "same response" rule
-  above, which is about hiding whether an *allowed* email has an account.)
+  above, which is about hiding whether an _allowed_ email has an account.)
 - An admin can deactivate a user. Deactivation revokes all of that user's sessions immediately and
   blocks future logins.
 
 ### Email sender identity
+
 - Every email "From" display name must come from `shared/config/brand.ts` — never hard-coded.
   `MAIL_FROM` in env holds only the address.
 
@@ -146,17 +159,19 @@
 ## 5. Environments & workflow
 
 ### Local (Windows PC)
+
 - **No Docker locally.** Run frontend + backend with Node (`pnpm dev`).
 - Connects to MongoDB Atlas (`zuvo_dev`) and Redis Cloud.
 
 ### VPS (Ubuntu + Docker Engine + Docker Compose + Caddy auto-HTTPS)
 
-| Stack      | Hosts                                                                                          | DB          |
-|------------|------------------------------------------------------------------------------------------------|-------------|
-| staging    | `dev-app.zuvo.corremadvisory.com`, `dev-api.zuvo.corremadvisory.com`                           | `zuvo_dev`  |
+| Stack      | Hosts                                                                                             | DB          |
+| ---------- | ------------------------------------------------------------------------------------------------- | ----------- |
+| staging    | `dev-app.zuvo.corremadvisory.com`, `dev-api.zuvo.corremadvisory.com`                              | `zuvo_dev`  |
 | production | `zuvo.corremadvisory.com` (landing), `app.zuvo.corremadvisory.com`, `api.zuvo.corremadvisory.com` | `zuvo_prod` |
 
 ### Git & CI/CD
+
 - Work only on `dev`.
 - Push to `dev` → GitHub Actions runs CI, then deploys to **staging**.
 - Merge `dev` → `main` (**only when the owner says so**) → deploys **production**.
