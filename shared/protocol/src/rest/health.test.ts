@@ -17,12 +17,16 @@ describe('healthResponseSchema', () => {
 
 describe('readyResponseSchema', () => {
   it('accepts a not-ready response with a failing dependency', () => {
-    const body = { status: 'not_ready', checks: { mongodb: 'up', redis: 'down' }, timestamp };
+    const body = {
+      status: 'not_ready',
+      checks: { mongodb: 'ok', redis: 'error', storage: 'ok' },
+      timestamp,
+    };
     expect(readyResponseSchema.parse(body)).toEqual(body);
   });
 
   it('requires every dependency check', () => {
-    const body = { status: 'ready', checks: { mongodb: 'up' }, timestamp };
+    const body = { status: 'ready', checks: { mongodb: 'ok', redis: 'skipped' }, timestamp };
     expect(readyResponseSchema.safeParse(body).success).toBe(false);
   });
 });

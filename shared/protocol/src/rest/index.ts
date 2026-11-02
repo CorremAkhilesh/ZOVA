@@ -1,6 +1,6 @@
 export {
-  type DependencyStatus,
-  dependencyStatusSchema,
+  type CheckStatus,
+  checkStatusSchema,
   type HealthResponse,
   healthResponseSchema,
   type ReadyResponse,
