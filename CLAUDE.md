@@ -72,7 +72,7 @@
 - Socket.IO with Redis adapter
 - Mongoose on MongoDB Atlas, Redis (ioredis), BullMQ
 - Better Auth (email OTP plugin + MongoDB adapter)
-- Nodemailer + React Email via Hostinger SMTP (`smtp.hostinger.com:465` SSL, from `no-reply@corremadvisory.com`)
+- Nodemailer + React Email via Hostinger SMTP (`smtp.hostinger.com:465` SSL, from `nova@corremadvisory.com`)
 - web-push (VAPID), pino logs, Vitest
 - Media stored on the VPS disk behind a `StorageDriver` interface (S3/R2 later)
 
@@ -151,6 +151,9 @@
 
 ### Email sender identity
 
+- Sender address: `nova@corremadvisory.com`.
+- `MAIL_FROM` must **always equal** `SMTP_USER` (Hostinger rejects mail sent from any other address).
+  The backend should validate this at startup.
 - Every email "From" display name must come from `shared/config/brand.ts` — never hard-coded.
   `MAIL_FROM` in env holds only the address.
 
