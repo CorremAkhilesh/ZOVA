@@ -88,6 +88,37 @@ Shared packages export TypeScript source directly (no build step). After changin
 
 ---
 
+## Backend
+
+Run these from the repo root. All of them read `backend\.env`.
+
+| Command                                                                | What it does                                   |
+| ---------------------------------------------------------------------- | ---------------------------------------------- |
+| `pnpm --filter @zuvo/backend dev`                                      | API with hot reload on <http://localhost:4000> |
+| `pnpm --filter @zuvo/backend dev:worker`                               | Background job worker (needs `REDIS_URL`)      |
+| `pnpm --filter @zuvo/backend mail:test -- --to you@corremadvisory.com` | Send a branded test email over SMTP            |
+| `pnpm --filter @zuvo/backend build`                                    | Bundle the API and worker into `backend\dist`  |
+| `pnpm --filter @zuvo/backend start`                                    | Run the built API (`node dist/main.js`)        |
+
+Endpoints:
+
+- <http://localhost:4000/v1/health>: liveness
+- <http://localhost:4000/v1/ready>: MongoDB, Redis and media-folder checks
+- <http://localhost:4000/docs>: API reference (not available in production)
+
+Backend tests use an in-memory MongoDB. The first run downloads the MongoDB binary, which is slow;
+later runs are fast. They never touch Atlas or Redis Cloud.
+
+### Troubleshooting
+
+- **`querySrv ECONNREFUSED _mongodb._tcp…`**: Node on some Windows machines cannot resolve
+  `mongodb+srv://` addresses. In Atlas, go to **Connect → Drivers** and copy the **standard**
+  connection string instead (it starts with `mongodb://` and lists three hosts). Put it in
+  `MONGODB_URI`.
+- **`MONGODB_URI … ECONNREFUSED / timed out`**: add your IP under Atlas → **Network Access**.
+
+---
+
 ## Branch workflow
 
 1. Work only on **`dev`**.
