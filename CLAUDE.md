@@ -110,7 +110,54 @@
 
 - Local/dev: Redis Cloud free plan.
 - Staging/production: Redis container on the VPS.
-- Configured via `REDIS_URL`.
+- Configured via `REDIS_URL` (`rediss://` = TLS). Required in production. In development it may be
+  empty: rate limiting falls back to in-memory, `/v1/ready` reports Redis as `skipped`, and the worker
+  refuses to start.
+
+### Tests and external services
+
+- Tests **never** use MongoDB Atlas or Redis Cloud.
+- **MongoDB:** `mongodb-memory-server` in replica-set mode (so transactions work), started once per
+  test run. Each test file uses its own `zuvo_test_<random>` database and drops it afterwards. With
+  `NODE_ENV=test`, env validation **rejects** any `MONGODB_DB` that doesn't start with `zuvo_test_`.
+- **Redis:**
+  - **Unit tests (local + CI):** Redis is injected. Tests pass a small stub or `null`, which gives the
+    in-memory rate limiter and a `skipped` readiness check. No Redis server is needed on Windows.
+  - **Redis integration tests** (BullMQ, the Redis rate-limit store) run only when `REDIS_TEST_URL` is
+    set. CI sets it to a real `redis` service container. Locally they are skipped unless you point
+    `REDIS_TEST_URL` at a local Redis (Memurai or WSL). Never point it at Redis Cloud.
+
+---
+
+## 3a. Media storage
+
+- **What:** all media (photos, videos, audio, voice notes, documents) is stored on disk through a
+  `StorageDriver` interface: `save` (streaming), `read` (with HTTP byte ranges), `delete`, `exists`,
+  `stat`. The first implementation is `LocalDiskDriver`. S3/R2 can be added later as another driver,
+  with no other code changes.
+- **Location** comes from env `MEDIA_STORAGE_PATH`:
+
+  | Environment | Path                                      |
+  | ----------- | ----------------------------------------- |
+  | local PC    | `backend/storage/uploads` (gitignored)    |
+  | staging     | `/srv/zuvo/staging/media` (Docker volume) |
+  | production  | `/srv/zuvo/prod/media` (Docker volume)    |
+
+- **Private files.** Media is served only through the API after an authorization check (chat members
+  only), using short-lived signed URLs (15 min). Range requests must work so audio and video can seek.
+- **Limits and safety:**
+  - Max 100 MB per file.
+  - MIME type allow-list, verified by file signature (magic bytes), never by extension.
+  - Images are compressed on the client before upload.
+  - Files get random storage keys (sharded folders). User file names are never used on disk.
+  - Storage keys are validated, which protects against path traversal.
+- **Cleanup:** deleting a message for everyone, or a disappearing message expiring, also deletes its
+  file (background job). A daily job removes orphaned files.
+- **Backups:** the media folder is backed up daily along with the database. Send an alert email when
+  disk usage passes 80%.
+- **Known dev limitation:** local and staging share the `zuvo_dev` database but not the media folder,
+  so media from one environment shows a friendly "Media not available" placeholder in the other. This
+  must **never** crash the app.
 
 ---
 
