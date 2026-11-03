@@ -104,7 +104,7 @@
 
 - Tests must **NEVER** touch `zuvo_dev` or `zuvo_prod`.
 - Connection string only in env (`MONGODB_URI`) — never in code, docs or git.
-- Proper indexes for every query, TTL indexes for expiring data, transactions where needed.
+- Indexes follow the **Database indexing standard** (section 8). Transactions where needed.
 
 ### Redis
 
@@ -262,3 +262,52 @@
   - latest stable package versions, lockfile committed
 - Ask before anything destructive.
 - If something in this brief is wrong or a better option exists, propose it and ask.
+- The standards in sections 7 and 8 apply to **every** step.
+
+---
+
+## 7. Testing standard
+
+### Backend
+
+- **Unit tests** for every service, helper and validator.
+- **API integration tests** with Fastify `inject` + `mongodb-memory-server`, covering for each route:
+  success, invalid input, unauthenticated and forbidden.
+- **Security tests for every resource:** user A must never read or modify user B's chats, messages,
+  media or sessions.
+- **Realtime tests** with two Socket.IO clients.
+- **Contract tests:** every response matches its `@zuvo/protocol` schema.
+
+### Frontend
+
+- **Unit tests** for hooks, stores and utils.
+- **Component tests** with Testing Library + MSW, covering the loading, empty, error and success states.
+- **Accessibility checks** with axe on every screen.
+- **Playwright E2E** for critical flows (two users chatting) on Chromium, Firefox, WebKit and a
+  mobile viewport.
+
+### Rules
+
+- **Coverage thresholds enforced in CI:** backend ≥ 80% lines/branches, frontend ≥ 70%.
+- **Every bug fix** comes with a test that fails before the fix.
+- **No skipped tests** without a written reason next to the skip.
+
+---
+
+## 8. Database indexing standard
+
+- **Every query is supported by an index:** no collection scans. Each model file declares its
+  indexes next to the schema, with a comment naming the query each index serves.
+- **Index types:**
+  - compound indexes in **ESR order** (Equality, Sort, Range)
+  - unique indexes (email, username)
+  - partial indexes where fields are optional
+  - TTL indexes for expiring data (OTP, sessions, disappearing messages)
+  - a text index only where search needs it
+- **Cursor-based pagination only.** Never use skip/offset on large collections.
+- **`expectIndexedQuery()`** (backend test helper) runs `explain()` and fails if the plan contains
+  `COLLSCAN`. Every repository query gets such a test.
+- **Slow query logging:** queries over 100 ms are logged with the collection name and query shape
+  (never values).
+- **Production never builds indexes on app start.** `pnpm --filter @zuvo/backend db:sync-indexes`
+  runs during deploy.
