@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import mongoose from 'mongoose';
 import { inject } from 'vitest';
 import { type AppDeps, buildApp } from '../src/app.ts';
 import { type Env, loadEnv } from '../src/config/env.ts';
@@ -65,4 +66,23 @@ export async function buildTestApp(deps: Partial<AppDeps> = {}) {
     await media.cleanup();
   };
   return { app, env, cleanup };
+}
+
+/**
+ * A bare Mongoose connection to a throwaway `zuvo_test_<random>` database on the in-memory server.
+ * `cleanup` drops the database and closes the connection.
+ */
+export async function connectTestDb(options: { monitorCommands?: boolean } = {}) {
+  const connection = mongoose.createConnection(inject('mongoUri'), {
+    dbName: `zuvo_test_${randomBytes(6).toString('hex')}`,
+    autoIndex: true,
+    autoCreate: true,
+    monitorCommands: options.monitorCommands ?? false,
+  });
+  await connection.asPromise();
+  const cleanup = async () => {
+    await connection.dropDatabase();
+    await connection.close();
+  };
+  return { connection, cleanup };
 }

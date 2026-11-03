@@ -13,7 +13,12 @@ const external = Object.keys(pkg.dependencies ?? {}).filter((name) => !name.star
 rmSync(new URL('../dist', import.meta.url), { recursive: true, force: true });
 
 const result = await build({
-  entryPoints: ['src/main.ts', 'src/worker.ts', 'src/scripts/mail-test.ts'],
+  entryPoints: [
+    'src/main.ts',
+    'src/worker.ts',
+    'src/scripts/mail-test.ts',
+    'src/scripts/sync-indexes.ts',
+  ],
   outbase: 'src',
   outdir: 'dist',
   bundle: true,
