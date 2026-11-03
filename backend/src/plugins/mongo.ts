@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import fp from 'fastify-plugin';
 import mongoose, { type Connection } from 'mongoose';
+import { attachSlowQueryLogger, SLOW_QUERY_MS } from '../db/slow-query.ts';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -11,8 +12,10 @@ declare module 'fastify' {
 interface MongoPluginOptions {
   uri: string;
   dbName: string;
-  /** Build indexes on startup. Off in production, where indexes are synced during deploy. */
+  /** Build indexes on startup. Off in production, where `db:sync-indexes` runs during deploy. */
   autoIndex: boolean;
+  /** Queries at or above this duration are logged (shape only, no values). */
+  slowQueryMs?: number;
 }
 
 async function setupMongo(app: FastifyInstance, options: MongoPluginOptions) {
@@ -26,6 +29,8 @@ async function setupMongo(app: FastifyInstance, options: MongoPluginOptions) {
     connectTimeoutMS: 10_000,
     socketTimeoutMS: 45_000,
     appName: 'zuvo-api',
+    // Needed for slow query logging (command start/finish events).
+    monitorCommands: true,
   });
 
   connection.on('connected', () => app.log.info({ db: options.dbName }, 'mongodb connected'));
@@ -34,8 +39,14 @@ async function setupMongo(app: FastifyInstance, options: MongoPluginOptions) {
   connection.on('error', (error) => app.log.error({ err: error }, 'mongodb error'));
 
   await connection.asPromise();
+  const detachSlowQueryLogger = attachSlowQueryLogger(
+    connection.getClient(),
+    app.log,
+    options.slowQueryMs ?? SLOW_QUERY_MS,
+  );
   app.decorate('mongo', connection);
   app.addHook('onClose', async () => {
+    detachSlowQueryLogger();
     await connection.close();
   });
 }

@@ -71,6 +71,9 @@ importers:
       ioredis:
         specifier: 6.0.0
         version: 6.0.0
+      mongodb:
+        specifier: 7.7.0
+        version: 7.7.0
       mongoose:
         specifier: 9.11.4
         version: 9.11.4
