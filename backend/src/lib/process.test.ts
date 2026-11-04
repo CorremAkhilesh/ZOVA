@@ -56,12 +56,13 @@ describe('loggerOptions', () => {
       {
         req: { headers: { cookie: 'session=abc', authorization: 'Bearer xyz' } },
         user: { otp: '123456' },
+        message: { subject: '654321 is your code', text: 'code 654321' },
       },
       'connecting to mongodb+srv://admin:hunter2@cluster.example.net',
     );
     logger.error({ err: new Error('failed: rediss://default:s3cret@redis.example.com') }, 'boom');
     const output = lines.join('\n');
-    for (const secret of ['session=abc', 'Bearer xyz', '123456', 'hunter2', 's3cret']) {
+    for (const secret of ['session=abc', 'Bearer xyz', '123456', '654321', 'hunter2', 's3cret']) {
       expect(output).not.toContain(secret);
     }
     expect(output).toContain('[redacted]');

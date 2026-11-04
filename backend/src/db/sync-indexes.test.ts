@@ -51,13 +51,13 @@ describe('syncIndexes (unit)', () => {
 describe('model registry', () => {
   it('registers every model on the given connection', () => {
     const connection = {} as Parameters<typeof registerModels>[0];
-    const register = vi.fn(() => fakeModel() as never);
-    modelRegistrations.push(register);
+    const register = vi.fn(() => [fakeModel() as never, fakeModel() as never]);
+    const saved = modelRegistrations.splice(0, modelRegistrations.length, register);
     try {
-      expect(registerModels(connection)).toHaveLength(1);
+      expect(registerModels(connection)).toHaveLength(2);
       expect(register).toHaveBeenCalledWith(connection);
     } finally {
-      modelRegistrations.pop();
+      modelRegistrations.splice(0, modelRegistrations.length, ...saved);
     }
   });
 });
