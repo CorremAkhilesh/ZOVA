@@ -36,6 +36,7 @@ afterEach(async () => {
   resetMedia();
   installMatchMedia();
   localStorage.clear();
+  sessionStorage.clear();
   document.documentElement.removeAttribute('data-theme');
   await i18n.changeLanguage('en');
 });

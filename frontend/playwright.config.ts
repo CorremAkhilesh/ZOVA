@@ -31,10 +31,21 @@ export default defineConfig({
         ]
       : []),
   ],
-  webServer: {
-    command: 'pnpm exec vite preview',
-    url: BASE_URL,
-    reuseExistingServer: !CI,
-    timeout: 120_000,
-  },
+  webServer: [
+    {
+      // Test API: in-memory MongoDB + in-memory mailer (OTPs readable via /v1/test/outbox).
+      command: 'pnpm e2e:server',
+      cwd: '../backend',
+      url: 'http://127.0.0.1:4100/v1/health',
+      reuseExistingServer: !CI,
+      timeout: 180_000,
+    },
+    {
+      command: 'pnpm exec vite preview',
+      url: BASE_URL,
+      env: { ZUVO_API_TARGET: 'http://127.0.0.1:4100' },
+      reuseExistingServer: !CI,
+      timeout: 120_000,
+    },
+  ],
 });

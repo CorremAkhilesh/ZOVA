@@ -1,4 +1,5 @@
 import { expect, type Page, test } from '@playwright/test';
+import { signUp } from './helpers';
 
 // Service-worker control in Playwright is Chromium-only; the other engines run the smoke test.
 test.skip(({ browserName }) => browserName !== 'chromium', 'Service worker checks need Chromium');
@@ -51,7 +52,8 @@ test('service worker registers and controls the page', async ({ page }) => {
 });
 
 test('app shell loads offline', async ({ page, context }) => {
-  await page.goto('/chats');
+  // Signed in once online; offline the app opens from the cached shell + last known session.
+  await signUp(page);
   await waitForActiveServiceWorker(page);
   await context.setOffline(true);
   await page.goto('/chats/asha');

@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { axe } from '@/test/axe';
 import { setViewportWidth } from '@/test/media';
+import { server, signedOut } from '@/test/msw';
 import { DESKTOP_WIDTH, MOBILE_WIDTH, renderApp } from '@/test/render-app';
 
 /**
@@ -106,13 +107,12 @@ describe('mobile layout (<768px)', () => {
 });
 
 describe('screens', () => {
-  it('renders the welcome page with a link to the preview', async () => {
+  it('shows the email sign-in screen when signed out', async () => {
+    server.use(signedOut());
     await renderApp('/');
     expect(screen.getByRole('heading', { name: 'Welcome to Zuvo' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Open the design preview/ })).toHaveAttribute(
-      'href',
-      '/chats',
-    );
+    expect(screen.getByRole('textbox', { name: 'Work email' })).toBeEnabled();
+    expect(screen.queryByText(/design preview/i)).not.toBeInTheDocument();
   });
 
   it('renders a 404 page for unknown URLs and unknown chats', async () => {
@@ -129,7 +129,6 @@ describe('screens', () => {
   });
 
   it.each([
-    ['welcome', '/', DESKTOP_WIDTH],
     ['chat list (desktop)', '/chats', DESKTOP_WIDTH],
     ['conversation (desktop)', '/chats/asha', DESKTOP_WIDTH],
     ['chat list (mobile)', '/chats', MOBILE_WIDTH],
