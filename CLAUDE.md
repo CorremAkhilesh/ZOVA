@@ -241,7 +241,9 @@
 ### Git & CI/CD
 
 - Work only on `dev`.
-- Push to `dev` → GitHub Actions runs CI, then deploys to **staging**.
+- Push to `dev` → GitHub Actions runs CI (`.github/workflows/ci.yml`: quality, backend + frontend tests
+  with coverage gates, E2E on 4 browsers, build + bundle budget, audit + gitleaks; see
+  `docs/runbooks/ci.md`), then deploys to **staging**. CI never uses secrets, Atlas or real SMTP.
 - Merge `dev` → `main` (**only when the owner says so**) → deploys **production**.
 - Images on GHCR; deploys over SSH with health checks and auto-rollback.
 - Secrets live in GitHub Secrets and `/srv/zuvo/*.env` on the VPS.

@@ -1,5 +1,7 @@
 # Zuvo
 
+[![CI](https://github.com/CorremAkhilesh/ZOVA/actions/workflows/ci.yml/badge.svg?branch=dev)](https://github.com/CorremAkhilesh/ZOVA/actions/workflows/ci.yml)
+
 A modern, private messenger for the Correm Advisory team, delivered as a web app and an installable
 PWA (Windows, macOS, Linux, Android and iPhone). Owned by Correm Advisory India Pvt. Ltd.
 
