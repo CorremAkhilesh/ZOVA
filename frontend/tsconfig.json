@@ -3,10 +3,19 @@
   "compilerOptions": {
     "lib": ["ES2024", "DOM", "DOM.Iterable"],
     "jsx": "react-jsx",
-    "types": ["vite/client", "node"],
+    "types": ["vite/client", "node", "vite-plugin-pwa/client"],
     "paths": {
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src", "e2e", "vite.config.ts", "vitest.config.ts", "playwright.config.ts"]
+  "include": [
+    "src",
+    "e2e",
+    "pwa",
+    "scripts",
+    "vite.config.ts",
+    "vitest.config.ts",
+    "playwright.config.ts"
+  ],
+  "exclude": ["src/sw/sw.ts"]
 }

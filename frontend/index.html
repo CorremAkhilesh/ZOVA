@@ -4,8 +4,16 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="description" content="%BRAND_DESCRIPTION%" />
-    <meta name="theme-color" content="%BRAND_PRIMARY%" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="%THEME_LIGHT%" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="%THEME_DARK%" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="%APPLE_TOUCH_ICON%" />
+    <!-- Installable on iOS / iPadOS (Add to Home Screen) -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="%BRAND_NAME%" />
+    <!-- PWA:SPLASH -->
     <title>%BRAND_NAME%</title>
     <script>
       // Apply the saved theme before first paint so there is no flash of the wrong theme.
