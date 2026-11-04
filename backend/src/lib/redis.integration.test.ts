@@ -3,11 +3,12 @@
  * of the local Memurai-Zuvo service). Every key lives under a random per-run prefix and is removed.
  */
 import { randomBytes } from 'node:crypto';
-import { Queue, Worker } from 'bullmq';
 import Fastify from 'fastify';
-import type { Redis } from 'ioredis';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { EMAIL_JOB_OPTIONS, type EmailJobData } from '../jobs/email-queue.ts';
+import { Redis } from 'ioredis';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { createEmailQueue } from '../jobs/email-queue.ts';
+import { createEmailWorker } from '../jobs/email-worker.ts';
+import type { Mailer } from '../mail/mailer.ts';
 import { errorHandlerPlugin } from '../plugins/error-handler.ts';
 import { rateLimitPlugin } from '../plugins/rate-limit.ts';
 import { redisPlugin } from '../plugins/redis.ts';
@@ -73,22 +74,21 @@ describe.skipIf(!url)('Redis integration (REDIS_TEST_URL)', () => {
     await app.close();
   });
 
-  it('processes an email job through BullMQ', async () => {
+  it('delivers an email job through the real queue and worker, retrying on failure', async () => {
     const queueConnection = createBullConnection(url ?? '', 'zuvo-test-queue');
     const workerConnection = createBullConnection(url ?? '', 'zuvo-test-worker');
-    const queue = new Queue<EmailJobData>('email', {
-      connection: queueConnection,
-      prefix,
-      defaultJobOptions: EMAIL_JOB_OPTIONS,
-    });
     const sent: string[] = [];
-    const worker = new Worker<EmailJobData>(
-      'email',
-      async (job) => {
-        sent.push(job.data.to);
-      },
-      { connection: workerConnection, prefix },
-    );
+    const mailer: Mailer = {
+      send: vi.fn(async (message) => {
+        sent.push(message.to);
+        return { messageId: 'm-1' };
+      }),
+      verify: async () => {},
+      close: () => {},
+    };
+    const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
+    const queue = createEmailQueue(queueConnection, prefix);
+    const worker = createEmailWorker(workerConnection, mailer, logger, prefix);
     const done = new Promise<void>((resolve) => worker.once('completed', () => resolve()));
 
     await queue.add('test', {
@@ -99,10 +99,42 @@ describe.skipIf(!url)('Redis integration (REDIS_TEST_URL)', () => {
     });
     await done;
     expect(sent).toEqual(['a@corremadvisory.com']);
+    expect(logger.info).toHaveBeenCalledWith(
+      expect.objectContaining({ messageId: 'm-1' }),
+      'email sent',
+    );
+
+    // A failing send is logged and kept for retry (attempts: 5).
+    vi.mocked(mailer.send).mockRejectedValueOnce(new Error('SMTP down'));
+    const failed = new Promise<void>((resolve) => worker.once('failed', () => resolve()));
+    const job = await queue.add('test', {
+      to: 'b@corremadvisory.com',
+      subject: 's',
+      html: 'h',
+      text: 't',
+    });
+    await failed;
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.objectContaining({ jobId: job.id, attempt: 1 }),
+      'email job failed (will retry if attempts remain)',
+    );
+    expect(await job.getState()).toBe('delayed');
 
     await worker.close();
     await queue.obliterate({ force: true });
     await queue.close();
     await Promise.all([queueConnection.quit(), workerConnection.quit()]);
+  });
+
+  it('connects the API redis plugin from a URL and quits it on close', async () => {
+    const app = Fastify({ logger: false });
+    const info = vi.spyOn(app.log, 'info');
+    await app.register(redisPlugin, { url });
+    await app.ready();
+    expect(app.redis).toBeInstanceOf(Redis);
+    await expect(app.redis?.ping()).resolves.toBe('PONG');
+    await vi.waitFor(() => expect(info).toHaveBeenCalledWith('redis connected'));
+    await app.close();
+    await vi.waitFor(() => expect(app.redis?.status).toBe('end'));
   });
 });

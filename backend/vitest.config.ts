@@ -16,5 +16,19 @@ export default defineConfig({
     // The first run downloads the MongoDB binary used by mongodb-memory-server.
     hookTimeout: 120_000,
     testTimeout: 20_000,
+    coverage: {
+      provider: 'v8',
+      reporter: ['text-summary', 'html', 'lcov'],
+      include: ['src/**/*.ts'],
+      exclude: [
+        'src/**/*.test.ts',
+        // Process entry points and CLI scripts: thin wiring, exercised by the live checks.
+        'src/main.ts',
+        'src/worker.ts',
+        'src/scripts/**',
+      ],
+      // CLAUDE.md §7: backend ≥ 80% lines/branches, enforced in CI via `test:coverage`.
+      thresholds: { lines: 80, branches: 80, functions: 80, statements: 80 },
+    },
   },
 });
