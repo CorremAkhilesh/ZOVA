@@ -63,11 +63,11 @@ export async function fetchSessionState(): Promise<SessionState> {
 }
 
 /**
- * A session revoked elsewhere (Devices, "This wasn't me", deactivation) or expired is noticed
- * within seconds: polled every 15 s while the tab is visible (TanStack pauses in the background),
- * and re-checked whenever the app regains focus or visibility.
+ * A revoked session is pushed over the socket (`session:revoked`, see use-session-socket). These
+ * are the fallbacks for when no socket is connected: a check whenever the app regains focus or
+ * visibility, and a slow background refresh.
  */
-export const SESSION_POLL_MS = 15_000;
+export const SESSION_POLL_MS = 5 * 60_000;
 
 export const sessionQuery = queryOptions({
   queryKey: ['session'],

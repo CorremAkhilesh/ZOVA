@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it } from 'vitest';
 import { HttpResponse, http, server, sessionFixture, signedOut } from '@/test/msw';
 import { DESKTOP_WIDTH, renderApp } from '@/test/render-app';
+import { fakeSockets } from '@/test/socket-mock';
 import { useAuthFlow } from './flow-store';
 import { sessionQuery, sessionSnapshot } from './session';
 
@@ -127,5 +128,50 @@ describe('account settings', () => {
     expect(
       screen.queryByText('Your session ended. Sign in again to continue.'),
     ).not.toBeInTheDocument();
+  });
+});
+
+describe('session push over the socket', () => {
+  const lastSocket = () => {
+    const socket = fakeSockets.at(-1);
+    if (!socket) throw new Error('no socket opened');
+    return socket;
+  };
+
+  it('returns to the welcome screen at once when the server revokes the session', async () => {
+    const { router } = await renderApp('/chats');
+    await waitFor(() => expect(fakeSockets.length).toBeGreaterThan(0));
+    act(() => lastSocket().receive('session:revoked', { reason: 'revoked' }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/'));
+    expect(useAuthFlow.getState().signedOutReason).toBeNull();
+  });
+
+  it('says the session ended when it expired', async () => {
+    const { router } = await renderApp('/chats');
+    await waitFor(() => expect(fakeSockets.length).toBeGreaterThan(0));
+    act(() => lastSocket().receive('session:revoked', { reason: 'expired' }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/'));
+    expect(useAuthFlow.getState().signedOutReason).toBe('expired');
+  });
+
+  it('asks the API when a reconnect is refused, and closes the socket on leaving', async () => {
+    let calls = 0;
+    server.use(
+      http.get('*/v1/auth/me', () => {
+        calls += 1;
+        return calls > 1
+          ? HttpResponse.json(
+              { code: 'SESSION_EXPIRED', message: 'x', requestId: 'r' },
+              { status: 401 },
+            )
+          : HttpResponse.json(sessionFixture());
+      }),
+    );
+    const { router } = await renderApp('/chats');
+    await waitFor(() => expect(fakeSockets.length).toBeGreaterThan(0));
+    const socket = lastSocket();
+    act(() => socket.receive('connect_error'));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/'));
+    await waitFor(() => expect(socket.disconnected).toBe(true));
   });
 });

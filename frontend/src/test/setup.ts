@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom/vitest';
+import './socket-mock';
 import { onlineManager } from '@tanstack/react-query';
 import { cleanup } from '@testing-library/react';
 import { MotionGlobalConfig } from 'motion/react';
