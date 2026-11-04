@@ -54,7 +54,12 @@
       },
       "suspicious": {
         "noExplicitAny": "error",
-        "noConsole": { "level": "warn", "options": { "allow": ["warn", "error"] } }
+        "noConsole": {
+          "level": "warn",
+          "options": {
+            "allow": ["warn", "error"]
+          }
+        }
       },
       "style": {
         "noNonNullAssertion": "error",
@@ -67,6 +72,11 @@
       "complexity": {
         "noExcessiveCognitiveComplexity": "warn"
       }
+    }
+  },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
     }
   }
 }
