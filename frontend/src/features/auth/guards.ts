@@ -37,3 +37,11 @@ export async function requireSignedOut(queryClient: QueryClient) {
     throw redirect({ to: state.data.needsProfile ? '/welcome/name' : '/chats' });
   }
 }
+
+/** Admin screens: anyone else goes back to Settings (the API enforces this too). */
+export async function requireAdmin(queryClient: QueryClient) {
+  const state = await load(queryClient);
+  if (state.status !== 'signed-in' || state.data.user.role !== 'admin') {
+    throw redirect({ to: '/settings' });
+  }
+}

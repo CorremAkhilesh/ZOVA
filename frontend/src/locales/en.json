@@ -71,7 +71,9 @@
     "themeSystem": "System",
     "language": "Language",
     "languageHint": "Changes the app language on this device.",
-    "account": "Account"
+    "account": "Account",
+    "openProfile": "Open profile of {{name}}",
+    "accountMenu": "Account"
   },
   "placeholder": {
     "updatesTitle": "Updates",
@@ -171,5 +173,164 @@
       "invalid": "Enter a valid email address."
     },
     "latestCodeOnly": "Only the most recent code works."
+  },
+  "common": {
+    "close": "Close",
+    "cancel": "Cancel",
+    "save": "Save",
+    "retry": "Try again",
+    "loading": "Loading",
+    "loadMore": "Load more"
+  },
+  "profile": {
+    "title": "Profile",
+    "subtitle": "Your photo, name, @username and about.",
+    "details": "Details",
+    "about": "About",
+    "email": "Email",
+    "edit": "Edit {{field}}",
+    "loadFailed": "Couldn’t load your profile.",
+    "username": {
+      "label": "Username",
+      "rules": "3–20 characters: a–z, 0–9, _ and . — starts with a letter.",
+      "checking": "Checking…",
+      "available": "Available",
+      "current": "This is your current username",
+      "checkFailed": "Couldn’t check right now — try again.",
+      "too_short": "At least 3 characters.",
+      "too_long": "At most 20 characters.",
+      "invalid": "Use a–z, 0–9, _ and . only; start with a letter; no double dots.",
+      "reserved": "This username is reserved.",
+      "taken": "This username is taken.",
+      "fix": "Choose an available username.",
+      "saved": "Username updated",
+      "changeRule": "You can change your username once every {{days}} days.",
+      "lockedUntil": "You can change it again on {{date}}."
+    },
+    "photo": {
+      "title": "Profile photo",
+      "add": "Add photo",
+      "change": "Change photo",
+      "remove": "Remove photo",
+      "hint": "JPEG, PNG, WebP or HEIC. Location and camera data are removed.",
+      "cropTitle": "Adjust your photo",
+      "cropHint": "Drag to position, zoom to fit.",
+      "zoom": "Zoom",
+      "use": "Use photo",
+      "uploading": "Uploading photo",
+      "updated": "Profile photo updated",
+      "wrongType": "Choose a JPEG, PNG, WebP or HEIC photo.",
+      "tooLarge": "This photo is too large.",
+      "unreadable": "This photo can’t be opened in this browser. Try a JPEG or PNG.",
+      "removeTitle": "Remove profile photo?",
+      "removeBody": "Your initials will be shown instead."
+    }
+  },
+  "privacy": {
+    "title": "Privacy",
+    "subtitle": "Choose who sees your details.",
+    "loadFailed": "Couldn’t load privacy settings.",
+    "everyone": "Everyone",
+    "nobody": "Nobody",
+    "on": "On",
+    "off": "Off",
+    "lastSeen": "Last seen & online",
+    "lastSeenHint": "If hidden, you won’t see others’ either.",
+    "profilePhoto": "Profile photo",
+    "profilePhotoHint": "Who can see your photo.",
+    "about": "About",
+    "aboutHint": "Who can see your about text.",
+    "readReceipts": "Read receipts",
+    "readReceiptsHint": "If off, you won’t see others’ read receipts either."
+  },
+  "devices": {
+    "title": "Devices",
+    "subtitle": "Where you’re signed in.",
+    "loadFailed": "Couldn’t load your devices.",
+    "thisDevice": "This device",
+    "ip": "IP",
+    "unknown": "Unknown",
+    "signedIn": "Signed in",
+    "lastActive": "Last active",
+    "expires": "Expires",
+    "signOut": "Sign out",
+    "signOutDevice": "Sign out {{device}}",
+    "signedOutOne": "Device signed out",
+    "signOutOthers": "Sign out all other devices",
+    "signOutOthersBody_one": "{{count}} other device will be signed out.",
+    "signOutOthersBody_other": "{{count}} other devices will be signed out.",
+    "signedOutOthers_one": "Signed out {{count}} device",
+    "signedOutOthers_other": "Signed out {{count}} devices",
+    "onlyThis": "You’re only signed in on this device."
+  },
+  "admin": {
+    "menu": "Administration",
+    "usersTitle": "Users",
+    "usersSubtitle": "Deactivate accounts and manage admins.",
+    "auditTitle": "Audit log",
+    "auditSubtitle": "Every admin action, newest first.",
+    "searchUsers": "Search by name, @username or email",
+    "loadFailed": "Couldn’t load this list.",
+    "noUsers": "No users found.",
+    "roleAdmin": "Admin",
+    "deactivated": "Deactivated",
+    "you": "You",
+    "promote": "Make admin",
+    "demote": "Remove admin",
+    "deactivate": "Deactivate",
+    "reactivate": "Reactivate",
+    "saved": "Saved",
+    "auditEmpty": "No admin actions yet.",
+    "confirm": {
+      "promote": {
+        "title": "Make {{name}} an admin?",
+        "body": "Admins can deactivate users and manage other admins."
+      },
+      "demote": {
+        "title": "Remove admin from {{name}}?",
+        "body": "They keep their account but lose admin access."
+      },
+      "deactivate": {
+        "title": "Deactivate {{name}}?",
+        "body": "They are signed out everywhere immediately and can’t sign in until reactivated."
+      },
+      "reactivate": {
+        "title": "Reactivate {{name}}?",
+        "body": "They will be able to sign in again."
+      }
+    },
+    "audit": {
+      "user.deactivate": "{{actor}} deactivated {{target}}",
+      "user.reactivate": "{{actor}} reactivated {{target}}",
+      "user.promote": "{{actor}} made {{target}} an admin",
+      "user.demote": "{{actor}} removed admin from {{target}}"
+    }
+  },
+  "people": {
+    "title": "New chat",
+    "search": "Search name, @username or email",
+    "searching": "Searching…",
+    "failed": "Search failed. Try again.",
+    "noResults": "No one found.",
+    "empty": "No colleagues yet.",
+    "results": "People",
+    "suggested": "Suggested",
+    "recentAndSuggested": "Recent & suggested",
+    "back": "Back",
+    "message": "Message",
+    "chatSoon": "Chats arrive in the next update.",
+    "deactivated": "This account has been deactivated."
+  },
+  "notMe": {
+    "title": "Secure your account",
+    "subtitle": "Signing your account out on every device.",
+    "working": "Signing out everywhere…",
+    "doneTitle": "All devices are signed out",
+    "done_one": "{{count}} session was ended. Sign in again with a new code.",
+    "done_other": "{{count}} sessions were ended. Sign in again with a new code.",
+    "expired": "This link has expired. Sign in and use Settings → Devices instead.",
+    "used": "This link has already been used or is not valid.",
+    "missing": "This link is incomplete. Open it again from the email.",
+    "signIn": "Continue"
   }
 }

@@ -2,9 +2,8 @@ import {
   requestOtpResponseSchema,
   sessionResponseSchema,
   signOutResponseSchema,
-  updateProfileResponseSchema,
 } from '@zuvo/protocol';
-import { apiGet, apiPatch, apiPost } from '@/lib/api-client';
+import { apiGet, apiPost } from '@/lib/api-client';
 
 export const authApi = {
   requestOtp: (email: string) =>
@@ -13,6 +12,4 @@ export const authApi = {
     apiPost('/v1/auth/otp/verify', { email, code }, sessionResponseSchema),
   me: () => apiGet('/v1/auth/me', sessionResponseSchema),
   logout: () => apiPost('/v1/auth/logout', {}, signOutResponseSchema),
-  updateProfile: (displayName: string) =>
-    apiPatch('/v1/me/profile', { displayName }, updateProfileResponseSchema),
 };

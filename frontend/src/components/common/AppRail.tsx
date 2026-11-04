@@ -34,7 +34,7 @@ export function AppRail() {
           aria-label={t('auth.account.open', { name })}
           className="mt-auto rounded-full"
         >
-          <Avatar name={name || '?'} className="size-10" />
+          <Avatar name={name || '?'} src={user?.avatar?.small} className="size-10" />
         </Link>
       </Tooltip>
     </nav>

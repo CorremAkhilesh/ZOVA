@@ -3,11 +3,12 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AccountSettings } from '@/features/auth/components/AccountSettings';
 import { InstallSetting } from '@/features/install/InstallUi';
+import { SettingsMenu } from '@/features/settings/SettingsMenu';
 import { ThemeSwitcher } from '@/features/theme/ThemeSwitcher';
 import { LANGUAGES } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 
-export const Route = createFileRoute('/_app/settings')({
+export const Route = createFileRoute('/_app/settings/')({
   component: Settings,
 });
 
@@ -22,13 +23,15 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-/** Settings placeholder: theme and language work; the rest arrives with accounts. */
+/** Settings: profile and account screens, appearance, language, install and sign out. */
 function Settings() {
   const { t, i18n } = useTranslation();
   return (
     <div className="h-full overflow-y-auto">
       <div className="mx-auto max-w-2xl space-y-4 p-4 md:p-8">
         <h1 className="text-2xl font-bold tracking-tight">{t('settings.title')}</h1>
+
+        <SettingsMenu />
 
         <Section title={t('settings.appearance')}>
           <div className="space-y-2">

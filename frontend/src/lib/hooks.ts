@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 
 /** Tracks a CSS media query, e.g. `useMediaQuery('(min-width: 768px)')`. */
 export function useMediaQuery(query: string): boolean {
@@ -31,4 +31,14 @@ export function useOnlineStatus(): boolean {
     () => navigator.onLine,
     () => true,
   );
+}
+
+/** `value`, updated only after it has stopped changing for `delayMs`. */
+export function useDebouncedValue<T>(value: T, delayMs = 300): T {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(value), delayMs);
+    return () => clearTimeout(timer);
+  }, [value, delayMs]);
+  return debounced;
 }

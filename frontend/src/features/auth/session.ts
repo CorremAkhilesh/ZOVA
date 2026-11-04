@@ -62,12 +62,20 @@ export async function fetchSessionState(): Promise<SessionState> {
   }
 }
 
+/**
+ * A session revoked elsewhere (Devices, "This wasn't me", deactivation) or expired is noticed
+ * within seconds: polled every 15 s while the tab is visible (TanStack pauses in the background),
+ * and re-checked whenever the app regains focus or visibility.
+ */
+export const SESSION_POLL_MS = 15_000;
+
 export const sessionQuery = queryOptions({
   queryKey: ['session'],
   queryFn: fetchSessionState,
-  staleTime: 60_000,
-  refetchInterval: 5 * 60_000,
-  refetchOnWindowFocus: true,
+  staleTime: 10_000,
+  refetchInterval: SESSION_POLL_MS,
+  refetchIntervalInBackground: false,
+  refetchOnWindowFocus: 'always',
   retry: false,
 });
 

@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it } from 'vitest';
 import { i18n } from '@/lib/i18n';
 import { axe } from '@/test/axe';
-import { HttpResponse, http, server, sessionFixture, signedOut } from '@/test/msw';
+import { HttpResponse, http, profileFixture, server, sessionFixture, signedOut } from '@/test/msw';
 import { renderApp } from '@/test/render-app';
 import { useAuthFlow } from './flow-store';
 
@@ -226,7 +226,14 @@ describe('code step', () => {
 describe('name step', () => {
   async function startAtName() {
     server.use(
-      http.get('*/v1/auth/me', () => HttpResponse.json(sessionFixture({ needsProfile: true }))),
+      http.get('*/v1/auth/me', () => {
+        const base = sessionFixture();
+        return HttpResponse.json({
+          ...base,
+          user: { ...base.user, displayName: null, username: null },
+          needsProfile: true,
+        });
+      }),
     );
     const result = await renderApp('/welcome/name');
     return { ...result, user: userEvent.setup() };
@@ -240,23 +247,50 @@ describe('name step', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('Enter your name');
   });
 
-  it('saves the name and opens the chats', async () => {
+  it('suggests a username from the email and checks it live', async () => {
+    const { user } = await startAtName();
+    const field = screen.getByRole('textbox', { name: 'Username' });
+    await waitFor(() => expect(field).toHaveValue('kiran'));
+    await user.clear(field);
+    await user.type(field, 'ab');
+    expect(screen.getByText('At least 3 characters.')).toBeInTheDocument();
+    await user.clear(field);
+    await user.type(field, 'taken');
+    expect(await screen.findByText('This username is taken.')).toBeInTheDocument();
+    await user.clear(field);
+    await user.type(field, 'Asha.V');
+    expect(await screen.findByText('Available')).toBeInTheDocument();
+  });
+
+  it('saves the name and username, then opens the chats', async () => {
     const { user, router } = await startAtName();
+    const sent: Record<string, unknown> = {};
     server.use(
       http.patch('*/v1/me/profile', async ({ request }) => {
-        const { displayName } = (await request.json()) as { displayName: string };
-        return HttpResponse.json({ user: { ...sessionFixture().user, displayName } });
+        Object.assign(sent, await request.json());
+        return HttpResponse.json({ profile: profileFixture({ username: null }) });
+      }),
+      http.put('*/v1/me/username', async ({ request }) => {
+        Object.assign(sent, await request.json());
+        return HttpResponse.json({ profile: profileFixture({ displayName: 'Asha Verma' }) });
       }),
     );
     await user.type(screen.getByRole('textbox', { name: 'Your name' }), 'Asha Verma');
+    await waitFor(() =>
+      expect(screen.getByRole('textbox', { name: 'Username' })).toHaveValue('kiran'),
+    );
     await user.click(screen.getByRole('button', { name: 'Continue' }));
     await waitFor(() => expect(router.state.location.pathname).toBe('/chats'));
+    expect(sent).toEqual({ displayName: 'Asha Verma', username: 'kiran' });
   });
 
   it('shows server errors', async () => {
     const { user } = await startAtName();
     server.use(http.patch('*/v1/me/profile', () => HttpResponse.error()));
     await user.type(screen.getByRole('textbox', { name: 'Your name' }), 'Asha');
+    await waitFor(() =>
+      expect(screen.getByRole('textbox', { name: 'Username' })).toHaveValue('kiran'),
+    );
     await user.click(screen.getByRole('button', { name: 'Continue' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Can’t reach the server');
   });

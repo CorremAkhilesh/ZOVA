@@ -24,7 +24,7 @@ export function AccountSettings() {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
-        <Avatar name={name} className="size-12" />
+        <Avatar name={name} src={user.avatar?.small} className="size-12" />
         <div className="min-w-0">
           <p className="truncate font-semibold">{name}</p>
           <p className="truncate text-sm text-text-muted">{user.email}</p>
