@@ -104,8 +104,8 @@ and `/socket.io` are proxied to the backend, so cookies are same-origin in devel
 | `pnpm --filter @zuvo/frontend test:e2e`      | Playwright smoke test (Chromium locally)         |
 | `pnpm --filter @zuvo/frontend build`         | Production build into `frontenddist`             |
 
-The chat screens currently show **sample data** (marked "Sample data") so the design can be judged
-before the real chat features exist.
+The chat screens read from a local database (Dexie) that the sync engine keeps up to date, so they
+work offline. See `docs/protocol.md`.
 
 ---
 

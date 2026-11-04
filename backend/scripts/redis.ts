@@ -19,7 +19,9 @@ const MEMURAI_EXE = 'C:\\Program Files\\Memurai\\memurai.exe';
 const SHARED_PORT = 6379;
 const START_TIMEOUT_MS = 15_000;
 
-const root = fileURLToPath(new URL('../storage/redis/', import.meta.url));
+// ZUVO_REDIS_HOME: another folder, to try this script beside a Redis that is already running.
+const root =
+  process.env.ZUVO_REDIS_HOME ?? fileURLToPath(new URL('../storage/redis/', import.meta.url));
 const dataDir = `${root}data`;
 const confPath = `${root}memurai.conf`;
 const logPath = `${root}memurai.log`;
@@ -110,6 +112,8 @@ async function withClient<T>(
   run: (c: Redis) => Promise<T>,
 ): Promise<T> {
   const client = new Redis({ host: '127.0.0.1', port, password, maxRetriesPerRequest: 1 });
+  // SHUTDOWN drops the connection on purpose.
+  client.on('error', () => {});
   try {
     return await run(client);
   } finally {

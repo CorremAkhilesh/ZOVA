@@ -1,12 +1,21 @@
+import { randomBytes } from 'node:crypto';
+import { objectIdSchema } from '@zuvo/protocol';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { z } from 'zod';
+import { sendMessage } from '../../chats/messages.service.ts';
 import { AppError } from '../../lib/errors.ts';
 import type { MemoryMailer } from '../../mail/memory-mailer.ts';
 import { usersModel } from '../../users/user-record.ts';
 
+const uuidv7 = () => {
+  const time = Date.now().toString(16).padStart(12, '0');
+  const random = randomBytes(10).toString('hex');
+  return `${time.slice(0, 8)}-${time.slice(8)}-7${random.slice(0, 3)}-a${random.slice(3, 6)}-${random.slice(6, 18)}`;
+};
+
 /**
  * TEST ONLY: lets E2E tests read the latest email (and so the OTP) sent to an address,
- * lift OTP resend limits and promote an account to admin.
+ * lift OTP resend limits, promote an account to admin and fill a chat with messages.
  * Registered only when NODE_ENV=test with the in-memory mailer — never in development or production.
  */
 export function outboxRoutes(mailer: MemoryMailer): FastifyPluginAsyncZod {
@@ -59,6 +68,36 @@ export function outboxRoutes(mailer: MemoryMailer): FastifyPluginAsyncZod {
           { $set: { role: 'admin' } },
         );
         return { promoted: result.matchedCount === 1 };
+      },
+    );
+
+    // A long chat for E2E, past the socket's rate limit. "seeded 1", "seeded 2"… from one member.
+    app.post(
+      '/test/seed-messages',
+      {
+        schema: {
+          hide: true,
+          body: z.object({
+            chatId: objectIdSchema,
+            email: z.email(),
+            count: z.number().int().min(1).max(500),
+          }),
+          response: { 200: z.object({ seeded: z.number() }) },
+        },
+      },
+      async (request) => {
+        const { chatId, email, count } = request.body;
+        const sender = await usersModel(app).findOne({ email: email.toLowerCase() }).lean();
+        if (!sender) throw new AppError('NOT_FOUND', 'No such user.');
+        for (let n = 1; n <= count; n++) {
+          await sendMessage(app, {
+            userId: String(sender._id),
+            chatId,
+            clientMsgId: uuidv7(),
+            text: `seeded ${n}`,
+          });
+        }
+        return { seeded: count };
       },
     );
   };

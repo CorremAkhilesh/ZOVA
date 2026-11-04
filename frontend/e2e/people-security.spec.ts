@@ -40,7 +40,7 @@ test('two colleagues: profile, people search, devices and admin deactivation', a
   await crop.getByRole('button', { name: 'Use photo' }).click();
   await expect(a.getByRole('button', { name: 'Remove photo' })).toBeVisible(SLOW);
 
-  // B: finds A in the people picker and opens the profile card.
+  // B: finds A in the people picker, and the chat opens with A's @username in the header.
   await open(b, '/chats');
   await b.getByRole('button', { name: 'New chat' }).click();
   const picker = b.getByRole('dialog', { name: 'New chat' });
@@ -50,9 +50,8 @@ test('two colleagues: profile, people search, devices and admin deactivation', a
   await expect(picker.getByRole('option')).toHaveCount(1, SLOW);
   await expect(picker.getByRole('option', { name: /Asha Verma/ })).toBeVisible();
   await picker.getByRole('combobox').press('Enter');
-  await expect(picker.getByRole('heading', { name: 'Asha Verma' })).toBeVisible(SLOW);
-  await expect(picker.getByText(`@${username}`)).toBeVisible();
-  await b.keyboard.press('Escape');
+  await expect(b.getByText(`@${username}`)).toBeVisible(SLOW);
+  await expect(b.getByRole('heading', { name: 'Asha Verma' })).toBeAttached();
 
   // A signs in on a second device, then signs it out from Settings → Devices.
   const a2 = await newPage(browser);

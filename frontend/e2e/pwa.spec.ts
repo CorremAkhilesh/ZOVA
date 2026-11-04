@@ -55,12 +55,16 @@ test('app shell loads offline', async ({ page, context }) => {
   // Signed in once online; offline the app opens from the cached shell + last known session.
   await signUp(page);
   await waitForActiveServiceWorker(page);
+  await page.getByRole('link', { name: /Saved Messages/ }).click();
+  await expect(page).toHaveURL(/\/chats\/[0-9a-f]{24}$/);
+  const chatUrl = page.url();
   await context.setOffline(true);
-  await page.goto('/chats/asha');
-  await expect(page.getByRole('list', { name: 'Asha Verma' })).toBeVisible();
+  const composer = page.getByRole('textbox', { name: 'Write a message' });
+  await page.goto(chatUrl);
+  await expect(composer).toBeVisible();
   // Reloading the same deep link offline must work too (on phones this URL shows only the chat).
   await page.reload();
-  await expect(page.getByRole('list', { name: 'Asha Verma' })).toBeVisible();
+  await expect(composer).toBeVisible();
   await context.setOffline(false);
 });
 
