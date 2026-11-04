@@ -46,6 +46,18 @@ const envSchema = z
       emptyToUndefined,
       z.string().optional().transform(parseAllowedDomains),
     ),
+    /** Signs session cookies. At least 32 random characters; unique per environment. */
+    AUTH_SECRET: z.string().min(32, 'must be at least 32 characters'),
+    /** Emails that get the admin role on first login. */
+    ADMIN_EMAILS: z.preprocess(
+      emptyToUndefined,
+      z
+        .string()
+        .optional()
+        .transform((value) => (value ? commaList(value).map((email) => email.toLowerCase()) : [])),
+    ),
+    /** OTP requests allowed per client IP per hour. */
+    OTP_IP_LIMIT_PER_HOUR: z.coerce.number().int().min(1).max(10_000).default(30),
     MEDIA_STORAGE_PATH: z
       .string()
       .min(1)

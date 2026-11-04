@@ -26,6 +26,9 @@ export function testEnvSource(overrides: Record<string, string | undefined> = {}
     SMTP_PASS: 'test-password',
     MAIL_FROM: 'nova@corremadvisory.com',
     ALLOWED_EMAIL_DOMAINS: 'corremadvisory.com',
+    AUTH_SECRET: 'test-secret-test-secret-test-secret-123',
+    ADMIN_EMAILS: 'admin@corremadvisory.com',
+    OTP_IP_LIMIT_PER_HOUR: '30',
     MEDIA_STORAGE_PATH: './storage/test',
     LOG_LEVEL: 'silent',
     ...overrides,
@@ -49,16 +52,21 @@ export async function makeTempDir(
  * Builds the app against the in-memory MongoDB with a throwaway `zuvo_test_<random>` database.
  * `cleanup` drops the database, closes the app and removes the temp media folder.
  */
-export async function buildTestApp(deps: Partial<AppDeps> = {}) {
+export async function buildTestApp(
+  deps: Partial<AppDeps> = {},
+  envOverrides: Record<string, string | undefined> = {},
+) {
   const media = await makeTempDir('media');
   const env: Env = loadEnv(
     testEnvSource({
       MONGODB_URI: inject('mongoUri'),
       MONGODB_DB: `zuvo_test_${randomBytes(6).toString('hex')}`,
       MEDIA_STORAGE_PATH: media.path,
+      ...envOverrides,
     }),
   );
-  const app = await buildApp(env, { redis: null, mailer: fakeMailer, ...deps });
+  // No mailer override: test mode uses the in-memory mailer, so tests can read OTPs.
+  const app = await buildApp(env, { redis: null, ...deps });
 
   const cleanup = async () => {
     await app.mongo.dropDatabase();
