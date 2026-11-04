@@ -48,7 +48,7 @@ describe('ConnectionStatus', () => {
     onLine.mockRestore();
   });
 
-  it('shows "server unreachable" when /v1/health fails', async () => {
+  it('shows "Can’t reach server" when online but /v1/health fails', async () => {
     server.use(
       http.get('*/v1/health', () =>
         HttpResponse.json(
@@ -59,7 +59,8 @@ describe('ConnectionStatus', () => {
     );
     renderStatus();
     // healthQuery retries once before reporting the error.
-    const pill = await screen.findByText('Offline', {}, { timeout: 4000 });
+    const pill = await screen.findByText('Can’t reach server', {}, { timeout: 4000 });
+    expect(screen.queryByText('Offline')).not.toBeInTheDocument();
     expect(pill).toHaveAttribute('role', 'status');
     // Focusable trigger for the explanatory tooltip.
     expect(pill.closest('button')).toBeInTheDocument();
