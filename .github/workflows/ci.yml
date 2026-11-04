@@ -108,6 +108,8 @@ jobs:
     timeout-minutes: 30
     env:
       CI: true
+      # The E2E API (backend e2e:server) runs on an in-memory MongoDB.
+      MONGOMS_DOWNLOAD_DIR: ${{ github.workspace }}/.cache/mongodb-binaries
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
@@ -120,13 +122,21 @@ jobs:
           restore-keys: |
             playwright-${{ runner.os }}-
 
+      - name: Cache MongoDB binary (mongodb-memory-server)
+        uses: actions/cache@v6
+        with:
+          path: ${{ env.MONGOMS_DOWNLOAD_DIR }}
+          key: mongodb-binaries-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            mongodb-binaries-${{ runner.os }}-
+
       - name: Install Playwright browsers and system dependencies
         run: pnpm --filter @zuvo/frontend exec playwright install --with-deps chromium firefox webkit
 
       - name: Build the frontend
         run: pnpm --filter @zuvo/frontend build
 
-      - name: Run Playwright against vite preview
+      - name: Run Playwright (vite preview + in-memory test API)
         run: pnpm --filter @zuvo/frontend test:e2e:ci
 
       - name: Upload Playwright report and traces

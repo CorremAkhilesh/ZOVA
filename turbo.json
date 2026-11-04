@@ -23,6 +23,10 @@
     },
     "clean": {
       "cache": false
+    },
+    "dev:worker": {
+      "cache": false,
+      "persistent": true
     }
   }
 }
