@@ -1,104 +1,183 @@
-import { Mic, Paperclip, SendHorizontal, Smile, X } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
-import { useState } from 'react';
+import { MESSAGE_TEXT_MAX } from '@zuvo/protocol';
+import { Mic, Paperclip, SendHorizontal } from 'lucide-react';
+import {
+  type ChangeEvent,
+  type FormEvent,
+  type KeyboardEvent,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import { useTranslation } from 'react-i18next';
+import { ComingSoonButton } from '@/components/common/ComingSoonButton';
 import { Button } from '@/components/ui/button';
-import type { ChatMessage } from '../types';
-import { ME } from '../types';
+import { useSyncStore } from '@/features/sync/store';
+import { useIsDesktop } from '@/lib/hooks';
+import { cn } from '@/lib/utils';
+import { useLocalDb } from '../queries';
+import { EmojiPicker } from './EmojiPicker';
+
+/** The counter appears this close to the limit. */
+const COUNTER_FROM = 200;
+const DRAFT_SAVE_MS = 300;
 
 interface ComposerProps {
-  replyTo: ChatMessage | null;
-  onCancelReply: () => void;
+  chatId: string;
+  onSent: () => void;
 }
 
-/** Message input. Sending is not wired yet — this step is layout only. */
-export function Composer({ replyTo, onCancelReply }: ComposerProps) {
-  const { t } = useTranslation();
+/** A draft per chat, in Dexie, so a sign-out wipes it with everything else. */
+function useDraft(chatId: string) {
+  const db = useLocalDb();
   const [text, setText] = useState('');
+  const latest = useRef({ text: '', dirty: false });
+
+  useEffect(() => {
+    let cancelled = false;
+    void db?.drafts
+      .get(chatId)
+      .then((draft) => {
+        if (!cancelled && draft && !latest.current.dirty) setText(draft.text);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [chatId, db]);
+
+  const save = () => {
+    if (!latest.current.dirty) return;
+    latest.current.dirty = false;
+    const { text: value } = latest.current;
+    const write = async () => {
+      if (value) await db?.drafts.put({ chatId, text: value });
+      else await db?.drafts.delete(chatId);
+    };
+    void write().catch(() => undefined);
+  };
+
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const saveRef = useRef(save);
+  saveRef.current = save;
+  // Leaving the chat saves right away rather than waiting for the timer.
+  useEffect(
+    () => () => {
+      clearTimeout(timer.current);
+      saveRef.current();
+    },
+    [],
+  );
+
+  return {
+    text,
+    update(next: string) {
+      setText(next);
+      latest.current = { text: next, dirty: true };
+      clearTimeout(timer.current);
+      timer.current = setTimeout(() => saveRef.current(), DRAFT_SAVE_MS);
+    },
+  };
+}
+
+export function Composer({ chatId, onSent }: ComposerProps) {
+  const { t } = useTranslation();
+  const isDesktop = useIsDesktop();
+  const client = useSyncStore((state) => state.client);
+  const { text, update } = useDraft(chatId);
+  const field = useRef<HTMLTextAreaElement>(null);
   const hasText = text.trim().length > 0;
+  const remaining = MESSAGE_TEXT_MAX - text.length;
+  const canSend = hasText && remaining >= 0 && client !== null;
+
+  // Grows with the text, up to the field's max height.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `text` changes the content being measured
+  useLayoutEffect(() => {
+    const element = field.current;
+    if (!element) return;
+    element.style.height = 'auto';
+    element.style.height = `${element.scrollHeight}px`;
+  }, [text]);
+
+  function send() {
+    if (!canSend) return;
+    void client?.sendText(chatId, text);
+    update('');
+    onSent();
+    field.current?.focus();
+  }
+
+  function onSubmit(event: FormEvent) {
+    event.preventDefault();
+    send();
+  }
+
+  function onKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+    // isComposing: Enter is confirming a word in a Hindi (or any other) input method.
+    if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing) return;
+    // Phones and tablets have no Shift key to hand: Enter makes a new line, the button sends.
+    if (!isDesktop) return;
+    event.preventDefault();
+    send();
+  }
+
+  function insertEmoji(emoji: string) {
+    const element = field.current;
+    const start = element?.selectionStart ?? text.length;
+    const end = element?.selectionEnd ?? text.length;
+    update(`${text.slice(0, start)}${emoji}${text.slice(end)}`);
+    requestAnimationFrame(() => {
+      element?.focus();
+      element?.setSelectionRange(start + emoji.length, start + emoji.length);
+    });
+  }
 
   return (
     // Same horizontal padding and max width as the message column, so they line up.
     <div className="glass border-t pt-2 pr-[max(0.75rem,env(safe-area-inset-right))] pb-[max(0.75rem,env(safe-area-inset-bottom))] pl-[max(0.75rem,env(safe-area-inset-left))] md:px-8">
       <div className="mx-auto max-w-3xl">
-        <AnimatePresence initial={false}>
-          {replyTo ? (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="overflow-hidden"
-            >
-              <div className="mb-2 flex items-start gap-2 rounded-xl border-l-4 border-brand bg-background px-3 py-2">
-                <div className="min-w-0 flex-1 text-sm">
-                  <p className="font-semibold text-brand-text">
-                    {t('conversation.replyingTo', {
-                      name: replyTo.authorId === ME ? t('chats.you') : replyTo.authorName,
-                    })}
-                  </p>
-                  <p className="truncate text-text-muted">{replyTo.text}</p>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  onClick={onCancelReply}
-                  aria-label={t('conversation.cancelReply')}
-                >
-                  <X className="size-4" />
-                </Button>
-              </div>
-            </motion.div>
-          ) : null}
-        </AnimatePresence>
-
-        <form className="flex items-end gap-1.5" onSubmit={(event) => event.preventDefault()}>
-          <Button type="button" variant="ghost" size="icon" aria-label={t('conversation.emoji')}>
-            <Smile className="size-5" />
-          </Button>
-          <Button type="button" variant="ghost" size="icon" aria-label={t('conversation.attach')}>
-            <Paperclip className="size-5" />
-          </Button>
+        {remaining <= COUNTER_FROM ? (
+          <p
+            role="status"
+            className={cn(
+              'mb-1 text-right text-xs tabular-nums',
+              remaining < 0 ? 'font-semibold text-danger' : 'text-text-muted',
+            )}
+          >
+            {remaining < 0
+              ? t('conversation.tooLong', { count: -remaining })
+              : t('conversation.charsLeft', { count: remaining })}
+          </p>
+        ) : null}
+        <form className="flex items-end gap-1.5" onSubmit={onSubmit}>
+          <EmojiPicker onPick={insertEmoji} />
+          <ComingSoonButton label={t('conversation.attach')} icon={Paperclip} />
           <label className="sr-only" htmlFor="composer-input">
             {t('conversation.composerPlaceholder')}
           </label>
           <textarea
             id="composer-input"
+            ref={field}
             rows={1}
             value={text}
-            onChange={(event) => setText(event.target.value)}
+            onChange={(event: ChangeEvent<HTMLTextAreaElement>) => update(event.target.value)}
+            onKeyDown={onKeyDown}
             placeholder={t('conversation.composerPlaceholder')}
             className="max-h-36 min-h-10 flex-1 resize-none rounded-2xl border bg-surface px-4 py-2.5 text-[15px] text-text outline-none placeholder:text-text-muted focus-visible:border-brand focus-visible:ring-3 focus-visible:ring-brand/20"
           />
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.div
-              key={hasText ? 'send' : 'voice'}
-              initial={{ scale: 0.6, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.6, opacity: 0 }}
-              transition={{ duration: 0.12 }}
+          {hasText ? (
+            <Button
+              type="submit"
+              size="icon"
+              className="rounded-full"
+              disabled={!canSend}
+              aria-label={t('conversation.send')}
             >
-              {hasText ? (
-                <Button
-                  type="submit"
-                  size="icon"
-                  className="rounded-full"
-                  aria-label={t('conversation.send')}
-                >
-                  <SendHorizontal className="size-5" />
-                </Button>
-              ) : (
-                <Button
-                  type="button"
-                  variant="accent"
-                  size="icon"
-                  className="rounded-full"
-                  aria-label={t('conversation.voice')}
-                >
-                  <Mic className="size-5" />
-                </Button>
-              )}
-            </motion.div>
-          </AnimatePresence>
+              <SendHorizontal className="size-5" />
+            </Button>
+          ) : (
+            <ComingSoonButton label={t('conversation.voice')} icon={Mic} />
+          )}
         </form>
       </div>
     </div>

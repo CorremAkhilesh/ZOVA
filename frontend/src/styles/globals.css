@@ -188,6 +188,12 @@
   animation: shake 0.4s var(--ease-standard);
 }
 
+/* Rows off screen skip layout and paint, so a long chat list stays quick. */
+.chat-row {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 68px;
+}
+
 .chat-wallpaper {
   background-color: var(--color-background);
   background-image: radial-gradient(

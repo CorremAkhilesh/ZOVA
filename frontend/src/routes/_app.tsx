@@ -5,6 +5,7 @@ import { ErrorScreen, NotFound } from '@/components/common/StatusScreens';
 import { SessionGate } from '@/features/auth/components/SessionGate';
 import { requireCompleteSession } from '@/features/auth/guards';
 import { InstallBanner } from '@/features/install/InstallUi';
+import { useSyncClient } from '@/features/sync/use-sync-client';
 import { useIsDesktop } from '@/lib/hooks';
 
 export const Route = createFileRoute('/_app')({
@@ -21,6 +22,7 @@ export const Route = createFileRoute('/_app')({
  * conversation is open so it can use the full screen.
  */
 function AppShell() {
+  useSyncClient();
   const isDesktop = useIsDesktop();
   const matchRoute = useMatchRoute();
   const inConversation = Boolean(matchRoute({ to: '/chats/$chatId' }));

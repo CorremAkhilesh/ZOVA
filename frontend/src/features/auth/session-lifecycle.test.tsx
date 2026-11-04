@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it } from 'vitest';
 import { HttpResponse, http, server, sessionFixture, signedOut } from '@/test/msw';
 import { DESKTOP_WIDTH, renderApp } from '@/test/render-app';
-import { fakeSockets } from '@/test/socket-mock';
+import { fakeSockets, lastSocket } from '@/test/socket-mock';
 import { useAuthFlow } from './flow-store';
 import { sessionQuery, sessionSnapshot } from './session';
 
@@ -132,12 +132,6 @@ describe('account settings', () => {
 });
 
 describe('session push over the socket', () => {
-  const lastSocket = () => {
-    const socket = fakeSockets.at(-1);
-    if (!socket) throw new Error('no socket opened');
-    return socket;
-  };
-
   it('returns to the welcome screen at once when the server revokes the session', async () => {
     const { router } = await renderApp('/chats');
     await waitFor(() => expect(fakeSockets.length).toBeGreaterThan(0));

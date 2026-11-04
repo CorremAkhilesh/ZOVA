@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildTimeline, dayKind, filterChats, formatListTime } from './chat-utils';
-import { MOCK_CHATS } from './mock-data';
-import { type ChatMessage, ME } from './types';
+import { type ChatMessage, type ChatSummary, ME } from './types';
 
 const now = new Date(2026, 10, 4, 15, 0);
 const at = (day: number, hour: number, minute = 0) => new Date(2026, 10, day, hour, minute);
@@ -36,9 +35,9 @@ describe('buildTimeline', () => {
 
   it('adds a date separator per day and groups consecutive messages by author', () => {
     const items = buildTimeline([
-      msg('c', ME, at(4, 10, 3)),
       msg('a', 'Asha', at(3, 10, 0)),
       msg('b', ME, at(4, 10, 0)),
+      msg('c', ME, at(4, 10, 3)),
       msg('d', ME, at(4, 10, 30)),
     ]);
     expect(items.map((item) => (item.type === 'date' ? 'date' : item.message.id))).toEqual([
@@ -61,33 +60,73 @@ describe('buildTimeline', () => {
     ]);
   });
 
+  it('keeps the chat order even when a clock disagrees', () => {
+    const items = buildTimeline([msg('late clock', ME, at(4, 11)), msg('next', 'Asha', at(4, 10))]);
+    expect(items.flatMap((item) => (item.type === 'message' ? [item.message.id] : []))).toEqual([
+      'late clock',
+      'next',
+    ]);
+  });
+
+  it('gives every row its own key, even if a clock repeats a day', () => {
+    const keys = buildTimeline([
+      msg('a', ME, at(4, 10)),
+      msg('b', ME, at(3, 10)),
+      msg('c', ME, at(4, 10)),
+    ]).map((item) => item.key);
+    expect(new Set(keys).size).toBe(keys.length);
+  });
+
   it('returns nothing for an empty chat', () => {
     expect(buildTimeline([])).toEqual([]);
   });
 });
 
 describe('filterChats', () => {
-  it('puts pinned chats first, then newest first', () => {
-    const result = filterChats(MOCK_CHATS, 'all', '');
-    const firstUnpinned = result.findIndex((chat) => !chat.pinned);
-    expect(result.slice(0, firstUnpinned).every((chat) => chat.pinned)).toBe(true);
-    const rest = result.slice(firstUnpinned).map((chat) => chat.lastMessage.at.getTime());
-    expect(rest).toEqual([...rest].sort((a, b) => b - a));
+  const chat = (id: string, overrides: Partial<ChatSummary> = {}): ChatSummary => ({
+    id,
+    name: id,
+    kind: 'personal',
+    pinned: false,
+    muted: false,
+    unread: 0,
+    activityAt: at(1, 9),
+    lastMessage: null,
+    ...overrides,
+  });
+  const CHATS = [
+    chat('Asha Verma', { activityAt: at(2, 9), unread: 2 }),
+    chat('Saved Messages', { kind: 'saved', activityAt: at(1, 9) }),
+    chat('Rahul', { activityAt: at(3, 9) }),
+    chat('Design team', { kind: 'group', activityAt: at(4, 9), pinned: true }),
+  ];
+  const names = (chats: ChatSummary[]) => chats.map((item) => item.name);
+
+  it('puts Saved Messages first, then pinned chats, then the latest activity', () => {
+    expect(names(filterChats(CHATS, 'all', ''))).toEqual([
+      'Saved Messages',
+      'Design team',
+      'Rahul',
+      'Asha Verma',
+    ]);
   });
 
-  it.each([
-    ['unread', (c: (typeof MOCK_CHATS)[number]) => c.unread > 0],
-    ['groups', (c: (typeof MOCK_CHATS)[number]) => c.kind === 'group'],
-    ['personal', (c: (typeof MOCK_CHATS)[number]) => c.kind === 'personal'],
-  ] as const)('filters the %s folder', (folder, predicate) => {
-    const result = filterChats(MOCK_CHATS, folder, '');
-    expect(result.length).toBeGreaterThan(0);
-    expect(result.every(predicate)).toBe(true);
+  it('filters by folder', () => {
+    expect(names(filterChats(CHATS, 'unread', ''))).toEqual(['Asha Verma']);
+    expect(names(filterChats(CHATS, 'groups', ''))).toEqual(['Design team']);
+    expect(names(filterChats(CHATS, 'personal', ''))).toEqual([
+      'Saved Messages',
+      'Rahul',
+      'Asha Verma',
+    ]);
   });
 
-  it('searches names and last messages case-insensitively', () => {
-    expect(filterChats(MOCK_CHATS, 'all', 'ASHA').map((c) => c.id)).toEqual(['asha']);
-    expect(filterChats(MOCK_CHATS, 'all', 'q3 deck').map((c) => c.id)).toEqual(['rahul']);
-    expect(filterChats(MOCK_CHATS, 'all', 'nothing-matches')).toEqual([]);
+  it('searches names case-insensitively, and not the message text', () => {
+    const withText = chat('Rahul', {
+      lastMessage: { authorId: 'x', authorName: 'x', text: 'q3 deck', at: at(1, 9) },
+    });
+    expect(names(filterChats(CHATS, 'all', 'ASHA'))).toEqual(['Asha Verma']);
+    expect(filterChats([withText], 'all', 'deck')).toEqual([]);
+    expect(filterChats(CHATS, 'all', 'nothing-matches')).toEqual([]);
   });
 });

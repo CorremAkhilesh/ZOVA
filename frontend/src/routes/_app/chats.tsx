@@ -2,6 +2,9 @@ import { createFileRoute, Outlet, useMatchRoute } from '@tanstack/react-router';
 import { Group, Panel, Separator } from 'react-resizable-panels';
 import { ChatListSkeleton } from '@/components/common/ChatListSkeleton';
 import { ChatListPane } from '@/features/chats/components/ChatListPane';
+import { useNewChat } from '@/features/chats/new-chat-store';
+import { useChatShortcuts } from '@/features/chats/use-chat-shortcuts';
+import { PeoplePicker } from '@/features/people/components/PeoplePicker';
 import { useIsDesktop } from '@/lib/hooks';
 
 export const Route = createFileRoute('/_app/chats')({
@@ -14,25 +17,34 @@ function ChatsLayout() {
   const isDesktop = useIsDesktop();
   const matchRoute = useMatchRoute();
   const chatOpen = Boolean(matchRoute({ to: '/chats/$chatId' }));
+  const pickerOpen = useNewChat((state) => state.isOpen);
+  const setPickerOpen = useNewChat((state) => state.setOpen);
+  useChatShortcuts(chatOpen);
 
-  if (!isDesktop) {
-    return chatOpen ? <Outlet /> : <ChatListPane />;
-  }
   return (
-    <Group orientation="horizontal" id="zuvo-chats-layout" className="h-full">
-      <Panel
-        id="chat-list"
-        defaultSize="32"
-        minSize="300px"
-        maxSize="50"
-        className="glass border-r"
-      >
-        <ChatListPane />
-      </Panel>
-      <Separator className="w-1 bg-transparent transition-colors hover:bg-brand/30 data-[separator=active]:bg-brand/50" />
-      <Panel id="conversation" minSize="40">
+    <>
+      <PeoplePicker open={pickerOpen} onOpenChange={setPickerOpen} />
+      {isDesktop ? (
+        <Group orientation="horizontal" id="zuvo-chats-layout" className="h-full">
+          <Panel
+            id="chat-list"
+            defaultSize="32"
+            minSize="300px"
+            maxSize="50"
+            className="glass border-r"
+          >
+            <ChatListPane />
+          </Panel>
+          <Separator className="w-1 bg-transparent transition-colors hover:bg-brand/30 data-[separator=active]:bg-brand/50" />
+          <Panel id="conversation" minSize="40">
+            <Outlet />
+          </Panel>
+        </Group>
+      ) : chatOpen ? (
         <Outlet />
-      </Panel>
-    </Group>
+      ) : (
+        <ChatListPane />
+      )}
+    </>
   );
 }

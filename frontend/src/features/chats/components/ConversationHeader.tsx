@@ -1,10 +1,10 @@
 import { Link } from '@tanstack/react-router';
 import { ArrowLeft, Info, Phone, Search, Video } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Avatar } from '@/components/ui/avatar';
+import { ComingSoonButton } from '@/components/common/ComingSoonButton';
 import { Button } from '@/components/ui/button';
-import { formatListTime } from '../chat-utils';
 import type { ChatSummary } from '../types';
+import { ChatAvatar } from './ChatAvatar';
 
 interface ConversationHeaderProps {
   chat: ChatSummary;
@@ -19,20 +19,13 @@ export function ConversationHeader({
   onToggleInfo,
   infoOpen,
 }: ConversationHeaderProps) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
 
-  let subtitle: string;
-  if (chat.kind === 'group') subtitle = t('conversation.members', { count: chat.memberCount ?? 0 });
-  else if (chat.online) subtitle = t('conversation.online');
-  else if (chat.lastSeenAt) {
-    const time = formatListTime(
-      chat.lastSeenAt,
-      new Date(),
-      i18n.language,
-      t('conversation.yesterday'),
-    );
-    subtitle = t('conversation.lastSeen', { time });
-  } else subtitle = '';
+  let subtitle = '';
+  if (chat.kind === 'saved') subtitle = t('chats.savedHint');
+  else if (chat.kind === 'group')
+    subtitle = t('conversation.members', { count: chat.memberCount ?? 0 });
+  else if (chat.username) subtitle = `@${chat.username}`;
 
   return (
     <header className="glass flex h-16 shrink-0 items-center gap-2 border-b px-2 md:px-4">
@@ -50,38 +43,20 @@ export function ConversationHeader({
         aria-label={t('conversation.info')}
         aria-expanded={infoOpen}
       >
-        <Avatar name={chat.name} online={chat.online === true} className="size-10" />
+        <ChatAvatar chat={chat} className="size-10" />
         <span className="min-w-0">
           <span className="block truncate font-semibold">{chat.name}</span>
-          <span
-            className={
-              chat.online ? 'block text-xs text-accent-text' : 'block text-xs text-text-muted'
-            }
-          >
-            {subtitle}
-          </span>
+          <span className="block truncate text-xs text-text-muted">{subtitle}</span>
         </span>
       </button>
       <div className="flex items-center">
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label={t('placeholder.callsTitle')}
+        <ComingSoonButton
+          label={t('placeholder.callsTitle')}
+          icon={Video}
           className="hidden sm:inline-flex"
-        >
-          <Video className="size-5" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label={t('nav.calls')}
-          className="hidden sm:inline-flex"
-        >
-          <Phone className="size-5" />
-        </Button>
-        <Button variant="ghost" size="icon" aria-label={t('chats.searchPlaceholder')}>
-          <Search className="size-5" />
-        </Button>
+        />
+        <ComingSoonButton label={t('nav.calls')} icon={Phone} className="hidden sm:inline-flex" />
+        <ComingSoonButton label={t('conversation.searchInChat')} icon={Search} />
         <Button
           variant="ghost"
           size="icon"

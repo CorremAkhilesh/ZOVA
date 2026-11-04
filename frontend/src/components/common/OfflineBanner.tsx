@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { useTranslation } from 'react-i18next';
 import { useOnlineStatus } from '@/lib/hooks';
 
-/** Shown while the browser is offline. Placeholder until the offline queue exists. */
+/** Shown while the browser is offline. Messages wait in the outbox meanwhile. */
 export function OfflineBanner() {
   const { t } = useTranslation();
   const online = useOnlineStatus();

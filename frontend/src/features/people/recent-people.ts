@@ -15,6 +15,13 @@ export const recentPeople = {
       return [];
     }
   },
+  clear(): void {
+    try {
+      localStorage.removeItem(KEY);
+    } catch {
+      // Storage unavailable: nothing was saved.
+    }
+  },
   add(profile: PublicProfile): void {
     try {
       const next = [profile, ...this.load().filter((p) => p.id !== profile.id)].slice(0, MAX);

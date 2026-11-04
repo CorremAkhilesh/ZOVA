@@ -1,18 +1,11 @@
-import { createFileRoute, notFound } from '@tanstack/react-router';
-import { Conversation } from '@/features/chats/components/Conversation';
-import { findMockChat } from '@/features/chats/mock-data';
+import { createFileRoute } from '@tanstack/react-router';
+import { ChatScreen } from '@/features/chats/components/ChatScreen';
 
 export const Route = createFileRoute('/_app/chats/$chatId')({
-  // MOCK: looks the chat up in sample data until the chats API exists.
-  loader: ({ params }) => {
-    const chat = findMockChat(params.chatId);
-    if (!chat) throw notFound();
-    return { chat };
-  },
   component: ChatRoute,
 });
 
 function ChatRoute() {
-  const { chat } = Route.useLoaderData();
-  return <Conversation key={chat.id} chat={chat} />;
+  const { chatId } = Route.useParams();
+  return <ChatScreen key={chatId} chatId={chatId} />;
 }

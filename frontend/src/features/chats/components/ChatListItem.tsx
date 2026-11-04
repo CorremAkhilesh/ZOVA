@@ -1,20 +1,27 @@
 import { Link } from '@tanstack/react-router';
 import { BellOff, Pin } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { formatListTime } from '../chat-utils';
 import { type ChatSummary, ME } from '../types';
-import { DeliveryTicks } from './DeliveryTicks';
+import { ChatAvatar } from './ChatAvatar';
+
+/** In Saved Messages everything is mine, so a prefix would say nothing. */
+function previewPrefix(chat: ChatSummary, you: string): string {
+  const { lastMessage, kind } = chat;
+  if (!lastMessage || kind === 'saved') return '';
+  if (lastMessage.authorId === ME) return `${you}: `;
+  return kind === 'group' ? `${lastMessage.authorName.split(' ')[0]}: ` : '';
+}
 
 export function ChatListItem({ chat, now }: { chat: ChatSummary; now: Date }) {
   const { t, i18n } = useTranslation();
   const { lastMessage } = chat;
-  const fromMe = lastMessage.authorId === ME;
-  const time = formatListTime(lastMessage.at, now, i18n.language, t('conversation.yesterday'));
-  const authorPrefix =
-    chat.kind === 'group' && !fromMe ? `${lastMessage.authorName.split(' ')[0]}: ` : '';
+  const time = lastMessage
+    ? formatListTime(lastMessage.at, now, i18n.language, t('conversation.yesterday'))
+    : '';
+  const authorPrefix = previewPrefix(chat, t('chats.you'));
 
   return (
     <Link
@@ -26,7 +33,7 @@ export function ChatListItem({ chat, now }: { chat: ChatSummary; now: Date }) {
         'data-[status=active]:bg-brand-subtle',
       )}
     >
-      <Avatar name={chat.name} online={chat.online === true} />
+      <ChatAvatar chat={chat} />
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline justify-between gap-2">
           <span className="truncate font-semibold text-text">{chat.name}</span>
@@ -40,12 +47,15 @@ export function ChatListItem({ chat, now }: { chat: ChatSummary; now: Date }) {
           </span>
         </div>
         <div className="mt-0.5 flex items-center gap-1.5">
-          {fromMe && lastMessage.status ? (
-            <DeliveryTicks status={lastMessage.status} className="text-text-muted" />
-          ) : null}
           <p className="min-w-0 flex-1 truncate text-sm text-text-muted">
-            {authorPrefix}
-            {lastMessage.text}
+            {lastMessage ? (
+              <>
+                {authorPrefix}
+                {lastMessage.text}
+              </>
+            ) : (
+              t(chat.kind === 'saved' ? 'chats.savedHint' : 'chats.noMessages')
+            )}
           </p>
           {chat.muted ? (
             <BellOff

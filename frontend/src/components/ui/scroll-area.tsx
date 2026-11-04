@@ -1,4 +1,4 @@
-import { type ComponentProps, useCallback, useEffect, useRef } from 'react';
+import { type ComponentProps, type RefObject, useCallback, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 
 const HIDE_AFTER_MS = 900;
@@ -7,8 +7,14 @@ const HIDE_AFTER_MS = 900;
  * Native scrolling (keyboard, screen readers and touch all work as usual) with a thin, token-colored
  * scrollbar that only shows on hover, focus or while scrolling. Styles live in globals.css.
  */
-export function ScrollArea({ className, onScroll, ...props }: ComponentProps<'div'>) {
-  const ref = useRef<HTMLDivElement>(null);
+export function ScrollArea({
+  className,
+  onScroll,
+  viewportRef,
+  ...props
+}: ComponentProps<'div'> & { viewportRef?: RefObject<HTMLDivElement | null> }) {
+  const ownRef = useRef<HTMLDivElement>(null);
+  const ref = viewportRef ?? ownRef;
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   // Toggle an attribute directly: no React re-render per scroll event.
@@ -22,7 +28,7 @@ export function ScrollArea({ className, onScroll, ...props }: ComponentProps<'di
       }
       onScroll?.(event);
     },
-    [onScroll],
+    [onScroll, ref],
   );
 
   useEffect(() => () => clearTimeout(timer.current), []);

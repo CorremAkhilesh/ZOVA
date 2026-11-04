@@ -1,32 +1,20 @@
-import { useQuery } from '@tanstack/react-query';
-import { healthResponseSchema } from '@zuvo/protocol';
 import { useTranslation } from 'react-i18next';
 import { Tooltip } from '@/components/ui/tooltip';
-import { apiGet } from '@/lib/api-client';
+import { useSyncStore } from '@/features/sync/store';
 import { useOnlineStatus } from '@/lib/hooks';
 import { cn } from '@/lib/utils';
 
-export const healthQuery = {
-  queryKey: ['health'] as const,
-  queryFn: () => apiGet('/v1/health', healthResponseSchema),
-  refetchInterval: 30_000,
-  retry: 1,
-};
-
 /**
  * - offline: the device has no network (navigator.onLine is false)
- * - unreachable: online, but the API did not answer
- * - connecting: first check or a retry is in flight
+ * - unreachable: online, but the socket keeps failing to connect
+ * - connecting: the first attempt, or reconnecting after the socket dropped
  */
 export type ConnectionState = 'connected' | 'connecting' | 'unreachable' | 'offline';
 
 export function useConnectionState(): ConnectionState {
   const online = useOnlineStatus();
-  const { status, fetchStatus } = useQuery(healthQuery);
-  if (!online) return 'offline';
-  if (status === 'success') return 'connected';
-  if (status === 'pending' || fetchStatus === 'fetching') return 'connecting';
-  return 'unreachable';
+  const socket = useSyncStore((state) => state.socket);
+  return online ? socket : 'offline';
 }
 
 const PILL: Record<

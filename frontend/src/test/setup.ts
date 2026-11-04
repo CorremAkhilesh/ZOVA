@@ -1,9 +1,13 @@
 import '@testing-library/jest-dom/vitest';
+import 'fake-indexeddb/auto';
 import './socket-mock';
 import { onlineManager } from '@tanstack/react-query';
 import { cleanup } from '@testing-library/react';
 import { MotionGlobalConfig } from 'motion/react';
 import { afterAll, afterEach, beforeAll, expect } from 'vitest';
+import { useNewChat } from '@/features/chats/new-chat-store';
+import { wipeLocalDatabases } from '@/features/sync/local-db';
+import { useSyncStore } from '@/features/sync/store';
 import { i18n, initI18n } from '@/lib/i18n';
 import { axeMatchers } from './axe';
 import { installMatchMedia, resetMedia } from './media';
@@ -22,6 +26,14 @@ globalThis.ResizeObserver ??= class {
   disconnect() {}
 };
 Element.prototype.scrollIntoView ??= () => {};
+// The message list only renders what fits its viewport, and jsdom says every box is empty.
+// A very tall viewport keeps every row of a test's short chat in the page.
+for (const [name, value] of [
+  ['clientHeight', 100_000],
+  ['clientWidth', 800],
+] as const) {
+  Object.defineProperty(HTMLElement.prototype, name, { configurable: true, value });
+}
 window.scrollTo = () => {};
 // axe probes canvas for some checks; jsdom has none.
 HTMLCanvasElement.prototype.getContext = () => null;
@@ -31,6 +43,10 @@ initI18n({ language: 'en' });
 beforeAll(() => server.listen({ onUnhandledFrame: 'error' }));
 afterEach(async () => {
   cleanup();
+  useSyncStore.getState().client?.stop();
+  useSyncStore.setState({ client: null, socket: 'connecting', sync: 'syncing' });
+  useNewChat.setState({ isOpen: false });
+  await wipeLocalDatabases();
   server.resetHandlers();
   // An `offline` event in one test must not pause queries in the next (global in TanStack Query).
   onlineManager.setOnline(true);

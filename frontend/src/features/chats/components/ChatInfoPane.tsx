@@ -1,9 +1,9 @@
 import { Bell, ChevronRight, Image, Star, X } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useTranslation } from 'react-i18next';
-import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import type { ChatSummary } from '../types';
+import { ChatAvatar } from './ChatAvatar';
 
 export function ChatInfoPane({ chat, onClose }: { chat: ChatSummary; onClose: () => void }) {
   const { t } = useTranslation();
@@ -32,8 +32,9 @@ export function ChatInfoPane({ chat, onClose }: { chat: ChatSummary; onClose: ()
         </Button>
       </div>
       <div className="flex flex-col items-center gap-2 px-6 py-8 text-center">
-        <Avatar name={chat.name} className="size-24 text-2xl" />
+        <ChatAvatar chat={chat} className="size-24 text-2xl" />
         <p className="text-lg font-semibold">{chat.name}</p>
+        {chat.username ? <p className="text-sm text-text-muted">@{chat.username}</p> : null}
         {chat.about ? <p className="text-sm text-text-muted">{chat.about}</p> : null}
       </div>
       <ul className="space-y-1 px-3">
@@ -41,7 +42,8 @@ export function ChatInfoPane({ chat, onClose }: { chat: ChatSummary; onClose: ()
           <li key={label}>
             <button
               type="button"
-              className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm hover:bg-background"
+              disabled
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm opacity-60"
             >
               <Icon className="size-5 text-brand-text" aria-hidden />
               <span className="flex-1">{label}</span>

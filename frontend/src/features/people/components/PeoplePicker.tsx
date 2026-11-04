@@ -1,11 +1,15 @@
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query';
+import { useNavigate } from '@tanstack/react-router';
 import type { PublicProfile } from '@zuvo/protocol';
 import { Search } from 'lucide-react';
 import { type KeyboardEvent, useEffect, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { chatsApi } from '@/features/chats/api';
+import { useLocalDb } from '@/features/chats/queries';
 import { usersApi } from '@/features/profile/api';
+import { applyChats } from '@/features/sync/apply';
 import { useDebouncedValue } from '@/lib/hooks';
 import { recentPeople } from '../recent-people';
 import { PeopleResults } from './PeopleResults';
@@ -16,7 +20,10 @@ interface PeoplePickerProps {
   onOpenChange: (open: boolean) => void;
 }
 
-/** "New chat": find a colleague by name, @username or email. ↑/↓ to move, Enter to open. */
+/**
+ * "New chat": find a colleague by name, @username or email. ↑/↓ to move, Enter to open the chat.
+ * A deactivated person has no chat to open, so they get their profile card instead.
+ */
 export function PeoplePicker({ open, onOpenChange }: PeoplePickerProps) {
   const { t } = useTranslation();
   const listId = useId();
@@ -24,6 +31,23 @@ export function PeoplePicker({ open, onOpenChange }: PeoplePickerProps) {
   const [active, setActive] = useState(0);
   const [selected, setSelected] = useState<PublicProfile | null>(null);
   const q = useDebouncedValue(query.trim(), 250);
+  const navigate = useNavigate();
+  const db = useLocalDb();
+
+  const openChat = useMutation({
+    mutationFn: async (person: PublicProfile) => {
+      // Already on this device: no need for the network.
+      const known = await db?.chats.filter((chat) => chat.otherUser?.id === person.id).first();
+      if (known) return known.id;
+      const chat = await chatsApi.createDirect(person.id);
+      if (db) await applyChats(db, [chat]);
+      return chat.id;
+    },
+    onSuccess: (chatId) => {
+      onOpenChange(false);
+      void navigate({ to: '/chats/$chatId', params: { chatId } });
+    },
+  });
 
   const results = useQuery({
     queryKey: ['users', 'search', q],
@@ -54,7 +78,8 @@ export function PeoplePicker({ open, onOpenChange }: PeoplePickerProps) {
 
   function choose(person: PublicProfile) {
     recentPeople.add(person);
-    setSelected(person);
+    if (person.deactivated) setSelected(person);
+    else openChat.mutate(person);
   }
 
   function onKeyDown(event: KeyboardEvent) {
@@ -107,6 +132,11 @@ export function PeoplePicker({ open, onOpenChange }: PeoplePickerProps) {
                 onChoose={choose}
               />
             </div>
+            {openChat.isError ? (
+              <p role="alert" className="text-sm text-danger">
+                {t('people.openFailed')}
+              </p>
+            ) : null}
           </>
         )}
       </DialogContent>

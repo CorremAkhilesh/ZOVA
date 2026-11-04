@@ -33,6 +33,18 @@ export function useOnlineStatus(): boolean {
   );
 }
 
+/** False while this tab is in the background or minimized. */
+export function useDocumentVisible(): boolean {
+  return useSyncExternalStore(
+    (onChange) => {
+      document.addEventListener('visibilitychange', onChange);
+      return () => document.removeEventListener('visibilitychange', onChange);
+    },
+    () => document.visibilityState === 'visible',
+    () => true,
+  );
+}
+
 /** `value`, updated only after it has stopped changing for `delayMs`. */
 export function useDebouncedValue<T>(value: T, delayMs = 300): T {
   const [debounced, setDebounced] = useState(value);

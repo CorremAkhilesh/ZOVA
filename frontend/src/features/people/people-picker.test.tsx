@@ -3,8 +3,10 @@ import userEvent from '@testing-library/user-event';
 import type { PublicProfile } from '@zuvo/protocol';
 import { afterEach, describe, expect, it } from 'vitest';
 import { axe } from '@/test/axe';
+import { chatFixture } from '@/test/chat-fixtures';
 import { HttpResponse, http, server } from '@/test/msw';
 import { renderApp } from '@/test/render-app';
+import { seedLocal } from '@/test/seed';
 import { recentPeople } from './recent-people';
 
 const person = (id: string, displayName: string, username: string): PublicProfile => ({
@@ -22,15 +24,16 @@ afterEach(() => localStorage.clear());
 
 async function openPicker() {
   const user = userEvent.setup();
-  await renderApp('/chats');
+  const { router } = await renderApp('/chats');
   await user.click(screen.getByRole('button', { name: 'New chat' }));
   const dialog = await screen.findByRole('dialog', { name: 'New chat' });
-  return { user, dialog };
+  return { user, dialog, router };
 }
 
 describe('People picker', () => {
-  it('suggests people, searches as you type and opens a profile with the keyboard', async () => {
+  it('suggests people, searches as you type and opens a chat with the keyboard', async () => {
     const queries: string[] = [];
+    const created: string[] = [];
     server.use(
       http.get('*/v1/users/search', ({ request }) => {
         const q = new URL(request.url).searchParams.get('q') ?? '';
@@ -42,11 +45,12 @@ describe('People picker', () => {
           nextCursor: null,
         });
       }),
-      http.get('*/v1/users/:id', () =>
-        HttpResponse.json({ user: { ...mohan, about: 'Fresh about' } }),
-      ),
+      http.post('*/v1/chats/direct', async ({ request }) => {
+        created.push(((await request.json()) as { userId: string }).userId);
+        return HttpResponse.json({ chat: chatFixture({ id: 'c-mohan', otherUser: mohan }) });
+      }),
     );
-    const { user, dialog } = await openPicker();
+    const { user, dialog, router } = await openPicker();
     expect(await within(dialog).findByText('Suggested')).toBeInTheDocument();
     expect(await axe(document.body)).toHaveNoViolations();
 
@@ -60,14 +64,33 @@ describe('People picker', () => {
     );
     await user.keyboard('{Enter}');
 
-    expect(await within(dialog).findByRole('heading', { name: 'Mohan Das' })).toBeInTheDocument();
-    expect(await within(dialog).findByText('Fresh about')).toBeInTheDocument();
-    expect(within(dialog).getByRole('button', { name: 'Message' })).toBeDisabled();
+    await waitFor(() => expect(router.state.location.pathname).toBe('/chats/c-mohan'));
+    expect(created).toEqual(['u-mohan']);
     expect(recentPeople.load().map((p) => p.id)).toEqual(['u-mohan']);
+    expect(screen.queryByRole('dialog', { name: 'New chat' })).not.toBeInTheDocument();
+    expect(await screen.findByText('@mohan')).toBeInTheDocument();
+  });
 
-    await user.click(within(dialog).getByRole('button', { name: 'Back' }));
-    await user.clear(within(dialog).getByRole('combobox'));
-    expect(await within(dialog).findByText('Recent & suggested')).toBeInTheDocument();
+  it('opens a chat this device already has without asking the server', async () => {
+    await seedLocal([chatFixture({ id: 'c-known', otherUser: mohan })]);
+    server.use(
+      http.get('*/v1/users/search', () => HttpResponse.json({ items: [mohan], nextCursor: null })),
+      http.post('*/v1/chats/direct', () => HttpResponse.error()),
+    );
+    const { user, dialog, router } = await openPicker();
+    await user.click(await within(dialog).findByRole('option', { name: /Mohan Das/ }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/chats/c-known'));
+  });
+
+  it('says so when the chat cannot be opened', async () => {
+    server.use(
+      http.get('*/v1/users/search', () => HttpResponse.json({ items: [mohan], nextCursor: null })),
+      http.post('*/v1/chats/direct', () => HttpResponse.error()),
+    );
+    const { user, dialog } = await openPicker();
+    await user.click(await within(dialog).findByRole('option', { name: /Mohan Das/ }));
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('Couldn’t open the chat');
+    expect(screen.getByRole('dialog', { name: 'New chat' })).toBeInTheDocument();
   });
 
   it('shows "no one found" and errors', async () => {
@@ -84,7 +107,7 @@ describe('People picker', () => {
     expect(await within(dialog).findByRole('alert')).toHaveTextContent('Search failed');
   });
 
-  it('shows deactivated people without a message button', async () => {
+  it('shows a deactivated person’s card rather than opening a chat', async () => {
     const gone: PublicProfile = {
       ...meera,
       displayName: 'Deactivated account',
@@ -101,6 +124,7 @@ describe('People picker', () => {
     expect(
       await within(dialog).findByText('This account has been deactivated.'),
     ).toBeInTheDocument();
-    expect(within(dialog).queryByRole('button', { name: 'Message' })).not.toBeInTheDocument();
+    await user.click(within(dialog).getByRole('button', { name: 'Back' }));
+    expect(await within(dialog).findByRole('combobox')).toBeInTheDocument();
   });
 });

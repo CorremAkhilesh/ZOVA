@@ -1,43 +1,82 @@
-import { screen, within } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { DESKTOP_WIDTH, renderApp } from '@/test/render-app';
+import { buildTimeline } from '../chat-utils';
+import { type ChatMessage, ME } from '../types';
+import { MessageBubble } from './MessageBubble';
 
-const messages = () => within(screen.getByRole('list', { name: 'Product & Design' }));
-/** Sender name labels (reply quotes also show names, but without a sender color). */
-const senderLabels = (name: string) =>
-  messages()
-    .getAllByText(name)
-    .filter((element) => /text-sender[1-8]/.test(element.className));
-/** The message bubble itself, not a reply quote that repeats its text. */
-const bubbleItem = (text: string) => messages().getAllByText(text)[0]?.closest('li');
+const at = (minutes: number) => new Date(2026, 10, 4, 10, minutes);
+const message = (
+  id: string,
+  authorId: string,
+  authorName: string,
+  minutes: number,
+): ChatMessage => ({
+  id,
+  chatId: 'c',
+  authorId,
+  authorName,
+  text: id,
+  at: at(minutes),
+});
+
+const GROUP: ChatMessage[] = [
+  message('riya 1', 'riya', 'Riya Sen', 0),
+  message('riya 2', 'riya', 'Riya Sen', 1),
+  message('riya 3', 'riya', 'Riya Sen', 2),
+  message('vikram 1', 'vikram', 'Vikram Rao', 3),
+  { ...message('mine', ME, 'Me', 4), status: 'sent' },
+  message('riya 4', 'riya', 'Riya Sen', 30),
+];
+
+function renderThread(messages: ChatMessage[], isGroup: boolean) {
+  render(
+    <ol aria-label="Thread">
+      {buildTimeline(messages).map((item) =>
+        item.type === 'date' ? null : (
+          <li key={item.key}>
+            <MessageBubble
+              message={item.message}
+              firstInGroup={item.firstInGroup}
+              lastInGroup={item.lastInGroup}
+              isGroup={isGroup}
+            />
+          </li>
+        ),
+      )}
+    </ol>,
+  );
+  return within(screen.getByRole('list', { name: 'Thread' }));
+}
+
+const labels = (thread: ReturnType<typeof renderThread>, name: string) =>
+  thread.getAllByText(name).filter((element) => /text-sender[1-8]/.test(element.className));
 
 describe('group conversation rendering', () => {
-  it('shows each sender name once per group, colored per sender', async () => {
-    await renderApp('/chats/design-team', { width: DESKTOP_WIDTH });
-    // Riya sends 3 messages within 2 minutes → one group → her name appears once there.
-    // Two Riya groups in the thread (34–32 min ago, and 4 min ago).
-    expect(senderLabels('Riya Sen')).toHaveLength(2);
-    expect(senderLabels('Vikram Rao')).toHaveLength(1);
-    // Same sender, same color; different senders use their own stable color.
-    const [riyaA, riyaB] = senderLabels('Riya Sen');
-    expect(riyaA?.className).toBe(riyaB?.className);
+  it('shows each sender name once per group, colored per sender', () => {
+    const thread = renderThread(GROUP, true);
+    // Two Riya groups: the first three messages, and the one 28 minutes later.
+    expect(labels(thread, 'Riya Sen')).toHaveLength(2);
+    expect(labels(thread, 'Vikram Rao')).toHaveLength(1);
+    const [first, second] = labels(thread, 'Riya Sen');
+    expect(first?.className).toBe(second?.className);
   });
 
-  it('puts the tail and the avatar only on the last bubble of a group', async () => {
-    await renderApp('/chats/design-team', { width: DESKTOP_WIDTH });
-    const firstOfGroup = bubbleItem('Dark mode looks so much calmer now.');
-    const lastOfGroup = bubbleItem('One question: should muted chats sink to the bottom?');
-    if (!firstOfGroup || !lastOfGroup) throw new Error('bubbles not found');
-    expect(within(firstOfGroup).queryByTestId('bubble-tail')).not.toBeInTheDocument();
-    expect(within(firstOfGroup).queryByText('RS')).not.toBeInTheDocument();
-    expect(within(lastOfGroup).getByTestId('bubble-tail')).toBeInTheDocument();
-    expect(within(lastOfGroup).getByText('RS')).toBeInTheDocument();
+  it('puts the tail and the avatar only on the last bubble of a group', () => {
+    const thread = renderThread(GROUP, true);
+    const item = (text: string) => {
+      const found = thread.getByText(text).closest('li');
+      if (!found) throw new Error(`no bubble for ${text}`);
+      return within(found);
+    };
+    expect(item('riya 1').queryByTestId('bubble-tail')).not.toBeInTheDocument();
+    expect(item('riya 1').queryByText('RS')).not.toBeInTheDocument();
+    expect(item('riya 3').getByTestId('bubble-tail')).toBeInTheDocument();
+    expect(item('riya 3').getByText('RS')).toBeInTheDocument();
   });
 
-  it('shows no sender names or avatars in 1:1 chats', async () => {
-    await renderApp('/chats/asha', { width: DESKTOP_WIDTH });
-    const list = screen.getByRole('list', { name: 'Asha Verma' });
-    expect(list.querySelectorAll('[class*="text-sender"]')).toHaveLength(0);
-    expect(within(list).queryByText('AV')).not.toBeInTheDocument();
+  it('shows no sender names or avatars in 1:1 chats', () => {
+    const thread = renderThread(GROUP.slice(0, 2), false);
+    expect(screen.getByRole('list').querySelectorAll('[class*="text-sender"]')).toHaveLength(0);
+    expect(thread.queryByText('RS')).not.toBeInTheDocument();
   });
 });

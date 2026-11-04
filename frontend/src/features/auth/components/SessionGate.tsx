@@ -5,7 +5,6 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { sessionQuery } from '../session';
-import { useSessionSocket } from '../use-session-socket';
 import { useSignOut } from '../use-sign-out';
 
 /** Largest delay setTimeout supports (~24.8 days); longer waits are re-armed. */
@@ -20,7 +19,6 @@ export function SessionGate() {
   const signOut = useSignOut();
   const { data } = useQuery(sessionQuery);
   const [now, setNow] = useState(Date.now());
-  useSessionSocket();
   const expiresAt = data?.status === 'signed-in' ? Date.parse(data.data.session.expiresAt) : null;
 
   // Revoked or expired on the server (seen on refetch/focus).

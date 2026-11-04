@@ -28,7 +28,17 @@
     "noResults": "No chats match your search.",
     "newChat": "New chat",
     "foldersLabel": "Chat folders",
-    "you": "You"
+    "you": "You",
+    "saved": "Saved Messages",
+    "savedHint": "Notes to yourself",
+    "unknownPerson": "Unknown",
+    "noMessages": "No messages yet",
+    "emptyTitle": "No chats yet",
+    "emptyBody": "Find a colleague and say hello. Your messages sync across all your devices.",
+    "startChat": "Start a chat",
+    "unreadEmpty": "You’re all caught up.",
+    "groupsEmpty": "Group chats are coming soon.",
+    "loadFailed": "We couldn’t load your chats."
   },
   "conversation": {
     "online": "online",
@@ -41,16 +51,28 @@
     "attach": "Attach a file",
     "voice": "Record a voice note",
     "send": "Send",
-    "reply": "Reply",
     "messages": "Messages",
     "back": "Back to chats",
     "info": "Chat info",
     "closeInfo": "Close chat info",
-    "replyingTo": "Replying to {{name}}",
-    "cancelReply": "Cancel reply",
     "sent": "Sent",
     "delivered": "Delivered",
-    "read": "Read"
+    "read": "Read",
+    "emptyChat": "No messages yet. Say hello to {{name}}!",
+    "savedEmpty": "Keep notes, links and reminders here. Only you can see them.",
+    "searchInChat": "Search in this chat",
+    "pending": "Sending",
+    "failed": "Not sent",
+    "notSentRetry": "Not sent — tap to retry",
+    "jumpToLatest": "Jump to latest",
+    "loadingOlder": "Loading older messages…",
+    "olderFailed": "Couldn’t load older messages.",
+    "charsLeft_one": "{{count}} character left",
+    "charsLeft_other": "{{count}} characters left",
+    "tooLong_one": "{{count}} character over the limit",
+    "tooLong_other": "{{count}} characters over the limit",
+    "notOfflineTitle": "Not available offline",
+    "notOfflineBody": "This chat isn’t on this device yet. Connect to the internet to open it."
   },
   "empty": {
     "title": "Pick a conversation",
@@ -99,9 +121,6 @@
     "notFoundTitle": "Page not found",
     "notFoundBody": "The page you are looking for does not exist.",
     "goHome": "Go to chats"
-  },
-  "mock": {
-    "badge": "Sample data"
   },
   "install": {
     "bannerLabel": "Install the app",
@@ -180,7 +199,8 @@
     "save": "Save",
     "retry": "Try again",
     "loading": "Loading",
-    "loadMore": "Load more"
+    "loadMore": "Load more",
+    "comingSoon": "Coming soon"
   },
   "profile": {
     "title": "Profile",
@@ -320,9 +340,8 @@
     "suggested": "Suggested",
     "recentAndSuggested": "Recent & suggested",
     "back": "Back",
-    "message": "Message",
-    "chatSoon": "Chats arrive in the next update.",
-    "deactivated": "This account has been deactivated."
+    "deactivated": "This account has been deactivated.",
+    "openFailed": "Couldn’t open the chat. Check your connection and try again."
   },
   "notMe": {
     "title": "Secure your account",
@@ -335,5 +354,11 @@
     "used": "This link has already been used or is not valid.",
     "missing": "This link is incomplete. Open it again from the email.",
     "signIn": "Continue"
+  },
+  "emoji": {
+    "smileys": "Smileys",
+    "gestures": "Gestures and symbols",
+    "work": "Work and food",
+    "life": "Places and activities"
   }
 }

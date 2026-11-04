@@ -81,6 +81,23 @@ GET /v1/sync?since=<cursor>&limit=200
 The cursor is opaque: store it and send it back, and never do arithmetic on it other than the
 comparison above.
 
+## The client
+
+Screens read only from a per-user Dexie database (`features/sync/local-db.ts`); network results are
+written into it, so the app works the same offline.
+
+- **Applying changes** is safe to repeat. A message's key is `senderId:clientMsgId` (or its server id),
+  so the ack, the `message:new` echo, sync and history all land on one row. Chat positions only move
+  forward. A live event that skips a number, or names an unknown chat, is not applied: it triggers sync.
+- **Sending:** the message and its outbox row are written first, so a reload or going offline loses
+  nothing. One tab at a time sends (a Web Lock), strictly in order, one message at a time. A server
+  error is retried with backoff, 5 tries in all, then the message shows "Not sent — tap to retry". An
+  error that cannot succeed fails at once. Being offline never counts as a failure.
+- **Other tabs** see every change through Dexie, and hear about new outbox rows and ended sessions on a
+  BroadcastChannel.
+- **Wiping:** whenever a session ends (sign-out, revoked, expired, deactivated, or found to be gone on
+  opening the app), every local database and the recent-people list are deleted.
+
 ## Sessions on the socket
 
 The handshake uses the same session cookie as REST. It is refused without a valid session

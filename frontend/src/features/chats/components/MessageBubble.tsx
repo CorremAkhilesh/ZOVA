@@ -1,4 +1,3 @@
-import { motion } from 'motion/react';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
@@ -13,6 +12,7 @@ interface MessageBubbleProps {
   lastInGroup: boolean;
   /** Group chats: sender names, sender colors and avatars for incoming messages. */
   isGroup: boolean;
+  onRetry?: (clientMsgId: string) => void;
 }
 
 /** Tighter corners along the group "spine"; the last bubble's tail corner is square. */
@@ -83,15 +83,34 @@ function MessageMeta({ message, mine }: { message: ChatMessage; mine: boolean })
   );
 }
 
-export function MessageBubble({ message, firstInGroup, lastInGroup, isGroup }: MessageBubbleProps) {
+/** "Not sent — tap to retry", under the bubble. */
+function RetryButton({ onRetry }: { onRetry: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <button
+      type="button"
+      onClick={onRetry}
+      className="mt-0.5 block w-full text-right text-xs font-semibold text-danger"
+    >
+      {t('conversation.notSentRetry')}
+    </button>
+  );
+}
+
+export function MessageBubble({
+  message,
+  firstInGroup,
+  lastInGroup,
+  isGroup,
+  onRetry,
+}: MessageBubbleProps) {
+  const { clientMsgId } = message;
   const mine = message.authorId === ME;
   const showAvatarColumn = isGroup && !mine;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8, scale: 0.98 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
+    // No entrance animation: rows re-enter the page each time they are scrolled back into view.
+    <div
       className={cn(
         'flex items-end gap-2',
         mine ? 'justify-end' : 'justify-start',
@@ -103,29 +122,34 @@ export function MessageBubble({ message, firstInGroup, lastInGroup, isGroup }: M
           {lastInGroup ? <Avatar name={message.authorName} className="size-7 text-[10px]" /> : null}
         </div>
       ) : null}
-      <div
-        className={cn(
-          'relative max-w-[min(78%,34rem)] rounded-2xl px-3 py-1.5 text-[15px] leading-snug shadow-sm',
-          mine
-            ? 'bg-bubble-outgoing text-bubble-outgoing-text'
-            : 'bg-bubble-incoming text-bubble-incoming-text',
-          bubbleCorners(mine, firstInGroup, lastInGroup),
-        )}
-      >
-        {lastInGroup ? <BubbleTail mine={mine} /> : null}
-        {isGroup && firstInGroup && !mine ? (
-          <p className={cn('mb-0.5 text-xs font-semibold', senderColorClass(message.authorId))}>
-            {message.authorName}
+      <div className="max-w-[min(78%,34rem)]">
+        <div
+          className={cn(
+            'relative rounded-2xl px-3 py-1.5 text-[15px] leading-snug shadow-sm',
+            mine
+              ? 'bg-bubble-outgoing text-bubble-outgoing-text'
+              : 'bg-bubble-incoming text-bubble-incoming-text',
+            bubbleCorners(mine, firstInGroup, lastInGroup),
+          )}
+        >
+          {lastInGroup ? <BubbleTail mine={mine} /> : null}
+          {isGroup && firstInGroup && !mine ? (
+            <p className={cn('mb-0.5 text-xs font-semibold', senderColorClass(message.authorId))}>
+              {message.authorName}
+            </p>
+          ) : null}
+          {message.replyTo ? <ReplyQuote reply={message.replyTo} mine={mine} /> : null}
+          <p className="whitespace-pre-wrap break-words">
+            {message.text}
+            {/* Reserve room so the time, and my tick, never overlap the last line. */}
+            <span className={cn('inline-block', mine ? 'w-[5.25rem]' : 'w-16')} aria-hidden />
           </p>
+          <MessageMeta message={message} mine={mine} />
+        </div>
+        {message.status === 'failed' && clientMsgId && onRetry ? (
+          <RetryButton onRetry={() => onRetry(clientMsgId)} />
         ) : null}
-        {message.replyTo ? <ReplyQuote reply={message.replyTo} mine={mine} /> : null}
-        <p className="whitespace-pre-wrap break-words">
-          {message.text}
-          {/* Reserve room so the timestamp never overlaps the last line. */}
-          <span className="inline-block w-16" aria-hidden />
-        </p>
-        <MessageMeta message={message} mine={mine} />
       </div>
-    </motion.div>
+    </div>
   );
 }

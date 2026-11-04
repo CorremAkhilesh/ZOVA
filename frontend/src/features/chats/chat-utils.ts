@@ -49,16 +49,17 @@ export type TimelineItem =
       lastInGroup: boolean;
     };
 
-/** Inserts date separators and marks the first/last message of each author group. */
+/**
+ * Inserts date separators and marks the first/last message of each author group. `messages` stay in
+ * the given order (their position in the chat), which a device's clock must not rearrange.
+ */
 export function buildTimeline(messages: ChatMessage[]): TimelineItem[] {
-  const sorted = [...messages].sort((a, b) => a.at.getTime() - b.at.getTime());
   const items: TimelineItem[] = [];
-  sorted.forEach((message, index) => {
-    const previous = sorted[index - 1];
-    const next = sorted[index + 1];
+  messages.forEach((message, index) => {
+    const previous = messages[index - 1];
+    const next = messages[index + 1];
     const newDay = !previous || startOfDay(previous.at) !== startOfDay(message.at);
-    if (newDay)
-      items.push({ type: 'date', key: `date-${startOfDay(message.at)}`, date: message.at });
+    if (newDay) items.push({ type: 'date', key: `date-${message.id}`, date: message.at });
 
     const joinsPrevious =
       !newDay &&
@@ -81,7 +82,7 @@ export function buildTimeline(messages: ChatMessage[]): TimelineItem[] {
   return items;
 }
 
-/** Folder + search filter, pinned chats first, then newest first. */
+/** Folder + name search. Saved Messages first, then pinned chats, then the latest activity. */
 export function filterChats(
   chats: ChatSummary[],
   folder: ChatFolder,
@@ -92,15 +93,12 @@ export function filterChats(
     .filter((chat) => {
       if (folder === 'unread' && chat.unread === 0) return false;
       if (folder === 'groups' && chat.kind !== 'group') return false;
-      if (folder === 'personal' && chat.kind !== 'personal') return false;
-      if (!needle) return true;
-      return (
-        chat.name.toLocaleLowerCase().includes(needle) ||
-        chat.lastMessage.text.toLocaleLowerCase().includes(needle)
-      );
+      if (folder === 'personal' && chat.kind === 'group') return false;
+      return !needle || chat.name.toLocaleLowerCase().includes(needle);
     })
     .sort((a, b) => {
+      if ((a.kind === 'saved') !== (b.kind === 'saved')) return a.kind === 'saved' ? -1 : 1;
       if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
-      return b.lastMessage.at.getTime() - a.lastMessage.at.getTime();
+      return b.activityAt.getTime() - a.activityAt.getTime();
     });
 }

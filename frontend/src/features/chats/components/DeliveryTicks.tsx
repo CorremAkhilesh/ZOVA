@@ -1,9 +1,17 @@
-import { Check, CheckCheck } from 'lucide-react';
+import { Check, CheckCheck, CircleAlert, Clock } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import type { DeliveryStatus } from '../types';
 
-/** Sent = one tick, delivered = two ticks, read = two ticks in the accent color. */
+const ICONS = {
+  pending: Clock,
+  failed: CircleAlert,
+  sent: Check,
+  delivered: CheckCheck,
+  read: CheckCheck,
+};
+
+/** Clock while waiting, one tick once sent, two when delivered, two in the accent color when read. */
 export function DeliveryTicks({
   status,
   className,
@@ -12,7 +20,7 @@ export function DeliveryTicks({
   className?: string;
 }) {
   const { t } = useTranslation();
-  const Icon = status === 'sent' ? Check : CheckCheck;
+  const Icon = ICONS[status];
   return (
     <Icon
       role="img"
