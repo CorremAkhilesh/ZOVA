@@ -12,6 +12,10 @@ export const REDACT_PATHS = [
   '*.password',
   '*.pass',
   '*.otp',
+  // Email content can contain one-time codes.
+  '*.subject',
+  '*.html',
+  '*.text',
   '*.token',
   '*.secret',
   '*.uri',
