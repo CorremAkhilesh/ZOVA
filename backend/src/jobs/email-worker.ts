@@ -4,14 +4,21 @@ import type { Logger } from 'pino';
 import type { Mailer } from '../mail/mailer.ts';
 import { EMAIL_QUEUE, type EmailJobData } from './email-queue.ts';
 
-export function createEmailWorker(connection: Redis, mailer: Mailer, logger: Logger) {
+type WorkerLogger = Pick<Logger, 'info' | 'warn' | 'error'>;
+
+export function createEmailWorker(
+  connection: Redis,
+  mailer: Mailer,
+  logger: WorkerLogger,
+  prefix?: string,
+) {
   const worker = new Worker<EmailJobData>(
     EMAIL_QUEUE,
     async (job) => {
       const { messageId } = await mailer.send(job.data);
       logger.info({ jobId: job.id, messageId }, 'email sent');
     },
-    { connection, concurrency: 5 },
+    { connection, concurrency: 5, ...(prefix ? { prefix } : {}) },
   );
 
   worker.on('failed', (job, error) => {

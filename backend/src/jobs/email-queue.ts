@@ -14,9 +14,11 @@ export const EMAIL_JOB_OPTIONS = {
   removeOnFail: { count: 5000 },
 } as const;
 
-export function createEmailQueue(connection: Redis): Queue<EmailJobData> {
+/** `prefix` isolates keys (tests); BullMQ's default is "bull". */
+export function createEmailQueue(connection: Redis, prefix?: string): Queue<EmailJobData> {
   return new Queue<EmailJobData>(EMAIL_QUEUE, {
     connection,
+    ...(prefix ? { prefix } : {}),
     defaultJobOptions: EMAIL_JOB_OPTIONS,
   });
 }
