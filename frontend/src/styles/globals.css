@@ -1,8 +1,7 @@
 /* biome-ignore-all lint/complexity/noImportantStyles: the reduced-motion block must override every animation */
 @import "tailwindcss";
 @import "tw-animate-css";
-@import "@fontsource-variable/inter";
-@import "@fontsource-variable/noto-sans-devanagari";
+@import "./fonts.css";
 /* Design tokens: light on :root, dark on [data-theme="dark"]. Generated from @zuvo/ui-tokens. */
 @import "@zuvo/ui-tokens/tokens.css";
 
@@ -167,6 +166,26 @@
   flex-shrink: 0;
   app-region: drag;
   -webkit-app-region: drag;
+}
+
+/* Wrong-code feedback (disabled by the reduced-motion rule below). */
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20%,
+  60% {
+    transform: translateX(-6px);
+  }
+  40%,
+  80% {
+    transform: translateX(6px);
+  }
+}
+
+.animate-shake {
+  animation: shake 0.4s var(--ease-standard);
 }
 
 .chat-wallpaper {

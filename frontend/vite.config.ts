@@ -6,11 +6,12 @@ import { brand } from '@zuvo/config';
 import { darkColors, lightColors } from '@zuvo/ui-tokens';
 import { defineConfig, type Plugin } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
-import { APPLE_TOUCH_ICON, ICONS_DIR, MANIFEST_ICONS, splashLinkTags } from './pwa/assets';
+import { APPLE_TOUCH_ICON, ICONS_DIR, MANIFEST_ICONS, splashLinkTags } from './pwa/assets.ts';
 
 /** Dev server port. 5173/5175 are taken by other projects on this shared machine. */
 export const DEV_PORT = 5191;
-const BACKEND = 'http://127.0.0.1:4000';
+/** Backend for the /v1 proxy. E2E points it at the test API (ZUVO_API_TARGET). */
+const BACKEND = process.env.ZUVO_API_TARGET ?? 'http://127.0.0.1:4000';
 
 /** Fills brand placeholders and the iOS splash links in index.html — the brand lives only in brand.ts. */
 function brandHtml(): Plugin {
@@ -42,15 +43,12 @@ export default defineConfig({
       injectRegister: false,
       manifestFilename: 'manifest.webmanifest',
       injectManifest: {
+        // Classic (IIFE) worker: widest browser support, and avoids the plugin's deprecated
+        // `inlineDynamicImports` option, which it only sets for ES-module workers.
+        rollupFormat: 'iife',
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
         // Large or device-specific files stay out of the precache.
-        globIgnores: [
-          'icons/splash/**',
-          'screenshots/**',
-          '**/*cyrillic*',
-          '**/*greek*',
-          '**/*vietnamese*',
-        ],
+        globIgnores: ['icons/splash/**', 'screenshots/**'],
       },
       manifest: {
         id: '/',
@@ -120,5 +118,9 @@ export default defineConfig({
     host: '127.0.0.1',
     port: DEV_PORT + 1,
     strictPort: true,
+    proxy: {
+      '/v1': { target: BACKEND, changeOrigin: false },
+      '/socket.io': { target: BACKEND, ws: true },
+    },
   },
 });
