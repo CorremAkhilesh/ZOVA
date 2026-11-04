@@ -25,10 +25,11 @@ describe('dayKind / formatListTime', () => {
 });
 
 describe('buildTimeline', () => {
-  const msg = (id: string, author: string, date: Date): ChatMessage => ({
+  const msg = (id: string, authorId: string, date: Date): ChatMessage => ({
     id,
     chatId: 'c',
-    author,
+    authorId,
+    authorName: authorId,
     text: id,
     at: date,
   });

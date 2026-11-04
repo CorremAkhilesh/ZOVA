@@ -45,6 +45,7 @@
     "voice": "Record a voice note",
     "send": "Send",
     "reply": "Reply",
+    "messages": "Messages",
     "back": "Back to chats",
     "info": "Chat info",
     "closeInfo": "Close chat info",
@@ -86,6 +87,9 @@
     "connected": "Connected",
     "connecting": "Connecting…",
     "unreachable": "Server unreachable",
+    "offlineShort": "Offline",
+    "connectingHint": "Trying to reach the server…",
+    "offlineHint": "Can’t reach the server. New messages will appear when you’re back online.",
     "offline": "You are offline. Messages will send when you reconnect."
   },
   "errors": {

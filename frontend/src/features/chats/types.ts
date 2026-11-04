@@ -5,6 +5,12 @@ export type ChatFolder = 'all' | 'unread' | 'groups' | 'personal';
 /** The signed-in user's messages use this author id. */
 export const ME = 'me';
 
+export interface MessageAuthor {
+  /** Stable user id (`ME` for the signed-in user). Drives grouping and sender colors. */
+  authorId: string;
+  authorName: string;
+}
+
 export interface ChatSummary {
   id: string;
   name: string;
@@ -16,21 +22,18 @@ export interface ChatSummary {
   muted: boolean;
   unread: number;
   about?: string;
-  lastMessage: {
-    author: string;
+  lastMessage: MessageAuthor & {
     text: string;
     at: Date;
     status?: DeliveryStatus;
   };
 }
 
-export interface ChatMessage {
+export interface ChatMessage extends MessageAuthor {
   id: string;
   chatId: string;
-  /** `ME` or the display name of the sender. */
-  author: string;
   text: string;
   at: Date;
   status?: DeliveryStatus;
-  replyTo?: { author: string; text: string };
+  replyTo?: MessageAuthor & { text: string };
 }

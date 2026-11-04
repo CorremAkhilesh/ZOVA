@@ -62,11 +62,11 @@ export function buildTimeline(messages: ChatMessage[]): TimelineItem[] {
 
     const joinsPrevious =
       !newDay &&
-      previous?.author === message.author &&
+      previous?.authorId === message.authorId &&
       message.at.getTime() - previous.at.getTime() <= GROUP_WINDOW_MS;
     const joinsNext =
       next !== undefined &&
-      next.author === message.author &&
+      next.authorId === message.authorId &&
       startOfDay(next.at) === startOfDay(message.at) &&
       next.at.getTime() - message.at.getTime() <= GROUP_WINDOW_MS;
 

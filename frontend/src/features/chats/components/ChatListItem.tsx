@@ -11,9 +11,10 @@ import { DeliveryTicks } from './DeliveryTicks';
 export function ChatListItem({ chat, now }: { chat: ChatSummary; now: Date }) {
   const { t, i18n } = useTranslation();
   const { lastMessage } = chat;
-  const fromMe = lastMessage.author === ME;
+  const fromMe = lastMessage.authorId === ME;
   const time = formatListTime(lastMessage.at, now, i18n.language, t('conversation.yesterday'));
-  const authorPrefix = chat.kind === 'group' && !fromMe ? `${lastMessage.author}: ` : '';
+  const authorPrefix =
+    chat.kind === 'group' && !fromMe ? `${lastMessage.authorName.split(' ')[0]}: ` : '';
 
   return (
     <Link

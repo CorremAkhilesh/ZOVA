@@ -3,11 +3,25 @@
  * Replaced by the API in the chat feature steps. Times are relative to "now" so the
  * preview always looks current.
  */
-import { type ChatMessage, type ChatSummary, ME } from './types';
+import { type ChatMessage, type ChatSummary, ME, type MessageAuthor } from './types';
 
 const minutesAgo = (minutes: number, now = Date.now()) => new Date(now - minutes * 60_000);
 const HOUR = 60;
 const DAY = 24 * HOUR;
+
+/** Sample people (ids are stable so sender colors stay the same). */
+const P = {
+  me: { authorId: ME, authorName: 'You' },
+  asha: { authorId: 'u-asha', authorName: 'Asha Verma' },
+  rahul: { authorId: 'u-rahul', authorName: 'Rahul Mehta' },
+  riya: { authorId: 'u-riya', authorName: 'Riya Sen' },
+  vikram: { authorId: 'u-vikram', authorName: 'Vikram Rao' },
+  karan: { authorId: 'u-karan', authorName: 'Karan Shah' },
+  priya: { authorId: 'u-priya', authorName: 'Priya Nair' },
+  neha: { authorId: 'u-neha', authorName: 'Neha Iyer' },
+  arjun: { authorId: 'u-arjun', authorName: 'Arjun Nair' },
+  meera: { authorId: 'u-meera', authorName: 'Meera Kapoor' },
+} satisfies Record<string, MessageAuthor>;
 
 export const MOCK_CHATS: ChatSummary[] = [
   {
@@ -20,7 +34,7 @@ export const MOCK_CHATS: ChatSummary[] = [
     unread: 3,
     about: 'Weekly design reviews and launch planning.',
     lastMessage: {
-      author: 'Riya',
+      ...P.riya,
       text: 'New onboarding screens are up for review 🎨',
       at: minutesAgo(4),
     },
@@ -35,7 +49,7 @@ export const MOCK_CHATS: ChatSummary[] = [
     unread: 0,
     about: 'Engagement manager · Mumbai',
     lastMessage: {
-      author: ME,
+      ...P.me,
       text: 'Sounds good, see you at 4!',
       at: minutesAgo(18),
       status: 'read',
@@ -51,7 +65,7 @@ export const MOCK_CHATS: ChatSummary[] = [
     muted: false,
     unread: 2,
     lastMessage: {
-      author: 'Rahul Mehta',
+      ...P.rahul,
       text: 'Can you share the Q3 deck before the call?',
       at: minutesAgo(35),
     },
@@ -65,7 +79,7 @@ export const MOCK_CHATS: ChatSummary[] = [
     muted: true,
     unread: 12,
     lastMessage: {
-      author: 'Karan',
+      ...P.karan,
       text: 'Uploaded the reconciliation sheet.',
       at: minutesAgo(2 * HOUR),
     },
@@ -79,7 +93,7 @@ export const MOCK_CHATS: ChatSummary[] = [
     muted: false,
     unread: 0,
     lastMessage: {
-      author: ME,
+      ...P.me,
       text: 'Sent you the contract draft.',
       at: minutesAgo(5 * HOUR),
       status: 'delivered',
@@ -94,7 +108,7 @@ export const MOCK_CHATS: ChatSummary[] = [
     muted: false,
     unread: 0,
     lastMessage: {
-      author: 'Vikram',
+      ...P.vikram,
       text: 'Agenda for Monday is in the doc.',
       at: minutesAgo(DAY + 3 * HOUR),
     },
@@ -109,7 +123,7 @@ export const MOCK_CHATS: ChatSummary[] = [
     muted: false,
     unread: 0,
     lastMessage: {
-      author: ME,
+      ...P.me,
       text: 'Thanks, that helps a lot 🙏',
       at: minutesAgo(DAY + 7 * HOUR),
       status: 'sent',
@@ -123,11 +137,7 @@ export const MOCK_CHATS: ChatSummary[] = [
     pinned: false,
     muted: true,
     unread: 0,
-    lastMessage: {
-      author: 'Priya',
-      text: 'Diwali holiday calendar is out ✨',
-      at: minutesAgo(3 * DAY),
-    },
+    lastMessage: { ...P.priya, text: 'Diwali holiday calendar is out ✨', at: minutesAgo(3 * DAY) },
   },
   {
     id: 'meera',
@@ -138,11 +148,7 @@ export const MOCK_CHATS: ChatSummary[] = [
     pinned: false,
     muted: false,
     unread: 0,
-    lastMessage: {
-      author: 'Meera Kapoor',
-      text: 'Let’s catch up after the audit.',
-      at: minutesAgo(9 * DAY),
-    },
+    lastMessage: { ...P.meera, text: 'Let’s catch up after the audit.', at: minutesAgo(9 * DAY) },
   },
 ];
 
@@ -153,54 +159,67 @@ function thread(chatId: string, entries: Array<Omit<ChatMessage, 'id' | 'chatId'
 export const MOCK_MESSAGES: Record<string, ChatMessage[]> = {
   asha: thread('asha', [
     {
-      author: 'Asha Verma',
+      ...P.asha,
       text: 'Morning! Did the client sign off on the scope?',
       at: minutesAgo(DAY + 2 * HOUR),
     },
     {
-      author: ME,
+      ...P.me,
       text: 'Not yet — they want one more pass on the timeline.',
       at: minutesAgo(DAY + 110),
       status: 'read',
     },
     {
-      author: ME,
+      ...P.me,
       text: 'I’ll send the revised plan tonight.',
       at: minutesAgo(DAY + 109),
       status: 'read',
     },
-    { author: 'Asha Verma', text: 'Perfect, thank you 🙌', at: minutesAgo(DAY + 100) },
-    { author: 'Asha Verma', text: 'Are we still on for the review today?', at: minutesAgo(40) },
-    { author: 'Asha Verma', text: 'I booked the small conference room.', at: minutesAgo(39) },
+    { ...P.asha, text: 'Perfect, thank you 🙌', at: minutesAgo(DAY + 100) },
+    { ...P.asha, text: 'Are we still on for the review today?', at: minutesAgo(40) },
+    { ...P.asha, text: 'I booked the small conference room.', at: minutesAgo(39) },
     {
-      author: ME,
+      ...P.me,
       text: 'Yes! I’ll bring the updated numbers.',
       at: minutesAgo(25),
       status: 'read',
-      replyTo: { author: 'Asha Verma', text: 'Are we still on for the review today?' },
+      replyTo: { ...P.asha, text: 'Are we still on for the review today?' },
     },
-    { author: 'Asha Verma', text: 'Great. 4 pm works?', at: minutesAgo(20) },
-    { author: ME, text: 'Sounds good, see you at 4!', at: minutesAgo(18), status: 'read' },
+    { ...P.asha, text: 'Great. 4 pm works?', at: minutesAgo(20) },
+    { ...P.me, text: 'Sounds good, see you at 4!', at: minutesAgo(18), status: 'read' },
   ]),
   'design-team': thread('design-team', [
-    { author: 'Vikram', text: 'Reminder: design review at 3 today.', at: minutesAgo(3 * HOUR) },
-    { author: ME, text: 'I’ll present the new chat list.', at: minutesAgo(170), status: 'read' },
-    { author: 'Riya', text: 'Dark mode looks so much calmer now.', at: minutesAgo(30) },
-    { author: 'Riya', text: 'New onboarding screens are up for review 🎨', at: minutesAgo(4) },
+    { ...P.vikram, text: 'Reminder: design review at 3 today.', at: minutesAgo(3 * HOUR) },
+    {
+      ...P.vikram,
+      text: 'Please add your topics to the agenda doc.',
+      at: minutesAgo(3 * HOUR - 1),
+    },
+    { ...P.me, text: 'I’ll present the new chat list.', at: minutesAgo(170), status: 'read' },
+    { ...P.karan, text: 'I can cover the audit dashboard.', at: minutesAgo(165) },
+    { ...P.riya, text: 'Dark mode looks so much calmer now.', at: minutesAgo(34) },
+    { ...P.riya, text: 'The teal read ticks are a nice touch.', at: minutesAgo(33) },
+    { ...P.riya, text: 'One question: should muted chats sink to the bottom?', at: minutesAgo(32) },
+    {
+      ...P.me,
+      text: 'Pinned first, then newest — muted just stays quiet.',
+      at: minutesAgo(28),
+      status: 'read',
+      replyTo: { ...P.riya, text: 'One question: should muted chats sink to the bottom?' },
+    },
+    { ...P.priya, text: 'Makes sense 👍', at: minutesAgo(20) },
+    { ...P.karan, text: 'Agreed. Ship it.', at: minutesAgo(12) },
+    { ...P.riya, text: 'New onboarding screens are up for review 🎨', at: minutesAgo(4) },
   ]),
   rahul: thread('rahul', [
     {
-      author: ME,
+      ...P.me,
       text: 'Hi Rahul, the deck is almost ready.',
       at: minutesAgo(2 * HOUR),
       status: 'delivered',
     },
-    { author: 'Rahul Mehta', text: 'Thanks!', at: minutesAgo(40) },
-    {
-      author: 'Rahul Mehta',
-      text: 'Can you share the Q3 deck before the call?',
-      at: minutesAgo(35),
-    },
+    { ...P.rahul, text: 'Thanks!', at: minutesAgo(40) },
+    { ...P.rahul, text: 'Can you share the Q3 deck before the call?', at: minutesAgo(35) },
   ]),
 };
 

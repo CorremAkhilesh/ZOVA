@@ -1,6 +1,7 @@
 import { CornerUpLeft } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useIsDesktop } from '@/lib/hooks';
 import { buildTimeline, dayKind } from '../chat-utils';
 import { mockMessagesFor } from '../mock-data';
@@ -55,7 +56,12 @@ export function Conversation({ chat }: { chat: ChatSummary }) {
           infoOpen={infoOpen}
           onToggleInfo={() => setInfoOpen((open) => !open)}
         />
-        <div className="chat-wallpaper min-h-0 flex-1 overflow-y-auto px-3 py-2 md:px-8">
+        <ScrollArea
+          // Focusable so keyboard users can scroll the messages.
+          tabIndex={0}
+          aria-label={t('conversation.messages')}
+          className="chat-wallpaper min-h-0 flex-1 px-3 py-2 md:px-8"
+        >
           <ol aria-label={chat.name} className="mx-auto flex max-w-3xl flex-col">
             {timeline.map((item) =>
               item.type === 'date' ? (
@@ -66,7 +72,7 @@ export function Conversation({ chat }: { chat: ChatSummary }) {
                     message={item.message}
                     firstInGroup={item.firstInGroup}
                     lastInGroup={item.lastInGroup}
-                    showAuthor={chat.kind === 'group'}
+                    isGroup={chat.kind === 'group'}
                   />
                   <button
                     type="button"
@@ -81,7 +87,7 @@ export function Conversation({ chat }: { chat: ChatSummary }) {
             )}
             <li ref={endRef} aria-hidden className="h-px" />
           </ol>
-        </div>
+        </ScrollArea>
         <Composer replyTo={replyTo} onCancelReply={() => setReplyTo(null)} />
       </div>
       {infoOpen && isDesktop ? (
