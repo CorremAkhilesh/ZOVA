@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { MockBadge } from '@/components/common/MockBadge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { ConnectionStatus } from '@/features/connection/ConnectionStatus';
 import { cn } from '@/lib/utils';
 import { filterChats } from '../chat-utils';
@@ -77,7 +78,7 @@ export function ChatListPane() {
         </div>
       </header>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-3">
+      <ScrollArea className="min-h-0 flex-1 px-2 pb-3">
         {chats.length === 0 ? (
           <p className="px-4 py-10 text-center text-sm text-text-muted">{t('chats.noResults')}</p>
         ) : (
@@ -94,7 +95,7 @@ export function ChatListPane() {
             ))}
           </ul>
         )}
-      </div>
+      </ScrollArea>
     </section>
   );
 }
