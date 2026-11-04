@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { AccountSettings } from '@/features/auth/components/AccountSettings';
 import { InstallSetting } from '@/features/install/InstallUi';
 import { ThemeSwitcher } from '@/features/theme/ThemeSwitcher';
 import { LANGUAGES } from '@/lib/i18n';
@@ -71,7 +72,7 @@ function Settings() {
         </Section>
 
         <Section title={t('settings.account')}>
-          <p className="text-sm text-text-muted">{t('settings.accountSoon')}</p>
+          <AccountSettings />
         </Section>
       </div>
     </div>

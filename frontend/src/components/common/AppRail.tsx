@@ -2,12 +2,15 @@ import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/ui/avatar';
 import { Tooltip } from '@/components/ui/tooltip';
+import { useSession } from '@/features/auth/session';
 import { Logo } from './Logo';
 import { NAV_ITEMS } from './nav-items';
 
 /** Desktop navigation: a slim icon rail on the far left. */
 export function AppRail() {
   const { t } = useTranslation();
+  const user = useSession()?.user;
+  const name = user?.displayName ?? user?.email ?? '';
   return (
     <nav
       aria-label={t('nav.main')}
@@ -25,9 +28,15 @@ export function AppRail() {
           </Link>
         </Tooltip>
       ))}
-      <div className="mt-auto">
-        <Avatar name="You" className="size-10" />
-      </div>
+      <Tooltip label={name}>
+        <Link
+          to="/settings"
+          aria-label={t('auth.account.open', { name })}
+          className="mt-auto rounded-full"
+        >
+          <Avatar name={name || '?'} className="size-10" />
+        </Link>
+      </Tooltip>
     </nav>
   );
 }

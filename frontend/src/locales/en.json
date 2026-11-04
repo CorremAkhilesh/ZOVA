@@ -11,10 +11,7 @@
     "subtitle": "{{tagline}}",
     "emailLabel": "Work email",
     "emailPlaceholder": "you@corremadvisory.com",
-    "continue": "Continue",
-    "loginSoon": "Sign-in with a one-time code arrives in the next step.",
-    "openDemo": "Open the design preview",
-    "mockNotice": "Preview with sample data — nothing here is real yet."
+    "continue": "Continue"
   },
   "chats": {
     "searchPlaceholder": "Search chats",
@@ -74,8 +71,7 @@
     "themeSystem": "System",
     "language": "Language",
     "languageHint": "Changes the app language on this device.",
-    "account": "Account",
-    "accountSoon": "Profile, privacy and devices arrive with sign-in."
+    "account": "Account"
   },
   "placeholder": {
     "updatesTitle": "Updates",
@@ -89,8 +85,10 @@
     "unreachable": "Server unreachable",
     "offlineShort": "Offline",
     "connectingHint": "Trying to reach the server…",
-    "offlineHint": "Can’t reach the server. New messages will appear when you’re back online.",
-    "offline": "You are offline. Messages will send when you reconnect."
+    "offlineHint": "You’re offline. Check your network connection.",
+    "offline": "You are offline. Messages will send when you reconnect.",
+    "unreachableShort": "Can’t reach server",
+    "unreachableHint": "You’re online, but the server isn’t responding. We’ll keep trying."
   },
   "errors": {
     "title": "Something went wrong",
@@ -123,5 +121,54 @@
   "pwa": {
     "updateAvailable": "New version available",
     "reload": "Reload"
+  },
+  "auth": {
+    "emailHint": "Use your @corremadvisory.com email",
+    "codeExplainer": "We’ll email you a 6-digit code. No password needed.",
+    "sending": "Sending code…",
+    "sessionEnded": "Your session ended. Sign in again to continue.",
+    "codeTitle": "Check your email",
+    "codeSentTo": "We sent a 6-digit code to",
+    "codeLabel": "Verification code",
+    "digitLabel": "Digit {{position}} of {{total}}",
+    "verify": "Verify",
+    "verifying": "Verifying…",
+    "changeEmail": "Change email",
+    "resend": "Resend code",
+    "resendIn": "Resend in {{seconds}}s",
+    "codeResent": "A new code is on its way.",
+    "nameTitle": "What should we call you?",
+    "nameSubtitle": "This is how your name appears to your colleagues. You can change it later.",
+    "nameLabel": "Your name",
+    "namePlaceholder": "e.g. Asha Verma",
+    "nameRequired": "Enter your name (up to 50 characters).",
+    "nameContinue": "Continue",
+    "expiryWarning": "Your session ends tomorrow — sign in again to continue.",
+    "signInAgain": "Sign in again",
+    "signOut": "Sign out",
+    "account": {
+      "sessionEnds": "Session ends",
+      "open": "Account settings for {{name}}"
+    },
+    "wait": {
+      "seconds_one": "{{count}} second",
+      "seconds_other": "{{count}} seconds",
+      "minutes_one": "{{count}} minute",
+      "minutes_other": "{{count}} minutes",
+      "hours_one": "{{count}} hour",
+      "hours_other": "{{count}} hours"
+    },
+    "errors": {
+      "generic": "Something went wrong. Please try again.",
+      "network": "Can’t reach the server. Check your connection and try again.",
+      "rateLimited": "Too many attempts. Try again in {{wait}}.",
+      "domain": "Only @corremadvisory.com email addresses can use Zuvo",
+      "deactivated": "This account has been deactivated. Contact your administrator.",
+      "wrongCode_one": "That code is not right. {{count}} attempt left.",
+      "wrongCode_other": "That code is not right. {{count}} attempts left.",
+      "tooManyAttempts": "Too many wrong codes. Request a new code.",
+      "expired": "This code has expired. Request a new code.",
+      "invalid": "Enter a valid email address."
+    }
   }
 }

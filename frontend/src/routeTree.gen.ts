@@ -11,10 +11,12 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppRouteImport } from './routes/_app'
+import { Route as VerifyRouteImport } from './routes/verify'
 import { Route as AppCallsRouteImport } from './routes/_app/calls'
 import { Route as AppChatsRouteImport } from './routes/_app/chats'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as AppUpdatesRouteImport } from './routes/_app/updates'
+import { Route as WelcomeNameRouteImport } from './routes/welcome.name'
 import { Route as AppChatsIndexRouteImport } from './routes/_app/chats.index'
 import { Route as AppChatsChatIdRouteImport } from './routes/_app/chats.$chatId'
 
@@ -25,6 +27,11 @@ const IndexRoute = IndexRouteImport.update({
 } as any)
 const AppRoute = AppRouteImport.update({
   id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VerifyRoute = VerifyRouteImport.update({
+  id: '/verify',
+  path: '/verify',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppCallsRoute = AppCallsRouteImport.update({
@@ -47,6 +54,11 @@ const AppUpdatesRoute = AppUpdatesRouteImport.update({
   path: '/updates',
   getParentRoute: () => AppRoute,
 } as any)
+const WelcomeNameRoute = WelcomeNameRouteImport.update({
+  id: '/welcome/name',
+  path: '/welcome/name',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppChatsIndexRoute = AppChatsIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -60,18 +72,22 @@ const AppChatsChatIdRoute = AppChatsChatIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/verify': typeof VerifyRoute
   '/calls': typeof AppCallsRoute
   '/chats': typeof AppChatsRouteWithChildren
   '/settings': typeof AppSettingsRoute
   '/updates': typeof AppUpdatesRoute
+  '/welcome/name': typeof WelcomeNameRoute
   '/chats/$chatId': typeof AppChatsChatIdRoute
   '/chats/': typeof AppChatsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/verify': typeof VerifyRoute
   '/calls': typeof AppCallsRoute
   '/settings': typeof AppSettingsRoute
   '/updates': typeof AppUpdatesRoute
+  '/welcome/name': typeof WelcomeNameRoute
   '/chats/$chatId': typeof AppChatsChatIdRoute
   '/chats': typeof AppChatsIndexRoute
 }
@@ -79,10 +95,12 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
+  '/verify': typeof VerifyRoute
   '/_app/calls': typeof AppCallsRoute
   '/_app/chats': typeof AppChatsRouteWithChildren
   '/_app/settings': typeof AppSettingsRoute
   '/_app/updates': typeof AppUpdatesRoute
+  '/welcome/name': typeof WelcomeNameRoute
   '/_app/chats/$chatId': typeof AppChatsChatIdRoute
   '/_app/chats/': typeof AppChatsIndexRoute
 }
@@ -90,22 +108,34 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/verify'
     | '/calls'
     | '/chats'
     | '/settings'
     | '/updates'
+    | '/welcome/name'
     | '/chats/$chatId'
     | '/chats/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/calls' | '/settings' | '/updates' | '/chats/$chatId' | '/chats'
+  to:
+    | '/'
+    | '/verify'
+    | '/calls'
+    | '/settings'
+    | '/updates'
+    | '/welcome/name'
+    | '/chats/$chatId'
+    | '/chats'
   id:
     | '__root__'
     | '/'
     | '/_app'
+    | '/verify'
     | '/_app/calls'
     | '/_app/chats'
     | '/_app/settings'
     | '/_app/updates'
+    | '/welcome/name'
     | '/_app/chats/$chatId'
     | '/_app/chats/'
   fileRoutesById: FileRoutesById
@@ -113,6 +143,8 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
+  VerifyRoute: typeof VerifyRoute
+  WelcomeNameRoute: typeof WelcomeNameRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -129,6 +161,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/verify': {
+      id: '/verify'
+      path: '/verify'
+      fullPath: '/verify'
+      preLoaderRoute: typeof VerifyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app/calls': {
@@ -158,6 +197,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/updates'
       preLoaderRoute: typeof AppUpdatesRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/welcome/name': {
+      id: '/welcome/name'
+      path: '/welcome/name'
+      fullPath: '/welcome/name'
+      preLoaderRoute: typeof WelcomeNameRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_app/chats/': {
       id: '/_app/chats/'
@@ -209,6 +255,8 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
+  VerifyRoute: VerifyRoute,
+  WelcomeNameRoute: WelcomeNameRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -65,3 +65,13 @@ export async function apiRequest<Schema extends z.ZodType>(
 
 export const apiGet = <Schema extends z.ZodType>(path: string, schema: Schema) =>
   apiRequest(path, schema, { method: 'GET' });
+
+function jsonInit(method: string, body: unknown): RequestInit {
+  return { method, headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) };
+}
+
+export const apiPost = <Schema extends z.ZodType>(path: string, body: unknown, schema: Schema) =>
+  apiRequest(path, schema, jsonInit('POST', body));
+
+export const apiPatch = <Schema extends z.ZodType>(path: string, body: unknown, schema: Schema) =>
+  apiRequest(path, schema, jsonInit('PATCH', body));
