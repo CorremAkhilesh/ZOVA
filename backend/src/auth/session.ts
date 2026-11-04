@@ -1,19 +1,9 @@
 import type { SessionResponse, SessionUser } from '@zuvo/protocol';
-import type { FastifyReply, FastifyRequest } from 'fastify';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import { registerAuthModels } from '../db/auth-models.ts';
 import { AppError } from '../lib/errors.ts';
+import { loadUser, toSessionUser, type UserDoc } from '../users/user-record.ts';
 import { CLIENT_IP_HEADER, COOKIE_PREFIX } from './auth.ts';
-
-/** The user fields we read from Better Auth's user record (core + additional fields). */
-export interface AuthUserRecord {
-  id: string;
-  email: string;
-  createdAt: Date;
-  displayName?: string | null;
-  username?: string | null;
-  avatarKey?: string | null;
-  role?: string | null;
-  status?: string | null;
-}
 
 export interface AuthSessionRecord {
   id: string;
@@ -26,6 +16,7 @@ export interface AuthSessionRecord {
 export interface RequestAuth {
   session: AuthSessionRecord;
   user: SessionUser;
+  record: UserDoc;
 }
 
 declare module 'fastify' {
@@ -35,23 +26,10 @@ declare module 'fastify' {
   }
 }
 
-export function toSessionUser(user: AuthUserRecord): SessionUser {
-  return {
-    id: user.id,
-    email: user.email,
-    displayName: user.displayName ?? null,
-    username: user.username ?? null,
-    avatarKey: user.avatarKey ?? null,
-    role: user.role === 'admin' ? 'admin' : 'user',
-    status: user.status === 'deactivated' ? 'deactivated' : 'active',
-    createdAt: new Date(user.createdAt).toISOString(),
-  };
-}
+/** "Last active" is written at most this often per session — and never moves the expiry. */
+export const ACTIVITY_THROTTLE_SECONDS = 5 * 60;
 
-export function toSessionResponse(
-  session: AuthSessionRecord,
-  user: AuthUserRecord,
-): SessionResponse {
+export function toSessionResponse(session: AuthSessionRecord, user: UserDoc): SessionResponse {
   const sessionUser = toSessionUser(user);
   return {
     user: sessionUser,
@@ -60,7 +38,7 @@ export function toSessionResponse(
       createdAt: new Date(session.createdAt).toISOString(),
       expiresAt: new Date(session.expiresAt).toISOString(),
     },
-    needsProfile: !sessionUser.displayName,
+    needsProfile: !sessionUser.displayName || !sessionUser.username,
   };
 }
 
@@ -87,23 +65,38 @@ export function forwardCookies(response: Response, reply: FastifyReply): void {
   if (cookies.length > 0) reply.header('set-cookie', cookies);
 }
 
+/** Records activity at most once per 5 minutes (Redis lock, then MongoDB). Never extends expiry. */
+export async function trackActivity(
+  app: FastifyInstance,
+  session: AuthSessionRecord,
+): Promise<void> {
+  if (!(await app.counterStore.setIfAbsent(`zuvo:active:${session.id}`, ACTIVITY_THROTTLE_SECONDS)))
+    return;
+  await registerAuthModels(app.mongo).AuthSession.updateOne(
+    { token: session.token },
+    { $set: { lastActiveAt: new Date() } },
+  );
+}
+
 /**
  * Resolves the current session and a fresh user record, or throws 401:
  * SESSION_EXPIRED when a session cookie was sent but is no longer valid (expired or revoked),
  * UNAUTHENTICATED when there is no session at all.
  */
 export async function resolveSession(request: FastifyRequest): Promise<RequestAuth> {
-  const { auth } = request.server;
-  const result = await auth.api.getSession({ headers: toWebHeaders(request) });
-  const context = await auth.$context;
-  const user = result ? await context.internalAdapter.findUserById(result.user.id) : null;
-  if (!result || !user || (user as AuthUserRecord).status === 'deactivated') {
+  const app = request.server;
+  const result = await app.auth.api.getSession({ headers: toWebHeaders(request) });
+  const record = result ? await loadUser(app, result.user.id) : null;
+  if (!result || !record || record.status === 'deactivated') {
     throw hasSessionCookie(request)
       ? new AppError('SESSION_EXPIRED', 'Your session has ended. Please sign in again.')
       : new AppError('UNAUTHENTICATED', 'Please sign in.');
   }
   const session = result.session as AuthSessionRecord;
-  return { session, user: toSessionUser(user as AuthUserRecord) };
+  void trackActivity(app, session).catch((error: unknown) =>
+    request.log.warn({ err: error }, 'could not record session activity'),
+  );
+  return { session, user: toSessionUser(record), record };
 }
 
 /** preHandler: rejects unauthenticated requests and sets `request.auth`. */
@@ -117,4 +110,10 @@ export async function requireAdmin(request: FastifyRequest): Promise<void> {
   if (request.auth?.user.role !== 'admin') {
     throw new AppError('FORBIDDEN', 'Only administrators can do this.');
   }
+}
+
+/** The signed-in user's id (after `requireSession`). */
+export function currentUserId(request: FastifyRequest): string {
+  if (!request.auth) throw new AppError('UNAUTHENTICATED', 'Please sign in.');
+  return request.auth.user.id;
 }

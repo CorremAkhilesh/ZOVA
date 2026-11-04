@@ -167,7 +167,7 @@ describe('sign out', () => {
 });
 
 describe('profile', () => {
-  it('sets the display name, which ends the first-login state', async () => {
+  it('needs a display name and a username to end the first-login state', async () => {
     const app = await start();
     const { cookie } = await signIn(app, email);
     const updated = await app.inject({
@@ -177,9 +177,18 @@ describe('profile', () => {
       payload: { displayName: '  Asha Verma ' },
     });
     expect(updated.statusCode).toBe(200);
-    expect(updated.json().user.displayName).toBe('Asha Verma');
+    expect(updated.json().profile.displayName).toBe('Asha Verma');
+    expect(sessionResponseSchema.parse((await me(app, cookie)).json()).needsProfile).toBe(true);
+    const named = await app.inject({
+      method: 'PUT',
+      url: '/v1/me/username',
+      headers: headers(cookie),
+      payload: { username: 'asha' },
+    });
+    expect(named.statusCode).toBe(200);
     const session = sessionResponseSchema.parse((await me(app, cookie)).json());
     expect(session.needsProfile).toBe(false);
+    expect(session.user.username).toBe('asha');
   });
 
   it('requires a session and a valid name', async () => {

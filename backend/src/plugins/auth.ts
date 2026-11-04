@@ -1,8 +1,8 @@
 import type { FastifyInstance } from 'fastify';
 import fp from 'fastify-plugin';
 import { Redis } from 'ioredis';
-import { AUTH_BASE_PATH, type Auth, createAuth } from '../auth/auth.ts';
-import { MemoryCounterStore, RedisCounterStore } from '../auth/counter-store.ts';
+import { AUTH_BASE_PATH, type Auth, createAuth, type NewLogin } from '../auth/auth.ts';
+import { type CounterStore, MemoryCounterStore, RedisCounterStore } from '../auth/counter-store.ts';
 import { OtpThrottle } from '../auth/otp-throttle.ts';
 import { redisSecondaryStorage } from '../auth/secondary-storage.ts';
 import { toWebHeaders } from '../auth/session.ts';
@@ -11,11 +11,16 @@ import { registerModels } from '../db/models.ts';
 import { createEmailQueue } from '../jobs/email-queue.ts';
 import { createBullConnection } from '../lib/redis.ts';
 import { directDispatcher, type EmailDispatcher, queueDispatcher } from '../mail/dispatcher.ts';
+import { loginAlertEmail } from '../mail/templates/login-alert-email.tsx';
+import { describeDevice } from '../security/devices.ts';
+import { createRevokeToken } from '../security/security-tokens.ts';
 
 declare module 'fastify' {
   interface FastifyInstance {
     auth: Auth;
     otpThrottle: OtpThrottle;
+    /** Expiring counters/locks (Redis when available). */
+    counterStore: CounterStore;
   }
 }
 
@@ -42,6 +47,25 @@ async function createDispatcher(app: FastifyInstance, env: Env): Promise<EmailDi
   return directDispatcher(app.mailer, app.log);
 }
 
+/** New-login alert: queued email with a single-use "This wasn't me" link. Never fails a sign-in. */
+function newLoginAlert(app: FastifyInstance, env: Env, dispatcher: EmailDispatcher) {
+  return async (login: NewLogin) => {
+    try {
+      const token = await createRevokeToken(app, login.userId);
+      // The token travels in the fragment: never sent to servers, proxies or Referer headers.
+      const notMeUrl = `${env.APP_URL}/security/not-me#token=${token}`;
+      const message = await loginAlertEmail(login.email, {
+        device: describeDevice(login.userAgent),
+        signedInAt: login.signedInAt,
+        notMeUrl,
+      });
+      await dispatcher.dispatch(message, 'login-alert');
+    } catch (error) {
+      app.log.error({ err: error, userId: login.userId }, 'new-login alert failed');
+    }
+  };
+}
+
 async function setupAuth(app: FastifyInstance, options: AuthPluginOptions) {
   const { env } = options;
   const redis = app.redis instanceof Redis ? app.redis : null;
@@ -51,13 +75,14 @@ async function setupAuth(app: FastifyInstance, options: AuthPluginOptions) {
   // Index definitions for Better Auth's collections (built here outside production).
   registerModels(app.mongo);
 
-  const throttle = new OtpThrottle(
-    redis ? new RedisCounterStore(redis) : new MemoryCounterStore(),
-    {
-      ipLimitPerHour: env.OTP_IP_LIMIT_PER_HOUR,
-    },
-  );
+  const counterStore: CounterStore = redis
+    ? new RedisCounterStore(redis)
+    : new MemoryCounterStore();
+  const throttle = new OtpThrottle(counterStore, {
+    ipLimitPerHour: env.OTP_IP_LIMIT_PER_HOUR,
+  });
 
+  const dispatcher = options.dispatcher ?? (await createDispatcher(app, env));
   const auth = createAuth({
     db: db as unknown as Parameters<typeof createAuth>[0]['db'],
     client: app.mongo.getClient() as unknown as Parameters<typeof createAuth>[0]['client'],
@@ -67,13 +92,15 @@ async function setupAuth(app: FastifyInstance, options: AuthPluginOptions) {
     production: env.NODE_ENV === 'production',
     policy: { allowedDomains: env.ALLOWED_EMAIL_DOMAINS, adminEmails: env.ADMIN_EMAILS },
     throttle,
-    dispatcher: options.dispatcher ?? (await createDispatcher(app, env)),
+    dispatcher,
+    onNewLogin: newLoginAlert(app, env, dispatcher),
     secondaryStorage: redis ? redisSecondaryStorage(redis) : undefined,
     rateLimitEnabled: env.NODE_ENV !== 'test',
   });
 
   app.decorate('auth', auth);
   app.decorate('otpThrottle', throttle);
+  app.decorate('counterStore', counterStore);
   app.decorateRequest('auth', null);
 
   // Better Auth's own endpoints (get-session, sign-out, …). Our typed routes under the same

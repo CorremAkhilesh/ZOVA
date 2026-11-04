@@ -17,6 +17,12 @@ const STATUS_BY_CODE: Record<ErrorCode, number> = {
   ACCOUNT_DEACTIVATED: 403,
   INTERNAL_ERROR: 500,
   SERVICE_UNAVAILABLE: 503,
+  UNSUPPORTED_MEDIA_TYPE: 415,
+  USERNAME_TAKEN: 409,
+  USERNAME_CHANGE_TOO_SOON: 409,
+  SECURITY_TOKEN_INVALID: 400,
+  SECURITY_TOKEN_EXPIRED: 400,
+  LAST_ADMIN: 409,
 };
 
 /** An expected error whose message is safe to show to the client. */
@@ -41,6 +47,7 @@ export function codeForStatus(status: number): ErrorCode {
   if (status === 404) return 'NOT_FOUND';
   if (status === 409) return 'CONFLICT';
   if (status === 413) return 'PAYLOAD_TOO_LARGE';
+  if (status === 415) return 'UNSUPPORTED_MEDIA_TYPE';
   if (status === 429) return 'RATE_LIMITED';
   if (status === 503) return 'SERVICE_UNAVAILABLE';
   if (status >= 400 && status < 500) return 'BAD_REQUEST';

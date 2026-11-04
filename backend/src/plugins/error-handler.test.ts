@@ -34,7 +34,7 @@ describe('toErrorResponse', () => {
   it('keeps safe 4xx messages from Fastify errors', () => {
     const error = Object.assign(new Error('Unsupported Media Type'), { statusCode: 415 });
     expect(toErrorResponse(error, 'r').body).toMatchObject({
-      code: 'BAD_REQUEST',
+      code: 'UNSUPPORTED_MEDIA_TYPE',
       message: 'Unsupported Media Type',
     });
   });

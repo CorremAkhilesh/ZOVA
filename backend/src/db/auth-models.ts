@@ -8,7 +8,21 @@ import { type Connection, type Model, Schema } from 'mongoose';
 const options = { strict: false, versionKey: false, autoCreate: true } as const;
 
 const userSchema = new Schema(
-  { email: String, username: String, status: String, createdAt: Date },
+  {
+    email: String,
+    username: String,
+    usernameChangedAt: Date,
+    displayName: String,
+    about: String,
+    avatar: { small: String, large: String, version: String },
+    privacy: { lastSeen: String, profilePhoto: String, about: String, readReceipts: Boolean },
+    /** Lowercase words of the display name and username, for prefix search. */
+    searchTerms: [String],
+    role: String,
+    status: String,
+    lastLoginAt: Date,
+    createdAt: Date,
+  },
   { ...options, collection: 'user' },
 );
 // Serves: find user by email (OTP sign-in, sign-up dedupe). Unique: one account per email.
@@ -19,6 +33,13 @@ userSchema.index(
   { username: 1 },
   { unique: true, partialFilterExpression: { username: { $type: 'string' } } },
 );
+
+// Serves: people search by name/username prefix (`searchTerms: /^prefix/`, multikey).
+userSchema.index({ searchTerms: 1 });
+// Serves: suggested people (active users, most recently signed in first).
+userSchema.index({ status: 1, lastLoginAt: -1 });
+// Serves: last-admin protection (count active admins).
+userSchema.index({ role: 1, status: 1 });
 
 const sessionSchema = new Schema(
   { token: String, userId: Schema.Types.ObjectId, expiresAt: Date },

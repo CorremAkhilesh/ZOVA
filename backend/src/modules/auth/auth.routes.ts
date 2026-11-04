@@ -11,13 +11,13 @@ import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { authErrorFromBody, rethrowAuthError } from '../../auth/errors.ts';
 import {
   type AuthSessionRecord,
-  type AuthUserRecord,
   forwardCookies,
   resolveSession,
   toSessionResponse,
   toWebHeaders,
 } from '../../auth/session.ts';
 import { AppError } from '../../lib/errors.ts';
+import { loadUser } from '../../users/user-record.ts';
 
 /** Tight per-IP limit on the OTP endpoints, on top of the per-email OTP throttle. */
 const otpRateLimit = { rateLimit: { max: 20, timeWindow: '1 minute' } };
@@ -96,7 +96,10 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
       forwardCookies(response, reply);
       return toSessionResponse(
         found.session as AuthSessionRecord,
-        (await context.internalAdapter.findUserById(found.user.id)) as AuthUserRecord,
+        (await loadUser(app, found.user.id)) ??
+          (() => {
+            throw new AppError('INTERNAL_ERROR', 'Could not load the account.');
+          })(),
       );
     },
   );
@@ -111,9 +114,7 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (request) => {
-      const { session, user } = await resolveSession(request);
-      const context = await app.auth.$context;
-      const record = (await context.internalAdapter.findUserById(user.id)) as AuthUserRecord;
+      const { session, record } = await resolveSession(request);
       return toSessionResponse(session, record);
     },
   );
