@@ -31,14 +31,15 @@
   --color-bubble-outgoing: #4F46E5;
   --color-bubble-outgoing-text: #FFFFFF;
   --color-bubble-outgoing-meta: #E0E7FF;
+  --color-bubble-outgoing-read: #99F6E4;
   --color-bubble-incoming: #FFFFFF;
   --color-bubble-incoming-text: #0F172A;
   --color-bubble-incoming-meta: #5B6476;
   --shadow-sm: 0 1px 2px rgb(15 23 42 / 0.06);
   --shadow-md: 0 4px 12px rgb(15 23 42 / 0.08);
   --shadow-lg: 0 12px 32px rgb(15 23 42 / 0.12);
-  --font-sans: "Inter", "Noto Sans Devanagari", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-devanagari: "Noto Sans Devanagari", "Inter", system-ui, sans-serif;
+  --font-sans: "Inter Variable", "Inter", "Noto Sans Devanagari Variable", "Noto Sans Devanagari", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-devanagari: "Noto Sans Devanagari Variable", "Noto Sans Devanagari", "Inter Variable", system-ui, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, "Cascadia Code", Consolas, monospace;
   --text-xs: 0.75rem;
   --text-xs--line-height: 1rem;
@@ -121,6 +122,7 @@
   --color-bubble-outgoing: #3730A3;
   --color-bubble-outgoing-text: #FFFFFF;
   --color-bubble-outgoing-meta: #C7D2FE;
+  --color-bubble-outgoing-read: #5EEAD4;
   --color-bubble-incoming: #1A1E36;
   --color-bubble-incoming-text: #E8EAF6;
   --color-bubble-incoming-meta: #9AA3C0;

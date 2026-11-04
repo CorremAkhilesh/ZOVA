@@ -25,9 +25,11 @@ export const spacing = {
   '16': '4rem',
 } as const;
 
+/** Self-hosted variable fonts first (Fontsource family names), then system fallbacks. */
 export const fontFamily = {
-  sans: '"Inter", "Noto Sans Devanagari", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
-  devanagari: '"Noto Sans Devanagari", "Inter", system-ui, sans-serif',
+  sans: '"Inter Variable", "Inter", "Noto Sans Devanagari Variable", "Noto Sans Devanagari", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
+  devanagari:
+    '"Noto Sans Devanagari Variable", "Noto Sans Devanagari", "Inter Variable", system-ui, sans-serif',
   mono: 'ui-monospace, SFMono-Regular, "Cascadia Code", Consolas, monospace',
 } as const;
 

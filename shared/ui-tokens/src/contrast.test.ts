@@ -27,6 +27,7 @@ const TEXT_PAIRS: Array<[text: ColorName, background: ColorName]> = [
   ['info', 'surface'],
   ['bubbleOutgoingText', 'bubbleOutgoing'],
   ['bubbleOutgoingMeta', 'bubbleOutgoing'],
+  ['bubbleOutgoingRead', 'bubbleOutgoing'],
   ['bubbleIncomingText', 'bubbleIncoming'],
   ['bubbleIncomingMeta', 'bubbleIncoming'],
 ];
