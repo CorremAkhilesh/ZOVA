@@ -211,6 +211,9 @@
   above, which is about hiding whether an _allowed_ email has an account.)
 - An admin can deactivate a user. Deactivation revokes all of that user's sessions immediately and
   blocks future logins.
+- **No self-service account deletion.** Accounts belong to the organization: users cannot delete
+  their own account; an admin deactivates it instead. Admins cannot deactivate or demote themselves,
+  and there is always at least one active admin. Every admin action is written to `audit_logs`.
 
 ### Implementation (Better Auth)
 
@@ -218,14 +221,19 @@
   verification data and a session cache) is mounted at `/v1/auth/*`. The frontend uses only the
   typed wrappers:
 
-  | Endpoint                                              | Purpose                                                 |
-  | ----------------------------------------------------- | ------------------------------------------------------- |
-  | `POST /v1/auth/otp/request`                           | Email a code (same response whether the account exists) |
-  | `POST /v1/auth/otp/verify`                            | Sign in; the first success creates the account          |
-  | `GET /v1/auth/me`                                     | Session + user + `expiresAt` (401 `SESSION_EXPIRED`)    |
-  | `POST /v1/auth/logout`                                | Sign out this device                                    |
-  | `PATCH /v1/me/profile`                                | Set the display name                                    |
-  | `POST /v1/admin/users/:id/deactivate` · `/reactivate` | Admin only; deactivation revokes all sessions           |
+  | Endpoint                                                             | Purpose                                                 |
+  | -------------------------------------------------------------------- | ------------------------------------------------------- |
+  | `POST /v1/auth/otp/request`                                          | Email a code (same response whether the account exists) |
+  | `POST /v1/auth/otp/verify`                                           | Sign in; the first success creates the account          |
+  | `GET /v1/auth/me`                                                    | Session + user + `expiresAt` (401 `SESSION_EXPIRED`)    |
+  | `POST /v1/auth/logout`                                               | Sign out this device                                    |
+  | `POST /v1/admin/users/:id/deactivate` · `/reactivate`                | Admin only; deactivation revokes all sessions           |
+  | `GET/PATCH /v1/me/profile` · `PUT /v1/me/username`                   | Own profile; username changes at most every 30 days     |
+  | `POST/DELETE /v1/me/avatar` · `GET/PUT /v1/me/privacy`               | Photo (≤ 5 MB, magic bytes, sharp) and privacy          |
+  | `GET /v1/users/search` · `GET /v1/users/:id`                         | People search and profiles (privacy applied)            |
+  | `GET /v1/me/sessions` · `DELETE /v1/me/sessions/:id`                 | Devices; also `POST /v1/me/sessions/revoke-others`      |
+  | `POST /v1/auth/not-me`                                               | Single-use link token from the new-login email          |
+  | `GET /v1/admin/users` · `PUT …/:id/role` · `GET /v1/admin/audit-log` | Admin only; changes are audited                         |
 
 - **Checks run in a Better Auth before-hook:** per-IP limit, then domain, deactivated account, 60 s
   cooldown and 5 codes/email/hour, all **before** any code exists. The domain and account status are

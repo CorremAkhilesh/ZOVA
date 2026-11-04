@@ -1,4 +1,6 @@
 import { randomUUID } from 'node:crypto';
+import multipart from '@fastify/multipart';
+import { AVATAR_MAX_BYTES } from '@zuvo/protocol';
 import Fastify, { LogController } from 'fastify';
 import {
   serializerCompiler,
@@ -13,9 +15,11 @@ import { createMailer, type Mailer } from './mail/mailer.ts';
 import { createMemoryMailer, isMemoryMailer } from './mail/memory-mailer.ts';
 import { adminRoutes } from './modules/admin/admin.routes.ts';
 import { authRoutes } from './modules/auth/auth.routes.ts';
-import { profileRoutes } from './modules/auth/profile.routes.ts';
 import { healthRoutes } from './modules/health/health.routes.ts';
+import { sessionsRoutes } from './modules/security/sessions.routes.ts';
 import { outboxRoutes } from './modules/test-support/outbox.routes.ts';
+import { meRoutes } from './modules/users/me.routes.ts';
+import { usersRoutes } from './modules/users/users.routes.ts';
 import { authPlugin } from './plugins/auth.ts';
 import { docsPlugin } from './plugins/docs.ts';
 import { errorHandlerPlugin } from './plugins/error-handler.ts';
@@ -78,9 +82,14 @@ export async function buildApp(env: Env, deps: Partial<AppDeps> = {}) {
     ...(deps.emailDispatcher ? { dispatcher: deps.emailDispatcher } : {}),
   });
 
+  // Multipart only for uploads; each route sets its own file-size limit.
+  await app.register(multipart, { limits: { files: 1, fields: 5, fileSize: AVATAR_MAX_BYTES } });
+
   await app.register(healthRoutes, { prefix: '/v1' });
   await app.register(authRoutes, { prefix: '/v1' });
-  await app.register(profileRoutes, { prefix: '/v1' });
+  await app.register(meRoutes, { prefix: '/v1' });
+  await app.register(usersRoutes, { prefix: '/v1' });
+  await app.register(sessionsRoutes, { prefix: '/v1' });
   await app.register(adminRoutes, { prefix: '/v1' });
   if (env.NODE_ENV === 'test' && isMemoryMailer(app.mailer)) {
     await app.register(outboxRoutes(app.mailer), { prefix: '/v1' });

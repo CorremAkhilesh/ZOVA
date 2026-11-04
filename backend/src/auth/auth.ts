@@ -1,3 +1,4 @@
+import { brand } from '@zuvo/config';
 import { OTP_LENGTH, OTP_MAX_ATTEMPTS, OTP_TTL_SECONDS, SESSION_TTL_SECONDS } from '@zuvo/protocol';
 import { betterAuth, type SecondaryStorage } from 'better-auth';
 import { mongodbAdapter } from 'better-auth/adapters/mongodb';
@@ -31,6 +32,15 @@ export interface AuthOptions {
   dispatcher: EmailDispatcher;
   secondaryStorage: SecondaryStorage | undefined;
   rateLimitEnabled: boolean;
+  /** Called after a sign-in on an account that had signed in before (new-login alert). */
+  onNewLogin?: (login: NewLogin) => Promise<void>;
+}
+
+export interface NewLogin {
+  userId: string;
+  email: string;
+  userAgent: string | null;
+  signedInAt: Date;
 }
 
 function throttled(error: ThrottledError): APIError {
@@ -84,7 +94,6 @@ export function createAuth(options: AuthOptions) {
         displayName: { type: 'string', required: false, input: false },
         username: { type: 'string', required: false, input: false },
         about: { type: 'string', required: false, input: false },
-        avatarKey: { type: 'string', required: false, input: false },
         role: { type: 'string', required: false, defaultValue: 'user', input: false },
         status: { type: 'string', required: false, defaultValue: 'active', input: false },
         lastLoginAt: { type: 'date', required: false, input: false },
@@ -169,7 +178,16 @@ export function createAuth(options: AuthOptions) {
           before: async (user) => {
             assertAllowedEmail(user.email, policy);
             const role = isAdminEmail(user.email, policy) ? 'admin' : 'user';
-            return { data: { ...user, role, status: 'active', displayName: null } };
+            return {
+              data: {
+                ...user,
+                role,
+                status: 'active',
+                displayName: null,
+                about: brand.defaultAbout,
+                searchTerms: [],
+              },
+            };
           },
         },
       },
@@ -187,9 +205,20 @@ export function createAuth(options: AuthOptions) {
             if ((user as { status?: string }).status === 'deactivated') throw accountDeactivated();
           },
           after: async (session, ctx) => {
-            await ctx?.context.internalAdapter.updateUser(session.userId, {
-              lastLoginAt: new Date(),
-            });
+            const adapter = ctx?.context.internalAdapter;
+            if (!adapter) return;
+            const user = await adapter.findUserById(session.userId);
+            const previousLogin = (user as { lastLoginAt?: Date | null } | null)?.lastLoginAt;
+            await adapter.updateUser(session.userId, { lastLoginAt: new Date() });
+            // Every sign-in except the very first one (account creation) raises an alert.
+            if (user && previousLogin && options.onNewLogin) {
+              await options.onNewLogin({
+                userId: session.userId,
+                email: user.email,
+                userAgent: session.userAgent ?? null,
+                signedInAt: new Date(session.createdAt),
+              });
+            }
           },
         },
       },

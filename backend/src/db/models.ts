@@ -1,5 +1,6 @@
 import type { Connection } from 'mongoose';
 import { registerAuthModels } from './auth-models.ts';
+import { registerSecurityModels } from './security-models.ts';
 import type { IndexedModel } from './sync-indexes.ts';
 
 /**
@@ -8,6 +9,7 @@ import type { IndexedModel } from './sync-indexes.ts';
  */
 export const modelRegistrations: Array<(connection: Connection) => IndexedModel[]> = [
   (connection) => Object.values(registerAuthModels(connection)),
+  (connection) => Object.values(registerSecurityModels(connection)) as unknown as IndexedModel[],
 ];
 
 export function registerModels(connection: Connection): IndexedModel[] {

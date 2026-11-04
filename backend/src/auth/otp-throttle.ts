@@ -68,6 +68,13 @@ export class OtpThrottle {
     }
   }
 
+  /** Clears the cooldown and hourly cap for one email (test support: repeated sign-ins). */
+  async resetEmail(email: string): Promise<void> {
+    const id = hashed(email);
+    await this.store.remove(this.key('otp-cooldown', id));
+    await this.store.remove(this.key('otp-email', id));
+  }
+
   /** A new code starts a fresh attempt count. */
   async resetAttempts(email: string): Promise<void> {
     await this.store.remove(this.key('otp-fail', hashed(email)));

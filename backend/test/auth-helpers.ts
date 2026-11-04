@@ -65,6 +65,8 @@ export function verifyOtp(app: FastifyInstance, email: string, code: string) {
 
 /** Full sign-in: request, read the code, verify. Returns the session cookie and the response. */
 export async function signIn(app: FastifyInstance, email: string) {
+  // Same account on several "devices" in one test: skip the 60 s resend cooldown.
+  await app.otpThrottle.resetEmail(email);
   const requested = await requestOtp(app, email);
   if (requested.statusCode !== 200) throw new Error(`OTP request failed: ${requested.body}`);
   const code = await readOtp(app, email);

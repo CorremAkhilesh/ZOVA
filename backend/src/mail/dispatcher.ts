@@ -2,7 +2,8 @@ import type { Queue } from 'bullmq';
 import type { EmailJobData } from '../jobs/email-queue.ts';
 import type { Mailer, MailMessage } from './mailer.ts';
 
-/** Jobs carrying one-time codes must not linger in Redis. */
+/** Jobs carrying one-time codes or links must not linger in Redis. */
+const SENSITIVE_JOBS = new Set(['otp', 'login-alert']);
 const SENSITIVE_JOB_OPTIONS = { removeOnComplete: true, removeOnFail: { age: 3600 } } as const;
 
 type Logger = { error: (object: object, message: string) => void };
@@ -16,7 +17,7 @@ export interface EmailDispatcher {
 export function queueDispatcher(queue: Pick<Queue<EmailJobData>, 'add'>): EmailDispatcher {
   return {
     async dispatch(message, jobName) {
-      await queue.add(jobName, message, jobName === 'otp' ? SENSITIVE_JOB_OPTIONS : {});
+      await queue.add(jobName, message, SENSITIVE_JOBS.has(jobName) ? SENSITIVE_JOB_OPTIONS : {});
     },
   };
 }
