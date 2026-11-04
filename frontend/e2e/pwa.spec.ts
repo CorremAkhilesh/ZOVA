@@ -56,8 +56,9 @@ test('app shell loads offline', async ({ page, context }) => {
   await context.setOffline(true);
   await page.goto('/chats/asha');
   await expect(page.getByRole('list', { name: 'Asha Verma' })).toBeVisible();
+  // Reloading the same deep link offline must work too (on phones this URL shows only the chat).
   await page.reload();
-  await expect(page.getByRole('heading', { name: 'Chats' })).toBeVisible();
+  await expect(page.getByRole('list', { name: 'Asha Verma' })).toBeVisible();
   await context.setOffline(false);
 });
 
