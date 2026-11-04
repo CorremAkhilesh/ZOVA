@@ -17,11 +17,14 @@
     "redis:stop": "node scripts/redis.ts stop",
     "redis:status": "node scripts/redis.ts status",
     "db:sync-indexes": "tsx --env-file=.env src/scripts/sync-indexes.ts",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "e2e:server": "tsx src/scripts/e2e-server.ts"
   },
   "devDependencies": {
     "@types/node": "^24.19.2",
     "@types/nodemailer": "8.0.2",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
     "@vitest/coverage-v8": "5.0.5",
     "esbuild": "0.28.2",
     "mongodb-memory-server": "11.3.0",
@@ -35,9 +38,12 @@
     "@fastify/helmet": "13.2.0",
     "@fastify/rate-limit": "11.2.1",
     "@fastify/swagger": "9.9.3",
+    "@react-email/components": "1.0.12",
+    "@react-email/render": "2.2.0",
     "@scalar/fastify-api-reference": "1.76.4",
     "@zuvo/config": "workspace:*",
     "@zuvo/protocol": "workspace:*",
+    "better-auth": "1.7.16",
     "bullmq": "6.5.3",
     "fastify": "5.12.8",
     "fastify-plugin": "6.0.1",
@@ -47,6 +53,9 @@
     "mongoose": "9.11.4",
     "nodemailer": "10.3.1",
     "pino": "10.4.0",
-    "zod": "4.6.7"
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "zod": "4.6.7",
+    "@zuvo/ui-tokens": "workspace:*"
   }
 }

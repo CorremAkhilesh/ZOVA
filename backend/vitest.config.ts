@@ -15,7 +15,8 @@ export default defineConfig({
     env: { REDIS_TEST_URL },
     // The first run downloads the MongoDB binary used by mongodb-memory-server.
     hookTimeout: 120_000,
-    testTimeout: 20_000,
+    // Auth flows do several database round trips; parallel files on slow machines need headroom.
+    testTimeout: 60_000,
     coverage: {
       provider: 'v8',
       reporter: ['text-summary', 'html', 'lcov'],

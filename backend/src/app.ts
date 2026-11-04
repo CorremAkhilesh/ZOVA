@@ -8,8 +8,15 @@ import {
 import type { Redis } from 'ioredis';
 import type { Env } from './config/env.ts';
 import { loggerOptions } from './lib/logger.ts';
+import type { EmailDispatcher } from './mail/dispatcher.ts';
 import { createMailer, type Mailer } from './mail/mailer.ts';
+import { createMemoryMailer, isMemoryMailer } from './mail/memory-mailer.ts';
+import { adminRoutes } from './modules/admin/admin.routes.ts';
+import { authRoutes } from './modules/auth/auth.routes.ts';
+import { profileRoutes } from './modules/auth/profile.routes.ts';
 import { healthRoutes } from './modules/health/health.routes.ts';
+import { outboxRoutes } from './modules/test-support/outbox.routes.ts';
+import { authPlugin } from './plugins/auth.ts';
 import { docsPlugin } from './plugins/docs.ts';
 import { errorHandlerPlugin } from './plugins/error-handler.ts';
 import { mongoPlugin } from './plugins/mongo.ts';
@@ -26,6 +33,8 @@ export interface AppDeps {
   redis: Redis | null;
   mailer: Mailer;
   storage: StorageDriver;
+  /** How emails are handed off (default: BullMQ queue with Redis, direct send otherwise). */
+  emailDispatcher: EmailDispatcher;
 }
 
 export async function buildApp(env: Env, deps: Partial<AppDeps> = {}) {
@@ -56,14 +65,26 @@ export async function buildApp(env: Env, deps: Partial<AppDeps> = {}) {
   });
   await app.register(servicesPlugin, {
     storage: deps.storage ?? new LocalDiskDriver(env.MEDIA_STORAGE_PATH),
-    mailer: deps.mailer ?? createMailer(env),
+    // Tests never talk to SMTP: an in-memory mailer lets them read the OTP.
+    mailer: deps.mailer ?? (env.NODE_ENV === 'test' ? createMemoryMailer() : createMailer(env)),
     verifyMailer: env.NODE_ENV !== 'test',
   });
   if (env.NODE_ENV !== 'production') {
     await app.register(docsPlugin, { apiUrl: env.API_URL });
   }
 
+  await app.register(authPlugin, {
+    env,
+    ...(deps.emailDispatcher ? { dispatcher: deps.emailDispatcher } : {}),
+  });
+
   await app.register(healthRoutes, { prefix: '/v1' });
+  await app.register(authRoutes, { prefix: '/v1' });
+  await app.register(profileRoutes, { prefix: '/v1' });
+  await app.register(adminRoutes, { prefix: '/v1' });
+  if (env.NODE_ENV === 'test' && isMemoryMailer(app.mailer)) {
+    await app.register(outboxRoutes(app.mailer), { prefix: '/v1' });
+  }
   return app;
 }
 
