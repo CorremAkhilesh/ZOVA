@@ -1,6 +1,10 @@
 import { defineConfig, devices } from '@playwright/test';
 
-const PORT = 5191;
+/**
+ * E2E runs against the production build (`vite preview`), so the service worker and manifest are
+ * real. Build first: `pnpm --filter @zuvo/frontend test:e2e` does both.
+ */
+const PORT = 5192;
 const BASE_URL = `http://127.0.0.1:${PORT}`;
 const CI = Boolean(process.env.CI);
 
@@ -13,7 +17,7 @@ export default defineConfig({
   reporter: CI ? [['github'], ['html', { open: 'never' }]] : [['list']],
   use: {
     baseURL: BASE_URL,
-    trace: 'on-first-retry',
+    trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
   projects: [
@@ -28,7 +32,7 @@ export default defineConfig({
       : []),
   ],
   webServer: {
-    command: 'pnpm exec vite',
+    command: 'pnpm exec vite preview',
     url: BASE_URL,
     reuseExistingServer: !CI,
     timeout: 120_000,
