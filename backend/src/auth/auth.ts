@@ -34,6 +34,8 @@ export interface AuthOptions {
   rateLimitEnabled: boolean;
   /** Called after a sign-in on an account that had signed in before (new-login alert). */
   onNewLogin?: (login: NewLogin) => Promise<void>;
+  /** An ADMIN_EMAILS account that is not an admin yet has just signed in: promote and audit it. */
+  onAdminEmailSignIn?: (email: string) => Promise<void>;
 }
 
 export interface NewLogin {
@@ -170,6 +172,16 @@ export function createAuth(options: AuthOptions) {
         if (ctx.path === '/email-otp/send-verification-otp') await guardOtpRequest(ctx, options);
         if (ctx.path === '/sign-in/email-otp') assertAllowedEmail(ctx.body?.email, policy);
       }),
+      // Runs once sign-in has finished, after Better Auth's sign-up transaction committed: writing
+      // to other collections inside that transaction's window can block on it.
+      after: createAuthMiddleware(async (ctx) => {
+        if (ctx.path !== '/sign-in/email-otp') return;
+        const user = ctx.context.newSession?.user as { email: string; role?: string } | undefined;
+        // ADMIN_EMAILS promotes on every sign-in (new or existing account); never demotes.
+        if (user && user.role !== 'admin' && isAdminEmail(user.email, policy)) {
+          await options.onAdminEmailSignIn?.(user.email);
+        }
+      }),
     },
 
     databaseHooks: {
@@ -177,11 +189,11 @@ export function createAuth(options: AuthOptions) {
         create: {
           before: async (user) => {
             assertAllowedEmail(user.email, policy);
-            const role = isAdminEmail(user.email, policy) ? 'admin' : 'user';
+            // Everyone starts as a user; ADMIN_EMAILS is applied (and audited) at sign-in below.
             return {
               data: {
                 ...user,
-                role,
+                role: 'user',
                 status: 'active',
                 displayName: null,
                 about: brand.defaultAbout,

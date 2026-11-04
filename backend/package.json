@@ -17,6 +17,7 @@
     "redis:stop": "node scripts/redis.ts stop",
     "redis:status": "node scripts/redis.ts status",
     "db:sync-indexes": "tsx --env-file=.env src/scripts/sync-indexes.ts",
+    "admin:role": "tsx --env-file=.env src/scripts/admin-role.ts",
     "test:coverage": "vitest run --coverage",
     "e2e:server": "tsx src/scripts/e2e-server.ts"
   },

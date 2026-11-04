@@ -132,10 +132,16 @@ describe('Admin → Users', () => {
       `/v1/admin/audit-log?limit=10&cursor=${log.nextCursor}`,
       admin.cookie,
     );
+    // Oldest: admin@ promoted by ADMIN_EMAILS at its first sign-in (a system action).
     expect(older.json().items.map((e: { action: string }) => e.action)).toEqual([
       'user.demote',
       'user.promote',
+      'user.promote',
     ]);
+    expect(older.json().items.at(-1).actor).toEqual({
+      id: 'system',
+      email: 'system (ADMIN_EMAILS)',
+    });
   });
 
   it('uses indexes for the admin queries', async () => {

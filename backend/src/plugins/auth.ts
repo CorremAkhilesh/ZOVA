@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import fp from 'fastify-plugin';
 import { Redis } from 'ioredis';
+import { changeRoleByEmail, SYSTEM_ACTOR } from '../admin/role-change.ts';
 import { AUTH_BASE_PATH, type Auth, createAuth, type NewLogin } from '../auth/auth.ts';
 import { type CounterStore, MemoryCounterStore, RedisCounterStore } from '../auth/counter-store.ts';
 import { OtpThrottle } from '../auth/otp-throttle.ts';
@@ -94,6 +95,15 @@ async function setupAuth(app: FastifyInstance, options: AuthPluginOptions) {
     throttle,
     dispatcher,
     onNewLogin: newLoginAlert(app, env, dispatcher),
+    onAdminEmailSignIn: async (email) => {
+      const result = await changeRoleByEmail(app.mongo, {
+        email,
+        role: 'admin',
+        actor: SYSTEM_ACTOR,
+      });
+      if (result.changed)
+        app.log.warn({ userId: result.userId }, 'promoted to admin by ADMIN_EMAILS');
+    },
     secondaryStorage: redis ? redisSecondaryStorage(redis) : undefined,
     rateLimitEnabled: env.NODE_ENV !== 'test',
   });

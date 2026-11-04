@@ -84,6 +84,15 @@ describe('loadEnv', () => {
     );
   });
 
+  it('requires ADMIN_EMAILS in production (staging too) and lowercases it', () => {
+    expect(
+      issuesFor({ NODE_ENV: 'production', REDIS_URL: 'redis://r:6379', ADMIN_EMAILS: '' }),
+    ).toContain('ADMIN_EMAILS is required in production');
+    expect(
+      loadEnv(testEnvSource({ ADMIN_EMAILS: 'NovaAdmin@corremadvisory.com' })).ADMIN_EMAILS,
+    ).toEqual(['novaadmin@corremadvisory.com']);
+  });
+
   it.each(['zuvo_dev', 'zuvo_prod'])('refuses to run tests against %s', (db) => {
     expect(issuesFor({ MONGODB_DB: db }).some((issue) => issue.startsWith('MONGODB_DB'))).toBe(
       true,

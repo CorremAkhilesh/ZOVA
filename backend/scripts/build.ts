@@ -18,6 +18,8 @@ const result = await build({
     'src/worker.ts',
     'src/scripts/mail-test.ts',
     'src/scripts/sync-indexes.ts',
+    // Emergency: node dist/scripts/admin-role.js --email <email> --role <admin|user>
+    'src/scripts/admin-role.ts',
   ],
   outbase: 'src',
   outdir: 'dist',

@@ -249,8 +249,15 @@
   stored hashed, jobs are deleted once sent, and email content is redacted from logs.
 - **`NODE_ENV=test`:** an in-memory mailer, plus `GET /v1/test/outbox/latest` (test only) so tests and
   E2E can read codes. E2E uses `pnpm --filter @zuvo/backend e2e:server` (in-memory MongoDB, port 4100).
-- **Env:** `AUTH_SECRET` (32+ random characters, unique per environment), `ADMIN_EMAILS` (admin
-  role on first login), `OTP_IP_LIMIT_PER_HOUR`.
+- **Env:** `AUTH_SECRET` (32+ random characters, unique per environment), `ADMIN_EMAILS`,
+  `OTP_IP_LIMIT_PER_HOUR`.
+- **Admin account:** `novaadmin@corremadvisory.com` (emails are lowercased, so `novaAdmin@…` is the
+  same account). `ADMIN_EMAILS` must be set in every environment, staging and production included.
+  It promotes a listed account to admin on its next sign-in (new or existing account), written to
+  the audit log as a system action, and never demotes anyone.
+- **Emergency role change** (e.g. no admin can sign in), run where the env points at the database:
+  `pnpm --filter @zuvo/backend admin:role -- --email <email> --role <admin|user>`. It asks for
+  confirmation, keeps at least one active admin and writes an audit log entry.
 
 ### Email sender identity
 

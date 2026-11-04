@@ -48,7 +48,7 @@ const envSchema = z
     ),
     /** Signs session cookies. At least 32 random characters; unique per environment. */
     AUTH_SECRET: z.string().min(32, 'must be at least 32 characters'),
-    /** Emails that get the admin role on first login. */
+    /** Emails promoted to admin when they sign in (first or later login); never demotes. */
     ADMIN_EMAILS: z.preprocess(
       emptyToUndefined,
       z
@@ -76,6 +76,14 @@ const envSchema = z
     }
     if (env.NODE_ENV === 'production' && !env.REDIS_URL) {
       ctx.addIssue({ code: 'custom', path: ['REDIS_URL'], message: 'is required in production' });
+    }
+    // Staging and production run with NODE_ENV=production: someone must be able to administer.
+    if (env.NODE_ENV === 'production' && env.ADMIN_EMAILS.length === 0) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['ADMIN_EMAILS'],
+        message: 'is required in production',
+      });
     }
     if (env.NODE_ENV === 'test' && !env.MONGODB_DB.startsWith('zuvo_test_')) {
       ctx.addIssue({
