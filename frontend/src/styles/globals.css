@@ -47,6 +47,14 @@
   --color-bubble-incoming: var(--color-bubble-incoming);
   --color-bubble-incoming-text: var(--color-bubble-incoming-text);
   --color-bubble-incoming-meta: var(--color-bubble-incoming-meta);
+  --color-sender1: var(--color-sender1);
+  --color-sender2: var(--color-sender2);
+  --color-sender3: var(--color-sender3);
+  --color-sender4: var(--color-sender4);
+  --color-sender5: var(--color-sender5);
+  --color-sender6: var(--color-sender6);
+  --color-sender7: var(--color-sender7);
+  --color-sender8: var(--color-sender8);
 
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
@@ -117,6 +125,40 @@
   background-color: color-mix(in srgb, var(--color-surface) 82%, transparent);
   backdrop-filter: blur(18px) saturate(1.2);
   -webkit-backdrop-filter: blur(18px) saturate(1.2);
+}
+
+/* Thin overlay-style scrollbar (see components/ui/scroll-area.tsx). */
+.scroll-area {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  scrollbar-gutter: stable;
+}
+
+.scroll-area:hover,
+.scroll-area:focus-visible,
+.scroll-area:focus-within,
+.scroll-area[data-scrolling] {
+  scrollbar-color: color-mix(in srgb, var(--color-text) 30%, transparent) transparent;
+}
+
+/* Safari without scrollbar-color support. */
+.scroll-area::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.scroll-area::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scroll-area::-webkit-scrollbar-thumb {
+  border-radius: 9999px;
+  background-color: transparent;
+}
+
+.scroll-area:hover::-webkit-scrollbar-thumb,
+.scroll-area[data-scrolling]::-webkit-scrollbar-thumb {
+  background-color: color-mix(in srgb, var(--color-text) 30%, transparent);
 }
 
 .chat-wallpaper {

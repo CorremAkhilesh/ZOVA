@@ -40,6 +40,16 @@ export const lightColors = {
   bubbleIncoming: '#FFFFFF',
   bubbleIncomingText: '#0F172A',
   bubbleIncomingMeta: '#5B6476',
+
+  // Group sender names: stable per user, all AA on incoming bubbles.
+  sender1: '#4338CA',
+  sender2: '#0F766E',
+  sender3: '#BE123C',
+  sender4: '#B45309',
+  sender5: '#7E22CE',
+  sender6: '#0369A1',
+  sender7: '#A21CAF',
+  sender8: '#C2410C',
 } as const;
 
 export type ColorName = keyof typeof lightColors;
@@ -80,4 +90,13 @@ export const darkColors = {
   bubbleIncoming: '#1A1E36',
   bubbleIncomingText: '#E8EAF6',
   bubbleIncomingMeta: '#9AA3C0',
+
+  sender1: '#A5B4FC',
+  sender2: '#5EEAD4',
+  sender3: '#FDA4AF',
+  sender4: '#FCD34D',
+  sender5: '#D8B4FE',
+  sender6: '#7DD3FC',
+  sender7: '#F0ABFC',
+  sender8: '#FDBA74',
 } as const satisfies ColorTokens;

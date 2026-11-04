@@ -30,6 +30,14 @@ const TEXT_PAIRS: Array<[text: ColorName, background: ColorName]> = [
   ['bubbleOutgoingRead', 'bubbleOutgoing'],
   ['bubbleIncomingText', 'bubbleIncoming'],
   ['bubbleIncomingMeta', 'bubbleIncoming'],
+  ['sender1', 'bubbleIncoming'],
+  ['sender2', 'bubbleIncoming'],
+  ['sender3', 'bubbleIncoming'],
+  ['sender4', 'bubbleIncoming'],
+  ['sender5', 'bubbleIncoming'],
+  ['sender6', 'bubbleIncoming'],
+  ['sender7', 'bubbleIncoming'],
+  ['sender8', 'bubbleIncoming'],
 ];
 
 function pairCases(colors: ColorTokens) {
