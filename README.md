@@ -56,15 +56,15 @@ Never commit `.env` files — they are gitignored.
 
 Run these from the repo root:
 
-| Command          | What it does                                                       |
-| ---------------- | ------------------------------------------------------------------ |
-| `pnpm dev`       | Start Redis, the backend (:4000) and the frontend (:5191) together |
-| `pnpm build`     | Build every package                                                |
-| `pnpm lint`      | Lint + format check the whole repo with Biome                      |
-| `pnpm format`    | Auto-fix lint issues and format the whole repo                     |
-| `pnpm typecheck` | TypeScript type-check every package                                |
-| `pnpm test`      | Run all tests                                                      |
-| `pnpm clean`     | Delete build output, coverage and caches                           |
+| Command          | What it does                                                            |
+| ---------------- | ----------------------------------------------------------------------- |
+| `pnpm dev`       | Start Redis, the API (:4000), the email worker and the frontend (:5191) |
+| `pnpm build`     | Build every package                                                     |
+| `pnpm lint`      | Lint + format check the whole repo with Biome                           |
+| `pnpm format`    | Auto-fix lint issues and format the whole repo                          |
+| `pnpm typecheck` | TypeScript type-check every package                                     |
+| `pnpm test`      | Run all tests                                                           |
+| `pnpm clean`     | Delete build output, coverage and caches                                |
 
 ---
 
@@ -133,6 +133,16 @@ only when `REDIS_TEST_URL` is set in `backend\.env` (database 15 of Zuvo's local
 
 To send the test email through the queue instead of directly, start `dev:worker` and add `--queue`:
 `pnpm --filter @zuvo/backend mail:test -- --to you@corremadvisory.com --queue`
+
+### Signing in locally
+
+1. `backend\.env` needs `AUTH_SECRET` (32+ random characters), a working `SMTP_PASS` and
+   `REDIS_URL`. Add your email to `ADMIN_EMAILS` to get the admin role on first login.
+2. `pnpm dev` starts Redis, the API, the **email worker** and the frontend.
+3. Open <http://127.0.0.1:5191> and enter your `@corremadvisory.com` email.
+4. The 6-digit code arrives by email (check spam). Type or paste it, then choose your name.
+
+Only `@corremadvisory.com` addresses can sign in. Sessions last 7 days and are never extended.
 
 ### Local Redis (Memurai on port 6391)
 

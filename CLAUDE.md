@@ -212,6 +212,38 @@
 - An admin can deactivate a user. Deactivation revokes all of that user's sessions immediately and
   blocks future logins.
 
+### Implementation (Better Auth)
+
+- **Better Auth** (email OTP plugin, MongoDB adapter, Redis secondary storage for rate limits,
+  verification data and a session cache) is mounted at `/v1/auth/*`. The frontend uses only the
+  typed wrappers:
+
+  | Endpoint                                              | Purpose                                                 |
+  | ----------------------------------------------------- | ------------------------------------------------------- |
+  | `POST /v1/auth/otp/request`                           | Email a code (same response whether the account exists) |
+  | `POST /v1/auth/otp/verify`                            | Sign in; the first success creates the account          |
+  | `GET /v1/auth/me`                                     | Session + user + `expiresAt` (401 `SESSION_EXPIRED`)    |
+  | `POST /v1/auth/logout`                                | Sign out this device                                    |
+  | `PATCH /v1/me/profile`                                | Set the display name                                    |
+  | `POST /v1/admin/users/:id/deactivate` · `/reactivate` | Admin only; deactivation revokes all sessions           |
+
+- **Checks run in a Better Auth before-hook:** per-IP limit, then domain, deactivated account, 60 s
+  cooldown and 5 codes/email/hour, all **before** any code exists. The domain and account status are
+  re-checked at verify and in the session-create database hook.
+- **Cookie:** `zuvo.session_token`, host-only, `httpOnly`, `SameSite=Lax`, and `Secure` (with the
+  `__Secure-` prefix) in production. Lax rather than Strict so opening the app from an email link
+  isn't treated as logged out; cross-site writes are blocked by Lax plus Better Auth's origin check
+  (`trustedOrigins` = `APP_URL` + `CORS_ORIGINS`).
+- **Sessions:** 7 days absolute (`disableSessionRefresh`), stored in MongoDB (and cached in Redis).
+- **Production is same-origin:** Caddy serves the app and proxies `/v1` and `/socket.io` on the app
+  domain, so set `API_URL` = `APP_URL` = `https://app.zuvo.corremadvisory.com`.
+- **OTP emails** go through the BullMQ `email` queue (`pnpm dev` also starts the worker). Codes are
+  stored hashed, jobs are deleted once sent, and email content is redacted from logs.
+- **`NODE_ENV=test`:** an in-memory mailer, plus `GET /v1/test/outbox/latest` (test only) so tests and
+  E2E can read codes. E2E uses `pnpm --filter @zuvo/backend e2e:server` (in-memory MongoDB, port 4100).
+- **Env:** `AUTH_SECRET` (32+ random characters, unique per environment), `ADMIN_EMAILS` (admin
+  role on first login), `OTP_IP_LIMIT_PER_HOUR`.
+
 ### Email sender identity
 
 - Sender address: `nova@corremadvisory.com`.
