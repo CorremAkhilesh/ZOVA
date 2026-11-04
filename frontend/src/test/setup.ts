@@ -1,9 +1,10 @@
 import '@testing-library/jest-dom/vitest';
+import { onlineManager } from '@tanstack/react-query';
 import { cleanup } from '@testing-library/react';
 import { MotionGlobalConfig } from 'motion/react';
 import { afterAll, afterEach, beforeAll, expect } from 'vitest';
-import * as axeMatchers from 'vitest-axe/matchers';
 import { i18n, initI18n } from '@/lib/i18n';
+import { axeMatchers } from './axe';
 import { installMatchMedia, resetMedia } from './media';
 import { server } from './msw';
 
@@ -30,6 +31,8 @@ beforeAll(() => server.listen({ onUnhandledFrame: 'error' }));
 afterEach(async () => {
   cleanup();
   server.resetHandlers();
+  // An `offline` event in one test must not pause queries in the next (global in TanStack Query).
+  onlineManager.setOnline(true);
   resetMedia();
   installMatchMedia();
   localStorage.clear();

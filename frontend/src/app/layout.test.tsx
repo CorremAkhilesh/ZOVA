@@ -1,7 +1,7 @@
 import { act, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
-import { axe } from 'vitest-axe';
+import { axe } from '@/test/axe';
 import { setViewportWidth } from '@/test/media';
 import { DESKTOP_WIDTH, MOBILE_WIDTH, renderApp } from '@/test/render-app';
 
@@ -139,8 +139,7 @@ describe('screens', () => {
     ['404', '/nope', DESKTOP_WIDTH],
   ])('%s has no axe violations', async (_name, path, width) => {
     const { container } = await renderApp(path, { width });
-    // color-contrast needs real layout (checked in tokens + E2E); jsdom cannot compute it.
-    const results = await axe(container, { rules: { 'color-contrast': { enabled: false } } });
+    const results = await axe(container);
     expect(results).toHaveNoViolations();
   });
 });
