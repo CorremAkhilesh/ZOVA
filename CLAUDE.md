@@ -226,7 +226,9 @@
 
 ### Local (Windows PC)
 
-- **No Docker locally.** Run frontend + backend with Node (`pnpm dev`).
+- **No Docker locally.** `pnpm dev` starts Redis, the backend (`127.0.0.1:4000`) and the frontend
+  (`127.0.0.1:5191`, Vite, which proxies `/v1` and `/socket.io` to the backend). Shared machine: every dev
+  server binds 127.0.0.1 only, on fixed ports checked to be free.
 - Connects to MongoDB Atlas (`zuvo_dev`) and its own local Memurai process (`127.0.0.1:6391`, started by `pnpm dev`).
 
 ### VPS (Ubuntu + Docker Engine + Docker Compose + Caddy auto-HTTPS)

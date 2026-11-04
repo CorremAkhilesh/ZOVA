@@ -54,15 +54,15 @@ Never commit `.env` files — they are gitignored.
 
 Run these from the repo root:
 
-| Command          | What it does                                   |
-| ---------------- | ---------------------------------------------- |
-| `pnpm dev`       | Start frontend and backend in watch mode       |
-| `pnpm build`     | Build every package                            |
-| `pnpm lint`      | Lint + format check the whole repo with Biome  |
-| `pnpm format`    | Auto-fix lint issues and format the whole repo |
-| `pnpm typecheck` | TypeScript type-check every package            |
-| `pnpm test`      | Run all tests                                  |
-| `pnpm clean`     | Delete build output, coverage and caches       |
+| Command          | What it does                                                       |
+| ---------------- | ------------------------------------------------------------------ |
+| `pnpm dev`       | Start Redis, the backend (:4000) and the frontend (:5191) together |
+| `pnpm build`     | Build every package                                                |
+| `pnpm lint`      | Lint + format check the whole repo with Biome                      |
+| `pnpm format`    | Auto-fix lint issues and format the whole repo                     |
+| `pnpm typecheck` | TypeScript type-check every package                                |
+| `pnpm test`      | Run all tests                                                      |
+| `pnpm clean`     | Delete build output, coverage and caches                           |
 
 ---
 
@@ -85,6 +85,25 @@ Shared packages export TypeScript source directly (no build step). After changin
 `pnpm --filter @zuvo/ui-tokens generate` to regenerate `tokens.css` (a test fails if you forget).
 
 `infra/` and `.github/` are added as the project grows.
+
+---
+
+## Frontend
+
+`pnpm dev` serves the app at **<http://127.0.0.1:5191>**. It listens on 127.0.0.1 only, and the
+port is fixed because 5173 and 5175 are used by other projects on this machine. Requests to `/v1`
+and `/socket.io` are proxied to the backend, so cookies are same-origin in development.
+
+| Command (from the repo root)                 | What it does                                     |
+| -------------------------------------------- | ------------------------------------------------ |
+| `pnpm --filter @zuvo/frontend dev`           | Frontend only                                    |
+| `pnpm --filter @zuvo/frontend test`          | Unit, component and accessibility tests (Vitest) |
+| `pnpm --filter @zuvo/frontend test:coverage` | Same, with coverage (fails under 70%)            |
+| `pnpm --filter @zuvo/frontend test:e2e`      | Playwright smoke test (Chromium locally)         |
+| `pnpm --filter @zuvo/frontend build`         | Production build into `frontenddist`             |
+
+The chat screens currently show **sample data** (marked "Sample data") so the design can be judged
+before the real chat features exist.
 
 ---
 
