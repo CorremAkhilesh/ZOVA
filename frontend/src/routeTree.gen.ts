@@ -14,11 +14,17 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as VerifyRouteImport } from './routes/verify'
 import { Route as AppCallsRouteImport } from './routes/_app/calls'
 import { Route as AppChatsRouteImport } from './routes/_app/chats'
-import { Route as AppSettingsRouteImport } from './routes/_app/settings'
 import { Route as AppUpdatesRouteImport } from './routes/_app/updates'
+import { Route as SecurityNotMeRouteImport } from './routes/security.not-me'
 import { Route as WelcomeNameRouteImport } from './routes/welcome.name'
 import { Route as AppChatsIndexRouteImport } from './routes/_app/chats.index'
 import { Route as AppChatsChatIdRouteImport } from './routes/_app/chats.$chatId'
+import { Route as AppSettingsIndexRouteImport } from './routes/_app/settings.index'
+import { Route as AppSettingsDevicesRouteImport } from './routes/_app/settings.devices'
+import { Route as AppSettingsPrivacyRouteImport } from './routes/_app/settings.privacy'
+import { Route as AppSettingsProfileRouteImport } from './routes/_app/settings.profile'
+import { Route as AppSettingsAdminAuditRouteImport } from './routes/_app/settings.admin.audit'
+import { Route as AppSettingsAdminUsersRouteImport } from './routes/_app/settings.admin.users'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -44,15 +50,15 @@ const AppChatsRoute = AppChatsRouteImport.update({
   path: '/chats',
   getParentRoute: () => AppRoute,
 } as any)
-const AppSettingsRoute = AppSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppUpdatesRoute = AppUpdatesRouteImport.update({
   id: '/updates',
   path: '/updates',
   getParentRoute: () => AppRoute,
+} as any)
+const SecurityNotMeRoute = SecurityNotMeRouteImport.update({
+  id: '/security/not-me',
+  path: '/security/not-me',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const WelcomeNameRoute = WelcomeNameRouteImport.update({
   id: '/welcome/name',
@@ -69,27 +75,69 @@ const AppChatsChatIdRoute = AppChatsChatIdRouteImport.update({
   path: '/$chatId',
   getParentRoute: () => AppChatsRoute,
 } as any)
+const AppSettingsIndexRoute = AppSettingsIndexRouteImport.update({
+  id: '/settings/',
+  path: '/settings/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsDevicesRoute = AppSettingsDevicesRouteImport.update({
+  id: '/settings/devices',
+  path: '/settings/devices',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsPrivacyRoute = AppSettingsPrivacyRouteImport.update({
+  id: '/settings/privacy',
+  path: '/settings/privacy',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsProfileRoute = AppSettingsProfileRouteImport.update({
+  id: '/settings/profile',
+  path: '/settings/profile',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsAdminAuditRoute = AppSettingsAdminAuditRouteImport.update({
+  id: '/settings/admin/audit',
+  path: '/settings/admin/audit',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsAdminUsersRoute = AppSettingsAdminUsersRouteImport.update({
+  id: '/settings/admin/users',
+  path: '/settings/admin/users',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/verify': typeof VerifyRoute
   '/calls': typeof AppCallsRoute
   '/chats': typeof AppChatsRouteWithChildren
-  '/settings': typeof AppSettingsRoute
   '/updates': typeof AppUpdatesRoute
+  '/security/not-me': typeof SecurityNotMeRoute
   '/welcome/name': typeof WelcomeNameRoute
   '/chats/$chatId': typeof AppChatsChatIdRoute
+  '/settings/devices': typeof AppSettingsDevicesRoute
+  '/settings/privacy': typeof AppSettingsPrivacyRoute
+  '/settings/profile': typeof AppSettingsProfileRoute
   '/chats/': typeof AppChatsIndexRoute
+  '/settings/': typeof AppSettingsIndexRoute
+  '/settings/admin/audit': typeof AppSettingsAdminAuditRoute
+  '/settings/admin/users': typeof AppSettingsAdminUsersRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/verify': typeof VerifyRoute
   '/calls': typeof AppCallsRoute
-  '/settings': typeof AppSettingsRoute
   '/updates': typeof AppUpdatesRoute
+  '/security/not-me': typeof SecurityNotMeRoute
   '/welcome/name': typeof WelcomeNameRoute
   '/chats/$chatId': typeof AppChatsChatIdRoute
+  '/settings/devices': typeof AppSettingsDevicesRoute
+  '/settings/privacy': typeof AppSettingsPrivacyRoute
+  '/settings/profile': typeof AppSettingsProfileRoute
   '/chats': typeof AppChatsIndexRoute
+  '/settings': typeof AppSettingsIndexRoute
+  '/settings/admin/audit': typeof AppSettingsAdminAuditRoute
+  '/settings/admin/users': typeof AppSettingsAdminUsersRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -98,11 +146,17 @@ export interface FileRoutesById {
   '/verify': typeof VerifyRoute
   '/_app/calls': typeof AppCallsRoute
   '/_app/chats': typeof AppChatsRouteWithChildren
-  '/_app/settings': typeof AppSettingsRoute
   '/_app/updates': typeof AppUpdatesRoute
+  '/security/not-me': typeof SecurityNotMeRoute
   '/welcome/name': typeof WelcomeNameRoute
   '/_app/chats/$chatId': typeof AppChatsChatIdRoute
+  '/_app/settings/devices': typeof AppSettingsDevicesRoute
+  '/_app/settings/privacy': typeof AppSettingsPrivacyRoute
+  '/_app/settings/profile': typeof AppSettingsProfileRoute
   '/_app/chats/': typeof AppChatsIndexRoute
+  '/_app/settings/': typeof AppSettingsIndexRoute
+  '/_app/settings/admin/audit': typeof AppSettingsAdminAuditRoute
+  '/_app/settings/admin/users': typeof AppSettingsAdminUsersRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -111,21 +165,33 @@ export interface FileRouteTypes {
     | '/verify'
     | '/calls'
     | '/chats'
-    | '/settings'
     | '/updates'
+    | '/security/not-me'
     | '/welcome/name'
     | '/chats/$chatId'
+    | '/settings/devices'
+    | '/settings/privacy'
+    | '/settings/profile'
     | '/chats/'
+    | '/settings/'
+    | '/settings/admin/audit'
+    | '/settings/admin/users'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/verify'
     | '/calls'
-    | '/settings'
     | '/updates'
+    | '/security/not-me'
     | '/welcome/name'
     | '/chats/$chatId'
+    | '/settings/devices'
+    | '/settings/privacy'
+    | '/settings/profile'
     | '/chats'
+    | '/settings'
+    | '/settings/admin/audit'
+    | '/settings/admin/users'
   id:
     | '__root__'
     | '/'
@@ -133,17 +199,24 @@ export interface FileRouteTypes {
     | '/verify'
     | '/_app/calls'
     | '/_app/chats'
-    | '/_app/settings'
     | '/_app/updates'
+    | '/security/not-me'
     | '/welcome/name'
     | '/_app/chats/$chatId'
+    | '/_app/settings/devices'
+    | '/_app/settings/privacy'
+    | '/_app/settings/profile'
     | '/_app/chats/'
+    | '/_app/settings/'
+    | '/_app/settings/admin/audit'
+    | '/_app/settings/admin/users'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
   VerifyRoute: typeof VerifyRoute
+  SecurityNotMeRoute: typeof SecurityNotMeRoute
   WelcomeNameRoute: typeof WelcomeNameRoute
 }
 
@@ -184,19 +257,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppChatsRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/settings': {
-      id: '/_app/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof AppSettingsRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/_app/updates': {
       id: '/_app/updates'
       path: '/updates'
       fullPath: '/updates'
       preLoaderRoute: typeof AppUpdatesRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/security/not-me': {
+      id: '/security/not-me'
+      path: '/security/not-me'
+      fullPath: '/security/not-me'
+      preLoaderRoute: typeof SecurityNotMeRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/welcome/name': {
       id: '/welcome/name'
@@ -219,6 +292,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppChatsChatIdRouteImport
       parentRoute: typeof AppChatsRoute
     }
+    '/_app/settings/': {
+      id: '/_app/settings/'
+      path: '/settings'
+      fullPath: '/settings/'
+      preLoaderRoute: typeof AppSettingsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings/devices': {
+      id: '/_app/settings/devices'
+      path: '/settings/devices'
+      fullPath: '/settings/devices'
+      preLoaderRoute: typeof AppSettingsDevicesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings/privacy': {
+      id: '/_app/settings/privacy'
+      path: '/settings/privacy'
+      fullPath: '/settings/privacy'
+      preLoaderRoute: typeof AppSettingsPrivacyRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings/profile': {
+      id: '/_app/settings/profile'
+      path: '/settings/profile'
+      fullPath: '/settings/profile'
+      preLoaderRoute: typeof AppSettingsProfileRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings/admin/audit': {
+      id: '/_app/settings/admin/audit'
+      path: '/settings/admin/audit'
+      fullPath: '/settings/admin/audit'
+      preLoaderRoute: typeof AppSettingsAdminAuditRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings/admin/users': {
+      id: '/_app/settings/admin/users'
+      path: '/settings/admin/users'
+      fullPath: '/settings/admin/users'
+      preLoaderRoute: typeof AppSettingsAdminUsersRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
@@ -239,15 +354,25 @@ const AppChatsRouteWithChildren = AppChatsRoute._addFileChildren(
 interface AppRouteChildren {
   AppCallsRoute: typeof AppCallsRoute
   AppChatsRoute: typeof AppChatsRouteWithChildren
-  AppSettingsRoute: typeof AppSettingsRoute
   AppUpdatesRoute: typeof AppUpdatesRoute
+  AppSettingsDevicesRoute: typeof AppSettingsDevicesRoute
+  AppSettingsPrivacyRoute: typeof AppSettingsPrivacyRoute
+  AppSettingsProfileRoute: typeof AppSettingsProfileRoute
+  AppSettingsIndexRoute: typeof AppSettingsIndexRoute
+  AppSettingsAdminAuditRoute: typeof AppSettingsAdminAuditRoute
+  AppSettingsAdminUsersRoute: typeof AppSettingsAdminUsersRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppCallsRoute: AppCallsRoute,
   AppChatsRoute: AppChatsRouteWithChildren,
-  AppSettingsRoute: AppSettingsRoute,
   AppUpdatesRoute: AppUpdatesRoute,
+  AppSettingsDevicesRoute: AppSettingsDevicesRoute,
+  AppSettingsPrivacyRoute: AppSettingsPrivacyRoute,
+  AppSettingsProfileRoute: AppSettingsProfileRoute,
+  AppSettingsIndexRoute: AppSettingsIndexRoute,
+  AppSettingsAdminAuditRoute: AppSettingsAdminAuditRoute,
+  AppSettingsAdminUsersRoute: AppSettingsAdminUsersRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
@@ -256,6 +381,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
   VerifyRoute: VerifyRoute,
+  SecurityNotMeRoute: SecurityNotMeRoute,
   WelcomeNameRoute: WelcomeNameRoute,
 }
 export const routeTree = rootRouteImport

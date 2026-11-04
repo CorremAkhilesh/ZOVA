@@ -6,7 +6,12 @@ export function uniqueEmail(prefix = 'e2e'): string {
 }
 
 /** Reads the latest OTP for `email` from the test API's in-memory outbox (via the /v1 proxy). */
-export async function readOtp(page: Page, email: string): Promise<string> {
+async function latestSubject(page: Page, email: string): Promise<string> {
+  const response = await page.request.get(`/v1/test/outbox/latest?to=${encodeURIComponent(email)}`);
+  return response.ok() ? (await response.json()).subject : '';
+}
+
+export async function readOtp(page: Page, email: string, previousSubject = ''): Promise<string> {
   let code = '';
   await expect
     .poll(
@@ -15,7 +20,9 @@ export async function readOtp(page: Page, email: string): Promise<string> {
           `/v1/test/outbox/latest?to=${encodeURIComponent(email)}`,
         );
         if (!response.ok()) return '';
-        code = /^(\d{6}) is your /.exec((await response.json()).subject)?.[1] ?? '';
+        const { subject } = await response.json();
+        if (subject === previousSubject) return '';
+        code = /^(\d{6}) is your /.exec(subject)?.[1] ?? '';
         return code;
       },
       { timeout: 15_000 },
@@ -28,7 +35,7 @@ export async function readOtp(page: Page, email: string): Promise<string> {
 /** Auth calls can be slow when many browsers run in parallel against the in-memory test API. */
 const SLOW = { timeout: 20_000 };
 
-export async function signUp(page: Page, name = 'E2E Tester'): Promise<string> {
+export async function signUp(page: Page, name = 'E2E Tester', username?: string): Promise<string> {
   const email = uniqueEmail();
   await page.goto('/');
   await page.getByRole('textbox', { name: 'Work email' }).fill(email);
@@ -41,7 +48,26 @@ export async function signUp(page: Page, name = 'E2E Tester'): Promise<string> {
 
   await expect(page.getByRole('heading', { name: 'What should we call you?' })).toBeVisible(SLOW);
   await page.getByRole('textbox', { name: 'Your name' }).fill(name);
+  // The username is suggested from the email; wait for it (and its availability check).
+  await expect(page.getByRole('textbox', { name: 'Username' })).not.toHaveValue('', SLOW);
+  if (username) await page.getByRole('textbox', { name: 'Username' }).fill(username);
+  await expect(page.getByText('Available')).toBeVisible(SLOW);
   await page.getByRole('button', { name: 'Continue' }).click();
   await expect(page).toHaveURL(/\/chats$/, SLOW);
   return email;
 }
+
+/** Signs an existing account in on another device (lifting the test API's resend cooldown). */
+export async function signIn(page: Page, email: string): Promise<void> {
+  await page.request.post('/v1/test/reset-otp-limits', { data: { email } });
+  const before = await latestSubject(page, email);
+  await page.goto('/');
+  await page.getByRole('textbox', { name: 'Work email' }).fill(email);
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await expect(page.getByRole('heading', { name: 'Check your email' })).toBeVisible(SLOW);
+  const code = await readOtp(page, email, before);
+  await page.getByRole('textbox', { name: 'Digit 1 of 6' }).fill(code);
+  await expect(page).toHaveURL(/\/chats$/, SLOW);
+}
+
+export { SLOW };

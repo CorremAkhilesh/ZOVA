@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ConnectionStatus } from '@/features/connection/ConnectionStatus';
+import { PeoplePicker } from '@/features/people/components/PeoplePicker';
 import { cn } from '@/lib/utils';
 import { filterChats } from '../chat-utils';
 import { MOCK_CHATS } from '../mock-data';
@@ -19,6 +20,7 @@ export function ChatListPane() {
   const { t } = useTranslation();
   const [folder, setFolder] = useState<ChatFolder>('all');
   const [query, setQuery] = useState('');
+  const [pickerOpen, setPickerOpen] = useState(false);
   const chats = useMemo(() => filterChats(MOCK_CHATS, folder, query), [folder, query]);
   const now = new Date();
 
@@ -34,9 +36,15 @@ export function ChatListPane() {
           </div>
           <div className="flex items-center gap-1">
             <ConnectionStatus />
-            <Button variant="ghost" size="icon-sm" aria-label={t('chats.newChat')}>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label={t('chats.newChat')}
+              onClick={() => setPickerOpen(true)}
+            >
               <MessageSquarePlus className="size-5" />
             </Button>
+            <PeoplePicker open={pickerOpen} onOpenChange={setPickerOpen} />
           </div>
         </div>
         <div className="relative">

@@ -12,6 +12,8 @@ export default defineConfig({
   testDir: './e2e',
   outputDir: './test-results',
   fullyParallel: true,
+  // Local runs share a busy machine: two workers keep auth calls under their timeouts.
+  ...(CI ? {} : { workers: 2 }),
   forbidOnly: CI,
   retries: CI ? 2 : 0,
   reporter: CI ? [['github'], ['html', { open: 'never' }]] : [['list']],
