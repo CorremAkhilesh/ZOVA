@@ -88,7 +88,8 @@ const schemeCss = `
   :root { color-scheme: light dark; supported-color-schemes: light dark; }
   .code { -webkit-user-select: all; user-select: all; }
   @media (prefers-color-scheme: dark) {
-    .page { background-color: ${dark.page} !important; }
+    /* React Email copies the body background onto a wrapper cell; repaint that one too. */
+    html, body, .page, .page > table > tbody > tr > td, .page > table > tr > td { background-color: ${dark.page} !important; }
     .card { background-color: ${dark.card} !important; border-color: ${dark.border} !important; }
     .header { background-color: ${dark.header} !important; }
     .header-text { color: ${dark.headerText} !important; }
