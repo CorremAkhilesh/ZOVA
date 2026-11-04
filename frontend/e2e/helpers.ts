@@ -71,3 +71,20 @@ export async function signIn(page: Page, email: string): Promise<void> {
 }
 
 export { SLOW };
+
+/**
+ * page.goto that survives Firefox aborting it when the app is still finishing its own navigation
+ * (NS_BINDING_ABORTED right after sign-up). Waits for the page to settle, retries once or twice.
+ */
+export async function open(page: Page, path: string): Promise<void> {
+  for (let attempt = 1; ; attempt++) {
+    await page.waitForLoadState('load');
+    try {
+      await page.goto(path);
+      return;
+    } catch (error) {
+      const aborted = /NS_BINDING_ABORTED|NS_ERROR_FAILURE|frame was detached/.test(String(error));
+      if (!aborted || attempt >= 3) throw error;
+    }
+  }
+}

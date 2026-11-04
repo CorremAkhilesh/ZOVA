@@ -1,5 +1,5 @@
 import { type Browser, expect, type Page, test } from '@playwright/test';
-import { SLOW, signIn, signUp } from './helpers';
+import { open, SLOW, signIn, signUp } from './helpers';
 
 // A 96×96 PNG: the crop dialog re-encodes it, the server makes the 512/128 px WebP versions.
 const PHOTO = Buffer.from(
@@ -25,7 +25,7 @@ test('two colleagues: profile, people search, devices and admin deactivation', a
   const emailA = await signUp(a, 'Asha Verma', username);
   const emailB = await signUp(b, 'Bharat Rao');
 
-  await a.goto('/settings/profile');
+  await open(a, '/settings/profile');
   await expect(a.getByText(`@${username}`)).toBeVisible(SLOW);
   // Just chosen, so it can't change again for 30 days.
   await expect(a.getByRole('button', { name: 'Edit Username' })).toBeDisabled();
@@ -41,7 +41,7 @@ test('two colleagues: profile, people search, devices and admin deactivation', a
   await expect(a.getByRole('button', { name: 'Remove photo' })).toBeVisible(SLOW);
 
   // B: finds A in the people picker and opens the profile card.
-  await b.goto('/chats');
+  await open(b, '/chats');
   await b.getByRole('button', { name: 'New chat' }).click();
   const picker = b.getByRole('dialog', { name: 'New chat' });
   await picker.getByRole('combobox').fill(username);
@@ -57,7 +57,7 @@ test('two colleagues: profile, people search, devices and admin deactivation', a
   // A signs in on a second device, then signs it out from Settings → Devices.
   const a2 = await newPage(browser);
   await signIn(a2, emailA);
-  await a.goto('/settings/devices');
+  await open(a, '/settings/devices');
   await expect(a.getByText('This device')).toBeVisible(SLOW);
   await a.getByRole('button', { name: 'Sign out all other devices' }).click();
   await a.getByRole('dialog').getByRole('button', { name: 'Sign out all other devices' }).click();
@@ -68,7 +68,7 @@ test('two colleagues: profile, people search, devices and admin deactivation', a
   // An admin deactivates B; B is bounced to the welcome screen within seconds.
   const adminEmail = await signUp(admin, 'Ada Admin');
   await admin.request.post('/v1/test/promote', { data: { email: adminEmail } });
-  await admin.goto('/settings/admin/users');
+  await open(admin, '/settings/admin/users');
   await admin.getByRole('searchbox').fill(emailB);
   const row = admin.getByRole('listitem').filter({ hasText: emailB });
   await row.getByRole('button', { name: 'Deactivate' }).click(SLOW);
@@ -77,6 +77,6 @@ test('two colleagues: profile, people search, devices and admin deactivation', a
   await expect(b.getByRole('heading', { name: /Welcome to/ })).toBeVisible({ timeout: 30_000 });
 
   // Every admin action is in the audit log.
-  await admin.goto('/settings/admin/audit');
+  await open(admin, '/settings/admin/audit');
   await expect(admin.getByText(`${adminEmail} deactivated ${emailB}`)).toBeVisible(SLOW);
 });
