@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { InstallSetting } from '@/features/install/InstallUi';
 import { ThemeSwitcher } from '@/features/theme/ThemeSwitcher';
 import { LANGUAGES } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
@@ -63,6 +64,10 @@ function Settings() {
               })}
             </div>
           </div>
+        </Section>
+
+        <Section title={t('install.settingsTitle')}>
+          <InstallSetting />
         </Section>
 
         <Section title={t('settings.account')}>

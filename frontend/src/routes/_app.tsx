@@ -2,6 +2,7 @@ import { createFileRoute, Outlet, useMatchRoute } from '@tanstack/react-router';
 import { AppRail } from '@/components/common/AppRail';
 import { BottomTabs } from '@/components/common/BottomTabs';
 import { ErrorScreen, NotFound } from '@/components/common/StatusScreens';
+import { InstallBanner } from '@/features/install/InstallUi';
 import { useIsDesktop } from '@/lib/hooks';
 
 export const Route = createFileRoute('/_app')({
@@ -24,16 +25,22 @@ function AppShell() {
     return (
       <div className="flex h-full">
         <AppRail />
-        <main className="min-w-0 flex-1">
-          <Outlet />
+        <main className="flex min-w-0 flex-1 flex-col">
+          <InstallBanner />
+          <div className="min-h-0 flex-1">
+            <Outlet />
+          </div>
         </main>
       </div>
     );
   }
   return (
     <div className="flex h-full flex-col">
-      <main className="glass min-h-0 flex-1">
-        <Outlet />
+      <main className="glass flex min-h-0 flex-1 flex-col">
+        {inConversation ? null : <InstallBanner />}
+        <div className="min-h-0 flex-1">
+          <Outlet />
+        </div>
       </main>
       {inConversation ? null : <BottomTabs />}
     </div>

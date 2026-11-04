@@ -4,6 +4,8 @@ import { MotionConfig } from 'motion/react';
 import { useEffect, useState } from 'react';
 import { Toaster } from 'sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { IosInstallSheet } from '@/features/install/InstallUi';
+import { listenForInstallEvents } from '@/features/install/install-store';
 import { syncThemeWithDocument, useThemeStore } from '@/features/theme/theme-store';
 import { ErrorBoundary } from './ErrorBoundary';
 import { type AppRouter, createAppRouter, createQueryClient } from './router';
@@ -19,6 +21,7 @@ export function App({ queryClient: providedClient, router: providedRouter }: App
   const mode = useThemeStore((state) => state.mode);
 
   useEffect(() => syncThemeWithDocument(), []);
+  useEffect(() => listenForInstallEvents(), []);
 
   return (
     <ErrorBoundary>
@@ -28,6 +31,7 @@ export function App({ queryClient: providedClient, router: providedRouter }: App
           <TooltipProvider>
             <RouterProvider router={router} />
             <Toaster position="top-center" richColors theme={mode} />
+            <IosInstallSheet />
           </TooltipProvider>
         </MotionConfig>
       </QueryClientProvider>

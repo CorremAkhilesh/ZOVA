@@ -102,5 +102,26 @@
   },
   "mock": {
     "badge": "Sample data"
+  },
+  "install": {
+    "bannerLabel": "Install the app",
+    "bannerText": "Install the app for a faster, full-screen experience.",
+    "install": "Install",
+    "howTo": "How to install",
+    "dismiss": "Dismiss",
+    "settingsTitle": "App",
+    "settingsHint": "Install on this device for quick access, its own window and notifications.",
+    "installApp": "Install app",
+    "unavailableOrInstalled": "Already installed, or installing isn’t available in this browser.",
+    "iosTitle": "Add to Home Screen",
+    "iosDescription": "Install the app on your iPhone or iPad in three steps.",
+    "iosStep1": "Tap the Share button in Safari’s toolbar.",
+    "iosStep2": "Scroll down and tap “Add to Home Screen”.",
+    "iosStep3": "Tap “Add”. Open the app from your Home Screen.",
+    "gotIt": "Got it"
+  },
+  "pwa": {
+    "updateAvailable": "New version available",
+    "reload": "Reload"
   }
 }

@@ -161,6 +161,14 @@
   background-color: color-mix(in srgb, var(--color-text) 30%, transparent);
 }
 
+/* Window Controls Overlay (installed desktop app): keep content clear of the window buttons. */
+.titlebar-area {
+  height: env(titlebar-area-height, 0px);
+  flex-shrink: 0;
+  app-region: drag;
+  -webkit-app-region: drag;
+}
+
 .chat-wallpaper {
   background-color: var(--color-background);
   background-image: radial-gradient(
