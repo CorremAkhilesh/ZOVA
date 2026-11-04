@@ -1,0 +1,102 @@
+{
+  "nav": {
+    "chats": "चैट",
+    "updates": "अपडेट",
+    "calls": "कॉल",
+    "settings": "सेटिंग्स",
+    "main": "मुख्य नेविगेशन"
+  },
+  "welcome": {
+    "title": "{{brand}} में आपका स्वागत है",
+    "subtitle": "Correm टीम के लिए तेज़ और निजी चैट",
+    "emailLabel": "कार्य ईमेल",
+    "emailPlaceholder": "you@corremadvisory.com",
+    "continue": "आगे बढ़ें",
+    "loginSoon": "वन-टाइम कोड से साइन-इन अगले चरण में आएगा।",
+    "openDemo": "डिज़ाइन प्रीव्यू खोलें",
+    "mockNotice": "नमूना डेटा के साथ प्रीव्यू — यहाँ अभी कुछ भी असली नहीं है।"
+  },
+  "chats": {
+    "searchPlaceholder": "चैट खोजें",
+    "folders": {
+      "all": "सभी",
+      "unread": "अपठित",
+      "groups": "ग्रुप",
+      "personal": "निजी"
+    },
+    "pinned": "पिन किया गया",
+    "muted": "म्यूट",
+    "unread_one": "{{count}} अपठित संदेश",
+    "unread_other": "{{count}} अपठित संदेश",
+    "noResults": "आपकी खोज से कोई चैट मेल नहीं खाती।",
+    "newChat": "नई चैट",
+    "foldersLabel": "चैट फ़ोल्डर",
+    "you": "आप"
+  },
+  "conversation": {
+    "online": "ऑनलाइन",
+    "lastSeen": "आखिरी बार {{time}} देखा गया",
+    "members": "{{count}} सदस्य",
+    "today": "आज",
+    "yesterday": "कल",
+    "composerPlaceholder": "संदेश लिखें",
+    "emoji": "इमोजी",
+    "attach": "फ़ाइल जोड़ें",
+    "voice": "वॉइस नोट रिकॉर्ड करें",
+    "send": "भेजें",
+    "reply": "जवाब दें",
+    "back": "चैट सूची पर वापस",
+    "info": "चैट जानकारी",
+    "closeInfo": "चैट जानकारी बंद करें",
+    "replyingTo": "{{name}} को जवाब",
+    "cancelReply": "जवाब रद्द करें",
+    "sent": "भेजा गया",
+    "delivered": "पहुँच गया",
+    "read": "पढ़ लिया गया"
+  },
+  "empty": {
+    "title": "कोई बातचीत चुनें",
+    "body": "बाईं ओर से कोई चैट चुनें या नई शुरू करें। आपके संदेश आपके सभी डिवाइस पर सिंक होते हैं।"
+  },
+  "info": {
+    "media": "मीडिया, लिंक और दस्तावेज़",
+    "notifications": "सूचनाएँ",
+    "starred": "तारांकित संदेश",
+    "about": "परिचय"
+  },
+  "settings": {
+    "title": "सेटिंग्स",
+    "appearance": "रूप-रंग",
+    "theme": "थीम",
+    "themeLight": "लाइट",
+    "themeDark": "डार्क",
+    "themeSystem": "सिस्टम",
+    "language": "भाषा",
+    "languageHint": "इस डिवाइस पर ऐप की भाषा बदलता है।",
+    "account": "खाता",
+    "accountSoon": "प्रोफ़ाइल, गोपनीयता और डिवाइस साइन-इन के साथ आएँगे।"
+  },
+  "placeholder": {
+    "updatesTitle": "अपडेट",
+    "updatesBody": "स्टेटस अपडेट और चैनल बाद के संस्करण में आएँगे।",
+    "callsTitle": "कॉल",
+    "callsBody": "वॉइस और वीडियो कॉल बाद के संस्करण में आएँगे।"
+  },
+  "status": {
+    "connected": "कनेक्टेड",
+    "connecting": "कनेक्ट हो रहा है…",
+    "unreachable": "सर्वर तक नहीं पहुँच पा रहे",
+    "offline": "आप ऑफ़लाइन हैं। दोबारा कनेक्ट होने पर संदेश भेजे जाएँगे।"
+  },
+  "errors": {
+    "title": "कुछ गलत हो गया",
+    "body": "एक अनपेक्षित त्रुटि हुई। फिर से कोशिश करें या पेज रीलोड करें।",
+    "retry": "फिर से कोशिश करें",
+    "notFoundTitle": "पेज नहीं मिला",
+    "notFoundBody": "आप जो पेज ढूँढ रहे हैं वह मौजूद नहीं है।",
+    "goHome": "चैट पर जाएँ"
+  },
+  "mock": {
+    "badge": "नमूना डेटा"
+  }
+}

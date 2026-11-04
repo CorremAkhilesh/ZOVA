@@ -1,0 +1,102 @@
+{
+  "nav": {
+    "chats": "Chats",
+    "updates": "Updates",
+    "calls": "Calls",
+    "settings": "Settings",
+    "main": "Main navigation"
+  },
+  "welcome": {
+    "title": "Welcome to {{brand}}",
+    "subtitle": "{{tagline}}",
+    "emailLabel": "Work email",
+    "emailPlaceholder": "you@corremadvisory.com",
+    "continue": "Continue",
+    "loginSoon": "Sign-in with a one-time code arrives in the next step.",
+    "openDemo": "Open the design preview",
+    "mockNotice": "Preview with sample data — nothing here is real yet."
+  },
+  "chats": {
+    "searchPlaceholder": "Search chats",
+    "folders": {
+      "all": "All",
+      "unread": "Unread",
+      "groups": "Groups",
+      "personal": "Personal"
+    },
+    "pinned": "Pinned",
+    "muted": "Muted",
+    "unread_one": "{{count}} unread message",
+    "unread_other": "{{count}} unread messages",
+    "noResults": "No chats match your search.",
+    "newChat": "New chat",
+    "foldersLabel": "Chat folders",
+    "you": "You"
+  },
+  "conversation": {
+    "online": "online",
+    "lastSeen": "last seen {{time}}",
+    "members": "{{count}} members",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "composerPlaceholder": "Write a message",
+    "emoji": "Emoji",
+    "attach": "Attach a file",
+    "voice": "Record a voice note",
+    "send": "Send",
+    "reply": "Reply",
+    "back": "Back to chats",
+    "info": "Chat info",
+    "closeInfo": "Close chat info",
+    "replyingTo": "Replying to {{name}}",
+    "cancelReply": "Cancel reply",
+    "sent": "Sent",
+    "delivered": "Delivered",
+    "read": "Read"
+  },
+  "empty": {
+    "title": "Pick a conversation",
+    "body": "Choose a chat on the left, or start a new one. Your messages sync across all your devices."
+  },
+  "info": {
+    "media": "Media, links and docs",
+    "notifications": "Notifications",
+    "starred": "Starred messages",
+    "about": "About"
+  },
+  "settings": {
+    "title": "Settings",
+    "appearance": "Appearance",
+    "theme": "Theme",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "themeSystem": "System",
+    "language": "Language",
+    "languageHint": "Changes the app language on this device.",
+    "account": "Account",
+    "accountSoon": "Profile, privacy and devices arrive with sign-in."
+  },
+  "placeholder": {
+    "updatesTitle": "Updates",
+    "updatesBody": "Status updates and channels are planned for a later version.",
+    "callsTitle": "Calls",
+    "callsBody": "Voice and video calls are planned for a later version."
+  },
+  "status": {
+    "connected": "Connected",
+    "connecting": "Connecting…",
+    "unreachable": "Server unreachable",
+    "offline": "You are offline. Messages will send when you reconnect."
+  },
+  "errors": {
+    "title": "Something went wrong",
+    "body": "An unexpected error occurred. Try again, or reload the page.",
+    "retry": "Try again",
+    "notFoundTitle": "Page not found",
+    "notFoundBody": "The page you are looking for does not exist.",
+    "goHome": "Go to chats"
+  },
+  "mock": {
+    "badge": "Sample data"
+  }
+}
