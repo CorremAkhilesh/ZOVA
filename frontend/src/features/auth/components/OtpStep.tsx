@@ -3,7 +3,6 @@ import { Link, useNavigate } from '@tanstack/react-router';
 import { Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { authApi } from '../api';
 import { authErrorMessage, errorCode } from '../errors';
@@ -29,6 +28,8 @@ export function OtpStep() {
   const { pendingEmail, resendAvailableAt, codeSent } = useAuthFlow();
   const [code, setCode] = useState('');
   const [failures, setFailures] = useState(0);
+  /** True right after a resend, until the next attempt. */
+  const [resent, setResent] = useState(false);
   const resendIn = useSecondsUntil(resendAvailableAt);
 
   const verify = useMutation({
@@ -37,6 +38,7 @@ export function OtpStep() {
       setSignedIn(queryClient, session);
       void navigate({ to: session.needsProfile ? '/welcome/name' : '/chats' });
     },
+    onMutate: () => setResent(false),
     onError: () => {
       setCode('');
       setFailures((count) => count + 1);
@@ -49,7 +51,9 @@ export function OtpStep() {
       codeSent(pendingEmail, response.resendAfterSeconds);
       verify.reset();
       setCode('');
-      toast.success(t('auth.codeResent'));
+      setResent(true);
+      // Fresh, empty boxes for the new code.
+      setFailures((count) => count + 1);
     },
   });
 
@@ -84,9 +88,19 @@ export function OtpStep() {
           onComplete={(value) => verify.mutate(value)}
           disabled={verify.isPending || mustResend}
           invalid={verify.isError}
-          {...(message ? { describedBy: 'otp-error' } : {})}
+          describedBy={message ? 'otp-error' : 'otp-hint'}
         />
-        {message ? <FormError id="otp-error">{message}</FormError> : null}
+        {message ? (
+          <FormError id="otp-error">{message}</FormError>
+        ) : (
+          <p
+            id="otp-hint"
+            role="status"
+            className={resent ? 'text-sm font-medium text-accent-text' : 'text-sm text-text-muted'}
+          >
+            {resent ? t('auth.codeResent') : t('auth.latestCodeOnly')}
+          </p>
+        )}
         <Button
           type="submit"
           className="w-full"

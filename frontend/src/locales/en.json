@@ -136,7 +136,7 @@
     "changeEmail": "Change email",
     "resend": "Resend code",
     "resendIn": "Resend in {{seconds}}s",
-    "codeResent": "A new code is on its way.",
+    "codeResent": "New code sent — older codes no longer work.",
     "nameTitle": "What should we call you?",
     "nameSubtitle": "This is how your name appears to your colleagues. You can change it later.",
     "nameLabel": "Your name",
@@ -169,6 +169,7 @@
       "tooManyAttempts": "Too many wrong codes. Request a new code.",
       "expired": "This code has expired. Request a new code.",
       "invalid": "Enter a valid email address."
-    }
+    },
+    "latestCodeOnly": "Only the most recent code works."
   }
 }

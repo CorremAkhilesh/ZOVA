@@ -1,6 +1,7 @@
 import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it } from 'vitest';
+import { i18n } from '@/lib/i18n';
 import { axe } from '@/test/axe';
 import { HttpResponse, http, server, sessionFixture, signedOut } from '@/test/msw';
 import { renderApp } from '@/test/render-app';
@@ -184,11 +185,32 @@ describe('code step', () => {
     expect(screen.getByRole('button', { name: /Resend in 4[45]s/ })).toBeDisabled();
   });
 
-  it('resends a code once the countdown is over', async () => {
+  it('explains that only the most recent code works', async () => {
+    await startAtCode();
+    expect(screen.getByText('Only the most recent code works.')).toBeInTheDocument();
+    expect(boxes()[0]).toHaveAttribute('aria-describedby', 'otp-hint');
+  });
+
+  it('resends a code: clears the boxes and says older codes no longer work', async () => {
     const { user } = await startAtCode(Date.now() - 1000);
     server.use(otpSent());
+    await user.click(boxes()[0] as HTMLElement);
+    await user.keyboard('123');
+    expect(boxes()[2]).toHaveValue('3');
+
     await user.click(screen.getByRole('button', { name: 'Resend code' }));
+    expect(
+      await screen.findByText('New code sent — older codes no longer work.'),
+    ).toBeInTheDocument();
+    for (const box of boxes()) expect(box).toHaveValue('');
+    expect(screen.queryByText('Only the most recent code works.')).not.toBeInTheDocument();
     await waitFor(() => expect(screen.getByRole('button', { name: /Resend in/ })).toBeDisabled());
+  });
+
+  it('shows the hint in Hindi', async () => {
+    await startAtCode();
+    await act(() => i18n.changeLanguage('hi'));
+    expect(screen.getByText('केवल सबसे नया कोड काम करता है।')).toBeInTheDocument();
   });
 
   it('goes back to change the email', async () => {
