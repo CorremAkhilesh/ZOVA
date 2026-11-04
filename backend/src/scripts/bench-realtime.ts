@@ -13,6 +13,7 @@ import { io, type Socket } from 'socket.io-client';
 import { buildApp } from '../app.ts';
 import { getOrCreateDirectChat } from '../chats/chats.service.ts';
 import { loadEnv } from '../config/env.ts';
+import { registerAuthModels } from '../db/auth-models.ts';
 import { usersModel } from '../users/user-record.ts';
 
 const PORT = Number(process.env.BENCH_PORT ?? 4200);
@@ -73,12 +74,20 @@ async function serve(sockets: number) {
       updatedAt: now,
     })),
   );
-  const context = await app.auth.$context;
+  const sessions = registerAuthModels(app.mongo).AuthSession.collection;
   const seats: Seat[] = [];
   for (const [n, id] of ids.entries()) {
-    const session = await context.internalAdapter.createSession(id.toString());
+    // Straight into this throwaway database: Better Auth's own helper needs a request context.
+    const token = randomBytes(24).toString('hex');
+    await sessions.insertOne({
+      token,
+      userId: id,
+      createdAt: now,
+      updatedAt: now,
+      expiresAt: new Date(now.getTime() + 86_400_000),
+    });
     const signature = createHmac('sha256', process.env.BENCH_SECRET ?? '')
-      .update(session.token)
+      .update(token)
       .digest('base64');
     const chats: string[] = [];
     for (let step = 1; step <= CHATS_PER_USER; step++) {
@@ -86,7 +95,7 @@ async function serve(sockets: number) {
       if (other) chats.push((await getOrCreateDirectChat(app, id.toString(), other.toString())).id);
     }
     seats.push({
-      cookie: `zuvo.session_token=${encodeURIComponent(`${session.token}.${signature}`)}`,
+      cookie: `zuvo.session_token=${encodeURIComponent(`${token}.${signature}`)}`,
       chats,
     });
   }
@@ -144,11 +153,13 @@ async function drive(sockets: number, messages: number, interval: number) {
   const acks: number[] = [];
   let errors = 0;
   let received = 0;
-  const sentAt = new Map<string, number>();
+  const sentAt = new Map<string, { at: number; by: Socket }>();
   for (const client of clients) {
     client.on('message:new', ({ message }: { message: { clientMsgId: string } }) => {
-      const at = sentAt.get(message.clientMsgId);
-      if (at === undefined) return;
+      const sent = sentAt.get(message.clientMsgId);
+      // The other person's device only: the sender's own copy arrives with the ack.
+      if (!sent || sent.by === client) return;
+      const { at } = sent;
       received += 1;
       delivery.push(Date.now() - at);
     });
@@ -163,7 +174,7 @@ async function drive(sockets: number, messages: number, interval: number) {
         const clientMsgId = uuidv7();
         const chatId = chats[Math.floor(Math.random() * chats.length)];
         const at = Date.now();
-        sentAt.set(clientMsgId, at);
+        sentAt.set(clientMsgId, { at, by: client });
         try {
           const ack = await client
             .timeout(60_000)
@@ -183,7 +194,7 @@ async function drive(sockets: number, messages: number, interval: number) {
   process.stdout.write(
     `${[
       `sockets=${clients.length} messages each=${messages} interval=${interval}ms`,
-      `sent=${acks.length} errors=${errors} deliveries=${received} in ${seconds.toFixed(1)} s`,
+      `sent=${acks.length} errors=${errors} delivered to the other person=${received} in ${seconds.toFixed(1)} s`,
       summary('send → ack', acks),
       summary('send → receive', delivery),
     ].join('\n')}\n`,
