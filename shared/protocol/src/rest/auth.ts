@@ -33,7 +33,9 @@ export const sessionUserSchema = z.object({
   email: z.email(),
   displayName: z.string().nullable(),
   username: z.string().nullable(),
-  avatarKey: z.string().nullable(),
+  about: z.string(),
+  /** API URLs (auth required) for the 128 px and 512 px avatar, or null. */
+  avatar: z.object({ small: z.string(), large: z.string() }).nullable(),
   role: userRoleSchema,
   status: userStatusSchema,
   createdAt: isoDateTimeSchema,
@@ -50,16 +52,12 @@ export const sessionInfoSchema = z.object({
 export const sessionResponseSchema = z.object({
   user: sessionUserSchema,
   session: sessionInfoSchema,
-  /** True until the user has chosen a display name (first login). */
+  /** True until the user has a display name and a username (first login, or legacy accounts). */
   needsProfile: z.boolean(),
 });
 
 /** POST /v1/auth/logout */
 export const signOutResponseSchema = z.object({ status: z.literal('signed_out') });
-
-/** PATCH /v1/me/profile */
-export const updateProfileBodySchema = z.object({ displayName: displayNameSchema });
-export const updateProfileResponseSchema = z.object({ user: sessionUserSchema });
 
 /** POST /v1/admin/users/:id/deactivate | /reactivate */
 export const adminUserParamsSchema = z.object({ id: z.string().min(1).max(64) });
@@ -81,5 +79,4 @@ export type RequestOtpResponse = z.infer<typeof requestOtpResponseSchema>;
 export type VerifyOtpBody = z.infer<typeof verifyOtpBodySchema>;
 export type SessionUser = z.infer<typeof sessionUserSchema>;
 export type SessionResponse = z.infer<typeof sessionResponseSchema>;
-export type UpdateProfileBody = z.infer<typeof updateProfileBodySchema>;
 export type AdminUserStatusResponse = z.infer<typeof adminUserStatusResponseSchema>;

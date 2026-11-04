@@ -1,10 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import {
-  otpCodeSchema,
-  requestOtpBodySchema,
-  sessionResponseSchema,
-  updateProfileBodySchema,
-} from './auth.ts';
+import { otpCodeSchema, requestOtpBodySchema, sessionResponseSchema } from './auth.ts';
+import { updateProfileBodySchema } from './profile.ts';
 
 describe('auth contracts', () => {
   it('normalizes the email on OTP requests', () => {
@@ -37,7 +33,8 @@ describe('auth contracts', () => {
         email: 'a@corremadvisory.com',
         displayName: null,
         username: null,
-        avatarKey: null,
+        about: 'Hey there!',
+        avatar: null,
         role: 'user',
         status: 'active',
         createdAt: now,

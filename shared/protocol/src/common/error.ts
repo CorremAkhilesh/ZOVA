@@ -18,6 +18,12 @@ export const errorCodeSchema = z.enum([
   'ACCOUNT_DEACTIVATED',
   'INTERNAL_ERROR',
   'SERVICE_UNAVAILABLE',
+  'UNSUPPORTED_MEDIA_TYPE',
+  'USERNAME_TAKEN',
+  'USERNAME_CHANGE_TOO_SOON',
+  'SECURITY_TOKEN_INVALID',
+  'SECURITY_TOKEN_EXPIRED',
+  'LAST_ADMIN',
 ]);
 
 export type ErrorCode = z.infer<typeof errorCodeSchema>;

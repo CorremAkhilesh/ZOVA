@@ -2,12 +2,16 @@
  * Single source of truth for the product brand.
  * The brand name, domains and colors must never be hard-coded anywhere else.
  */
+const NAME = 'Zuvo';
+
 export const brand = {
-  name: 'Zuvo',
+  name: NAME,
   tagline: 'Fast, private chat for the Correm team',
   description:
     'Zuvo is fast, private chat for the Correm Advisory team on every device, right in the browser.',
   company: 'Correm Advisory India Pvt. Ltd.',
+  /** Default profile “about” text for new users. */
+  defaultAbout: `Hey there! I'm using ${NAME}`,
   domains: {
     organization: 'corremadvisory.com',
     landing: 'zuvo.corremadvisory.com',
