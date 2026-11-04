@@ -6,7 +6,7 @@ import type {
 } from '@zuvo/protocol';
 import type { FastifyInstance } from 'fastify';
 import fp from 'fastify-plugin';
-import type { Redis } from 'ioredis';
+import { Redis } from 'ioredis';
 import { Server, type Socket } from 'socket.io';
 import { type AuthSessionRecord, trackActivity } from '../auth/session.ts';
 import type { Env } from '../config/env.ts';
@@ -94,7 +94,9 @@ async function setupRealtime(app: FastifyInstance, options: RealtimeOptions) {
     },
   });
 
-  const base = options.adapterRedis === undefined ? app.redis : options.adapterRedis;
+  // A real client only: tests may inject a small stub as the app's Redis.
+  const appRedis = app.redis instanceof Redis ? app.redis : null;
+  const base = options.adapterRedis === undefined ? appRedis : options.adapterRedis;
   const adapterClients = base ? [base.duplicate(), base.duplicate()] : [];
   const [pub, sub] = adapterClients;
   if (pub && sub) {
