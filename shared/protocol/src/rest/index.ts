@@ -1,4 +1,5 @@
 export * from './auth.ts';
+export * from './chats.ts';
 export {
   type CheckStatus,
   checkStatusSchema,

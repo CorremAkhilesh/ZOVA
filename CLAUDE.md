@@ -85,7 +85,8 @@
 
 ### Message storage
 
-- Messages are stored server-side in MongoDB so every device syncs full history.
+- Messages are stored server-side in MongoDB so every device syncs full history
+  (`docs/adr/0002-message-storage.md`). Ordering, sockets and the sync cursor: `docs/protocol.md`.
 
 ---
 

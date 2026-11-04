@@ -18,6 +18,7 @@
     "redis:status": "node scripts/redis.ts status",
     "db:sync-indexes": "tsx --env-file=.env src/scripts/sync-indexes.ts",
     "admin:role": "tsx --env-file=.env src/scripts/admin-role.ts",
+    "bench:realtime": "tsx src/scripts/bench-realtime.ts",
     "test:coverage": "vitest run --coverage",
     "e2e:server": "tsx src/scripts/e2e-server.ts"
   },
@@ -30,6 +31,7 @@
     "esbuild": "0.28.2",
     "mongodb-memory-server": "11.3.0",
     "pino-pretty": "13.2.0",
+    "socket.io-client": "4.8.4",
     "tsx": "4.23.15",
     "typescript": "7.0.2",
     "vitest": "5.0.5"
@@ -43,6 +45,7 @@
     "@react-email/components": "1.0.12",
     "@react-email/render": "2.2.0",
     "@scalar/fastify-api-reference": "1.76.4",
+    "@socket.io/redis-adapter": "8.3.0",
     "@zuvo/config": "workspace:*",
     "@zuvo/protocol": "workspace:*",
     "@zuvo/ui-tokens": "workspace:*",
@@ -60,6 +63,7 @@
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "sharp": "0.35.5",
+    "socket.io": "4.8.4",
     "zod": "4.6.7"
   }
 }

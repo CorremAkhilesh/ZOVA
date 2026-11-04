@@ -3,6 +3,8 @@ import {
   deviceSessionsResponseSchema,
   notMeBodySchema,
   notMeResponseSchema,
+  renameSessionBodySchema,
+  renameSessionResponseSchema,
   revokedSessionsResponseSchema,
   sessionParamsSchema,
 } from '@zuvo/protocol';
@@ -23,6 +25,7 @@ interface SessionDoc {
   createdAt: Date;
   expiresAt: Date;
   lastActiveAt?: Date | null;
+  deviceName?: string | null;
 }
 
 /** Settings → Devices, plus the public "This wasn't me" endpoint. */
@@ -42,6 +45,7 @@ export const sessionsRoutes: FastifyPluginAsyncZod = async (app) => {
 
   const toDevice = (doc: SessionDoc, currentId: string): DeviceSession => ({
     id: doc._id.toString(),
+    name: doc.deviceName ?? null,
     current: doc._id.toString() === currentId,
     ...describeDevice(doc.userAgent),
     ipAddress: maskIp(doc.ipAddress),
@@ -82,6 +86,30 @@ export const sessionsRoutes: FastifyPluginAsyncZod = async (app) => {
       if (!target) throw new AppError('NOT_FOUND', 'Session not found.');
       await (await context()).internalAdapter.deleteSession(target.token);
       return { revoked: 1 };
+    },
+  );
+
+  app.patch(
+    '/me/sessions/:id',
+    {
+      onRequest: requireSession,
+      schema: {
+        tags: ['security'],
+        summary: 'Name a device so it is easy to tell apart',
+        params: sessionParamsSchema,
+        body: renameSessionBodySchema,
+        response: { 200: renameSessionResponseSchema },
+      },
+    },
+    async (request) => {
+      const target = (await mySessions(currentUserId(request))).find(
+        (doc) => doc._id.toString() === request.params.id,
+      );
+      // Someone else's session looks exactly like a missing one.
+      if (!target) throw new AppError('NOT_FOUND', 'Session not found.');
+      const { name } = request.body;
+      await sessionsModel().updateOne({ _id: target._id }, { $set: { deviceName: name } });
+      return { name };
     },
   );
 

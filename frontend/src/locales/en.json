@@ -261,7 +261,10 @@
     "signOutOthersBody_other": "{{count}} other devices will be signed out.",
     "signedOutOthers_one": "Signed out {{count}} device",
     "signedOutOthers_other": "Signed out {{count}} devices",
-    "onlyThis": "You’re only signed in on this device."
+    "onlyThis": "You’re only signed in on this device.",
+    "name": "Device name",
+    "nameEmpty": "Not named",
+    "signedInAgo": "Signed in {{when}}"
   },
   "admin": {
     "menu": "Administration",

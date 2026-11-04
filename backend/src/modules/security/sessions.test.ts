@@ -1,6 +1,7 @@
 import {
   deviceSessionsResponseSchema,
   notMeResponseSchema,
+  renameSessionResponseSchema,
   revokedSessionsResponseSchema,
 } from '@zuvo/protocol';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -87,6 +88,36 @@ describe('Settings → Devices', () => {
     expect((await me(app, a2.cookie)).statusCode).toBe(401);
     expect((await me(app, a3.cookie)).statusCode).toBe(401);
     expect((await me(app, bob.cookie)).statusCode).toBe(200);
+  });
+
+  it('names my own devices (trimmed, max 30), never someone else’s', async () => {
+    const app = await start();
+    const mine = await signIn(app, asha);
+    const bob = await signIn(app, 'bob@corremadvisory.com');
+    const [device] = deviceSessionsResponseSchema.parse(
+      (await sessions(app, mine.cookie)).json(),
+    ).sessions;
+    const rename = (cookie: string | undefined, name: unknown) =>
+      app.inject({
+        method: 'PATCH',
+        url: `/v1/me/sessions/${device?.id}`,
+        headers: headers(cookie),
+        payload: { name },
+      });
+    expect(device?.name).toBeNull();
+
+    const named = await rename(mine.cookie, '  Work laptop ');
+    expect(renameSessionResponseSchema.parse(named.json())).toEqual({ name: 'Work laptop' });
+    const list = deviceSessionsResponseSchema.parse((await sessions(app, mine.cookie)).json());
+    expect(list.sessions[0]?.name).toBe('Work laptop');
+
+    expect((await rename(mine.cookie, 'x'.repeat(31))).statusCode).toBe(400);
+    expect((await rename(bob.cookie, 'Mine now')).statusCode).toBe(404);
+    expect((await rename(undefined, 'Anyone')).statusCode).toBe(401);
+
+    expect((await rename(mine.cookie, '   ')).json()).toEqual({ name: null });
+    expect((await rename(mine.cookie, 'Phone')).statusCode).toBe(200);
+    expect((await rename(mine.cookie, null)).json()).toEqual({ name: null });
   });
 
   it('records last activity without ever extending the 7-day expiry', async () => {

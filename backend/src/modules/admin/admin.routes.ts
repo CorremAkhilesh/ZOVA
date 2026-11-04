@@ -46,12 +46,8 @@ export const adminRoutes: FastifyPluginAsyncZod = async (app) => {
     }
     const context = await app.auth.$context;
     let revokedSessions = 0;
-    if (status === 'deactivated') {
-      // Revoke everywhere at once (database and Redis session cache), then block future logins.
-      revokedSessions = (await context.internalAdapter.listSessions(id)).length;
-      await context.internalAdapter.deleteUserSessions(id);
-    }
     if ((target.status ?? 'active') !== status) {
+      // Block new logins and socket connections first, then close what is open.
       await usersModel(app).updateOne({ _id: target._id }, { $set: { status } });
       await audit(
         app,
@@ -59,6 +55,12 @@ export const adminRoutes: FastifyPluginAsyncZod = async (app) => {
         status === 'deactivated' ? 'user.deactivate' : 'user.reactivate',
         target,
       );
+    }
+    if (status === 'deactivated') {
+      // Sockets first, so they hear "deactivated" rather than a plain session revocation.
+      app.realtime.revokeUser(id, 'deactivated');
+      revokedSessions = (await context.internalAdapter.listSessions(id)).length;
+      await context.internalAdapter.deleteUserSessions(id);
     }
     app.log.info(
       { targetUserId: id, adminId: actor.id, status, revokedSessions },

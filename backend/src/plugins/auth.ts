@@ -95,6 +95,8 @@ async function setupAuth(app: FastifyInstance, options: AuthPluginOptions) {
     throttle,
     dispatcher,
     onNewLogin: newLoginAlert(app, env, dispatcher),
+    // Registered after this plugin, so looked up when a session is actually deleted.
+    onSessionDeleted: (sessionId) => app.realtime.revokeSession(sessionId, 'revoked'),
     onAdminEmailSignIn: async (email) => {
       const result = await changeRoleByEmail(app.mongo, {
         email,

@@ -1,5 +1,19 @@
-import type { z } from 'zod';
+import { z } from 'zod';
 import type { AckResponse } from './ack.ts';
+import {
+  chatUpdatedEventSchema,
+  messageNewEventSchema,
+  presenceEventSchema,
+  readUpdateAckSchema,
+  readUpdateEventSchema,
+  readUpdatePayloadSchema,
+  receiptEventSchema,
+  sendMessageAckSchema,
+  sendMessagePayloadSchema,
+  sessionRevokedEventSchema,
+  typingEventSchema,
+  typingPayloadSchema,
+} from './chat.ts';
 
 /** A client → server event: its payload schema and the schema of the ack data it returns. */
 export interface ClientEventDefinition {
@@ -7,17 +21,26 @@ export interface ClientEventDefinition {
   ack: z.ZodType;
 }
 
-/**
- * Events the client emits. Filled in feature by feature, e.g.
- * `'message:send': { payload: sendMessageSchema, ack: messageSchema }`.
- */
-export const clientToServerEvents = {} satisfies Record<string, ClientEventDefinition>;
+/** Events the client emits. */
+export const clientToServerEvents = {
+  'message:send': { payload: sendMessagePayloadSchema, ack: sendMessageAckSchema },
+  'read:update': { payload: readUpdatePayloadSchema, ack: readUpdateAckSchema },
+  // Reserved for Step 10.
+  'typing:start': { payload: typingPayloadSchema, ack: z.object({}) },
+  'typing:stop': { payload: typingPayloadSchema, ack: z.object({}) },
+} satisfies Record<string, ClientEventDefinition>;
 
-/**
- * Events the server emits. Filled in feature by feature, e.g.
- * `'message:new': messageSchema`.
- */
-export const serverToClientEvents = {} satisfies Record<string, z.ZodType>;
+/** Events the server emits. */
+export const serverToClientEvents = {
+  'message:new': messageNewEventSchema,
+  'chat:updated': chatUpdatedEventSchema,
+  'read:update': readUpdateEventSchema,
+  'session:revoked': sessionRevokedEventSchema,
+  // Reserved for Step 10.
+  'typing:update': typingEventSchema,
+  'presence:update': presenceEventSchema,
+  'receipt:update': receiptEventSchema,
+} satisfies Record<string, z.ZodType>;
 
 type ClientEvents = typeof clientToServerEvents;
 type ServerEvents = typeof serverToClientEvents;

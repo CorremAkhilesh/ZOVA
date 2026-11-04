@@ -15,6 +15,7 @@ import { createMailer, type Mailer } from './mail/mailer.ts';
 import { createMemoryMailer, isMemoryMailer } from './mail/memory-mailer.ts';
 import { adminRoutes } from './modules/admin/admin.routes.ts';
 import { authRoutes } from './modules/auth/auth.routes.ts';
+import { chatsRoutes } from './modules/chats/chats.routes.ts';
 import { healthRoutes } from './modules/health/health.routes.ts';
 import { sessionsRoutes } from './modules/security/sessions.routes.ts';
 import { outboxRoutes } from './modules/test-support/outbox.routes.ts';
@@ -28,6 +29,7 @@ import { rateLimitPlugin } from './plugins/rate-limit.ts';
 import { redisPlugin } from './plugins/redis.ts';
 import { securityPlugin } from './plugins/security.ts';
 import { servicesPlugin } from './plugins/services.ts';
+import { realtimePlugin } from './realtime/server.ts';
 import type { StorageDriver } from './storage/driver.ts';
 import { LocalDiskDriver } from './storage/local-disk-driver.ts';
 
@@ -39,6 +41,10 @@ export interface AppDeps {
   storage: StorageDriver;
   /** How emails are handed off (default: BullMQ queue with Redis, direct send otherwise). */
   emailDispatcher: EmailDispatcher;
+  /** Redis for the Socket.IO adapter (tests with several instances). Default: `redis`. */
+  realtimeRedis: Redis | null;
+  /** Adapter channel prefix (tests sharing a Redis). */
+  realtimeKey: string;
 }
 
 export async function buildApp(env: Env, deps: Partial<AppDeps> = {}) {
@@ -82,6 +88,12 @@ export async function buildApp(env: Env, deps: Partial<AppDeps> = {}) {
     ...(deps.emailDispatcher ? { dispatcher: deps.emailDispatcher } : {}),
   });
 
+  await app.register(realtimePlugin, {
+    env,
+    ...(deps.realtimeRedis !== undefined ? { adapterRedis: deps.realtimeRedis } : {}),
+    ...(deps.realtimeKey !== undefined ? { adapterKey: deps.realtimeKey } : {}),
+  });
+
   // Multipart only for uploads; each route sets its own file-size limit.
   await app.register(multipart, { limits: { files: 1, fields: 5, fileSize: AVATAR_MAX_BYTES } });
 
@@ -90,6 +102,7 @@ export async function buildApp(env: Env, deps: Partial<AppDeps> = {}) {
   await app.register(meRoutes, { prefix: '/v1' });
   await app.register(usersRoutes, { prefix: '/v1' });
   await app.register(sessionsRoutes, { prefix: '/v1' });
+  await app.register(chatsRoutes, { prefix: '/v1' });
   await app.register(adminRoutes, { prefix: '/v1' });
   if (env.NODE_ENV === 'test' && isMemoryMailer(app.mailer)) {
     await app.register(outboxRoutes(app.mailer), { prefix: '/v1' });

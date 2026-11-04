@@ -13,6 +13,7 @@ const device = (id: string, overrides: Partial<DeviceSession> = {}): DeviceSessi
   browser: 'Firefox 140',
   os: 'Windows 11',
   deviceType: 'desktop',
+  name: null,
   ipAddress: '103.201.140.•••',
   createdAt: new Date(now - 3_600_000).toISOString(),
   lastActiveAt: new Date(now - 60_000).toISOString(),
@@ -55,6 +56,34 @@ describe('Settings → Devices', () => {
     expect(dialog).toHaveTextContent('1 other device will be signed out.');
     await user.click(within(dialog).getByRole('button', { name: 'Sign out all other devices' }));
     expect(await screen.findByText('You’re only signed in on this device.')).toBeInTheDocument();
+  });
+
+  it('tells identical sessions apart: rename, and a relative "signed in" line', async () => {
+    const user = userEvent.setup();
+    let sessions = [
+      device('s1', { current: true, createdAt: new Date(Date.now() - 5 * 60_000).toISOString() }),
+      device('s2', { createdAt: new Date(Date.now() - 2 * 3_600_000).toISOString() }),
+    ];
+    const names: unknown[] = [];
+    server.use(
+      http.get('*/v1/me/sessions', () => HttpResponse.json({ sessions })),
+      http.patch('*/v1/me/sessions/:id', async ({ params, request }) => {
+        const { name } = (await request.json()) as { name: string };
+        names.push([params.id, name]);
+        sessions = sessions.map((s) => (s.id === params.id ? { ...s, name } : s));
+        return HttpResponse.json({ name });
+      }),
+    );
+    const { container } = await renderApp('/settings/devices');
+    expect(await screen.findByText(/^Signed in 5 min\.? ago$/)).toBeInTheDocument();
+    expect(screen.getByText(/^Signed in 2 hr\.? ago$/)).toBeInTheDocument();
+    expect(await axe(container)).toHaveNoViolations();
+
+    const [first] = screen.getAllByRole('button', { name: 'Edit Device name' });
+    await user.click(first as HTMLElement);
+    await user.type(screen.getByRole('textbox', { name: 'Device name' }), 'Work laptop{Enter}');
+    expect(await screen.findAllByText('Work laptop')).not.toHaveLength(0);
+    expect(names).toEqual([['s1', 'Work laptop']]);
   });
 
   it('shows loading and error states', async () => {

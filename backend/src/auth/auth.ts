@@ -34,6 +34,8 @@ export interface AuthOptions {
   rateLimitEnabled: boolean;
   /** Called after a sign-in on an account that had signed in before (new-login alert). */
   onNewLogin?: (login: NewLogin) => Promise<void>;
+  /** A session was deleted, by any route: logout, Devices, "This wasn't me", deactivation. */
+  onSessionDeleted?: (sessionId: string) => void;
   /** An ADMIN_EMAILS account that is not an admin yet has just signed in: promote and audit it. */
   onAdminEmailSignIn?: (email: string) => Promise<void>;
 }
@@ -204,6 +206,11 @@ export function createAuth(options: AuthOptions) {
         },
       },
       session: {
+        delete: {
+          after: async (session) => {
+            options.onSessionDeleted?.(session.id);
+          },
+        },
         create: {
           // Re-checked at session creation: domain and account status.
           before: async (session, ctx) => {

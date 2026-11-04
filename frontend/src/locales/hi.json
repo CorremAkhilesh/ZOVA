@@ -261,7 +261,10 @@
     "signOutOthersBody_other": "{{count}} अन्य डिवाइस से साइन आउट होगा।",
     "signedOutOthers_one": "{{count}} डिवाइस से साइन आउट किया",
     "signedOutOthers_other": "{{count}} डिवाइस से साइन आउट किया",
-    "onlyThis": "आप केवल इसी डिवाइस पर साइन इन हैं।"
+    "onlyThis": "आप केवल इसी डिवाइस पर साइन इन हैं।",
+    "name": "डिवाइस का नाम",
+    "nameEmpty": "कोई नाम नहीं",
+    "signedInAgo": "साइन इन: {{when}}"
   },
   "admin": {
     "menu": "प्रशासन",

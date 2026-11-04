@@ -6,6 +6,8 @@ import { userRoleSchema, userStatusSchema } from './auth.ts';
 /** A signed-in device, as shown in Settings → Devices. */
 export const deviceSessionSchema = z.object({
   id: z.string(),
+  /** The user's own label for this device, e.g. "Work laptop". */
+  name: z.string().nullable(),
   current: z.boolean(),
   browser: z.string(),
   os: z.string(),
@@ -21,6 +23,17 @@ export const deviceSessionSchema = z.object({
 export const deviceSessionsResponseSchema = z.object({ sessions: z.array(deviceSessionSchema) });
 /** DELETE /v1/me/sessions/:id · POST /v1/me/sessions/revoke-others */
 export const sessionParamsSchema = z.object({ id: z.string().min(1).max(64) });
+/** PATCH /v1/me/sessions/:id: null or blank clears the name. */
+export const SESSION_NAME_MAX = 30;
+export const renameSessionBodySchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .max(SESSION_NAME_MAX)
+    .nullable()
+    .transform((name) => name || null),
+});
+export const renameSessionResponseSchema = z.object({ name: z.string().nullable() });
 export const revokedSessionsResponseSchema = z.object({ revoked: z.number().int().nonnegative() });
 
 /** POST /v1/auth/not-me — the "This wasn't me" link from the new-login email. */
