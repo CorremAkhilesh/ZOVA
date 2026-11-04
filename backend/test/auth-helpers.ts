@@ -41,12 +41,16 @@ export async function readOtp(
   previous?: string,
 ): Promise<string> {
   let code = '';
-  await vi.waitFor(() => {
-    const subject = outbox(app).lastTo(email)?.subject ?? '';
-    const match = /^(\d{6}) is your /.exec(subject);
-    if (!match?.[1] || match[1] === previous) throw new Error('no new OTP yet');
-    code = match[1];
-  });
+  await vi.waitFor(
+    () => {
+      const subject = outbox(app).lastTo(email)?.subject ?? '';
+      const match = /^(\d{6}) is your /.exec(subject);
+      if (!match?.[1] || match[1] === previous) throw new Error('no new OTP yet');
+      code = match[1];
+      // The email is rendered and sent in the background; allow for slow, busy machines.
+    },
+    { timeout: 15_000, interval: 50 },
+  );
   return code;
 }
 
