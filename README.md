@@ -161,7 +161,8 @@ pnpm redis:status   # running/stopped, pid, uptime, eviction policy
 pnpm redis:stop     # saves data and stops it
 ```
 
-`pnpm dev` (and `dev:worker`) run `redis:start` first, so you rarely need to start it yourself. It
+`pnpm dev` runs `redis:start` once before it starts anything else, so you rarely need to start it
+yourself. Running only the backend (`pnpm --filter @zuvo/backend dev`) does not start Redis. It
 keeps running after you stop `pnpm dev`. Use `pnpm redis:stop` when you are done. It does not
 start again automatically after a reboot; the next `pnpm dev` starts it.
 

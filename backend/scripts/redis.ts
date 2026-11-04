@@ -13,6 +13,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 import { parseEnv } from 'node:util';
 import { Redis } from 'ioredis';
+import { withStartLock } from './start-lock.ts';
 
 const MEMURAI_EXE = 'C:\\Program Files\\Memurai\\memurai.exe';
 const SHARED_PORT = 6379;
@@ -22,6 +23,7 @@ const root = fileURLToPath(new URL('../storage/redis/', import.meta.url));
 const dataDir = `${root}data`;
 const confPath = `${root}memurai.conf`;
 const logPath = `${root}memurai.log`;
+const lockPath = `${root}start.lock`;
 
 const out = (line: string) => process.stdout.write(`[redis] ${line}\n`);
 
@@ -115,7 +117,8 @@ async function withClient<T>(
   }
 }
 
-async function start(target: Target) {
+async function launch(target: Target) {
+  // Someone else may have started it while we waited for the lock.
   const state = await probe(target);
   if (state === 'ours') return out(`already running on 127.0.0.1:${target.port}`);
   if (state === 'foreign')
@@ -138,6 +141,13 @@ async function start(target: Target) {
     await sleep(300);
   }
   fail(`did not start within ${START_TIMEOUT_MS / 1000}s; see ${logPath}`);
+}
+
+async function start(target: Target) {
+  if ((await probe(target)) === 'ours') return out(`already running on 127.0.0.1:${target.port}`);
+  mkdirSync(root, { recursive: true });
+  // Parallel calls take turns, so at most one of them ever launches Memurai.
+  await withStartLock(lockPath, () => launch(target));
 }
 
 async function stop(target: Target) {
