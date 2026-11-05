@@ -21,7 +21,7 @@ export interface ViewerItem {
 
 export function toViewerItem(message: Message): ViewerItem | null {
   const { media } = message;
-  if (!media?.id || media.kind === 'document') return null;
+  if (!media?.id || (media.kind !== 'image' && media.kind !== 'video')) return null;
   return {
     mediaId: media.id,
     kind: media.kind,

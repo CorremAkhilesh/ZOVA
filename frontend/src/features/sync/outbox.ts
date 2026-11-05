@@ -96,6 +96,7 @@ export class Outbox {
         text,
         media: null,
         albumId: null,
+        played: false,
         replyToId: null,
         editedAt: null,
         deletedForEveryoneAt: null,

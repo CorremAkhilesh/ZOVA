@@ -7,7 +7,7 @@ import { mediaApi } from '../api';
 import { formatBytes } from '../process';
 import { UploadRing } from './MessageMedia';
 
-function useDownload(mediaId: string | undefined) {
+export function useDownload(mediaId: string | undefined) {
   const [state, setState] = useState<'idle' | 'working' | 'failed'>('idle');
   return {
     state,

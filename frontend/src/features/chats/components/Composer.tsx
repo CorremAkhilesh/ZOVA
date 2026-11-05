@@ -1,5 +1,5 @@
 import { MESSAGE_TEXT_MAX } from '@zuvo/protocol';
-import { Mic, SendHorizontal } from 'lucide-react';
+import { SendHorizontal } from 'lucide-react';
 import {
   type ChangeEvent,
   type FormEvent,
@@ -10,10 +10,13 @@ import {
   useState,
 } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ComingSoonButton } from '@/components/common/ComingSoonButton';
 import { Button } from '@/components/ui/button';
 import { AttachMenu } from '@/features/media/components/AttachMenu';
 import { useSyncStore } from '@/features/sync/store';
+import { MicButton } from '@/features/voice/components/MicButton';
+import { MicBlockedDialog, MicExplainDialog } from '@/features/voice/components/MicDialogs';
+import { RecordingBar } from '@/features/voice/components/RecordingBar';
+import { useVoiceNote } from '@/features/voice/use-voice-note';
 import { useIsDesktop } from '@/lib/hooks';
 import { cn } from '@/lib/utils';
 import { useLocalDb } from '../queries';
@@ -102,6 +105,8 @@ export function Composer({ chatId, onSent, onFiles }: ComposerProps) {
   const hasText = text.trim().length > 0;
   const remaining = MESSAGE_TEXT_MAX - text.length;
   const canSend = hasText && remaining >= 0 && client !== null;
+  const voice = useVoiceNote(chatId, onSent);
+  const { recorder } = voice;
 
   // Grows with the text, up to the field's max height.
   // biome-ignore lint/correctness/useExhaustiveDependencies: `text` changes the content being measured
@@ -150,6 +155,17 @@ export function Composer({ chatId, onSent, onFiles }: ComposerProps) {
     // Same horizontal padding and max width as the message column, so they line up.
     <div className="glass border-t pt-2 pr-[max(0.75rem,env(safe-area-inset-right))] pb-[max(0.75rem,env(safe-area-inset-bottom))] pl-[max(0.75rem,env(safe-area-inset-left))] md:px-8">
       <div className="mx-auto max-w-3xl">
+        <MicExplainDialog
+          open={voice.explaining}
+          onAllow={voice.allowMic}
+          onClose={voice.closeExplaining}
+        />
+        <MicBlockedDialog open={voice.blockedOpen} onClose={voice.closeBlocked} />
+        {recorder.problem && recorder.problem !== 'blocked' ? (
+          <p role="status" className="mb-1 text-xs font-medium text-text-muted">
+            {t(`voice.problems.${recorder.problem}`)}
+          </p>
+        ) : null}
         {remaining <= COUNTER_FROM ? (
           <p
             role="status"
@@ -164,31 +180,47 @@ export function Composer({ chatId, onSent, onFiles }: ComposerProps) {
           </p>
         ) : null}
         <form className="flex items-end gap-1.5" onSubmit={onSubmit}>
-          <EmojiPicker onPick={insertEmoji} />
-          <AttachMenu onFiles={onFiles} />
-          <label className="sr-only" htmlFor="composer-input">
-            {t('conversation.composerPlaceholder')}
-          </label>
-          <textarea
-            id="composer-input"
-            ref={field}
-            rows={1}
-            value={text}
-            onChange={(event: ChangeEvent<HTMLTextAreaElement>) => {
-              update(event.target.value);
-              typing.input(event.target.value.trim().length > 0);
-            }}
-            onBlur={() => typing.stop()}
-            onPaste={(event) => {
-              const files = [...event.clipboardData.files];
-              if (files.length === 0) return;
-              event.preventDefault();
-              onFiles(files);
-            }}
-            onKeyDown={onKeyDown}
-            placeholder={t('conversation.composerPlaceholder')}
-            className="max-h-36 min-h-10 flex-1 resize-none rounded-2xl border bg-surface px-4 py-2.5 text-[15px] text-text outline-none placeholder:text-text-muted focus-visible:border-brand focus-visible:ring-3 focus-visible:ring-brand/20"
-          />
+          {recorder.active ? (
+            <RecordingBar
+              status={recorder.status}
+              locked={recorder.locked}
+              elapsedMs={recorder.elapsedMs}
+              maxMs={voice.maxMs}
+              levels={recorder.liveLevels}
+              onCancel={recorder.cancel}
+              onPause={recorder.pause}
+              onResume={recorder.resume}
+              onSend={recorder.finish}
+            />
+          ) : (
+            <>
+              <EmojiPicker onPick={insertEmoji} />
+              <AttachMenu onFiles={onFiles} />
+              <label className="sr-only" htmlFor="composer-input">
+                {t('conversation.composerPlaceholder')}
+              </label>
+              <textarea
+                id="composer-input"
+                ref={field}
+                rows={1}
+                value={text}
+                onChange={(event: ChangeEvent<HTMLTextAreaElement>) => {
+                  update(event.target.value);
+                  typing.input(event.target.value.trim().length > 0);
+                }}
+                onBlur={() => typing.stop()}
+                onPaste={(event) => {
+                  const files = [...event.clipboardData.files];
+                  if (files.length === 0) return;
+                  event.preventDefault();
+                  onFiles(files);
+                }}
+                onKeyDown={onKeyDown}
+                placeholder={t('conversation.composerPlaceholder')}
+                className="max-h-36 min-h-10 flex-1 resize-none rounded-2xl border bg-surface px-4 py-2.5 text-[15px] text-text outline-none placeholder:text-text-muted focus-visible:border-brand focus-visible:ring-3 focus-visible:ring-brand/20"
+              />
+            </>
+          )}
           {hasText ? (
             <Button
               type="submit"
@@ -199,8 +231,15 @@ export function Composer({ chatId, onSent, onFiles }: ComposerProps) {
             >
               <SendHorizontal className="size-5" />
             </Button>
-          ) : (
-            <ComingSoonButton label={t('conversation.voice')} icon={Mic} />
+          ) : recorder.active && recorder.locked ? null : (
+            <MicButton
+              disabled={client === null}
+              onClick={() => void voice.begin(true)}
+              onHoldStart={() => void voice.begin(false)}
+              onHoldEnd={recorder.finish}
+              onSlideCancel={recorder.cancel}
+              onSlideLock={recorder.lock}
+            />
           )}
         </form>
       </div>

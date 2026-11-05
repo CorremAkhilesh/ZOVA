@@ -1,5 +1,6 @@
 import {
   type CreateUploadBody,
+  formatDuration,
   type LastMessage,
   MESSAGE_PREVIEW_MAX,
   type SendMessagePayload,
@@ -8,6 +9,15 @@ import { uuidv7 } from '@/lib/uuid';
 import { holdFile, releaseFile } from './held-files';
 import { type FileRow, type LocalDb, type OutboxRow, PENDING_ORDER_BASE } from './local-db';
 import { isQuotaError, mustHold, toStorable } from './stored-bytes';
+
+/** The same line the server will write for the chat list. */
+function previewOf(info: CreateUploadBody, caption: string): string {
+  if (info.kind === 'voice') return formatDuration(info.duration ?? 0);
+  if (info.kind === 'document' || info.kind === 'audio') {
+    return [info.name, caption].filter(Boolean).join(' · ');
+  }
+  return caption;
+}
 
 export const toPayload = (row: OutboxRow): SendMessagePayload =>
   row.media
@@ -113,10 +123,12 @@ async function writeRows(
         width: info.width ?? null,
         height: info.height ?? null,
         duration: info.duration ?? null,
+        waveform: info.waveform ?? null,
         placeholder: null,
         hasThumbnail: false,
       },
       albumId: albumId ?? null,
+      played: false,
       replyToId: null,
       editedAt: null,
       deletedForEveryoneAt: null,
@@ -124,8 +136,7 @@ async function writeRows(
       status: 'pending',
       uploadedBytes: 0,
     });
-    const text =
-      info.kind === 'document' ? [info.name, caption].filter(Boolean).join(' · ') : caption;
+    const text = previewOf(info, caption);
     await preview(chatId, key, {
       type: info.kind,
       preview: text.slice(0, MESSAGE_PREVIEW_MAX),

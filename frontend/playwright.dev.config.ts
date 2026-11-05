@@ -13,15 +13,25 @@ const CI = Boolean(process.env.CI);
 
 export default defineConfig({
   testDir: './e2e',
-  testMatch: /(chat|presence|media|media-sender)\.spec\.ts/,
-  grep: /two people chat|second device|both people open|stuck tab|ticks, read-receipt|photos with captions|upload interrupted|over the limit|no room in the browser|sender|expired video/,
+  testMatch: /(chat|presence|media|media-sender|voice)\.spec\.ts/,
+  grep: /two people chat|second device|both people open|stuck tab|ticks, read-receipt|photos with captions|upload interrupted|over the limit|no room in the browser|sender|expired video|voice note|cancelling discards|seeking moves|recorded offline/,
   outputDir: './test-results/dev',
   workers: 1,
   forbidOnly: CI,
   retries: CI ? 1 : 0,
   reporter: CI ? [['github'], ['list']] : [['list']],
   use: { baseURL: BASE_URL, trace: 'retain-on-failure', screenshot: 'only-on-failure' },
-  projects: [{ name: 'dev-chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: [
+    {
+      name: 'dev-chromium',
+      use: {
+        ...devices['Desktop Chrome'],
+        launchOptions: {
+          args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'],
+        },
+      },
+    },
+  ],
   webServer: [
     {
       command: 'pnpm e2e:server',

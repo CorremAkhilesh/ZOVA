@@ -421,5 +421,70 @@
     "fileLost": "This tab closed before the upload finished. Tap to remove, then send the file again.",
     "diskFull": "The server is low on storage, so this file wasn’t uploaded.",
     "overLimit": "This file is over the size limit."
+  },
+  "voice": {
+    "preview": "Voice message",
+    "play": "Play voice message",
+    "pause": "Pause",
+    "playFile": "Play",
+    "pauseFile": "Pause",
+    "seek": "Position",
+    "speed": "Speed {{speed}}x. Change speed",
+    "unplayed": "Not played yet",
+    "played": "Played",
+    "notPlayed": "Not played yet",
+    "cannotPlay": "This device can’t play this recording. Open the chat on another device, or download it.",
+    "nowPlaying": "Now playing",
+    "closePlayer": "Close player",
+    "cancel": "Delete recording",
+    "pauseRecording": "Pause recording",
+    "resumeRecording": "Resume recording",
+    "send": "Send voice message",
+    "slideHint": "Slide left to cancel, up to keep recording",
+    "timeLeft_one": "{{count}} second left",
+    "timeLeft_other": "{{count}} seconds left",
+    "limitReached": "{{limit}} limit reached",
+    "permissionTitle": "Use your microphone?",
+    "permissionBody": "Zuvo needs your microphone only while you record a voice message. Your browser will ask you to allow it next.",
+    "allowMic": "Continue",
+    "notNow": "Not now",
+    "blockedTitle": "Microphone blocked",
+    "blockedBody": "Your browser is blocking the microphone for this site. To record voice messages, allow it in your browser’s settings:",
+    "browserChoice": "Choose your browser",
+    "gotIt": "Got it",
+    "browsers": {
+      "chrome": "Chrome",
+      "edge": "Edge",
+      "safari": "Safari",
+      "iphone": "iPhone"
+    },
+    "steps": {
+      "chrome": {
+        "1": "Click the icon to the left of the address bar.",
+        "2": "Set Microphone to Allow.",
+        "3": "Reload the page."
+      },
+      "edge": {
+        "1": "Click the lock icon to the left of the address bar.",
+        "2": "Open Permissions for this site and set Microphone to Allow.",
+        "3": "Reload the page."
+      },
+      "safari": {
+        "1": "Open the Safari menu, then Settings for this website.",
+        "2": "Set Microphone to Allow.",
+        "3": "Reload the page."
+      },
+      "iphone": {
+        "1": "Open the Settings app, then Apps, then Safari.",
+        "2": "Under Settings for Websites, tap Microphone and choose Allow.",
+        "3": "Come back and reload the page."
+      }
+    },
+    "problems": {
+      "tooShort": "Too short to send. Hold for at least a second.",
+      "noMic": "No microphone found on this device.",
+      "unsupported": "This browser can’t record voice messages.",
+      "failed": "Couldn’t start the microphone. Try again."
+    }
   }
 }

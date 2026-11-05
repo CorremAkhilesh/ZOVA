@@ -6,6 +6,7 @@ import { SessionGate } from '@/features/auth/components/SessionGate';
 import { requireCompleteSession } from '@/features/auth/guards';
 import { InstallBanner } from '@/features/install/InstallUi';
 import { useSyncClient } from '@/features/sync/use-sync-client';
+import { MiniPlayer } from '@/features/voice/components/MiniPlayer';
 import { useIsDesktop } from '@/lib/hooks';
 
 export const Route = createFileRoute('/_app')({
@@ -34,6 +35,7 @@ function AppShell() {
         <main className="flex min-w-0 flex-1 flex-col">
           <SessionGate />
           <InstallBanner />
+          <MiniPlayer />
           <div className="min-h-0 flex-1">
             <Outlet />
           </div>
@@ -46,6 +48,7 @@ function AppShell() {
       <main className="glass flex min-h-0 flex-1 flex-col">
         <SessionGate />
         {inConversation ? null : <InstallBanner />}
+        <MiniPlayer />
         <div className="min-h-0 flex-1">
           <Outlet />
         </div>

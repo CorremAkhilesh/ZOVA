@@ -1,3 +1,4 @@
+import { Mic } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/ui/avatar';
 import { AlbumGrid, MessageMedia } from '@/features/media/components/MessageMedia';
@@ -69,7 +70,7 @@ function ReplyQuote({
 
 /** Time and, for my messages, delivery ticks in the bubble's bottom-right corner. */
 function MessageMeta({ message, mine }: { message: ChatMessage; mine: boolean }) {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   return (
     <span
       className={cn(
@@ -78,6 +79,13 @@ function MessageMeta({ message, mine }: { message: ChatMessage; mine: boolean })
       )}
     >
       <time dateTime={message.at.toISOString()}>{formatClock(message.at, i18n.language)}</time>
+      {mine && message.media?.kind === 'voice' ? (
+        <Mic
+          role="img"
+          aria-label={t(message.played ? 'voice.played' : 'voice.notPlayed')}
+          className={cn('size-3.5', message.played && 'text-bubble-outgoing-read')}
+        />
+      ) : null}
       {mine && message.status ? (
         <DeliveryTicks
           status={message.status}

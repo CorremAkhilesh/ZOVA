@@ -36,6 +36,7 @@ export const messageFixture = (seq: number, overrides: Partial<Message> = {}): M
   chatId: 'c1',
   seq,
   clientMsgId: uuidv7(),
+  played: false,
   senderId: 'u-asha',
   type: 'text',
   text: `message ${seq}`,

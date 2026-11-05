@@ -147,6 +147,7 @@ export function ChatListPane() {
       saved: t('chats.saved'),
       unknown: t('chats.unknownPerson'),
       photo: t('media.photo'),
+      voice: t('voice.preview'),
       video: t('media.video'),
     }),
     [t],

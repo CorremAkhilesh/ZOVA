@@ -1,5 +1,5 @@
 import { ALBUM_MAX_ITEMS, CAPTION_MAX } from '@zuvo/protocol';
-import { FileText, Loader2, Video, X } from 'lucide-react';
+import { FileText, Loader2, Music, Video, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
@@ -55,7 +55,7 @@ function PickedItem(props: {
   const url = usePreviewUrl(item.file);
   const kind = kindOf(item.file);
   const tooBig = isTooBig(item.file, maxBytes);
-  const Icon = kind === 'video' ? Video : FileText;
+  const Icon = kind === 'video' ? Video : kind === 'audio' ? Music : FileText;
   return (
     <li className="flex gap-3 rounded-xl border p-2">
       <div className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-background">

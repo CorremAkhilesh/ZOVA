@@ -3,6 +3,8 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { ChatMessage } from '@/features/chats/types';
 import { useSyncStore } from '@/features/sync/store';
+import { AudioBubble } from '@/features/voice/components/AudioBubble';
+import { VoiceBubble } from '@/features/voice/components/VoiceBubble';
 import { cn } from '@/lib/utils';
 import { formatDuration } from '../process';
 import { useLocalPreview, useThumbnail } from '../use-thumbnail';
@@ -213,6 +215,8 @@ export function MessageMedia({
   onOpen: ((mediaId: string) => void) | undefined;
 }) {
   if (message.media?.kind === 'document') return <DocumentCard message={message} />;
+  if (message.media?.kind === 'voice') return <VoiceBubble message={message} />;
+  if (message.media?.kind === 'audio') return <AudioBubble message={message} />;
   return (
     <div className="w-72 max-w-full">
       <MediaVisual message={message} onOpen={onOpen} />

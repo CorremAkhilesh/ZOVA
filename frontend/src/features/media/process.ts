@@ -17,9 +17,27 @@ export function outputType(mime: string): 'image/png' | 'image/jpeg' {
   return mime === 'image/png' ? 'image/png' : 'image/jpeg';
 }
 
+/** Formats the audio player can offer. Anything else goes as a document, not lost. */
+const PLAYABLE_AUDIO = new Set([
+  'audio/mpeg',
+  'audio/mp3',
+  'audio/mp4',
+  'audio/x-m4a',
+  'audio/m4a',
+  'audio/aac',
+  'audio/wav',
+  'audio/x-wav',
+  'audio/wave',
+  'audio/vnd.wave',
+  'audio/ogg',
+  'audio/flac',
+  'audio/x-flac',
+]);
+
 export function kindOf(file: { type: string }): MediaKind {
   if (file.type.startsWith('image/')) return 'image';
   if (file.type.startsWith('video/')) return 'video';
+  if (PLAYABLE_AUDIO.has(file.type)) return 'audio';
   return 'document';
 }
 
@@ -170,6 +188,9 @@ export function prepareFile(file: File, sendAsDocument: boolean): Promise<Prepar
   const kind = sendAsDocument ? 'document' : kindOf(file);
   if (kind === 'image') return prepareImage(file);
   if (kind === 'video') return prepareVideo(file);
+  if (kind === 'audio') {
+    return Promise.resolve({ file, name: file.name, mime: file.type, kind: 'audio' });
+  }
   return Promise.resolve(asDocument(file));
 }
 
@@ -185,9 +206,4 @@ export function formatBytes(bytes: number, locale: string): string {
   return `${new Intl.NumberFormat(locale, { maximumFractionDigits: digits }).format(value)} ${units[unit]}`;
 }
 
-export function formatDuration(seconds: number): string {
-  // Rounded down, like the player: 8:18.9 is still 8:18.
-  const whole = Math.floor(seconds);
-  const minutes = Math.floor(whole / 60);
-  return `${minutes}:${String(whole % 60).padStart(2, '0')}`;
-}
+export { formatDuration } from '@zuvo/protocol';

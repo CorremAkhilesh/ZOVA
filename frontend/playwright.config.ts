@@ -8,6 +8,12 @@ const PORT = 5192;
 const BASE_URL = `http://127.0.0.1:${PORT}`;
 const CI = Boolean(process.env.CI);
 
+const FAKE_MIC = {
+  launchOptions: {
+    args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'],
+  },
+};
+
 export default defineConfig({
   testDir: './e2e',
   outputDir: './test-results',
@@ -23,7 +29,7 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    { name: 'chromium', use: { ...devices['Desktop Chrome'], ...FAKE_MIC } },
     // Firefox, WebKit and a mobile viewport run in CI (CLAUDE.md §7).
     ...(CI
       ? [

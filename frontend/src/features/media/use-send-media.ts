@@ -1,12 +1,13 @@
-import { useQuery } from '@tanstack/react-query';
 import type { CreateUploadBody } from '@zuvo/protocol';
 import { useCallback, useState } from 'react';
 import { useSyncStore } from '@/features/sync/store';
 import { uuidv7 } from '@/lib/uuid';
-import { mediaApi } from './api';
 import type { PickedFile } from './components/PreviewSheet';
 import { toPicked } from './components/PreviewSheet';
 import { type PreparedFile, prepareFile } from './process';
+import { useAppConfig } from './use-app-config';
+
+const isVisual = (kind: CreateUploadBody['kind']) => kind === 'image' || kind === 'video';
 
 const toUploadInfo = (file: PreparedFile): CreateUploadBody => ({
   kind: file.kind,
@@ -21,11 +22,7 @@ const toUploadInfo = (file: PreparedFile): CreateUploadBody => ({
 /** Files chosen, dropped or pasted, on their way through the preview sheet into the outbox. */
 export function useSendMedia(chatId: string) {
   const [picked, setPicked] = useState<PickedFile[]>([]);
-  const config = useQuery({
-    queryKey: ['config'],
-    queryFn: mediaApi.config,
-    staleTime: 5 * 60_000,
-  });
+  const config = useAppConfig();
   const addFiles = useCallback(
     (files: File[]) => setPicked((current) => [...current, ...toPicked(files)]),
     [],
@@ -36,7 +33,7 @@ export function useSendMedia(chatId: string) {
       const client = useSyncStore.getState().client;
       if (!client) return;
       const prepared = await Promise.all(items.map((item) => prepareFile(item.file, asDocument)));
-      const visual = prepared.filter((file) => file.kind !== 'document');
+      const visual = prepared.filter((file) => isVisual(file.kind));
       const albumId = visual.length > 1 ? uuidv7() : undefined;
       for (const [index, file] of prepared.entries()) {
         await client.sendMedia({
@@ -44,7 +41,7 @@ export function useSendMedia(chatId: string) {
           caption: items[index]?.caption.trim() ?? '',
           file: file.file,
           poster: file.poster,
-          albumId: file.kind === 'document' ? undefined : albumId,
+          albumId: isVisual(file.kind) ? albumId : undefined,
           info: toUploadInfo(file),
         });
       }
@@ -59,6 +56,6 @@ export function useSendMedia(chatId: string) {
     send,
     clear: useCallback(() => setPicked([]), []),
     // Unknown while offline. The server still decides, and the message then says why it failed.
-    maxBytes: config.data?.media.maxFileBytes ?? null,
+    maxBytes: config?.media.maxFileBytes ?? null,
   };
 }

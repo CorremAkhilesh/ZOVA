@@ -49,6 +49,10 @@ export interface ChatMessage extends MessageAuthor {
   status?: DeliveryStatus;
   media?: MediaInfo | null;
   albumId?: string | null;
+  /** The server's id for this message, once it has one. */
+  serverId?: string | null;
+  /** Voice notes. See `played` in the protocol. */
+  played?: boolean;
   uploadedBytes?: number | undefined;
   heldInTab?: boolean | undefined;
   failReason?: UploadFailReason | undefined;

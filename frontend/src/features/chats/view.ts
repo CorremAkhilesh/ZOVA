@@ -7,16 +7,19 @@ interface Labels {
   unknown: string;
   photo?: string;
   video?: string;
+  voice?: string;
 }
 
 /** "📷 Photo", "🎥 Video", "📄 report.pdf", with the caption if there is one. */
 export function previewText(
   last: { type: string; preview: string },
-  labels: Pick<Labels, 'photo' | 'video'>,
+  labels: Pick<Labels, 'photo' | 'video' | 'voice'>,
 ): string {
   if (last.type === 'image') return `📷 ${last.preview || labels.photo}`;
   if (last.type === 'video') return `🎥 ${last.preview || labels.video}`;
   if (last.type === 'document') return `📄 ${last.preview}`;
+  if (last.type === 'voice') return `🎤 ${labels.voice} (${last.preview})`;
+  if (last.type === 'audio') return `🎵 ${last.preview}`;
   return last.preview;
 }
 
@@ -85,6 +88,8 @@ export function toChatMessage(
     at: new Date(row.createdAt),
     media: row.media ?? null,
     albumId: row.albumId ?? null,
+    serverId: row.id,
+    played: row.played === true,
     uploadedBytes: row.uploadedBytes,
     heldInTab: row.heldInTab,
     failReason: row.failReason,

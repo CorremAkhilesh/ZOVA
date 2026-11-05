@@ -11,9 +11,11 @@ import { applyChats, applyReadAck } from './apply';
 import { trackAway } from './away';
 import { startDeliveryAcks } from './delivery-acks';
 import { loadOlderMessages, startReconciling } from './history';
-import { replacePresence, resetLiveStatus, setPresence, setTyping } from './live-status';
-import { getUserDb, type LocalDb } from './local-db';
+import { resetLiveStatus, setPresence, setTyping } from './live-status';
+import { getUserDb, type LocalDb, type MessageRow } from './local-db';
 import { type EnqueueMedia, Outbox } from './outbox';
+import { messageAfter, socketPlayReports } from './played-reports';
+import { presenceSubscriber } from './presence-socket';
 import { currentWatchList } from './presence-watch';
 import { ACK_TIMEOUT_MS, socketTransport } from './socket-transport';
 import { useSyncStore } from './store';
@@ -38,6 +40,7 @@ export interface SyncClientOptions {
 
 export interface SyncClient {
   db: LocalDb;
+  userId: string;
   sendText(chatId: string, text: string): Promise<void>;
   sendMedia(input: EnqueueMedia): Promise<void>;
   cancelMedia(clientMsgId: string): Promise<void>;
@@ -49,6 +52,9 @@ export interface SyncClient {
   sendTyping(chatId: string, typing: boolean): void;
   /** Replaces who the server tells this tab about. */
   watchPresence(userIds: string[]): void;
+  /** I heard this voice note. Remembered here, and told to the server as soon as possible. */
+  markPlayed(key: string, chatId: string, messageId: string): Promise<void>;
+  messageAfter(key: string): Promise<MessageRow | null>;
   stop(): void;
 }
 
@@ -116,19 +122,8 @@ export function startSyncClient(options: SyncClientOptions): SyncClient {
     },
   });
 
-  let watching: string | null = null;
-  const watchPresence = (userIds: string[]) => {
-    const key = userIds.join();
-    if (!socket.connected || key === watching) return;
-    watching = key;
-    void socket
-      .timeout(ACK_TIMEOUT_MS)
-      .emitWithAck('presence:subscribe', { userIds })
-      .then((ack) => {
-        if (ack.ok && !stopped) replacePresence(ack.data.users);
-      })
-      .catch(() => undefined);
-  };
+  const presence = presenceSubscriber(socket, () => stopped);
+  const plays = socketPlayReports(db, socket);
 
   const awayTracker = trackAway((active) => {
     if (socket.connected) socket.emit('presence:active', { active }, () => undefined);
@@ -161,7 +156,8 @@ export function startSyncClient(options: SyncClientOptions): SyncClient {
     outbox.resume();
     void uploader.run();
     deliveryAcks.resume();
-    watchPresence(currentWatchList());
+    presence.watch(currentWatchList());
+    void plays.flush().catch(() => undefined);
     // A new connection starts out active; it may still be hidden.
     awayTracker.reconnected();
     // Names and photos change without a new message, so the log says nothing about them.
@@ -172,8 +168,7 @@ export function startSyncClient(options: SyncClientOptions): SyncClient {
   });
   socket.on('disconnect', (reason) => {
     setStore({ socket: 'connecting' });
-    // A new connection watches nobody until it asks.
-    watching = null;
+    presence.forget();
     if (!stopped) resetLiveStatus();
     // The client only reconnects by itself after a network loss; a server restart looks like this.
     if (reason === 'io server disconnect') reconnectLater(RECONNECT_AFTER_REFUSAL_MS);
@@ -210,9 +205,10 @@ export function startSyncClient(options: SyncClientOptions): SyncClient {
   socket.on('typing:update', ({ chatId, typing }) => setTyping(chatId, typing));
   socket.on('presence:update', setPresence);
   socket.on('presence:resubscribe', () => {
-    watching = null;
-    watchPresence(currentWatchList());
+    presence.forget();
+    presence.watch(currentWatchList());
   });
+  socket.on('message:played', ({ message, cursor }) => void engine.onMessage(message, cursor));
   socket.on('read:update', ({ chatId, lastReadSeq, cursor }) => {
     void engine.onChatChange(chatId, { lastReadSeq }, cursor);
   });
@@ -240,6 +236,7 @@ export function startSyncClient(options: SyncClientOptions): SyncClient {
 
   return {
     db,
+    userId,
     async sendText(chatId, text) {
       await outbox.enqueue(chatId, text);
       channel.post('outbox-changed');
@@ -274,7 +271,9 @@ export function startSyncClient(options: SyncClientOptions): SyncClient {
       if (!socket.connected) return;
       socket.emit(typing ? 'typing:start' : 'typing:stop', { chatId }, () => undefined);
     },
-    watchPresence,
+    watchPresence: presence.watch,
+    markPlayed: plays.record,
+    messageAfter: (key) => messageAfter(db, key),
     stop() {
       setStore({ socket: 'connecting', isLeader: false });
       stopped = true;
