@@ -1,22 +1,8 @@
-import { expect, type Page, test } from '@playwright/test';
-import { signUp } from './helpers';
+import { expect, test } from '@playwright/test';
+import { signUp, waitForActiveServiceWorker } from './helpers';
 
 // Service-worker control in Playwright is Chromium-only; the other engines run the smoke test.
 test.skip(({ browserName }) => browserName !== 'chromium', 'Service worker checks need Chromium');
-
-async function waitForActiveServiceWorker(page: Page) {
-  await page.evaluate(async () => {
-    const registration = await navigator.serviceWorker.ready;
-    if (!navigator.serviceWorker.controller) {
-      await new Promise<void>((resolve) =>
-        navigator.serviceWorker.addEventListener('controllerchange', () => resolve(), {
-          once: true,
-        }),
-      );
-    }
-    return registration.active?.state;
-  });
-}
 
 test('manifest is valid and installable', async ({ request }) => {
   const response = await request.get('/manifest.webmanifest');

@@ -51,7 +51,9 @@ export class LocalDb extends Dexie {
   drafts!: Table<DraftRow, string>;
 
   constructor(name: string) {
-    super(name);
+    // No query cache: it merges writes into stored results instead of re-reading, and a read still
+    // in flight during a write could replace the result with an older one, hiding messages.
+    super(name, { cache: 'disabled' });
     this.version(1).stores({
       chats: 'id, sortAt',
       profiles: 'id',

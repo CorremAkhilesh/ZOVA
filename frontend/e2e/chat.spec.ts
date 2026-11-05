@@ -9,7 +9,7 @@ import {
   secondDevice,
   send,
 } from './chat-helpers';
-import { open, SLOW } from './helpers';
+import { open, SLOW, waitForActiveServiceWorker } from './helpers';
 
 test.describe.configure({ timeout: 240_000 });
 
@@ -51,8 +51,12 @@ test('two people chat in real time, and reading clears the badge', async ({ brow
   await bharat.context.close();
 });
 
-test('messages sent offline arrive in order, once, after reconnecting', async ({ browser }) => {
+test('messages sent offline arrive in order, once, after reconnecting', async ({
+  browser,
+  browserName,
+}) => {
   const asha = await newPerson(browser, 'Asha');
+  if (browserName === 'chromium') await waitForActiveServiceWorker(asha.page);
   const bharat = await newPerson(browser, 'Bharat');
   await openChatWith(asha.page, bharat);
   await send(asha.page, 'before');
@@ -67,9 +71,12 @@ test('messages sent offline arrive in order, once, after reconnecting', async ({
   await expect(asha.page.getByRole('img', { name: 'Sending' })).toHaveCount(3);
   expect(await bubbles(bharat.page, 'Asha')).toEqual(['before']);
 
-  // Still there after a reload while offline: the outbox is stored, not in memory.
-  await asha.page.reload();
-  await expectBubbles(asha.page, 'Bharat', ['before', 'one', 'two', 'three']);
+  // Still there after a reload while offline: the outbox is stored, not in memory. Only Chromium
+  // lets Playwright reload from the service worker (see pwa.spec.ts).
+  if (browserName === 'chromium') {
+    await asha.page.reload();
+    await expectBubbles(asha.page, 'Bharat', ['before', 'one', 'two', 'three']);
+  }
 
   await asha.context.setOffline(false);
   await expectBubbles(bharat.page, 'Asha', ['before', 'one', 'two', 'three']);
@@ -172,12 +179,16 @@ test('long chats: older messages load in place, and new ones wait behind a butto
 
   // To the top of what is loaded: the same message must stay where it was as older ones arrive.
   const scroller = page.getByLabel('Messages', { exact: true });
-  await scroller.evaluate((element) => {
-    element.scrollTop = 0;
-  });
   const anchor = list.getByText('seeded 71', { exact: true });
-  await expect(anchor).toBeVisible(SLOW);
-  await expect(list.getByText('seeded 60', { exact: true })).toBeAttached(SLOW);
+  // Repeats: while the newest rows are still being measured, the list keeps itself at the bottom.
+  await expect(async () => {
+    await scroller.evaluate((element) => {
+      element.scrollTop = 0;
+    });
+    await expect(anchor).toBeVisible({ timeout: 1000 });
+  }).toPass(SLOW);
+  // Five rows above the anchor: within the rows the list keeps just outside the viewport.
+  await expect(list.getByText('seeded 66', { exact: true })).toBeAttached(SLOW);
   await expect(anchor).toBeInViewport();
 
   // The reader is far from the bottom: a new message waits behind the button.

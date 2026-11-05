@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import Dexie, { liveQuery } from 'dexie';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   chatFixture,
   ME_ID,
@@ -80,5 +81,38 @@ describe('keys', () => {
     await startAt('5');
     await applyHistory(db, ME_ID, [messageFixture(1, { clientMsgId: null, senderId: null })]);
     expect((await db.messages.toArray())[0]?.key).toBe('m1');
+  });
+});
+
+describe('the live message window', () => {
+  const windowOf = (limit: number) =>
+    liveQuery(() =>
+      db.messages
+        .where('[chatId+order]')
+        .between(['c1', Dexie.minKey], ['c1', Dexie.maxKey])
+        .reverse()
+        .limit(limit)
+        .toArray(),
+    );
+
+  it('reads from the database rather than a cache of earlier results', () => {
+    expect((db as unknown as { _options: { cache: string } })._options.cache).toBe('disabled');
+  });
+
+  it('keeps earlier messages when the window widens and a new one arrives', async () => {
+    await startAt('5');
+    let texts: Array<string | null> = [];
+    const narrow = windowOf(200).subscribe((rows) => {
+      texts = rows.map((row) => row.text);
+    });
+    await applyHistory(db, ME_ID, [messageFixture(1, { text: 'first' })]);
+    narrow.unsubscribe();
+    const wide = windowOf(250).subscribe((rows) => {
+      texts = rows.map((row) => row.text);
+    });
+    await vi.waitFor(() => expect(texts).toEqual(['first']));
+    await applyHistory(db, ME_ID, [messageFixture(2, { text: 'second' })]);
+    await vi.waitFor(() => expect(texts).toEqual(['second', 'first']));
+    wide.unsubscribe();
   });
 });

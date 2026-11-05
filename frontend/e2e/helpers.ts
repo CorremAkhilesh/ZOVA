@@ -88,3 +88,18 @@ export async function open(page: Page, path: string): Promise<void> {
     }
   }
 }
+
+/** Offline navigation needs the service worker to control the page first. */
+export async function waitForActiveServiceWorker(page: Page) {
+  await page.evaluate(async () => {
+    const registration = await navigator.serviceWorker.ready;
+    if (!navigator.serviceWorker.controller) {
+      await new Promise<void>((resolve) =>
+        navigator.serviceWorker.addEventListener('controllerchange', () => resolve(), {
+          once: true,
+        }),
+      );
+    }
+    return registration.active?.state;
+  });
+}
