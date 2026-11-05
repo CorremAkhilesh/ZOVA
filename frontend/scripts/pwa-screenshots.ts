@@ -106,6 +106,74 @@ if (extraDir) {
   await shot(kiran.page, `${extraDir}/last-seen-light.png`);
 }
 
+if (extraDir) {
+  // Media: a real album and a document, from someone else.
+  const picture = (from: string, to: string) =>
+    asha.page.evaluate(
+      ([start, end]) => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 1200;
+        canvas.height = 800;
+        const context = canvas.getContext('2d');
+        if (!context) return '';
+        const fill = context.createLinearGradient(0, 0, 1200, 800);
+        fill.addColorStop(0, start ?? '');
+        fill.addColorStop(1, end ?? '');
+        context.fillStyle = fill;
+        context.fillRect(0, 0, 1200, 800);
+        return canvas.toDataURL('image/png').split(',')[1] ?? '';
+      },
+      [from, to],
+    );
+  const image = async (name: string, from: string, to: string) => ({
+    name,
+    mimeType: 'image/png',
+    buffer: Buffer.from(await picture(from, to), 'base64'),
+  });
+  await asha.page.getByRole('link', { name: /Kiran Rao/ }).click();
+  await asha.page.getByRole('button', { name: 'Attach a file' }).click();
+  await asha.page
+    .getByTestId('pick-media')
+    .setInputFiles([
+      await image('site-1.png', '#4F46E5', '#14B8A6'),
+      await image('site-2.png', '#F59E0B', '#EF4444'),
+      await image('site-3.png', '#0EA5E9', '#22C55E'),
+    ]);
+  const sheet = asha.page.getByRole('dialog', { name: 'Send 3 files' });
+  await sheet.getByRole('textbox', { name: 'Caption for site-1.png' }).fill('Site visit photos');
+  await asha.page.setViewportSize({ width: 1280, height: 800 });
+  await asha.page.waitForTimeout(400);
+  await asha.page.screenshot({ path: `${extraDir}/preview-sheet-light.png` });
+  await sheet.getByRole('button', { name: 'Send 3' }).click();
+  await sheet.waitFor({ state: 'hidden' });
+  await asha.page.getByRole('button', { name: 'Attach a file' }).click();
+  await asha.page.getByTestId('pick-document').setInputFiles({
+    name: 'Q3-report.pdf',
+    mimeType: 'application/pdf',
+    buffer: Buffer.concat([Buffer.from('%PDF-1.7\n'), Buffer.alloc(180_000, 32)]),
+  });
+  const docSheet = asha.page.getByRole('dialog', { name: 'Send 1 file' });
+  await docSheet.getByRole('button', { name: 'Send', exact: true }).click();
+  await docSheet.waitFor({ state: 'hidden' });
+
+  await kiran.page.getByRole('link', { name: /Asha Verma/ }).click();
+  await kiran.page.getByRole('button', { name: 'Download Q3-report.pdf' }).waitFor();
+  await shot(kiran.page, `${extraDir}/media-chat-light.png`);
+  await kiran.page.emulateMedia({ colorScheme: 'dark' });
+  await shot(kiran.page, `${extraDir}/media-chat-dark.png`);
+  await kiran.page.emulateMedia({ colorScheme: 'light' });
+  await kiran.page.getByRole('button', { name: 'Chat info' }).first().click();
+  await kiran.page.getByRole('tab', { name: 'Media' }).waitFor();
+  await shot(kiran.page, `${extraDir}/chat-info-media-light.png`);
+  await kiran.page
+    .getByRole('complementary')
+    .getByRole('button', { name: /Open photo/ })
+    .first()
+    .click();
+  await kiran.page.getByRole('button', { name: 'Zoom in' }).waitFor();
+  await shot(kiran.page, `${extraDir}/viewer.png`);
+}
+
 // The narrow manifest screenshot is a real phone-sized device: its own context at 2× scale.
 const phone = await browser.newContext({
   baseURL: BASE,

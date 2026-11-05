@@ -12,18 +12,17 @@ async function newPage(browser: Browser): Promise<Page> {
   return context.newPage();
 }
 
-test('two colleagues: profile, people search, devices and admin deactivation', async ({
-  browser,
-}) => {
-  test.setTimeout(240_000);
+/** A long single test ran out of time in slower browsers: each flow stands alone now. */
+test.describe.configure({ timeout: 120_000 });
+
+test('profile photo and username, and finding a colleague', async ({ browser }) => {
   const a = await newPage(browser);
   const b = await newPage(browser);
-  const admin = await newPage(browser);
 
   // A chooses a username on the first-login screen, then adds a profile photo.
-  const username = `asha${Date.now().toString(36).slice(-5)}`;
-  const emailA = await signUp(a, 'Asha Verma', username);
-  const emailB = await signUp(b, 'Bharat Rao');
+  const username = `asha${Date.now().toString(36).slice(-5)}${Math.random().toString(36).slice(2, 6)}`;
+  await signUp(a, 'Asha Verma', username);
+  await signUp(b, 'Bharat Rao');
 
   await open(a, '/settings/profile');
   await expect(a.getByText(`@${username}`)).toBeVisible(SLOW);
@@ -40,7 +39,7 @@ test('two colleagues: profile, people search, devices and admin deactivation', a
   await crop.getByRole('button', { name: 'Use photo' }).click();
   await expect(a.getByRole('button', { name: 'Remove photo' })).toBeVisible(SLOW);
 
-  // B: finds A in the people picker, and the chat opens with A's @username in the header.
+  // B: finds A in the people picker, the chat opens, and its info shows A's @username.
   await open(b, '/chats');
   await b.getByRole('button', { name: 'New chat' }).click();
   const picker = b.getByRole('dialog', { name: 'New chat' });
@@ -53,26 +52,35 @@ test('two colleagues: profile, people search, devices and admin deactivation', a
   await expect(b.getByRole('heading', { name: 'Asha Verma' })).toBeAttached(SLOW);
   await b.getByRole('button', { name: 'Chat info' }).first().click();
   await expect(b.getByText(`@${username}`).first()).toBeVisible(SLOW);
+});
 
-  // A signs in on a second device, then signs it out from Settings → Devices.
+test('signing out another device from Devices', async ({ browser }) => {
+  const a = await newPage(browser);
+  const emailA = await signUp(a, 'Asha Verma');
   const a2 = await newPage(browser);
   await signIn(a2, emailA);
   await open(a, '/settings/devices');
   await expect(a.getByText('This device')).toBeVisible(SLOW);
-  await a.getByRole('button', { name: 'Sign out all other devices' }).click();
-  await a.getByRole('dialog').getByRole('button', { name: 'Sign out all other devices' }).click();
+  await a.getByRole('button', { name: 'Sign out all other devices' }).click(SLOW);
+  await a
+    .getByRole('dialog')
+    .getByRole('button', { name: 'Sign out all other devices' })
+    .click(SLOW);
   await expect(a.getByText('You’re only signed in on this device.')).toBeVisible(SLOW);
-  // The revoked device notices by itself (session polling) and returns to the welcome screen.
   await expect(a2.getByRole('heading', { name: /Welcome to/ })).toBeVisible({ timeout: 30_000 });
+});
 
-  // An admin deactivates B; B is bounced to the welcome screen within seconds.
+test('an admin deactivates someone, who is signed out, and it is audited', async ({ browser }) => {
+  const b = await newPage(browser);
+  const admin = await newPage(browser);
+  const emailB = await signUp(b, 'Bharat Rao');
   const adminEmail = await signUp(admin, 'Ada Admin');
   await admin.request.post('/v1/test/promote', { data: { email: adminEmail } });
   await open(admin, '/settings/admin/users');
   await admin.getByRole('searchbox').fill(emailB);
   const row = admin.getByRole('listitem').filter({ hasText: emailB });
   await row.getByRole('button', { name: 'Deactivate' }).click(SLOW);
-  await admin.getByRole('dialog').getByRole('button', { name: 'Deactivate' }).click();
+  await admin.getByRole('dialog').getByRole('button', { name: 'Deactivate' }).click(SLOW);
   await expect(row.getByText('Deactivated')).toBeVisible(SLOW);
   await expect(b.getByRole('heading', { name: /Welcome to/ })).toBeVisible({ timeout: 30_000 });
 

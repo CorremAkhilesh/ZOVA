@@ -13,8 +13,8 @@ const CI = Boolean(process.env.CI);
 
 export default defineConfig({
   testDir: './e2e',
-  testMatch: /(chat|presence)\.spec\.ts/,
-  grep: /two people chat|second device|both people open|stuck tab|ticks, read-receipt/,
+  testMatch: /(chat|presence|media)\.spec\.ts/,
+  grep: /two people chat|second device|both people open|stuck tab|ticks, read-receipt|photos with captions|upload interrupted/,
   outputDir: './test-results/dev',
   workers: 1,
   forbidOnly: CI,

@@ -48,6 +48,10 @@ test('ticks, read-receipt privacy, typing and last seen between two people', asy
   await expect(bharat.page.getByLabel(/unread/)).toHaveCount(0, SLOW);
   await asha.page.waitForTimeout(2000);
   await expect(lastTick(asha.page, 'Bharat')).toHaveAccessibleName('Delivered');
+  // What was already read stays read.
+  await expect(
+    asha.page.getByRole('list', { name: 'Bharat', exact: true }).getByRole('img', { name: 'Read' }),
+  ).toHaveCount(1);
 
   // B closes the page: A sees when B was last here.
   await bharat.context.close();
