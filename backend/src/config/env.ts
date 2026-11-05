@@ -67,6 +67,11 @@ const envSchema = z
       emptyToUndefined,
       z.coerce.number().int().min(1).max(102_400).default(1024),
     ),
+    /** The longest voice note, in seconds. The app reads it from GET /v1/config. */
+    VOICE_MAX_SECONDS: z.preprocess(
+      emptyToUndefined,
+      z.coerce.number().int().min(10).max(7200).default(900),
+    ),
     LOG_LEVEL: z
       .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
       .default('info'),

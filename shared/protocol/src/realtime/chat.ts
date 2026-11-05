@@ -125,6 +125,22 @@ export const receiptEventSchema = z.object({
   cursor: syncCursorSchema,
 });
 
+/** voice:played (client → server): I played this voice note to the end, or past half way. */
+export const voicePlayedPayloadSchema = z.object({
+  chatId: objectIdSchema,
+  messageId: objectIdSchema,
+});
+export const voicePlayedAckSchema = z.object({ messageId: z.string(), played: z.boolean() });
+
+/**
+ * message:played (server → client): a voice note's `played` changed, as this user sees it. To my own
+ * devices always; to the sender only while both people have read receipts on.
+ */
+export const messagePlayedEventSchema = z.object({
+  message: messageSchema,
+  cursor: syncCursorSchema,
+});
+
 export type SendMessagePayload = z.infer<typeof sendMessagePayloadSchema>;
 export type SendMessageAck = z.infer<typeof sendMessageAckSchema>;
 export type PresenceEvent = z.infer<typeof presenceEventSchema>;

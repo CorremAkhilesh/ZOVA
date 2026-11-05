@@ -10,7 +10,15 @@ export const CHAT_PAGE_MAX = 50;
 
 export const chatTypeSchema = z.enum(['direct', 'group', 'self']);
 export const chatMemberRoleSchema = z.enum(['member', 'admin', 'owner']);
-export const messageTypeSchema = z.enum(['text', 'system', 'image', 'video', 'document']);
+export const messageTypeSchema = z.enum([
+  'text',
+  'system',
+  'image',
+  'video',
+  'document',
+  'voice',
+  'audio',
+]);
 
 /** Client-generated id, unique per sender: re-sending the same one never creates a duplicate. */
 export const clientMsgIdSchema = z.uuidv7();
@@ -35,6 +43,11 @@ export const messageSchema = z.object({
   media: mediaInfoSchema.nullable().default(null),
   /** Messages sent together as an album share this. */
   albumId: z.string().nullable().default(null),
+  /**
+   * Voice notes, as this user may know. For the sender: the other person played it and may be seen to.
+   * For anyone else: they played it themselves, on any device. Once true, it stays true.
+   */
+  played: z.boolean().default(false),
   replyToId: z.string().nullable(),
   editedAt: isoDateTimeSchema.nullable(),
   deletedForEveryoneAt: isoDateTimeSchema.nullable(),
@@ -142,6 +155,13 @@ export const galleryResponseSchema = z.object({
   items: z.array(messageSchema),
   hasMore: z.boolean(),
 });
+
+/** "0:12", rounded down, as media players show it. */
+export function formatDuration(seconds: number): string {
+  const whole = Math.floor(seconds);
+  const minutes = Math.floor(whole / 60);
+  return `${minutes}:${String(whole % 60).padStart(2, '0')}`;
+}
 
 export type ChatType = z.infer<typeof chatTypeSchema>;
 export type ChatMemberRole = z.infer<typeof chatMemberRoleSchema>;

@@ -104,6 +104,13 @@ chatMemberSchema.index({ chatId: 1, userId: 1 }, { unique: true });
 // Serves: my chat list, most recent first (ESR: user and leftAt equal, then sort on activity + id).
 chatMemberSchema.index({ userId: 1, leftAt: 1, lastActivityAt: -1, chatId: -1 });
 
+export interface VoicePlay {
+  userId: Types.ObjectId;
+  at: Date;
+  /** Whether both people had read receipts on at that moment. Decided once, and kept. */
+  shared: boolean;
+}
+
 export interface MessageDoc {
   _id: Types.ObjectId;
   chatId: Types.ObjectId;
@@ -115,6 +122,8 @@ export interface MessageDoc {
   /** What readers need to know about the file, copied here so history needs no second query. */
   media?: MediaInfo | null;
   albumId?: string | null;
+  /** Voice notes: who played it. Only ever added to, so `played` never goes back. */
+  plays?: VoicePlay[];
   /** Reserved for formatting and mentions. */
   entities?: unknown[];
   replyToId: Types.ObjectId | null;
@@ -133,6 +142,7 @@ const messageSchema = new Schema<MessageDoc>(
     text: { type: String, default: null },
     media: { type: Schema.Types.Mixed, default: null },
     albumId: { type: String, default: null },
+    plays: { type: [Schema.Types.Mixed], default: undefined },
     entities: { type: [Schema.Types.Mixed], default: undefined },
     replyToId: { type: ObjectId, default: null },
     editedAt: { type: Date, default: null },
@@ -190,9 +200,9 @@ export interface UserUpdateDoc {
   userId: Types.ObjectId;
   /** This user's change number: 1, 2, 3… with no gaps until old rows expire. */
   pts: number;
-  kind: 'message' | 'read' | 'chat' | 'receipt';
+  kind: 'message' | 'read' | 'chat' | 'receipt' | 'played';
   chatId: Types.ObjectId;
-  /** kind = message: the message's position in its chat. */
+  /** kind = message or played: the message's position in its chat. */
   seq?: number;
   at: Date;
 }
@@ -224,6 +234,7 @@ export interface MediaDoc {
   width: number | null;
   height: number | null;
   duration: number | null;
+  waveform?: number[] | null;
   sha256: string | null;
   storageKey: string | null;
   thumbnailKey: string | null;
@@ -245,6 +256,7 @@ const mediaSchema = new Schema<MediaDoc>(
     width: { type: Number, default: null },
     height: { type: Number, default: null },
     duration: { type: Number, default: null },
+    waveform: { type: [Number], default: undefined },
     sha256: { type: String, default: null },
     storageKey: { type: String, default: null },
     thumbnailKey: { type: String, default: null },

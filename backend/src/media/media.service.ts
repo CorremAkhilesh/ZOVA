@@ -7,7 +7,7 @@ import type { ClientSession } from 'mongoose';
 import { chatModels, oid, requireMember } from '../chats/chats.service.ts';
 import type { MediaDoc } from '../db/chat-models.ts';
 import { AppError } from '../lib/errors.ts';
-import { assertRoomFor, uploadLimit } from './limits.ts';
+import { assertRoomFor, assertWithinLimits } from './limits.ts';
 import { processImage, processPoster } from './process-image.ts';
 import { UploadArea } from './upload-area.ts';
 import { SNIFF_BYTES, verifyFileType } from './validate.ts';
@@ -32,6 +32,7 @@ export function toMediaInfo(doc: MediaDoc): MediaInfo {
     width: doc.width,
     height: doc.height,
     duration: doc.duration,
+    waveform: doc.waveform ?? null,
     placeholder: doc.placeholder,
     hasThumbnail: doc.thumbnailKey !== null,
   };
@@ -52,12 +53,7 @@ export async function createUpload(app: FastifyInstance, userId: string, body: C
   if ((await app.counterStore.increment(key, 60)) > UPLOADS_PER_MINUTE) {
     throw new AppError('RATE_LIMITED', 'Too many uploads. Try again in a minute.');
   }
-  const limit = uploadLimit(app.env, body.kind);
-  if (body.size > limit) {
-    throw new AppError('PAYLOAD_TOO_LARGE', 'This file is over the size limit.', {
-      maxBytes: limit,
-    });
-  }
+  assertWithinLimits(app.env, body);
   await assertRoomFor(app, body.size);
   const open = await Media.countDocuments({
     ownerId: oid(userId),
@@ -77,6 +73,7 @@ export async function createUpload(app: FastifyInstance, userId: string, body: C
       width: body.width ?? null,
       height: body.height ?? null,
       duration: body.duration ?? null,
+      waveform: body.waveform ?? null,
     },
   ]);
   if (!doc) throw new AppError('INTERNAL_ERROR', 'Could not start the upload.');

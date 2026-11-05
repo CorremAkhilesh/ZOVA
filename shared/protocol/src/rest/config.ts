@@ -5,6 +5,8 @@ export const appConfigResponseSchema = z.object({
   media: z.object({
     /** The largest file a person can send. From MEDIA_MAX_FILE_MB. */
     maxFileBytes: z.number().int().positive(),
+    /** The longest voice note. From VOICE_MAX_SECONDS. */
+    voiceMaxSeconds: z.number().int().positive(),
   }),
 });
 

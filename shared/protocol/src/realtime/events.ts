@@ -5,6 +5,7 @@ import {
   deliveredUpdateAckSchema,
   deliveredUpdatePayloadSchema,
   messageNewEventSchema,
+  messagePlayedEventSchema,
   presenceActivePayloadSchema,
   presenceEventSchema,
   presenceResubscribeEventSchema,
@@ -19,6 +20,8 @@ import {
   sessionRevokedEventSchema,
   typingEventSchema,
   typingPayloadSchema,
+  voicePlayedAckSchema,
+  voicePlayedPayloadSchema,
 } from './chat.ts';
 
 /** A client → server event: its payload schema and the schema of the ack data it returns. */
@@ -32,6 +35,7 @@ export const clientToServerEvents = {
   'message:send': { payload: sendMessagePayloadSchema, ack: sendMessageAckSchema },
   'read:update': { payload: readUpdatePayloadSchema, ack: readUpdateAckSchema },
   'delivered:update': { payload: deliveredUpdatePayloadSchema, ack: deliveredUpdateAckSchema },
+  'voice:played': { payload: voicePlayedPayloadSchema, ack: voicePlayedAckSchema },
   'typing:start': { payload: typingPayloadSchema, ack: z.object({}) },
   'typing:stop': { payload: typingPayloadSchema, ack: z.object({}) },
   'presence:subscribe': {
@@ -51,6 +55,7 @@ export const serverToClientEvents = {
   'presence:update': presenceEventSchema,
   'presence:resubscribe': presenceResubscribeEventSchema,
   'receipt:update': receiptEventSchema,
+  'message:played': messagePlayedEventSchema,
 } satisfies Record<string, z.ZodType>;
 
 type ClientEvents = typeof clientToServerEvents;

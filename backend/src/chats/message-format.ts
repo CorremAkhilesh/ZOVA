@@ -1,4 +1,5 @@
 import {
+  formatDuration,
   type LastMessage,
   MESSAGE_PREVIEW_MAX,
   type MediaInfo,
@@ -6,7 +7,15 @@ import {
 } from '@zuvo/protocol';
 import type { LastMessageSnapshot, MessageDoc } from '../db/chat-models.ts';
 
-export function toMessage(doc: MessageDoc): Message {
+/** Whether this person may know a voice note was played. See `played` in the protocol. */
+function playedFor(doc: MessageDoc, viewerId: string): boolean {
+  const plays = doc.plays ?? [];
+  if (doc.senderId?.toString() === viewerId) return plays.some((play) => play.shared);
+  return plays.some((play) => play.userId.toString() === viewerId);
+}
+
+/** A message as this person sees it. */
+export function toMessage(doc: MessageDoc, viewerId: string): Message {
   const deleted = doc.deletedForEveryoneAt !== null;
   return {
     id: doc._id.toString(),
@@ -18,6 +27,7 @@ export function toMessage(doc: MessageDoc): Message {
     text: deleted ? null : doc.text,
     media: deleted ? null : (doc.media ?? null),
     albumId: doc.albumId ?? null,
+    played: playedFor(doc, viewerId),
     replyToId: doc.replyToId?.toString() ?? null,
     editedAt: doc.editedAt?.toISOString() ?? null,
     deletedForEveryoneAt: doc.deletedForEveryoneAt?.toISOString() ?? null,
@@ -47,7 +57,8 @@ export function toPreview(text: string): string {
 
 /** For the chat list. Clients add the icon and the words "Photo" or "Video", in their language. */
 export function toMediaPreview(media: MediaInfo, caption: string | undefined): string {
-  if (media.kind === 'document')
+  if (media.kind === 'voice') return formatDuration(media.duration ?? 0);
+  if (media.kind === 'document' || media.kind === 'audio')
     return toPreview(caption ? `${media.name} · ${caption}` : media.name);
   return toPreview(caption ?? '');
 }

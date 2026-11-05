@@ -7,11 +7,13 @@ import {
   readUpdatePayloadSchema,
   sendMessagePayloadSchema,
   typingPayloadSchema,
+  voicePlayedPayloadSchema,
 } from '@zuvo/protocol';
 import type { FastifyInstance } from 'fastify';
 import type { z } from 'zod';
 import { type AuthSessionRecord, trackActivity } from '../auth/session.ts';
 import { sendMessage } from '../chats/messages.service.ts';
+import { markPlayed } from '../chats/played.service.ts';
 import { markDelivered, markRead } from '../chats/receipts.service.ts';
 import { registerAuthModels } from '../db/auth-models.ts';
 import { AppError } from '../lib/errors.ts';
@@ -147,6 +149,12 @@ export function registerHandlers(app: FastifyInstance, socket: ZuvoSocket): void
       payload,
       ack,
       (input) => markDelivered(app, userId, input.chatId, input.seq),
+    );
+  });
+
+  socket.on('voice:played', (payload, ack) => {
+    void respond(app, socket, 'voice:played', voicePlayedPayloadSchema, payload, ack, (input) =>
+      markPlayed(app, userId, input.chatId, input.messageId),
     );
   });
 

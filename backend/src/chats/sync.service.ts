@@ -4,6 +4,9 @@ import type { Types } from 'mongoose';
 import { buildSummaries, chatModels, oid } from './chats.service.ts';
 import { toMessage } from './message-format.ts';
 
+/** A new message, or one whose `played` changed: either way, this device needs its latest copy. */
+const carriesMessage = (row: { kind: string }) => row.kind === 'message' || row.kind === 'played';
+
 async function currentCursor(app: FastifyInstance, userId: string): Promise<string> {
   const counter = await chatModels(app).UserSync.findById(oid(userId)).lean();
   return String(counter?.seq ?? 0);
@@ -59,7 +62,7 @@ export async function syncSince(
   const seqsByChat = new Map<string, { chatId: Types.ObjectId; seqs: number[] }>();
   for (const row of page) {
     const key = row.chatId.toString();
-    if (row.kind !== 'message' || row.seq === undefined || !memberChats.has(key)) continue;
+    if (!carriesMessage(row) || row.seq === undefined || !memberChats.has(key)) continue;
     const entry = seqsByChat.get(key) ?? { chatId: row.chatId, seqs: [] };
     entry.seqs.push(row.seq);
     seqsByChat.set(key, entry);
@@ -71,8 +74,8 @@ export async function syncSince(
     : [];
   const docByKey = new Map(messageDocs.map((doc) => [`${doc.chatId}:${doc.seq}`, doc]));
   const messages = page.flatMap((row) => {
-    const doc = row.kind === 'message' ? docByKey.get(`${row.chatId}:${row.seq}`) : undefined;
-    return doc ? [toMessage(doc)] : [];
+    const doc = carriesMessage(row) ? docByKey.get(`${row.chatId}:${row.seq}`) : undefined;
+    return doc ? [toMessage(doc, userId)] : [];
   });
 
   return {

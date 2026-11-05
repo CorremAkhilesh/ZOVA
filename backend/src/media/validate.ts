@@ -53,6 +53,29 @@ const DOCUMENT_MIMES = new Set([
   'application/epub+zip',
 ]);
 
+/** What a voice recorder makes, whatever a signature check calls it, as it is served to players. */
+const RECORDING_MIMES: Record<string, string> = {
+  'audio/webm': 'audio/webm',
+  'video/webm': 'audio/webm',
+  'audio/ogg': 'audio/ogg',
+  'audio/opus': 'audio/ogg',
+  'application/ogg': 'audio/ogg',
+  'audio/mp4': 'audio/mp4',
+  'audio/m4a': 'audio/mp4',
+  'audio/x-m4a': 'audio/mp4',
+  'video/mp4': 'audio/mp4',
+};
+const AUDIO_FILE_MIMES: Record<string, string> = {
+  ...RECORDING_MIMES,
+  'audio/mpeg': 'audio/mpeg',
+  'audio/wav': 'audio/wav',
+  'audio/x-wav': 'audio/wav',
+  'audio/vnd.wave': 'audio/wav',
+  'audio/flac': 'audio/flac',
+  'audio/x-flac': 'audio/flac',
+  'audio/aac': 'audio/aac',
+};
+
 const extensionOf = (name: string) => name.split('.').pop()?.toLowerCase() ?? '';
 
 function looksLikeText(head: Uint8Array): boolean {
@@ -80,6 +103,13 @@ function verifyDocument(detected: FileTypeResult | undefined, extension: string,
   throw refuse('This type of file cannot be sent.');
 }
 
+function verifyAudio(detected: FileTypeResult | undefined, known: Record<string, string>) {
+  // "audio/ogg; codecs=opus" is still Ogg.
+  const mime = known[detected?.mime.split(';')[0] ?? ''];
+  if (mime) return mime;
+  throw refuse('This file is not an audio format that can be played here. Send it as a document.');
+}
+
 const isExecutable = (detected: FileTypeResult | undefined) =>
   detected && (EXECUTABLE_MIMES.has(detected.mime) || BLOCKED_EXTENSIONS.has(detected.ext));
 
@@ -94,6 +124,8 @@ export async function verifyFileType(kind: MediaKind, name: string, head: Uint8A
     throw refuse('Programs and scripts cannot be sent.');
   }
   if (kind === 'document') return verifyDocument(detected, extension, head);
+  if (kind === 'voice') return verifyAudio(detected, RECORDING_MIMES);
+  if (kind === 'audio') return verifyAudio(detected, AUDIO_FILE_MIMES);
   if (kind === 'image') {
     if (detected && IMAGE_MIMES.has(detected.mime)) return detected.mime;
     throw refuse('This file is not a JPEG, PNG, WebP or GIF picture. Send it as a document.');

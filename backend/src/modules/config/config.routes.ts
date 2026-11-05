@@ -15,6 +15,11 @@ export const configRoutes: FastifyPluginAsyncZod = async (app) => {
         response: { 200: appConfigResponseSchema },
       },
     },
-    async () => ({ media: { maxFileBytes: mediaMaxBytes(app.env) } }),
+    async () => ({
+      media: {
+        maxFileBytes: mediaMaxBytes(app.env),
+        voiceMaxSeconds: app.env.VOICE_MAX_SECONDS,
+      },
+    }),
   );
 };

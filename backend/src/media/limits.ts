@@ -1,4 +1,10 @@
-import { IMAGE_MAX_BYTES, type MediaKind } from '@zuvo/protocol';
+import {
+  type CreateUploadBody,
+  IMAGE_MAX_BYTES,
+  type MediaKind,
+  VOICE_DURATION_MARGIN_SECONDS,
+  VOICE_MAX_BYTES,
+} from '@zuvo/protocol';
 import type { FastifyInstance } from 'fastify';
 import type { Env } from '../config/env.ts';
 import { AppError } from '../lib/errors.ts';
@@ -10,9 +16,32 @@ export const DISK_MAX_USED_RATIO = 0.9;
 export const mediaMaxBytes = (env: Pick<Env, 'MEDIA_MAX_FILE_MB'>) =>
   env.MEDIA_MAX_FILE_MB * 1024 * 1024;
 
+const KIND_MAX_BYTES: Partial<Record<MediaKind, number>> = {
+  image: IMAGE_MAX_BYTES,
+  voice: VOICE_MAX_BYTES,
+};
+
 export function uploadLimit(env: Pick<Env, 'MEDIA_MAX_FILE_MB'>, kind: MediaKind): number {
-  const limit = mediaMaxBytes(env);
-  return kind === 'image' ? Math.min(limit, IMAGE_MAX_BYTES) : limit;
+  return Math.min(mediaMaxBytes(env), KIND_MAX_BYTES[kind] ?? Number.POSITIVE_INFINITY);
+}
+
+/** What the configuration says about a file, before any bytes move. */
+export function assertWithinLimits(
+  env: Pick<Env, 'MEDIA_MAX_FILE_MB' | 'VOICE_MAX_SECONDS'>,
+  body: CreateUploadBody,
+): void {
+  const limit = uploadLimit(env, body.kind);
+  if (body.size > limit) {
+    throw new AppError('PAYLOAD_TOO_LARGE', 'This file is over the size limit.', {
+      maxBytes: limit,
+    });
+  }
+  const longest = env.VOICE_MAX_SECONDS + VOICE_DURATION_MARGIN_SECONDS;
+  if (body.kind === 'voice' && (body.duration ?? 0) > longest) {
+    throw new AppError('BAD_REQUEST', 'This voice note is too long.', {
+      maxSeconds: env.VOICE_MAX_SECONDS,
+    });
+  }
 }
 
 export const wouldOverfill = ({ total, free }: StorageSpace, incoming: number) =>

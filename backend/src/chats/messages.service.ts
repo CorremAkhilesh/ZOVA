@@ -41,7 +41,7 @@ async function findOriginal(app: FastifyInstance, input: SendInput): Promise<Sen
   if (original.chatId.toString() !== input.chatId) {
     throw new AppError('CONFLICT', 'This message id was already used in another chat.');
   }
-  return { message: toMessage(original), duplicate: true };
+  return { message: toMessage(original, input.userId), duplicate: true };
 }
 
 /** A 1:1 chat cannot receive new messages once the other person is deactivated. */
@@ -196,7 +196,8 @@ export async function sendMessage(app: FastifyInstance, input: SendInput): Promi
           now,
         );
         return {
-          message: toMessage(doc),
+          // Nobody has played it yet, so it reads the same for every member.
+          message: toMessage(doc, userId),
           chat: { type: chat.type, lastMessage },
           members: members.map((member) => ({
             userId: member.userId.toString(),
@@ -241,10 +242,10 @@ export async function getHistory(
     .lean();
   const page = docs.slice(0, limit);
   if (!forward) page.reverse();
-  return { items: page.map(toMessage), hasMore: docs.length > limit };
+  return { items: page.map((doc) => toMessage(doc, userId)), hasMore: docs.length > limit };
 }
 
-const GALLERY_TYPES = { media: ['image', 'video'], docs: ['document'] } as const;
+const GALLERY_TYPES = { media: ['image', 'video'], docs: ['document', 'audio'] } as const;
 
 /** Newest first: the "Media" and "Docs" tabs in chat info. Members only. */
 export async function chatGallery(
@@ -263,5 +264,8 @@ export async function chatGallery(
     .sort({ seq: -1 })
     .limit(query.limit + 1)
     .lean();
-  return { items: docs.slice(0, query.limit).map(toMessage), hasMore: docs.length > query.limit };
+  return {
+    items: docs.slice(0, query.limit).map((doc) => toMessage(doc, userId)),
+    hasMore: docs.length > query.limit,
+  };
 }
