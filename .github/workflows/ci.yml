@@ -105,7 +105,7 @@ jobs:
   e2e:
     name: E2E (Chromium, Firefox, WebKit, mobile)
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
     env:
       CI: true
       # The E2E API (backend e2e:server) runs on an in-memory MongoDB.
@@ -138,6 +138,9 @@ jobs:
 
       - name: Run Playwright (vite preview + in-memory test API)
         run: pnpm --filter @zuvo/frontend test:e2e:ci
+
+      - name: Run the chat flows through the Vite dev server, like pnpm dev
+        run: pnpm --filter @zuvo/frontend exec playwright test -c playwright.dev.config.ts
 
       - name: Upload Playwright report and traces
         if: failure()

@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 import {
   bubbles,
   expectBubbles,
+  heldLocks,
   localDatabases,
   newPerson,
   openChatWith,
@@ -46,6 +47,62 @@ test('two people chat in real time, and reading clears the badge', async ({ brow
   await open(asha.page, '/chats');
   await expect(asha.page.getByRole('link', { name: /Bharat/ })).toContainText('Hi Asha', SLOW);
   await expect(asha.page.getByLabel(/unread/)).toHaveCount(0);
+
+  await asha.context.close();
+  await bharat.context.close();
+});
+
+test('both people open the empty chat first, and then either can send', async ({ browser }) => {
+  const asha = await newPerson(browser, 'Asha');
+  const bharat = await newPerson(browser, 'Bharat');
+  await openChatWith(asha.page, bharat);
+  await openChatWith(bharat.page, asha);
+  expect(bharat.page.url().split('/').at(-1)).toBe(asha.page.url().split('/').at(-1));
+
+  await send(asha.page, 'from Asha');
+  await expectBubbles(bharat.page, 'Asha', ['from Asha']);
+  await expect(asha.page.getByRole('img', { name: 'Sent' })).toBeVisible(SLOW);
+  await send(bharat.page, 'from Bharat');
+  await expectBubbles(asha.page, 'Bharat', ['from Asha', 'from Bharat']);
+
+  // And again after both reload, which is a fresh start for the sync client and the outbox lock.
+  await asha.page.reload();
+  await bharat.page.reload();
+  await expectBubbles(asha.page, 'Bharat', ['from Asha', 'from Bharat']);
+  await send(asha.page, 'after reload');
+  await expectBubbles(bharat.page, 'Asha', ['from Asha', 'from Bharat', 'after reload']);
+  await expect(bharat.page.getByRole('img', { name: 'Sending' })).toHaveCount(0);
+
+  await asha.context.close();
+  await bharat.context.close();
+});
+
+test('a stuck tab holding the outbox lock cannot stop another tab from sending', async ({
+  browser,
+}) => {
+  const asha = await newPerson(browser, 'Asha');
+  const bharat = await newPerson(browser, 'Bharat');
+  await openChatWith(asha.page, bharat);
+  await openChatWith(bharat.page, asha);
+  const chatUrl = asha.page.url();
+  const me = await asha.page.request.get('/v1/auth/me');
+  const lockName = `zuvo-outbox-${(await me.json()).user.id}`;
+
+  // The first tab stops being the app but keeps the "one tab sends" lock, and will never send.
+  const stuck = asha.page;
+  await stuck.goto('/icons/icon-192.png');
+  await stuck.evaluate((name) => {
+    void navigator.locks.request(name, () => new Promise(() => undefined));
+  }, lockName);
+  await expect.poll(() => heldLocks(stuck), SLOW).toContain(lockName);
+
+  const tab = await asha.context.newPage();
+  await tab.goto(chatUrl);
+  await expect(tab.getByRole('textbox', { name: 'Write a message' })).toBeVisible(SLOW);
+  await expect(tab.getByRole('status').filter({ hasText: 'Connected' })).toBeAttached(SLOW);
+  await send(tab, 'sent past the stuck tab');
+  await expectBubbles(bharat.page, 'Asha', ['sent past the stuck tab']);
+  await expect(tab.getByRole('img', { name: 'Sent' })).toBeVisible(SLOW);
 
   await asha.context.close();
   await bharat.context.close();

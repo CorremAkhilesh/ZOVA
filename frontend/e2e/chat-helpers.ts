@@ -69,3 +69,9 @@ export const localDatabases = (page: Page) =>
   page.evaluate(async () =>
     (await indexedDB.databases()).flatMap(({ name }) => (name?.startsWith('zuvo-') ? [name] : [])),
   );
+
+/** Names of the Web Locks held in this browser context. */
+export const heldLocks = (page: Page) =>
+  page.evaluate(async () =>
+    ((await navigator.locks.query()).held ?? []).flatMap(({ name }) => (name ? [name] : [])),
+  );

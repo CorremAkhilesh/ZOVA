@@ -29,6 +29,8 @@ function brandHtml(): Plugin {
 }
 
 export default defineConfig({
+  // A second dev server (E2E beside a running `pnpm dev`) must not share the dependency cache.
+  ...(process.env.ZUVO_VITE_CACHE ? { cacheDir: process.env.ZUVO_VITE_CACHE } : {}),
   plugins: [
     tanstackRouter({ target: 'react', autoCodeSplitting: true }),
     react(),
