@@ -90,9 +90,11 @@ written into it, so the app works the same offline.
   so the ack, the `message:new` echo, sync and history all land on one row. Chat positions only move
   forward. A live event that skips a number, or names an unknown chat, is not applied: it triggers sync.
 - **Sending:** the message and its outbox row are written first, so a reload or going offline loses
-  nothing. One tab at a time sends (a Web Lock), strictly in order, one message at a time. A server
-  error is retried with backoff, 5 tries in all, then the message shows "Not sent — tap to retry". An
-  error that cannot succeed fails at once. Being offline never counts as a failure.
+  nothing. Normally one tab sends (a Web Lock), strictly in order, one message at a time. If a message
+  stays unsent for 5 seconds any connected tab sends it, because the holder may be stuck; the server's
+  clientMsgId check makes that safe. An unanswered send (10 s, and the socket is replaced) or a server
+  error is retried, 3 tries in all, then the message shows "Not sent — tap to retry". An error that
+  cannot succeed fails at once. Being offline never counts as a failure.
 - **Other tabs** see every change through Dexie, and hear about new outbox rows and ended sessions on a
   BroadcastChannel.
 - **Wiping:** whenever a session ends (sign-out, revoked, expired, deactivated, or found to be gone on

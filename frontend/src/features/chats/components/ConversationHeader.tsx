@@ -3,6 +3,7 @@ import { ArrowLeft, Info, Phone, Search, Video } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { ComingSoonButton } from '@/components/common/ComingSoonButton';
 import { Button } from '@/components/ui/button';
+import { ConnectionStatus } from '@/features/connection/ConnectionStatus';
 import type { ChatSummary } from '../types';
 import { ChatAvatar } from './ChatAvatar';
 
@@ -50,6 +51,8 @@ export function ConversationHeader({
         </span>
       </button>
       <div className="flex items-center">
+        {/* On phones the chat list, which also shows it, is hidden while a chat is open. */}
+        {showBack ? <ConnectionStatus /> : null}
         <ComingSoonButton
           label={t('placeholder.callsTitle')}
           icon={Video}

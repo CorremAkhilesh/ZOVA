@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
-import type { ReactNode } from 'react';
+import { lazy, type ReactNode, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AccountSettings } from '@/features/auth/components/AccountSettings';
 import { InstallSetting } from '@/features/install/InstallUi';
@@ -7,6 +7,11 @@ import { SettingsMenu } from '@/features/settings/SettingsMenu';
 import { ThemeSwitcher } from '@/features/theme/ThemeSwitcher';
 import { LANGUAGES } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
+
+/** Development builds only: production builds do not even contain the file. */
+const DiagnosticsPanel = import.meta.env.DEV
+  ? lazy(() => import('@/features/sync/DiagnosticsPanel'))
+  : null;
 
 export const Route = createFileRoute('/_app/settings/')({
   component: Settings,
@@ -77,6 +82,14 @@ function Settings() {
         <Section title={t('settings.account')}>
           <AccountSettings />
         </Section>
+
+        {DiagnosticsPanel ? (
+          <Section title={t('settings.about')}>
+            <Suspense fallback={null}>
+              <DiagnosticsPanel />
+            </Suspense>
+          </Section>
+        ) : null}
       </div>
     </div>
   );

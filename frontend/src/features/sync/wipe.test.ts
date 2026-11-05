@@ -128,6 +128,29 @@ describe('between tabs', () => {
     vi.unstubAllGlobals();
   });
 
+  it('lets go of a lock granted just as the client stopped', async () => {
+    let finished = false;
+    let grant: () => Promise<void> = async () => undefined;
+    vi.stubGlobal('navigator', {
+      ...navigator,
+      locks: {
+        request: (_name: string, _options: unknown, run: () => Promise<void> | undefined) => {
+          grant = async () => {
+            await run();
+            finished = true;
+          };
+          return Promise.resolve();
+        },
+      },
+    });
+    const onLeader = vi.fn();
+    watchLeadership('lock', onLeader).stop();
+    await grant();
+    expect(finished).toBe(true);
+    expect(onLeader).not.toHaveBeenCalled();
+    vi.unstubAllGlobals();
+  });
+
   it('treats every tab as leader where Web Locks do not exist', () => {
     const onLeader = vi.fn();
     watchLeadership('lock', onLeader).stop();

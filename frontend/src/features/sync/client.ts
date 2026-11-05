@@ -16,7 +16,9 @@ import { openTabChannel, watchLeadership } from './tabs';
 
 type AppSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 
-const ACK_TIMEOUT_MS = 15_000;
+const ACK_TIMEOUT_MS = 10_000;
+/** Corrects the pill if an event was ever missed: it shows what the socket says right now. */
+const STATE_CHECK_MS = 3000;
 const RECONNECT_AFTER_REFUSAL_MS = 5000;
 /** Connection attempts that fail before the pill says the server cannot be reached. */
 const UNREACHABLE_AFTER = 2;
@@ -50,7 +52,11 @@ function socketTransport(socket: AppSocket): OutboxTransport {
         socket
           .timeout(ACK_TIMEOUT_MS)
           .emitWithAck('message:send', payload)
-          .then(resolve, reject)
+          .then(resolve, (error: unknown) => {
+            reject(error);
+            // "Connected" but no answer: the connection is wedged, so replace it.
+            socket.disconnect().connect();
+          })
           .finally(() => socket.off('disconnect', onDisconnect));
       });
     },
@@ -61,7 +67,11 @@ function socketTransport(socket: AppSocket): OutboxTransport {
 export function startSyncClient(options: SyncClientOptions): SyncClient {
   const { userId, onSessionEnded, onSessionDoubt } = options;
   const db = getUserDb(userId);
-  const setStore = useSyncStore.setState;
+  let stopped = false;
+  // A stopped client's socket must not overwrite the state of the one that replaced it.
+  const setStore: typeof useSyncStore.setState = (partial) => {
+    if (!stopped) useSyncStore.setState(partial as never);
+  };
   const socket: AppSocket = io({
     path: '/socket.io',
     withCredentials: true,
@@ -89,6 +99,7 @@ export function startSyncClient(options: SyncClientOptions): SyncClient {
     me: userId,
     transport: socketTransport(socket),
     isLeader: () => isLeader,
+    onProblem: (lastProblem) => setStore({ lastProblem }),
   });
 
   const channel = openTabChannel((message) => {
@@ -97,6 +108,7 @@ export function startSyncClient(options: SyncClientOptions): SyncClient {
   });
   const leadership = watchLeadership(`zuvo-outbox-${userId}`, () => {
     isLeader = true;
+    setStore({ isLeader });
     outbox.resume();
   });
 
@@ -109,7 +121,7 @@ export function startSyncClient(options: SyncClientOptions): SyncClient {
 
   socket.on('connect', () => {
     failedAttempts = 0;
-    setStore({ socket: 'connected' });
+    setStore({ socket: 'connected', lastHandshakeError: null });
     void engine.run();
     outbox.resume();
     // Names and photos change without a new message, so the log says nothing about them.
@@ -123,9 +135,16 @@ export function startSyncClient(options: SyncClientOptions): SyncClient {
     // The client only reconnects by itself after a network loss; a server restart looks like this.
     if (reason === 'io server disconnect') reconnectLater(RECONNECT_AFTER_REFUSAL_MS);
   });
-  socket.on('connect_error', () => {
+  socket.on('connect_error', (error) => {
     failedAttempts += 1;
-    if (failedAttempts >= UNREACHABLE_AFTER) setStore({ socket: 'unreachable' });
+    const refused = error as (Error & { data?: { code?: string } }) | undefined;
+    const lastHandshakeError = refused?.data?.code ?? refused?.message ?? 'unknown error';
+    console.error(`[socket] connection failed: ${lastHandshakeError}`);
+    setStore(
+      failedAttempts >= UNREACHABLE_AFTER
+        ? { socket: 'unreachable', lastHandshakeError }
+        : { socket: 'connecting', lastHandshakeError },
+    );
     onSessionDoubt();
     // A refused handshake does not retry by itself; a network failure does.
     if (!socket.active) reconnectLater(RECONNECT_AFTER_REFUSAL_MS);
@@ -152,6 +171,12 @@ export function startSyncClient(options: SyncClientOptions): SyncClient {
   };
   window.addEventListener('online', onOnline);
   window.addEventListener('offline', onOffline);
+  const stateCheck = setInterval(() => {
+    const said = useSyncStore.getState().socket;
+    if (socket.connected !== (said === 'connected')) {
+      setStore({ socket: socket.connected ? 'connected' : 'connecting' });
+    }
+  }, STATE_CHECK_MS);
 
   // History and sync use REST: they do not need to wait for the socket.
   void engine.run();
@@ -186,7 +211,10 @@ export function startSyncClient(options: SyncClientOptions): SyncClient {
     },
     syncNow: () => engine.run(),
     stop() {
+      setStore({ socket: 'connecting', isLeader: false });
+      stopped = true;
       ended = true;
+      clearInterval(stateCheck);
       clearTimeout(reconnectTimer);
       window.removeEventListener('online', onOnline);
       window.removeEventListener('offline', onOffline);

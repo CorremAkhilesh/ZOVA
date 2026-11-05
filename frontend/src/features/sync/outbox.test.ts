@@ -118,17 +118,72 @@ describe('sending', () => {
     await vi.waitFor(() => expect(sent).toHaveLength(2));
   });
 
-  it('does nothing in a tab that is not the leader', async () => {
+  it('leaves a new message to the tab holding the lock', async () => {
     leader = false;
     const box = outbox();
     await box.enqueue('c1', 'hello');
     await box.flush();
     expect(sent).toEqual([]);
     expect(await db.outbox.count()).toBe(1);
+    box.stop();
+  });
 
+  it('sends at once on gaining the lock', async () => {
+    leader = false;
+    const box = outbox();
+    await box.enqueue('c1', 'hello');
     leader = true;
     box.resume();
     await vi.waitFor(() => expect(sent).toHaveLength(1));
+  });
+});
+
+describe('a tab holding the lock that cannot send', () => {
+  it('is replaced: another tab sends after the takeover time', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
+    leader = false;
+    const box = new Outbox({
+      db,
+      me: ME_ID,
+      isLeader: () => leader,
+      takeoverMs: 5000,
+      transport: {
+        isConnected: () => connected,
+        send: (payload) => {
+          sent.push(payload);
+          return respond(payload);
+        },
+      },
+    });
+    await box.enqueue('c1', 'hello');
+    await vi.advanceTimersByTimeAsync(4000);
+    expect(sent).toEqual([]);
+    await vi.advanceTimersByTimeAsync(1100);
+    await vi.waitFor(() => expect(sent).toHaveLength(1));
+    await settle();
+    expect((await rows())[0]?.status).toBe('sent');
+  });
+
+  it('sends rows queued before this field existed straight away', async () => {
+    leader = false;
+    const id = '0190a000-0000-7000-8000-000000000002';
+    await db.outbox.add({
+      clientMsgId: id,
+      chatId: 'c1',
+      text: 'old',
+      attempts: 0,
+      state: 'pending',
+    });
+    await db.messages.add({
+      ...messageFixture(1, { senderId: ME_ID, clientMsgId: id, text: 'old' }),
+      key: `${ME_ID}:${id}`,
+      id: null,
+      seq: null,
+      order: 1e12 + 1,
+      status: 'pending',
+    });
+    outbox().resume();
+    await vi.waitFor(async () => expect((await rows())[0]?.status).toBe('sent'));
   });
 });
 

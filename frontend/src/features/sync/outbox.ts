@@ -21,18 +21,26 @@ interface OutboxOptions {
   db: LocalDb;
   me: string;
   transport: OutboxTransport;
-  /** Only one tab sends; the others just write to the shared database. */
+  /** Normally one tab sends; the others step in only for what stays unsent for too long. */
   isLeader?: () => boolean;
+  /** How long another tab gets to send a message before this one does it instead. */
+  takeoverMs?: number;
   maxAttempts?: number;
   retryBaseMs?: number;
+  /** Anything that stops a message moving. Never contains message text. */
+  onProblem?: (problem: string) => void;
 }
 
 /** Worth trying again; every other error would fail the same way each time. */
 const TRANSIENT: ReadonlySet<ErrorCode> = new Set(['INTERNAL_ERROR', 'SERVICE_UNAVAILABLE']);
 
+const TAKEOVER_MS = 5000;
+const STORAGE_RETRY_MS = 5000;
+
 /**
  * Sends queued messages strictly in order, one at a time. Offline time never counts as a failure.
- * A retry reuses the same clientMsgId, so a lost ack can never create a second message.
+ * A retry reuses the same clientMsgId, so a lost ack can never create a second message. With a
+ * connection, every message ends up either sent or marked "Not sent": it never just waits.
  */
 export class Outbox {
   private readonly options: OutboxOptions;
@@ -58,7 +66,14 @@ export class Outbox {
     const key = `${me}:${clientMsgId}`;
     const createdAt = new Date().toISOString();
     await db.transaction('rw', db.outbox, db.messages, db.chats, async () => {
-      const n = await db.outbox.add({ clientMsgId, chatId, text, attempts: 0, state: 'pending' });
+      const n = await db.outbox.add({
+        clientMsgId,
+        chatId,
+        text,
+        attempts: 0,
+        state: 'pending',
+        queuedAt: Date.now(),
+      });
       await db.messages.add({
         key,
         id: null,
@@ -107,7 +122,7 @@ export class Outbox {
       await db.outbox
         .where('clientMsgId')
         .equals(clientMsgId)
-        .modify({ state: 'pending', attempts: 0 });
+        .modify({ state: 'pending', attempts: 0, queuedAt: Date.now() });
       await db.messages.update(`${me}:${clientMsgId}`, { status: 'pending' });
     });
     this.waitUntil = 0;
@@ -131,22 +146,43 @@ export class Outbox {
         this.again = false;
         await this.drain();
       } while (this.again && !this.stopped);
-    } catch {
-      // The database closed under us (sign-out) or storage failed; rows stay for the next attempt.
+    } catch (error) {
+      // Storage failed, or closed under us at sign-out. The rows are safe, so try again shortly.
+      if (!this.stopped) {
+        this.report(`outbox stopped: ${error instanceof Error ? error.name : 'unknown error'}`);
+        this.pause(STORAGE_RETRY_MS);
+      }
     } finally {
       this.running = false;
     }
   }
 
   private async drain(): Promise<void> {
-    const { db, transport, isLeader } = this.options;
+    const { db, transport } = this.options;
     while (!this.stopped) {
-      if (!transport.isConnected() || isLeader?.() === false) return;
+      if (!transport.isConnected()) return;
       if (Date.now() < this.waitUntil) return;
       const row = await db.outbox.where('state').equals('pending').first();
       if (!row) return;
+      const waitForLeader = this.leaderGrace(row);
+      if (waitForLeader > 0) {
+        this.pause(waitForLeader);
+        return;
+      }
       if (!(await this.sendOne(row))) return;
     }
+  }
+
+  /** Time left before a tab without the lock steps in for the one that has it. */
+  private leaderGrace(row: OutboxRow): number {
+    const { isLeader, takeoverMs = TAKEOVER_MS } = this.options;
+    if (isLeader?.() !== false) return 0;
+    return takeoverMs - (Date.now() - (row.queuedAt ?? 0));
+  }
+
+  private report(problem: string) {
+    console.error(`[outbox] ${problem}`);
+    this.options.onProblem?.(problem);
   }
 
   /** False means stop for now: order matters, so later messages must not overtake this one. */
@@ -161,6 +197,7 @@ export class Outbox {
       });
     } catch (error) {
       if (error instanceof DisconnectedError) return false;
+      this.report('no answer from the server');
       return this.failTransiently(row);
     }
     if (ack.ok) {
@@ -168,6 +205,7 @@ export class Outbox {
       return true;
     }
     const { code, details } = ack.error;
+    this.report(`message:send refused: ${code}`);
     if (code === 'SESSION_EXPIRED') return false;
     if (code === 'RATE_LIMITED') {
       const seconds = Number(details?.retryAfterSeconds ?? 1);
@@ -180,7 +218,7 @@ export class Outbox {
   }
 
   private async failTransiently(row: OutboxRow): Promise<boolean> {
-    const { db, maxAttempts = 5, retryBaseMs = 1000 } = this.options;
+    const { db, maxAttempts = 3, retryBaseMs = 1000 } = this.options;
     const attempts = row.attempts + 1;
     if (attempts >= maxAttempts) {
       await this.markFailed(row);

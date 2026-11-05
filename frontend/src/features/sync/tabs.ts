@@ -23,9 +23,10 @@ export function announceSessionEnded(): void {
 }
 
 /**
- * Exactly one tab at a time sends the outbox. The browser hands the lock to the next tab when the
- * holder closes. Where Web Locks are missing, every tab sends and the server's clientMsgId check
- * still prevents duplicates.
+ * Normally one tab sends the outbox, so tabs do not race each other. The browser hands the lock to
+ * the next tab when the holder closes. It is only an optimization: a holder that cannot send (stuck,
+ * frozen, offline) must not stop the others, so the outbox takes over from it after a few seconds,
+ * and the server's clientMsgId check prevents duplicates.
  */
 export function watchLeadership(name: string, onLeader: () => void) {
   const controller = new AbortController();
@@ -35,6 +36,9 @@ export function watchLeadership(name: string, onLeader: () => void) {
   }
   navigator.locks
     .request(name, { signal: controller.signal }, () => {
+      // Granted just as this client stopped: an abort listener added now would never fire, and the
+      // lock would be held until the tab closes.
+      if (controller.signal.aborted) return;
       onLeader();
       // Held until this tab closes or stops.
       return new Promise<void>((resolve) => {

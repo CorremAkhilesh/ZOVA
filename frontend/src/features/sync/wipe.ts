@@ -1,6 +1,6 @@
 import { recentPeople } from '@/features/people/recent-people';
 import { wipeLocalDatabases } from './local-db';
-import { useSyncStore } from './store';
+import { INITIAL_SYNC_STATE, useSyncStore } from './store';
 import { announceSessionEnded } from './tabs';
 
 /**
@@ -10,7 +10,7 @@ import { announceSessionEnded } from './tabs';
 export async function clearLocalUserData(): Promise<void> {
   const { client } = useSyncStore.getState();
   client?.stop();
-  useSyncStore.setState({ client: null, socket: 'connecting', sync: 'syncing' });
+  useSyncStore.setState(INITIAL_SYNC_STATE);
   recentPeople.clear();
   // Other tabs check with the server and sign out too.
   announceSessionEnded();

@@ -95,7 +95,8 @@
     "languageHint": "इस डिवाइस पर ऐप की भाषा बदलता है।",
     "account": "खाता",
     "openProfile": "{{name}} की प्रोफ़ाइल खोलें",
-    "accountMenu": "खाता"
+    "accountMenu": "खाता",
+    "about": "जानकारी"
   },
   "placeholder": {
     "updatesTitle": "अपडेट",
@@ -360,5 +361,17 @@
     "gestures": "इशारे और चिह्न",
     "work": "काम और खाना",
     "life": "जगहें और गतिविधियाँ"
+  },
+  "diagnostics": {
+    "title": "डायग्नॉस्टिक्स",
+    "none": "कुछ नहीं",
+    "socket": "सॉकेट",
+    "handshakeError": "पिछली हैंडशेक त्रुटि",
+    "lastProblem": "पिछली समस्या",
+    "sync": "सिंक",
+    "cursor": "सिंक कर्सर",
+    "thisTabSends": "लॉक इस टैब के पास है",
+    "lock": "लॉक",
+    "outbox": "आउटबॉक्स"
   }
 }

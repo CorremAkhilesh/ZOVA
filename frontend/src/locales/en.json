@@ -95,7 +95,8 @@
     "languageHint": "Changes the app language on this device.",
     "account": "Account",
     "openProfile": "Open profile of {{name}}",
-    "accountMenu": "Account"
+    "accountMenu": "Account",
+    "about": "About"
   },
   "placeholder": {
     "updatesTitle": "Updates",
@@ -360,5 +361,17 @@
     "gestures": "Gestures and symbols",
     "work": "Work and food",
     "life": "Places and activities"
+  },
+  "diagnostics": {
+    "title": "Diagnostics",
+    "none": "none",
+    "socket": "Socket",
+    "handshakeError": "Last handshake error",
+    "lastProblem": "Last problem",
+    "sync": "Sync",
+    "cursor": "Sync cursor",
+    "thisTabSends": "This tab holds the lock",
+    "lock": "Lock",
+    "outbox": "Outbox"
   }
 }

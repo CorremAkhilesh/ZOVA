@@ -179,4 +179,74 @@ describe('failures', () => {
     await box.flush();
     expect(sent).toEqual([]);
   });
+
+  it('reports problems, and never with message text', async () => {
+    const problems: string[] = [];
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const box = new Outbox({
+      db,
+      me: ME_ID,
+      onProblem: (problem) => problems.push(problem),
+      transport: { isConnected: () => true, send: async () => refuse('FORBIDDEN') },
+    });
+    await box.enqueue('c1', 'a secret');
+    await vi.waitFor(() => expect(problems).toEqual(['message:send refused: FORBIDDEN']));
+    expect(JSON.stringify([problems, logged.mock.calls])).not.toContain('a secret');
+    logged.mockRestore();
+  });
+
+  it('reports a storage failure and tries again instead of stopping for good', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
+    const problems: string[] = [];
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const box = new Outbox({
+      db,
+      me: ME_ID,
+      onProblem: (problem) => problems.push(problem),
+      transport: {
+        isConnected: () => true,
+        send: (payload) => {
+          sent.push(payload);
+          return accept();
+        },
+      },
+    });
+    connected = false;
+    await db.outbox.add({
+      clientMsgId: '0190a000-0000-7000-8000-000000000003',
+      chatId: 'c1',
+      text: 'hello',
+      attempts: 0,
+      state: 'pending',
+    });
+    const where = vi.spyOn(db.outbox, 'where').mockImplementationOnce(() => {
+      throw new Error('storage broke');
+    });
+    await box.flush();
+    expect(problems).toEqual(['outbox stopped: Error']);
+    where.mockRestore();
+    await vi.advanceTimersByTimeAsync(5100);
+    await vi.waitFor(() => expect(sent).toHaveLength(1));
+    logged.mockRestore();
+  });
+
+  it('gives up within three tries by default', async () => {
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const box = new Outbox({
+      db,
+      me: ME_ID,
+      retryBaseMs: 1,
+      transport: {
+        isConnected: () => true,
+        send: async (payload) => {
+          sent.push(payload);
+          throw new Error('operation has timed out');
+        },
+      },
+    });
+    await box.enqueue('c1', 'hello');
+    await vi.waitFor(async () => expect((await rows())[0]?.status).toBe('failed'));
+    expect(sent).toHaveLength(3);
+    logged.mockRestore();
+  });
 });

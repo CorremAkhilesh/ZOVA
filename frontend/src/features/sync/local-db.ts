@@ -30,6 +30,8 @@ export interface OutboxRow {
   text: string;
   attempts: number;
   state: 'pending' | 'failed';
+  /** When it was queued or retried, in ms. Rows from before this field count as long overdue. */
+  queuedAt?: number;
 }
 
 export interface MetaRow {
