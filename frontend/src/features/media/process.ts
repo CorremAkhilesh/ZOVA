@@ -104,16 +104,28 @@ export function withTimeout<T>(work: Promise<T>, ms: number): Promise<T> {
   return Promise.race([work, expired]).finally(() => clearTimeout(timer));
 }
 
-function loadVideo(url: string): Promise<HTMLVideoElement> {
+function createVideo(url: string): HTMLVideoElement {
+  const video = document.createElement('video');
+  video.muted = true;
+  video.playsInline = true;
+  video.preload = 'auto';
+  video.src = url;
+  return video;
+}
+
+function videoLoaded(video: HTMLVideoElement): Promise<void> {
   return new Promise((resolve, reject) => {
-    const video = document.createElement('video');
-    video.muted = true;
-    video.playsInline = true;
-    video.preload = 'auto';
-    video.onloadeddata = () => resolve(video);
+    video.onloadeddata = () => resolve();
     video.onerror = () => reject(new Error('This browser cannot read this video'));
-    video.src = url;
+    // It may have got there already.
+    if (video.readyState >= 2) resolve();
   });
+}
+
+/** Without this it goes on reading the file, however large, after we are done with it. */
+function stopReading(video: HTMLVideoElement) {
+  video.removeAttribute('src');
+  video.load();
 }
 
 function seek(video: HTMLVideoElement, time: number): Promise<void> {
@@ -127,8 +139,10 @@ function seek(video: HTMLVideoElement, time: number): Promise<void> {
 export async function prepareVideo(file: File): Promise<PreparedFile> {
   const basics = { file, name: file.name, mime: file.type, kind: 'video' as const };
   const url = URL.createObjectURL(file);
+  let video: HTMLVideoElement | undefined;
   try {
-    const video = await withTimeout(loadVideo(url), POSTER_TIMEOUT_MS);
+    video = createVideo(url);
+    await withTimeout(videoLoaded(video), POSTER_TIMEOUT_MS);
     const duration = Number.isFinite(video.duration) ? video.duration : undefined;
     // Not the very first frame: it is often black.
     await withTimeout(seek(video, Math.min(0.5, (duration ?? 1) / 2)), POSTER_TIMEOUT_MS);
@@ -147,6 +161,7 @@ export async function prepareVideo(file: File): Promise<PreparedFile> {
     // Still sendable: it just has no poster or duration to show.
     return basics;
   } finally {
+    if (video) stopReading(video);
     URL.revokeObjectURL(url);
   }
 }
@@ -171,7 +186,8 @@ export function formatBytes(bytes: number, locale: string): string {
 }
 
 export function formatDuration(seconds: number): string {
-  const whole = Math.round(seconds);
+  // Rounded down, like the player: 8:18.9 is still 8:18.
+  const whole = Math.floor(seconds);
   const minutes = Math.floor(whole / 60);
   return `${minutes}:${String(whole % 60).padStart(2, '0')}`;
 }

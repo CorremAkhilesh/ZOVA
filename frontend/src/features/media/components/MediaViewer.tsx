@@ -37,9 +37,11 @@ export function mergeViewerItems(local: ViewerItem[], remote: ViewerItem[]): Vie
   return [...byId.values()].sort((a, b) => a.seq - b.seq);
 }
 
+const FRESH_LINK_MS = 30_000;
+
 function ViewerVideo({ mediaId, onMissing }: { mediaId: string; onMissing: () => void }) {
   // A signed link: some browsers leave cookies off the requests a video player makes.
-  const { data, isError } = useQuery({
+  const { data, isError, refetch } = useQuery({
     queryKey: ['media-link', mediaId],
     queryFn: () => mediaApi.link(mediaId, false),
     staleTime: 10 * 60_000,
@@ -48,7 +50,19 @@ function ViewerVideo({ mediaId, onMissing }: { mediaId: string; onMissing: () =>
   useEffect(() => {
     if (isError) onMissing();
   }, [isError, onMissing]);
+  const renewedAt = useRef(0);
+  const resumeAt = useRef<number | null>(null);
   if (!data) return null;
+
+  // Links expire, and a player notices on its next request, such as a seek. A new link that fails
+  // straight away means the file itself is gone.
+  function onVideoError(video: HTMLVideoElement) {
+    if (Date.now() - renewedAt.current < FRESH_LINK_MS) return onMissing();
+    renewedAt.current = Date.now();
+    resumeAt.current = video.currentTime;
+    void refetch();
+  }
+
   return (
     // biome-ignore lint/a11y/useMediaCaption: people's own videos come with no captions
     <video
@@ -56,7 +70,11 @@ function ViewerVideo({ mediaId, onMissing }: { mediaId: string; onMissing: () =>
       controls
       autoPlay
       playsInline
-      onError={onMissing}
+      onError={(event) => onVideoError(event.currentTarget)}
+      onLoadedMetadata={(event) => {
+        if (resumeAt.current !== null) event.currentTarget.currentTime = resumeAt.current;
+        resumeAt.current = null;
+      }}
       className="max-h-full max-w-full"
     />
   );

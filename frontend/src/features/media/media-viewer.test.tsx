@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { MediaInfo } from '@zuvo/protocol';
 import { type ReactNode, StrictMode } from 'react';
@@ -227,5 +227,61 @@ describe('sign-out', () => {
     await fresh.open();
     expect(await fresh.thumbs.count()).toBe(0);
     expect(await fresh.files.count()).toBe(0);
+  });
+});
+
+describe('a video in the viewer', () => {
+  const clip = toViewerItem(photo(9, 'v1', { type: 'video' }));
+  const items = clip ? [{ ...clip, kind: 'video' as const }] : [];
+
+  function setup() {
+    let links = 0;
+    server.use(
+      thumbnails,
+      emptyGallery,
+      http.get('*/v1/media/:id/link', () => {
+        links += 1;
+        return HttpResponse.json({
+          url: `/v1/media/v1/content?sig=${links}`,
+          expiresAt: new Date(Date.now() + 900_000).toISOString(),
+        });
+      }),
+    );
+    const { container } = render(
+      <QueryHarness>
+        <MediaViewer chatId="c1" localItems={items} startId="v1" onClose={vi.fn()} />
+      </QueryHarness>,
+    );
+    const player = async () => {
+      await waitFor(() => expect(container.ownerDocument.querySelector('video')).not.toBeNull());
+      return container.ownerDocument.querySelector('video') as HTMLVideoElement;
+    };
+    return { player, links: () => links };
+  }
+
+  it('gets a new link when the old one stops working, and carries on from the same place', async () => {
+    const { player, links } = setup();
+    const video = await player();
+    expect(video.getAttribute('src')).toContain('sig=1');
+    Object.defineProperty(video, 'currentTime', { value: 300, writable: true });
+
+    fireEvent.error(video);
+    await waitFor(() => expect(video.getAttribute('src')).toContain('sig=2'));
+    expect(links()).toBe(2);
+    expect(screen.queryByText('Media not available')).not.toBeInTheDocument();
+
+    video.currentTime = 0;
+    fireEvent.loadedMetadata(video);
+    expect(video.currentTime).toBe(300);
+  });
+
+  it('says it is not available when a new link fails too: the file is gone', async () => {
+    const { player, links } = setup();
+    const video = await player();
+    fireEvent.error(video);
+    await waitFor(() => expect(video.getAttribute('src')).toContain('sig=2'));
+    fireEvent.error(video);
+    expect(await screen.findByText('Media not available')).toBeInTheDocument();
+    expect(links()).toBe(2);
   });
 });

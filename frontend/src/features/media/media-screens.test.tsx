@@ -66,6 +66,7 @@ describe('small helpers', () => {
     expect(formatBytes(5 * 1024 * 1024, 'en')).toBe('5 MB');
     expect(formatDuration(75)).toBe('1:15');
     expect(formatDuration(5)).toBe('0:05');
+    expect(formatDuration(498.9)).toBe('8:18');
   });
 
   it('writes chat list previews', () => {
