@@ -1,6 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import {
   type AckResponse,
+  deliveredUpdatePayloadSchema,
+  presenceActivePayloadSchema,
+  presenceSubscribePayloadSchema,
   readUpdatePayloadSchema,
   sendMessagePayloadSchema,
   typingPayloadSchema,
@@ -8,15 +11,20 @@ import {
 import type { FastifyInstance } from 'fastify';
 import type { z } from 'zod';
 import { type AuthSessionRecord, trackActivity } from '../auth/session.ts';
-import { markRead, sendMessage } from '../chats/messages.service.ts';
+import { sendMessage } from '../chats/messages.service.ts';
+import { markDelivered, markRead } from '../chats/receipts.service.ts';
 import { registerAuthModels } from '../db/auth-models.ts';
 import { AppError } from '../lib/errors.ts';
 import { toErrorResponse } from '../plugins/error-handler.ts';
 import type { ZuvoSocket } from './server.ts';
 import { closeSocket } from './session-guard.ts';
+import { windowLimit } from './socket-limit.ts';
+import { createTyping } from './typing.ts';
 
 /** 20 messages per 5 seconds, per user, across all devices and instances. */
 export const SEND_LIMIT = { max: 20, windowSeconds: 5 };
+/** Scrolling the chat list re-subscribes; the client already waits between updates. */
+const PRESENCE_SUBSCRIBE_LIMIT = { max: 20, windowMs: 10_000 };
 
 /**
  * The push already closes revoked sockets; this is the second check every event gets, in case a
@@ -123,12 +131,63 @@ export function registerHandlers(app: FastifyInstance, socket: ZuvoSocket): void
     });
   });
 
-  // Reserved for Step 10.
-  for (const event of ['typing:start', 'typing:stop'] as const) {
-    socket.on(event, (payload, ack) => {
-      void respond(app, socket, event, typingPayloadSchema, payload, ack, async () => {
-        throw new AppError('BAD_REQUEST', 'Typing indicators are not available yet.');
-      });
+  socket.on('delivered:update', (payload, ack) => {
+    void respond(
+      app,
+      socket,
+      'delivered:update',
+      deliveredUpdatePayloadSchema,
+      payload,
+      ack,
+      (input) => markDelivered(app, userId, input.chatId, input.seq),
+    );
+  });
+
+  const typing = createTyping(app, socket);
+  socket.on('typing:start', (payload, ack) => {
+    void respond(app, socket, 'typing:start', typingPayloadSchema, payload, ack, async (input) => {
+      await typing.start(input.chatId);
+      return {};
     });
-  }
+  });
+  socket.on('typing:stop', (payload, ack) => {
+    void respond(app, socket, 'typing:stop', typingPayloadSchema, payload, ack, async (input) => {
+      typing.stop(input.chatId);
+      return {};
+    });
+  });
+  socket.on('disconnect', () => typing.stopAll());
+
+  const subscribeAllowed = windowLimit(
+    PRESENCE_SUBSCRIBE_LIMIT.max,
+    PRESENCE_SUBSCRIBE_LIMIT.windowMs,
+  );
+  socket.on('presence:subscribe', (payload, ack) => {
+    void respond(
+      app,
+      socket,
+      'presence:subscribe',
+      presenceSubscribePayloadSchema,
+      payload,
+      ack,
+      async (input) => {
+        if (!subscribeAllowed()) throw new AppError('RATE_LIMITED', 'Too many presence updates.');
+        return { users: await app.realtime.presence.subscribe(socket, input.userIds) };
+      },
+    );
+  });
+  socket.on('presence:active', (payload, ack) => {
+    void respond(
+      app,
+      socket,
+      'presence:active',
+      presenceActivePayloadSchema,
+      payload,
+      ack,
+      async (input) => {
+        await app.realtime.presence.setActive(socket, input.active);
+        return {};
+      },
+    );
+  });
 }

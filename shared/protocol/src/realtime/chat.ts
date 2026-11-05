@@ -45,6 +45,9 @@ export const chatUpdatedEventSchema = z.object({
   lastReadSeq: z.number().int().nonnegative(),
   unreadCount: z.number().int().nonnegative(),
   lastActivityAt: isoDateTimeSchema.nullable(),
+  /** Sent with new messages in direct chats: replying also means having received and read. */
+  peerDeliveredSeq: z.number().int().nonnegative().optional(),
+  peerReadSeq: z.number().int().nonnegative().nullable().optional(),
   cursor: syncCursorSchema,
 });
 
@@ -61,21 +64,53 @@ export const sessionRevokedEventSchema = z.object({
   reason: z.enum(['revoked', 'deactivated', 'expired']),
 });
 
-// Reserved for Step 10; the server answers the client events with BAD_REQUEST until then.
+/** delivered:update (client → server): this device has stored everything up to `seq`. */
+export const deliveredUpdatePayloadSchema = markReadBodySchema.extend({ chatId: objectIdSchema });
+export const deliveredUpdateAckSchema = z.object({
+  chatId: z.string(),
+  lastDeliveredSeq: z.number().int().nonnegative(),
+});
+
+/** typing:start / typing:stop (client → server). */
 export const typingPayloadSchema = z.object({ chatId: objectIdSchema });
-export const typingEventSchema = z.object({ chatId: z.string(), userId: z.string() });
+/** typing:update (server → client): to the other members' sockets only. Never stored. */
+export const typingEventSchema = z.object({
+  chatId: z.string(),
+  userId: z.string(),
+  typing: z.boolean(),
+});
+
+/** How many people a socket may watch at once. */
+export const PRESENCE_WATCH_MAX = 100;
+
+/** presence:subscribe (client → server): the full list to watch, replacing the previous one. */
+export const presenceSubscribePayloadSchema = z.object({
+  userIds: z.array(objectIdSchema).max(PRESENCE_WATCH_MAX),
+});
+/** presence:active (client → server): false once the tab has been hidden for a while. */
+export const presenceActivePayloadSchema = z.object({ active: z.boolean() });
+
+/** Offline with no time also means "hidden": privacy never says which. */
 export const presenceEventSchema = z.object({
   userId: z.string(),
   online: z.boolean(),
   lastSeenAt: isoDateTimeSchema.nullable(),
 });
+export const presenceSubscribeAckSchema = z.object({ users: z.array(presenceEventSchema) });
+/** presence:resubscribe (server → client): privacy changed, so ask again for what is visible. */
+export const presenceResubscribeEventSchema = z.object({});
+
+/** receipt:update (server → client): the other person received or read further. */
 export const receiptEventSchema = z.object({
   chatId: z.string(),
   userId: z.string(),
   lastDeliveredSeq: z.number().int().nonnegative(),
-  lastReadSeq: z.number().int().nonnegative(),
+  /** Null when either person has read receipts off: read information is never sent then. */
+  lastReadSeq: z.number().int().nonnegative().nullable(),
+  cursor: syncCursorSchema,
 });
 
 export type SendMessagePayload = z.infer<typeof sendMessagePayloadSchema>;
 export type SendMessageAck = z.infer<typeof sendMessageAckSchema>;
+export type PresenceEvent = z.infer<typeof presenceEventSchema>;
 export type SessionRevokedReason = z.infer<typeof sessionRevokedEventSchema>['reason'];

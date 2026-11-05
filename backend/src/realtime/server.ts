@@ -10,13 +10,17 @@ import { Redis } from 'ioredis';
 import { Server, type Socket } from 'socket.io';
 import { type AuthSessionRecord, trackActivity } from '../auth/session.ts';
 import type { Env } from '../config/env.ts';
-import { loadUser } from '../users/user-record.ts';
+import { loadUser, privacyOf } from '../users/user-record.ts';
 import { registerHandlers } from './handlers.ts';
+import { createPresence, PRESENCE_TTL_MS, type Presence } from './presence.ts';
+import { memoryPresenceStore, redisPresenceStore } from './presence-store.ts';
 import { armSessionExpiry } from './session-guard.ts';
 
 export interface SocketData {
   userId: string;
   session: AuthSessionRecord;
+  /** At connection. Later changes go through `presence.privacyChanged`. */
+  hideLastSeen: boolean;
 }
 
 type NoEvents = Record<string, never>;
@@ -38,6 +42,7 @@ export interface Realtime {
   revokeSession(sessionId: string, reason: SessionRevokedReason): void;
   /** The same for all of a user's sessions. */
   revokeUser(userId: string, reason: SessionRevokedReason): void;
+  presence: Presence;
 }
 
 declare module 'fastify' {
@@ -72,6 +77,7 @@ async function authenticate(app: FastifyInstance, socket: ZuvoSocket): Promise<v
   if (!user) throw authError('SESSION_EXPIRED');
   if (user.status === 'deactivated') throw authError('ACCOUNT_DEACTIVATED');
   socket.data.userId = user._id.toString();
+  socket.data.hideLastSeen = privacyOf(user).lastSeen === 'nobody';
   socket.data.session = { ...session, expiresAt: new Date(session.expiresAt) };
 }
 
@@ -125,15 +131,28 @@ async function setupRealtime(app: FastifyInstance, options: RealtimeOptions) {
     );
   });
 
+  const prefix = options.adapterKey ?? 'zuvo:socket.io';
+  const presence = createPresence(
+    app,
+    io,
+    base
+      ? redisPresenceStore(base, `${prefix}:presence`, PRESENCE_TTL_MS)
+      : memoryPresenceStore(PRESENCE_TTL_MS),
+  );
+  const logPresenceFailure = (error: unknown) =>
+    app.log.warn({ err: error }, 'presence update failed');
+
   io.on('connection', (socket) => {
     const { userId, session } = socket.data;
     app.log.info({ userId, socketId: socket.id }, 'socket connected');
     socket.on('disconnect', (reason) => {
       app.log.info({ userId, socketId: socket.id, reason }, 'socket disconnected');
+      presence.disconnected(socket).catch(logPresenceFailure);
     });
     void socket.join([userRoom(userId), sessionRoom(session.id)]);
     armSessionExpiry(socket, session.expiresAt);
     registerHandlers(app, socket);
+    presence.connected(socket).catch(logPresenceFailure);
     void trackActivity(app, session).catch((error: unknown) =>
       app.log.warn({ err: error }, 'could not record session activity'),
     );
@@ -154,6 +173,7 @@ async function setupRealtime(app: FastifyInstance, options: RealtimeOptions) {
     },
     revokeSession: (sessionId, reason) => revoke(sessionRoom(sessionId), reason),
     revokeUser: (userId, reason) => revoke(userRoom(userId), reason),
+    presence,
   } satisfies Realtime);
 
   // Close our sockets first, so the HTTP server can finish closing.
@@ -161,6 +181,7 @@ async function setupRealtime(app: FastifyInstance, options: RealtimeOptions) {
     io.local.disconnectSockets(true);
   });
   app.addHook('onClose', async () => {
+    presence.stop();
     io.engine?.close();
     await Promise.all(adapterClients.map((client) => client.quit().catch(() => undefined)));
   });

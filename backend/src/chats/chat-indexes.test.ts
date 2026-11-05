@@ -75,4 +75,11 @@ describe('every query uses an index', () => {
     await expectIndexedQuery(UserSync.find({ _id: { $in: [someone] } }));
     await expectIndexedQuery(Message.find({ $or: [{ chatId, seq: { $in: [1, 2] } }] }));
   });
+
+  it('presence and receipts', async () => {
+    const { Chat, ChatMember } = chatModels();
+    await expectIndexedQuery(Chat.find({ type: 'direct', pairKey: { $in: ['a:b', 'a:c'] } }));
+    await expectIndexedQuery(ChatMember.find({ chatId, leftAt: null }));
+    await expectIndexedQuery(ChatMember.findOne({ chatId, userId: { $ne: someone } }));
+  });
 });

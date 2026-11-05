@@ -11,7 +11,8 @@ import {
   pairKeyOf,
 } from './chats.service.ts';
 import { toPreview } from './message-format.ts';
-import { getHistory, markRead, sendMessage } from './messages.service.ts';
+import { getHistory, sendMessage } from './messages.service.ts';
+import { markRead } from './receipts.service.ts';
 
 let ctx: Awaited<ReturnType<typeof buildTestApp>>;
 const app = () => ctx.app;

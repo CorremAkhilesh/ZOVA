@@ -7,6 +7,7 @@ import { KeyedQueue } from '../lib/keyed-queue.ts';
 import { usersModel } from '../users/user-record.ts';
 import { chatModels, isDuplicateKey, oid, requireMember } from './chats.service.ts';
 import { toLastMessage, toMessage, toPreview } from './message-format.ts';
+import { readsVisibleBetween } from './receipts.service.ts';
 import { logUpdates } from './updates.ts';
 
 /** Sends to one chat run one at a time per process, so they do not abort each other in MongoDB. */
@@ -52,14 +53,29 @@ async function assertRecipientActive(app: FastifyInstance, chatId: string, userI
   if (deactivated) throw new AppError('FORBIDDEN', 'This account has been deactivated.');
 }
 
+interface DeliveredMember {
+  userId: string;
+  lastReadSeq: number;
+  lastDeliveredSeq: number;
+  cursor: string;
+}
+
 /** Tells every member's devices: the message, and the chat as that member now sees it. */
-function deliver(
+async function deliver(
   app: FastifyInstance,
   message: Message,
   chat: Pick<ChatDoc, 'type'> & { lastMessage: LastMessageSnapshot },
-  members: Array<{ userId: string; lastReadSeq: number; cursor: string }>,
+  members: DeliveredMember[],
 ) {
+  const receipts =
+    chat.type === 'direct'
+      ? await readsVisibleBetween(
+          app,
+          members.map((member) => member.userId),
+        )
+      : false;
   for (const { userId, lastReadSeq, cursor } of members) {
+    const peer = chat.type === 'direct' ? members.find((m) => m.userId !== userId) : undefined;
     app.realtime.emitToUser(userId, 'message:new', { message, cursor });
     app.realtime.emitToUser(userId, 'chat:updated', {
       chatId: message.chatId,
@@ -69,6 +85,12 @@ function deliver(
       lastReadSeq,
       unreadCount: Math.max(0, message.seq - lastReadSeq),
       lastActivityAt: message.createdAt,
+      ...(peer
+        ? {
+            peerDeliveredSeq: peer.lastDeliveredSeq,
+            peerReadSeq: receipts ? peer.lastReadSeq : null,
+          }
+        : {}),
       cursor,
     });
   }
@@ -132,14 +154,14 @@ export async function sendMessage(app: FastifyInstance, input: SendInput): Promi
           { $set: { lastActivityAt: now } },
           { session },
         );
-        // My own messages count as read by me.
+        // My own messages count as received and read by me.
         await models.ChatMember.updateOne(
           { chatId: chatOid, userId: senderId },
-          { $max: { lastReadSeq: chat.seq } },
+          { $max: { lastReadSeq: chat.seq, lastDeliveredSeq: chat.seq } },
           { session },
         );
         const members = await models.ChatMember.find({ chatId: chatOid, leftAt: null })
-          .select({ userId: 1, lastReadSeq: 1 })
+          .select({ userId: 1, lastReadSeq: 1, lastDeliveredSeq: 1 })
           .session(session)
           .lean();
         const cursors = await logUpdates(
@@ -155,12 +177,13 @@ export async function sendMessage(app: FastifyInstance, input: SendInput): Promi
           members: members.map((member) => ({
             userId: member.userId.toString(),
             lastReadSeq: member.lastReadSeq,
+            lastDeliveredSeq: member.lastDeliveredSeq,
             cursor: cursors.get(member.userId.toString()) ?? '0',
           })),
         };
       }),
     );
-    deliver(app, stored.message, stored.chat, stored.members);
+    await deliver(app, stored.message, stored.chat, stored.members);
     return { message: stored.message, duplicate: false };
   } catch (error) {
     // Two sends of the same clientMsgId raced: the unique index let one through.
@@ -194,53 +217,4 @@ export async function getHistory(
   const page = docs.slice(0, limit);
   if (!forward) page.reverse();
   return { items: page.map(toMessage), hasMore: docs.length > limit };
-}
-
-/** Moves my read position forward (never back) and tells my other devices. */
-export async function markRead(app: FastifyInstance, userId: string, chatId: string, seq: number) {
-  const member = await requireMember(app, chatId, userId);
-  const models = chatModels(app);
-  const chat = await models.Chat.findById(chatId).lean();
-  if (!chat) throw new AppError('NOT_FOUND', 'Chat not found.');
-  const target = Math.min(seq, chat.seq);
-  const answer = (lastReadSeq: number) => ({
-    chatId,
-    lastReadSeq,
-    unreadCount: Math.max(0, chat.seq - lastReadSeq),
-  });
-  if (target <= member.lastReadSeq) return answer(member.lastReadSeq);
-
-  const now = new Date();
-  const cursor = await app.mongo.transaction(async (session) => {
-    const moved = await models.ChatMember.updateOne(
-      { chatId: chat._id, userId: member.userId, lastReadSeq: { $lt: target } },
-      { $set: { lastReadSeq: target } },
-      { session },
-    );
-    if (moved.modifiedCount === 0) return null;
-    const cursors = await logUpdates(
-      models,
-      session,
-      [member.userId],
-      { kind: 'read', chatId: chat._id },
-      now,
-    );
-    return cursors.get(userId) ?? null;
-  });
-  // Another device got there first with this position or a later one.
-  if (cursor === null) return answer((await requireMember(app, chatId, userId)).lastReadSeq);
-
-  const result = answer(target);
-  app.realtime.emitToUser(userId, 'read:update', { ...result, cursor });
-  app.realtime.emitToUser(userId, 'chat:updated', {
-    chatId,
-    type: chat.type,
-    seq: chat.seq,
-    lastMessage: chat.lastMessage ? toLastMessage(chat.lastMessage) : null,
-    lastReadSeq: target,
-    unreadCount: result.unreadCount,
-    lastActivityAt: member.lastActivityAt?.toISOString() ?? null,
-    cursor,
-  });
-  return result;
 }

@@ -120,7 +120,44 @@ case a push between API instances was lost.
 Rooms are `user:<userId>` and `session:<sessionId>`. The Redis adapter carries events and revocations
 between API instances. Without `REDIS_URL` (development only), events reach one instance.
 
-## Reserved for later steps
+## Receipts
 
-`typing:start`, `typing:stop`, `typing:update`, `presence:update` and `receipt:update` have schemas but
-no behaviour yet: the client events are answered with `BAD_REQUEST`.
+Each member of a chat has two positions, which only move forward: `lastDeliveredSeq` (some device of
+theirs stored the message) and `lastReadSeq`. A device sends `delivered:update { chatId, seq }`, batched,
+for whatever it stores by any route. A second device reporting the same position changes nothing.
+Reading also counts as delivered, and sending counts as both.
+
+The sender's devices get `receipt:update { chatId, userId, lastDeliveredSeq, lastReadSeq, cursor }`. It
+has a number in the sender's diary, so a sender who was offline catches up through sync, which returns
+the chat with `peerDeliveredSeq` and `peerReadSeq`.
+
+**Read receipts are reciprocal and enforced here:** if either person has them off, `lastReadSeq` and
+`peerReadSeq` are `null` in every event and every response. Reading then sends nothing unless delivered
+moved too. A client seeing `null` shows nothing as read, including what it showed as read before.
+
+## Typing
+
+`typing:start` and `typing:stop` reach only the other members' sockets, and are never stored. The server
+ends "typing" 6 s after the last `typing:start`, and when the socket goes away. Clients send at most one
+per 3 s, and the server allows 20 per 10 s per socket.
+
+## Presence
+
+Someone is **online** while any of their sockets is active. Each socket has an entry in Redis that a
+heartbeat renews (15 s) and that expires (45 s), so a crashed API instance's sockets go offline: another
+instance's sweep notices and reports each once. Without Redis, one instance keeps this in memory.
+
+**Away:** a tab hidden for over 60 s reports `presence:active { active: false }` and counts as offline for
+others until it is visible again. We chose this so "online" means someone is probably there; the socket
+stays connected, and messages and receipts keep flowing, so such a device still shows as delivered.
+
+A client sends `presence:subscribe { userIds }` with everyone it wants to know about: the open chat and
+the visible chat list rows, at most 100. Each list replaces the last. There is no global broadcast.
+
+**Privacy is reciprocal and enforced here:** if either person hides last seen & online, or they share no
+chat, the answer is `{ online: false, lastSeenAt: null }` and no events are sent. A hidden person looks
+the same as one who never appeared. Changing the setting takes effect immediately on the server, and
+`presence:resubscribe` asks the clients involved for a fresh answer.
+
+`lastSeenAt` is stored on the user when the last socket goes, at most once per 30 s per API instance, so
+a flapping connection does not hammer MongoDB.

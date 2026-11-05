@@ -176,7 +176,7 @@ export interface UserUpdateDoc {
   userId: Types.ObjectId;
   /** This user's change number: 1, 2, 3… with no gaps until old rows expire. */
   pts: number;
-  kind: 'message' | 'read' | 'chat';
+  kind: 'message' | 'read' | 'chat' | 'receipt';
   chatId: Types.ObjectId;
   /** kind = message: the message's position in its chat. */
   seq?: number;

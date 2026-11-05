@@ -19,7 +19,8 @@ import {
   getOrCreateSelfChat,
   listChats,
 } from '../../chats/chats.service.ts';
-import { getHistory, markRead } from '../../chats/messages.service.ts';
+import { getHistory } from '../../chats/messages.service.ts';
+import { markRead } from '../../chats/receipts.service.ts';
 import { syncSince } from '../../chats/sync.service.ts';
 
 /** Chats, history, read state and sync. Sending happens over the socket (`message:send`). */

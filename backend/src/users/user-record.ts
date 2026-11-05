@@ -24,6 +24,8 @@ export interface UserDoc {
   role?: string | null;
   status?: string | null;
   lastLoginAt?: Date | null;
+  /** When the last socket went away. Only ever shown through the presence privacy rules. */
+  lastSeenAt?: Date | null;
   createdAt: Date;
 }
 

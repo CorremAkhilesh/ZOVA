@@ -89,9 +89,12 @@ export const meRoutes: FastifyPluginAsyncZod = async (app) => {
         response: { 200: privacyResponseSchema },
       },
     },
-    async (request) => ({
-      privacy: await updatePrivacy(app, currentUserId(request), request.body),
-    }),
+    async (request) => {
+      const userId = currentUserId(request);
+      const privacy = await updatePrivacy(app, userId, request.body);
+      app.realtime.presence.privacyChanged(userId, privacy.lastSeen === 'nobody');
+      return { privacy };
+    },
   );
 
   app.post(

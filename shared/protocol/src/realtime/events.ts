@@ -2,8 +2,14 @@ import { z } from 'zod';
 import type { AckResponse } from './ack.ts';
 import {
   chatUpdatedEventSchema,
+  deliveredUpdateAckSchema,
+  deliveredUpdatePayloadSchema,
   messageNewEventSchema,
+  presenceActivePayloadSchema,
   presenceEventSchema,
+  presenceResubscribeEventSchema,
+  presenceSubscribeAckSchema,
+  presenceSubscribePayloadSchema,
   readUpdateAckSchema,
   readUpdateEventSchema,
   readUpdatePayloadSchema,
@@ -25,9 +31,14 @@ export interface ClientEventDefinition {
 export const clientToServerEvents = {
   'message:send': { payload: sendMessagePayloadSchema, ack: sendMessageAckSchema },
   'read:update': { payload: readUpdatePayloadSchema, ack: readUpdateAckSchema },
-  // Reserved for Step 10.
+  'delivered:update': { payload: deliveredUpdatePayloadSchema, ack: deliveredUpdateAckSchema },
   'typing:start': { payload: typingPayloadSchema, ack: z.object({}) },
   'typing:stop': { payload: typingPayloadSchema, ack: z.object({}) },
+  'presence:subscribe': {
+    payload: presenceSubscribePayloadSchema,
+    ack: presenceSubscribeAckSchema,
+  },
+  'presence:active': { payload: presenceActivePayloadSchema, ack: z.object({}) },
 } satisfies Record<string, ClientEventDefinition>;
 
 /** Events the server emits. */
@@ -36,9 +47,9 @@ export const serverToClientEvents = {
   'chat:updated': chatUpdatedEventSchema,
   'read:update': readUpdateEventSchema,
   'session:revoked': sessionRevokedEventSchema,
-  // Reserved for Step 10.
   'typing:update': typingEventSchema,
   'presence:update': presenceEventSchema,
+  'presence:resubscribe': presenceResubscribeEventSchema,
   'receipt:update': receiptEventSchema,
 } satisfies Record<string, z.ZodType>;
 

@@ -57,6 +57,10 @@ export const chatSummarySchema = z.object({
   lastMessage: lastMessageSchema.nullable(),
   lastReadSeq: z.number().int().nonnegative(),
   unreadCount: z.number().int().nonnegative(),
+  /** Direct chats: how far the other person's devices have received. 0 otherwise. */
+  peerDeliveredSeq: z.number().int().nonnegative(),
+  /** How far the other person has read. Null when either person has read receipts off. */
+  peerReadSeq: z.number().int().nonnegative().nullable(),
   lastActivityAt: isoDateTimeSchema.nullable(),
   createdAt: isoDateTimeSchema,
 });

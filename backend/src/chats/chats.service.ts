@@ -3,7 +3,7 @@ import type { FastifyInstance } from 'fastify';
 import { Types } from 'mongoose';
 import { type ChatDoc, type ChatMemberDoc, registerChatModels } from '../db/chat-models.ts';
 import { AppError } from '../lib/errors.ts';
-import { toPublicProfile, type UserDoc, usersModel } from '../users/user-record.ts';
+import { privacyOf, toPublicProfile, type UserDoc, usersModel } from '../users/user-record.ts';
 import { toLastMessage } from './message-format.ts';
 import { logUpdates } from './updates.ts';
 
@@ -47,26 +47,52 @@ export async function buildSummaries(
     : [];
   const users = others.length
     ? ((await usersModel(app)
-        .find({ _id: { $in: others.map((other) => other.userId) } })
+        .find({ _id: { $in: [...others.map((other) => other.userId), oid(viewerId)] } })
         .lean()) as UserDoc[])
     : [];
   const userById = new Map(users.map((user) => [user._id.toString(), user]));
-  const otherByChat = new Map(
-    others.map((other) => [other.chatId.toString(), userById.get(other.userId.toString())]),
-  );
+  const viewer = userById.get(viewerId);
+  const otherByChat = new Map(others.map((other) => [other.chatId.toString(), other]));
 
   return rows.flatMap((row) => {
     const chat = chatById.get(row.chatId.toString());
     if (!chat) return [];
     const other = otherByChat.get(chat._id.toString());
-    return [toSummary(chat, row, other ? toPublicProfile(other, viewerId) : null)];
+    const person = other && userById.get(other.userId.toString());
+    return [
+      toSummary(
+        chat,
+        row,
+        person ? toPublicProfile(person, viewerId) : null,
+        other ? peerProgress(other, viewer, person) : NO_PEER,
+      ),
+    ];
   });
+}
+
+type PeerProgress = Pick<ChatSummary, 'peerDeliveredSeq' | 'peerReadSeq'>;
+const NO_PEER: PeerProgress = { peerDeliveredSeq: 0, peerReadSeq: null };
+
+/** Reciprocal, like the rest of presence: with receipts off on either side, nobody sees reads. */
+export const readReceiptsVisible = (a: UserDoc | undefined, b: UserDoc | undefined) =>
+  Boolean(a && b && privacyOf(a).readReceipts && privacyOf(b).readReceipts);
+
+function peerProgress(
+  other: Pick<ChatMemberDoc, 'lastDeliveredSeq' | 'lastReadSeq'>,
+  viewer: UserDoc | undefined,
+  person: UserDoc | undefined,
+): PeerProgress {
+  return {
+    peerDeliveredSeq: other.lastDeliveredSeq,
+    peerReadSeq: readReceiptsVisible(viewer, person) ? other.lastReadSeq : null,
+  };
 }
 
 function toSummary(
   chat: ChatDoc,
   member: ChatMemberDoc,
   otherUser: ChatSummary['otherUser'],
+  peer: PeerProgress,
 ): ChatSummary {
   return {
     id: chat._id.toString(),
@@ -76,6 +102,7 @@ function toSummary(
     lastMessage: chat.lastMessage ? toLastMessage(chat.lastMessage) : null,
     lastReadSeq: member.lastReadSeq,
     unreadCount: Math.max(0, chat.seq - member.lastReadSeq),
+    ...peer,
     lastActivityAt: member.lastActivityAt?.toISOString() ?? null,
     createdAt: chat.createdAt.toISOString(),
   };

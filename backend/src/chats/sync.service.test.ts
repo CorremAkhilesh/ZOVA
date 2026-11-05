@@ -4,7 +4,8 @@ import { buildTestApp } from '../../test/helpers.ts';
 import { uuidv7 } from '../../test/realtime-helpers.ts';
 import { insertUser } from '../../test/user-helpers.ts';
 import { chatModels, getOrCreateDirectChat } from './chats.service.ts';
-import { markRead, sendMessage } from './messages.service.ts';
+import { sendMessage } from './messages.service.ts';
+import { markRead } from './receipts.service.ts';
 import { syncSince } from './sync.service.ts';
 
 let ctx: Awaited<ReturnType<typeof buildTestApp>>;
