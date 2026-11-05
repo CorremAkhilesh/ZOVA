@@ -36,7 +36,11 @@ function DateSeparator({ date }: { date: Date }) {
 }
 
 type MessageItem = Extract<TimelineItem, { type: 'message' }>;
-type Row = MessageItem & { date: Date | null };
+type Row = MessageItem & {
+  date: Date | null;
+  albumId: string | null;
+  album: ChatMessage[] | null;
+};
 
 /**
  * One list row per message, with its date separator inside. A separator as a row of its own would
@@ -46,11 +50,25 @@ function toRows(timeline: TimelineItem[]): Row[] {
   let date: Date | null = null;
   const rows: Row[] = [];
   for (const item of timeline) {
-    if (item.type === 'date') date = item.date;
-    else {
-      rows.push({ ...item, date });
-      date = null;
+    if (item.type === 'date') {
+      date = item.date;
+      continue;
     }
+    const previous = rows.at(-1);
+    const { albumId, authorId } = item.message;
+    // The same album, with no new day between: one row, one bubble.
+    if (
+      albumId &&
+      !date &&
+      previous?.albumId === albumId &&
+      previous.message.authorId === authorId
+    ) {
+      previous.album = [...(previous.album ?? [previous.message]), item.message];
+      previous.lastInGroup = item.lastInGroup;
+      continue;
+    }
+    rows.push({ ...item, date, albumId: albumId ?? null, album: null });
+    date = null;
   }
   return rows;
 }
@@ -68,6 +86,7 @@ interface MessageListProps {
   onReachTop: (() => void) | undefined;
   onAtBottomChange: (atBottom: boolean) => void;
   onRetry: (clientMsgId: string) => void;
+  onOpenMedia?: (mediaId: string) => void;
 }
 
 /**
@@ -83,6 +102,7 @@ export function MessageList({
   onReachTop,
   onAtBottomChange,
   onRetry,
+  onOpenMedia,
 }: MessageListProps) {
   const { t } = useTranslation();
   const viewport = useRef<HTMLDivElement>(null);
@@ -94,7 +114,10 @@ export function MessageList({
     getScrollElement: () => viewport.current,
     estimateSize: (index) =>
       rows[index]?.date ? ROW_ESTIMATE_PX + DATE_ESTIMATE_PX : ROW_ESTIMATE_PX,
-    getItemKey: (index) => rows[index]?.key ?? index,
+    getItemKey: (index) => {
+      const row = rows[index];
+      return row?.albumId ? `album-${row.albumId}` : (row?.key ?? index);
+    },
     overscan: 10,
     anchorTo: 'end',
   });
@@ -162,6 +185,8 @@ export function MessageList({
                 lastInGroup={row.lastInGroup}
                 isGroup={isGroup}
                 onRetry={onRetry}
+                onOpenMedia={onOpenMedia}
+                album={row.album ?? undefined}
               />
             </li>
           );

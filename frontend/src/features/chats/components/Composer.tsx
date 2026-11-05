@@ -1,5 +1,5 @@
 import { MESSAGE_TEXT_MAX } from '@zuvo/protocol';
-import { Mic, Paperclip, SendHorizontal } from 'lucide-react';
+import { Mic, SendHorizontal } from 'lucide-react';
 import {
   type ChangeEvent,
   type FormEvent,
@@ -12,6 +12,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { ComingSoonButton } from '@/components/common/ComingSoonButton';
 import { Button } from '@/components/ui/button';
+import { AttachMenu } from '@/features/media/components/AttachMenu';
 import { useSyncStore } from '@/features/sync/store';
 import { useIsDesktop } from '@/lib/hooks';
 import { cn } from '@/lib/utils';
@@ -26,6 +27,7 @@ const DRAFT_SAVE_MS = 300;
 interface ComposerProps {
   chatId: string;
   onSent: () => void;
+  onFiles: (files: File[]) => void;
 }
 
 /** A draft per chat, in Dexie, so a sign-out wipes it with everything else. */
@@ -90,7 +92,7 @@ function useTypingSender(chatId: string) {
   return sender;
 }
 
-export function Composer({ chatId, onSent }: ComposerProps) {
+export function Composer({ chatId, onSent, onFiles }: ComposerProps) {
   const { t } = useTranslation();
   const isDesktop = useIsDesktop();
   const client = useSyncStore((state) => state.client);
@@ -163,7 +165,7 @@ export function Composer({ chatId, onSent }: ComposerProps) {
         ) : null}
         <form className="flex items-end gap-1.5" onSubmit={onSubmit}>
           <EmojiPicker onPick={insertEmoji} />
-          <ComingSoonButton label={t('conversation.attach')} icon={Paperclip} />
+          <AttachMenu onFiles={onFiles} />
           <label className="sr-only" htmlFor="composer-input">
             {t('conversation.composerPlaceholder')}
           </label>
@@ -177,6 +179,12 @@ export function Composer({ chatId, onSent }: ComposerProps) {
               typing.input(event.target.value.trim().length > 0);
             }}
             onBlur={() => typing.stop()}
+            onPaste={(event) => {
+              const files = [...event.clipboardData.files];
+              if (files.length === 0) return;
+              event.preventDefault();
+              onFiles(files);
+            }}
             onKeyDown={onKeyDown}
             placeholder={t('conversation.composerPlaceholder')}
             className="max-h-36 min-h-10 flex-1 resize-none rounded-2xl border bg-surface px-4 py-2.5 text-[15px] text-text outline-none placeholder:text-text-muted focus-visible:border-brand focus-visible:ring-3 focus-visible:ring-brand/20"

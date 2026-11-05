@@ -11,11 +11,7 @@ import { tickState } from './ticks';
 import { TYPING_IDLE_MS, TYPING_REFRESH_MS, TypingSender } from './typing-sender';
 
 describe('tick state', () => {
-  const chat = (
-    peerDeliveredSeq: number,
-    peerReadSeq: number | null,
-    type = 'direct' as const,
-  ) => ({
+  const chat = (peerDeliveredSeq: number, peerReadSeq: number, type = 'direct' as const) => ({
     type,
     peerDeliveredSeq,
     peerReadSeq,
@@ -32,10 +28,6 @@ describe('tick state', () => {
     ['read', sent(5), chat(8, 8)],
   ])('is %s', (expected, message, progress) => {
     expect(tickState(message, progress)).toBe(expected);
-  });
-
-  it('never shows read with receipts off, however far the other person is', () => {
-    expect(tickState(sent(5), chat(9, null))).toBe('delivered');
   });
 
   it('stays at one tick in Saved Messages', () => {

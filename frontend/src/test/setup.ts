@@ -36,6 +36,9 @@ for (const [name, value] of [
   Object.defineProperty(HTMLElement.prototype, name, { configurable: true, value });
 }
 window.scrollTo = () => {};
+// jsdom has no object URLs; pictures never load in it anyway.
+URL.createObjectURL ??= () => 'blob:test';
+URL.revokeObjectURL ??= () => {};
 // axe probes canvas for some checks; jsdom has none.
 HTMLCanvasElement.prototype.getContext = () => null;
 

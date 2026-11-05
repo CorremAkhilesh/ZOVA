@@ -5,6 +5,11 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { useSession } from '@/features/auth/session';
+import { ChatGallery } from '@/features/media/components/ChatGallery';
+import { DropZone } from '@/features/media/components/DropZone';
+import { MediaViewer, toViewerItem } from '@/features/media/components/MediaViewer';
+import { PreviewSheet } from '@/features/media/components/PreviewSheet';
+import { useSendMedia } from '@/features/media/use-send-media';
 import { ProfileCard } from '@/features/people/components/ProfileCard';
 import type { ChatRow } from '@/features/sync/local-db';
 import { useSyncStore } from '@/features/sync/store';
@@ -73,6 +78,8 @@ function JumpToLatest({ count, onJump }: { count: number; onJump: () => void }) 
 }
 
 function MobileProfile(props: {
+  chatId: string;
+  onOpenMedia: (mediaId: string) => void;
   person: PublicProfile;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -82,6 +89,9 @@ function MobileProfile(props: {
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
       <DialogContent title={t('conversation.info')} className="max-w-lg">
         <ProfileCard person={props.person} />
+        <div className="flex h-80 flex-col">
+          <ChatGallery chatId={props.chatId} onOpen={props.onOpenMedia} />
+        </div>
       </DialogContent>
     </Dialog>
   );
@@ -103,7 +113,7 @@ function useConversationView(chat: ChatRow) {
     [chat, me, rows, summary.name],
   );
   const newestSeq = useMemo(() => rows?.findLast((row) => row.seq !== null)?.seq ?? 0, [rows]);
-  return { summary, messages, newestSeq, older };
+  return { summary, messages, rows, newestSeq, older };
 }
 
 /** How many messages came after the reader last was at the bottom. */
@@ -113,7 +123,15 @@ function useNewMessageCount(newestSeq: number, atBottom: boolean): number {
   return atBottom ? 0 : Math.max(0, newestSeq - seenSeq.current);
 }
 
-function ChatFooter({ chat, onSent }: { chat: ChatSummary; onSent: () => void }) {
+function ChatFooter({
+  chat,
+  onSent,
+  onFiles,
+}: {
+  chat: ChatSummary;
+  onSent: () => void;
+  onFiles: (files: File[]) => void;
+}) {
   const { t } = useTranslation();
   if (chat.deactivated) {
     return (
@@ -122,14 +140,14 @@ function ChatFooter({ chat, onSent }: { chat: ChatSummary; onSent: () => void })
       </p>
     );
   }
-  return <Composer chatId={chat.id} onSent={onSent} />;
+  return <Composer chatId={chat.id} onSent={onSent} onFiles={onFiles} />;
 }
 
 export function Conversation({ chat }: { chat: ChatRow }) {
   const isDesktop = useIsDesktop();
   const [infoOpen, setInfoOpen] = useState(false);
   const [atBottom, setAtBottom] = useState(true);
-  const { summary, messages, newestSeq, older } = useConversationView(chat);
+  const { summary, messages, rows, newestSeq, older } = useConversationView(chat);
   const { loadingOlder, loadFailed, hasOlder, loadOlder } = older;
   const list = useRef<MessageListHandle>(null);
   const newCount = useNewMessageCount(newestSeq, atBottom);
@@ -137,10 +155,42 @@ export function Conversation({ chat }: { chat: ChatRow }) {
   const client = useSyncStore((state) => state.client);
   const jumpToLatest = useCallback(() => list.current?.scrollToBottom(), []);
   const showEmpty = messages?.length === 0 && !loadingOlder;
+  const media = useSendMedia(chat.id);
+  const [viewing, setViewing] = useState<string | null>(null);
+  const closeViewer = useCallback(() => setViewing(null), []);
+  const localItems = useMemo(
+    () =>
+      (rows ?? []).flatMap((row) => {
+        const item =
+          row.seq === null ? null : toViewerItem({ ...row, id: row.id ?? '', seq: row.seq });
+        return item ? [item] : [];
+      }),
+    [rows],
+  );
+  const canSend = !summary.deactivated;
 
   return (
     <div className="flex h-full min-h-0">
-      <div className="flex min-w-0 flex-1 flex-col">
+      {canSend ? (
+        <PreviewSheet
+          picked={media.picked}
+          onChange={media.setPicked}
+          onClose={media.clear}
+          onSend={media.send}
+        />
+      ) : null}
+      {viewing ? (
+        <MediaViewer
+          chatId={chat.id}
+          localItems={localItems}
+          startId={viewing}
+          onClose={closeViewer}
+        />
+      ) : null}
+      <DropZone
+        className="flex min-w-0 flex-1 flex-col"
+        onFiles={canSend ? media.addFiles : undefined}
+      >
         <h2 className="sr-only">{summary.name}</h2>
         <ConversationHeader
           chat={summary}
@@ -159,18 +209,25 @@ export function Conversation({ chat }: { chat: ChatRow }) {
               onReachTop={hasOlder ? loadOlder : undefined}
               onAtBottomChange={setAtBottom}
               onRetry={(clientMsgId) => void client?.retry(clientMsgId)}
+              onOpenMedia={setViewing}
             />
           ) : null}
           <OlderStatus loading={loadingOlder} failed={loadFailed} onRetry={loadOlder} />
           {atBottom ? null : <JumpToLatest count={newCount} onJump={jumpToLatest} />}
         </div>
-        <ChatFooter chat={summary} onSent={jumpToLatest} />
-      </div>
+        <ChatFooter chat={summary} onSent={jumpToLatest} onFiles={media.addFiles} />
+      </DropZone>
       {infoOpen && isDesktop ? (
-        <ChatInfoPane chat={summary} onClose={() => setInfoOpen(false)} />
+        <ChatInfoPane chat={summary} onClose={() => setInfoOpen(false)} onOpenMedia={setViewing} />
       ) : null}
       {!isDesktop && chat.otherUser ? (
-        <MobileProfile person={chat.otherUser} open={infoOpen} onOpenChange={setInfoOpen} />
+        <MobileProfile
+          chatId={chat.id}
+          onOpenMedia={setViewing}
+          person={chat.otherUser}
+          open={infoOpen}
+          onOpenChange={setInfoOpen}
+        />
       ) : null}
     </div>
   );

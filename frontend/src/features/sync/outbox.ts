@@ -1,6 +1,7 @@
 import {
   type AckResponse,
   type ErrorCode,
+  type LastMessage,
   MESSAGE_PREVIEW_MAX,
   type SendMessageAck,
   type SendMessagePayload,
@@ -8,7 +9,9 @@ import {
 import { uuidv7 } from '@/lib/uuid';
 import { mergeChat } from './apply';
 import { type LocalDb, type OutboxRow, PENDING_ORDER_BASE } from './local-db';
+import { type EnqueueMedia, removeQueued, storeMedia } from './outbox-media';
 
+export type { EnqueueMedia };
 export class DisconnectedError extends Error {}
 
 export interface OutboxTransport {
@@ -29,10 +32,23 @@ interface OutboxOptions {
   retryBaseMs?: number;
   /** Anything that stops a message moving. Never contains message text. */
   onProblem?: (problem: string) => void;
+  /** A file is waiting for the uploader. */
+  onMediaQueued?: () => void;
 }
 
-/** Worth trying again; every other error would fail the same way each time. */
+/** Worth trying again; anything else would just fail the same way. */
 const TRANSIENT: ReadonlySet<ErrorCode> = new Set(['INTERNAL_ERROR', 'SERVICE_UNAVAILABLE']);
+
+const toPayload = (row: OutboxRow): SendMessagePayload =>
+  row.media
+    ? {
+        chatId: row.chatId,
+        clientMsgId: row.clientMsgId,
+        mediaIds: [row.mediaId ?? ''],
+        ...(row.text ? { caption: row.text } : {}),
+        ...(row.albumId ? { albumId: row.albumId } : {}),
+      }
+    : { chatId: row.chatId, clientMsgId: row.clientMsgId, text: row.text };
 
 const TAKEOVER_MS = 5000;
 const STORAGE_RETRY_MS = 5000;
@@ -84,35 +100,55 @@ export class Outbox {
         senderId: me,
         type: 'text',
         text,
+        media: null,
+        albumId: null,
         replyToId: null,
         editedAt: null,
         deletedForEveryoneAt: null,
         createdAt,
         status: 'pending',
       });
-      const chat = await db.chats.get(chatId);
-      if (chat) {
-        const preview = {
-          id: key,
-          seq: chat.seq + 1,
-          senderId: me,
-          type: 'text' as const,
-          preview: text.slice(0, MESSAGE_PREVIEW_MAX),
-          createdAt,
-        };
-        // Moves up the list right away. The server's own position replaces this on arrival.
-        await db.chats.put(
-          mergeChat(chat, {
-            seq: chat.seq,
-            lastMessage: preview,
-            lastActivityAt: createdAt,
-            lastReadSeq: chat.lastReadSeq,
-          }),
-        );
-      }
+      await this.previewInChat(chatId, key, {
+        type: 'text',
+        preview: text.slice(0, MESSAGE_PREVIEW_MAX),
+        createdAt,
+      });
     });
     void this.flush();
     return clientMsgId;
+  }
+
+  /** Moves the chat up the list right away. The server's own position replaces this on arrival. */
+  private async previewInChat(
+    chatId: string,
+    key: string,
+    last: { type: LastMessage['type']; preview: string; createdAt: string },
+  ) {
+    const { db, me } = this.options;
+    const chat = await db.chats.get(chatId);
+    if (!chat) return;
+    await db.chats.put(
+      mergeChat(chat, {
+        seq: chat.seq,
+        lastMessage: { id: key, seq: chat.seq + 1, senderId: me, ...last },
+        lastActivityAt: last.createdAt,
+        lastReadSeq: chat.lastReadSeq,
+      }),
+    );
+  }
+
+  /** Stored with its file; the uploader takes it from there. */
+  async enqueueMedia(input: EnqueueMedia): Promise<string> {
+    const { db, me } = this.options;
+    const clientMsgId = await storeMedia(db, me, input, (...args) => this.previewInChat(...args));
+    this.options.onMediaQueued?.();
+    return clientMsgId;
+  }
+
+  /** Removes a message still waiting to go, with its file. */
+  cancel(clientMsgId: string): Promise<string | undefined> {
+    const { db, me } = this.options;
+    return removeQueued(db, me, clientMsgId);
   }
 
   /** "Not sent — tap to retry". */
@@ -162,7 +198,9 @@ export class Outbox {
     while (!this.stopped) {
       if (!transport.isConnected()) return;
       if (Date.now() < this.waitUntil) return;
-      const row = await db.outbox.where('state').equals('pending').first();
+      const rows = await db.outbox.where('state').equals('pending').toArray();
+      // A file still uploading holds up only itself: other messages can go ahead of it.
+      const row = rows.find((candidate) => !candidate.media || candidate.mediaId);
       if (!row) return;
       const waitForLeader = this.leaderGrace(row);
       if (waitForLeader > 0) {
@@ -174,7 +212,7 @@ export class Outbox {
   }
 
   /** Time left before a tab without the lock steps in for the one that has it. */
-  private leaderGrace(row: OutboxRow): number {
+  leaderGrace(row: Pick<OutboxRow, 'queuedAt'>): number {
     const { isLeader, takeoverMs = TAKEOVER_MS } = this.options;
     if (isLeader?.() !== false) return 0;
     return takeoverMs - (Date.now() - (row.queuedAt ?? 0));
@@ -190,11 +228,7 @@ export class Outbox {
     const { transport } = this.options;
     let ack: AckResponse<SendMessageAck>;
     try {
-      ack = await transport.send({
-        chatId: row.chatId,
-        clientMsgId: row.clientMsgId,
-        text: row.text,
-      });
+      ack = await transport.send(toPayload(row));
     } catch (error) {
       if (error instanceof DisconnectedError) return false;
       this.report('no answer from the server');
@@ -235,7 +269,7 @@ export class Outbox {
     this.timer = setTimeout(() => void this.flush(), ms);
   }
 
-  private async markFailed(row: OutboxRow) {
+  async markFailed(row: OutboxRow) {
     const { db, me } = this.options;
     await db.transaction('rw', db.outbox, db.messages, async () => {
       if (row.n !== undefined) await db.outbox.update(row.n, { state: 'failed' });
@@ -245,10 +279,10 @@ export class Outbox {
 
   private async confirm(row: OutboxRow, ack: SendMessageAck) {
     const { db, me } = this.options;
-    await db.transaction('rw', db.outbox, db.messages, async () => {
+    await db.transaction('rw', db.outbox, db.messages, db.files, async () => {
       if (row.n !== undefined) await db.outbox.delete(row.n);
+      await db.files.delete(row.clientMsgId);
       const key = `${me}:${row.clientMsgId}`;
-      // The message:new echo may have got here first; that copy is already complete.
       const message = await db.messages.get(key);
       if (message && message.status !== 'sent') {
         await db.messages.put({

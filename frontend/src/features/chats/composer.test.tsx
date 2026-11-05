@@ -155,16 +155,12 @@ describe('drafts', () => {
 });
 
 describe('buttons', () => {
-  it('shows attach and voice as disabled, coming soon', async () => {
+  it('shows voice as disabled, coming soon', async () => {
     const user = userEvent.setup();
     await open();
-    const attach = screen.getByRole('button', { name: 'Attach a file' });
-    expect(attach).toHaveAttribute('aria-disabled', 'true');
-    expect(screen.getByRole('button', { name: 'Record a voice note' })).toHaveAttribute(
-      'aria-disabled',
-      'true',
-    );
-    await user.hover(attach);
+    const voice = screen.getByRole('button', { name: 'Record a voice note' });
+    expect(voice).toHaveAttribute('aria-disabled', 'true');
+    await user.hover(voice);
     expect(await screen.findByRole('tooltip')).toHaveTextContent('Coming soon');
   });
 

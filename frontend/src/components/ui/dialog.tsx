@@ -14,6 +14,8 @@ interface DialogContentProps extends React.ComponentProps<typeof DialogPrimitive
   description?: string | undefined;
   /** Visually hide the title (it is still announced). */
   hideTitle?: boolean;
+  /** For a dialog with its own close button. */
+  hideClose?: boolean;
 }
 
 /** Centered modal with focus trap, Escape to close and a labelled close button. */
@@ -21,6 +23,7 @@ function DialogContent({
   title,
   description,
   hideTitle,
+  hideClose,
   className,
   children,
   ...props
@@ -48,11 +51,13 @@ function DialogContent({
               </DialogPrimitive.Description>
             ) : null}
           </div>
-          <DialogPrimitive.Close asChild>
-            <Button variant="ghost" size="icon-sm" aria-label={t('common.close')}>
-              <X className="size-4" aria-hidden />
-            </Button>
-          </DialogPrimitive.Close>
+          {hideClose ? null : (
+            <DialogPrimitive.Close asChild>
+              <Button variant="ghost" size="icon-sm" aria-label={t('common.close')}>
+                <X className="size-4" aria-hidden />
+              </Button>
+            </DialogPrimitive.Close>
+          )}
         </div>
         {children}
       </DialogPrimitive.Content>

@@ -41,13 +41,6 @@ type ChatChange = {
     | 'peerReadSeq']?: ChatSummary[Field] | undefined;
 };
 
-/** Null means read receipts are off for this chat: nothing already seen stays "read". */
-function mergePeerRead(row: ChatRow, change: ChatChange): number | null {
-  if (change.peerReadSeq === undefined) return row.peerReadSeq ?? null;
-  if (change.peerReadSeq === null) return null;
-  return Math.max(row.peerReadSeq ?? 0, change.peerReadSeq);
-}
-
 /** Positions only move forward, so older news arriving late can never undo newer state. */
 export function mergeChat(row: ChatRow, change: ChatChange): ChatRow {
   const seq = Math.max(row.seq, change.seq ?? row.seq);
@@ -64,7 +57,7 @@ export function mergeChat(row: ChatRow, change: ChatChange): ChatRow {
     lastReadSeq,
     unreadCount: Math.max(0, seq - lastReadSeq),
     peerDeliveredSeq: Math.max(row.peerDeliveredSeq ?? 0, change.peerDeliveredSeq ?? 0),
-    peerReadSeq: mergePeerRead(row, change),
+    peerReadSeq: Math.max(row.peerReadSeq ?? 0, change.peerReadSeq ?? 0),
     lastMessage: current ? (change.lastMessage ?? row.lastMessage) : row.lastMessage,
     lastActivityAt,
     otherUser: change.otherUser === undefined ? row.otherUser : change.otherUser,
@@ -72,7 +65,14 @@ export function mergeChat(row: ChatRow, change: ChatChange): ChatRow {
   return { ...merged, sortAt: Math.max(row.sortAt, sortAtOf(merged)) };
 }
 
-const allStores = (db: LocalDb) => [db.chats, db.profiles, db.messages, db.outbox, db.meta];
+const allStores = (db: LocalDb) => [
+  db.chats,
+  db.profiles,
+  db.messages,
+  db.outbox,
+  db.meta,
+  db.files,
+];
 
 export async function readCursor(db: LocalDb): Promise<string | undefined> {
   return (await db.meta.get(CURSOR))?.value;
@@ -81,7 +81,9 @@ export async function readCursor(db: LocalDb): Promise<string | undefined> {
 /** The server has this message, so it must never be sent again. */
 async function settleOutbox(db: LocalDb, messages: Message[]) {
   const ids = messages.flatMap((message) => (message.clientMsgId ? [message.clientMsgId] : []));
-  if (ids.length > 0) await db.outbox.where('clientMsgId').anyOf(ids).delete();
+  if (ids.length === 0) return;
+  await db.outbox.where('clientMsgId').anyOf(ids).delete();
+  await db.files.bulkDelete(ids);
 }
 
 async function storeMessages(db: LocalDb, me: string, messages: Message[]) {

@@ -35,7 +35,7 @@ describe('on screen', () => {
     expect(within(row).getByRole('img', { name: 'Sent' })).toBeInTheDocument();
     await connected();
 
-    const receipt = (lastDeliveredSeq: number, lastReadSeq: number | null, cursor: string) =>
+    const receipt = (lastDeliveredSeq: number, lastReadSeq: number, cursor: string) =>
       act(() =>
         lastSocket().receive('receipt:update', {
           chatId: 'c1',
@@ -57,9 +57,9 @@ describe('on screen', () => {
     expect(await within(row).findByRole('img', { name: 'Read' })).toBeInTheDocument();
     expect(await axe(container)).toHaveNoViolations();
 
-    // Receipts switched off afterwards: nothing stays "read".
-    receipt(1, null, '8');
-    expect(await within(thread).findByRole('img', { name: 'Delivered' })).toBeInTheDocument();
+    // Read stays read, whatever arrives later.
+    receipt(1, 0, '8');
+    expect(await within(thread).findByRole('img', { name: 'Read' })).toBeInTheDocument();
   });
 
   it('acknowledges what this device stored, once, in one batch', async () => {

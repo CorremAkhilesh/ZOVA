@@ -1,4 +1,4 @@
-import type { ChatSummary, Message, PublicProfile } from '@zuvo/protocol';
+import type { ChatSummary, CreateUploadBody, Message, PublicProfile } from '@zuvo/protocol';
 import Dexie, { type Table } from 'dexie';
 
 /** Messages not yet accepted by the server sort after every real position. */
@@ -15,6 +15,8 @@ export interface MessageRow extends Omit<Message, 'id' | 'seq'> {
   /** `seq`, or PENDING_ORDER_BASE + the outbox number while unsent. */
   order: number;
   status: MessageStatus;
+  /** How much of its file has reached the server, while uploading. */
+  uploadedBytes?: number;
 }
 
 export interface ChatRow extends ChatSummary {
@@ -32,8 +34,25 @@ export interface OutboxRow {
   text: string;
   attempts: number;
   state: 'pending' | 'failed';
-  /** When it was queued or retried, in ms. Rows from before this field count as long overdue. */
+  /** When it was queued, retried or last made progress, in ms. Older rows count as long overdue. */
   queuedAt?: number;
+  /** A media message: what to upload, then the upload's ids. The file itself is in `files`. */
+  media?: CreateUploadBody;
+  uploadId?: string | undefined;
+  mediaId?: string;
+  albumId?: string | undefined;
+}
+
+/** A file waiting to be uploaded, kept until the server has its message. */
+export interface FileRow {
+  clientMsgId: string;
+  file: Blob;
+  poster?: Blob;
+}
+
+export interface ThumbRow {
+  mediaId: string;
+  blob: Blob;
 }
 
 export interface MetaRow {
@@ -53,6 +72,8 @@ export class LocalDb extends Dexie {
   outbox!: Table<OutboxRow, number>;
   meta!: Table<MetaRow, string>;
   drafts!: Table<DraftRow, string>;
+  files!: Table<FileRow, string>;
+  thumbs!: Table<ThumbRow, string>;
 
   constructor(name: string) {
     // No query cache: it merges writes into stored results instead of re-reading, and a read still
@@ -66,6 +87,7 @@ export class LocalDb extends Dexie {
       meta: 'key',
       drafts: 'chatId',
     });
+    this.version(2).stores({ files: 'clientMsgId', thumbs: 'mediaId' });
   }
 }
 

@@ -1,26 +1,27 @@
 import type {
   ClientToServerEvents,
-  SendMessagePayload,
   ServerToClientEvents,
   SessionRevokedReason,
 } from '@zuvo/protocol';
 import Dexie from 'dexie';
 import { io, type Socket } from 'socket.io-client';
 import { chatsApi } from '@/features/chats/api';
+import { mediaApi } from '@/features/media/api';
+import { MediaUploader } from '@/features/media/uploader';
 import { applyChats, applyHistory, applyReadAck } from './apply';
 import { trackAway } from './away';
 import { startDeliveryAcks } from './delivery-acks';
 import { replacePresence, resetLiveStatus, setPresence, setTyping } from './live-status';
 import { getUserDb, type LocalDb, PENDING_ORDER_BASE } from './local-db';
-import { DisconnectedError, Outbox, type OutboxTransport } from './outbox';
+import { type EnqueueMedia, Outbox } from './outbox';
 import { currentWatchList } from './presence-watch';
+import { ACK_TIMEOUT_MS, socketTransport } from './socket-transport';
 import { useSyncStore } from './store';
 import { SyncEngine } from './sync-engine';
 import { openTabChannel, watchLeadership } from './tabs';
 
-type AppSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
+export type AppSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 
-const ACK_TIMEOUT_MS = 10_000;
 /** Corrects the pill if an event was ever missed: it shows what the socket says right now. */
 const STATE_CHECK_MS = 3000;
 const RECONNECT_AFTER_REFUSAL_MS = 5000;
@@ -38,6 +39,8 @@ export interface SyncClientOptions {
 export interface SyncClient {
   db: LocalDb;
   sendText(chatId: string, text: string): Promise<void>;
+  sendMedia(input: EnqueueMedia): Promise<void>;
+  cancelMedia(clientMsgId: string): Promise<void>;
   retry(clientMsgId: string): Promise<void>;
   markRead(chatId: string, seq: number): Promise<void>;
   /** Loads the page before the oldest local message. False once the start of the chat is reached. */
@@ -47,27 +50,6 @@ export interface SyncClient {
   /** Replaces who the server tells this tab about. */
   watchPresence(userIds: string[]): void;
   stop(): void;
-}
-
-function socketTransport(socket: AppSocket): OutboxTransport {
-  return {
-    isConnected: () => socket.connected,
-    send(payload: SendMessagePayload) {
-      return new Promise((resolve, reject) => {
-        const onDisconnect = () => reject(new DisconnectedError());
-        socket.once('disconnect', onDisconnect);
-        socket
-          .timeout(ACK_TIMEOUT_MS)
-          .emitWithAck('message:send', payload)
-          .then(resolve, (error: unknown) => {
-            reject(error);
-            // "Connected" but no answer: the connection is wedged, so replace it.
-            socket.disconnect().connect();
-          })
-          .finally(() => socket.off('disconnect', onDisconnect));
-      });
-    },
-  };
 }
 
 /** Everything that talks to the server for one signed-in user. One per tab. */
@@ -83,7 +65,6 @@ export function startSyncClient(options: SyncClientOptions): SyncClient {
     path: '/socket.io',
     withCredentials: true,
     autoConnect: navigator.onLine,
-    // Exponential backoff with jitter, so a restart does not bring everyone back at once.
     reconnectionDelay: 1000,
     reconnectionDelayMax: 30_000,
     randomizationFactor: 0.5,
@@ -107,6 +88,14 @@ export function startSyncClient(options: SyncClientOptions): SyncClient {
     transport: socketTransport(socket),
     isLeader: () => isLeader,
     onProblem: (lastProblem) => setStore({ lastProblem }),
+    onMediaQueued: () => void uploader.run(),
+  });
+  const uploader = new MediaUploader({
+    db,
+    me: userId,
+    api: mediaApi,
+    outbox,
+    isOnline: () => navigator.onLine,
   });
 
   const deliveryAcks = startDeliveryAcks({
@@ -122,8 +111,11 @@ export function startSyncClient(options: SyncClientOptions): SyncClient {
     },
   });
 
+  let watching: string | null = null;
   const watchPresence = (userIds: string[]) => {
-    if (!socket.connected) return;
+    const key = userIds.join();
+    if (!socket.connected || key === watching) return;
+    watching = key;
     void socket
       .timeout(ACK_TIMEOUT_MS)
       .emitWithAck('presence:subscribe', { userIds })
@@ -138,13 +130,16 @@ export function startSyncClient(options: SyncClientOptions): SyncClient {
   });
 
   const channel = openTabChannel((message) => {
-    if (message === 'outbox-changed') outbox.resume();
-    else onSessionDoubt();
+    if (message === 'outbox-changed') {
+      outbox.resume();
+      void uploader.run();
+    } else onSessionDoubt();
   });
   const leadership = watchLeadership(`zuvo-outbox-${userId}`, () => {
     isLeader = true;
     setStore({ isLeader });
     outbox.resume();
+    void uploader.run();
   });
 
   const reconnectLater = (delay: number) => {
@@ -159,6 +154,7 @@ export function startSyncClient(options: SyncClientOptions): SyncClient {
     setStore({ socket: 'connected', lastHandshakeError: null });
     void engine.run();
     outbox.resume();
+    void uploader.run();
     deliveryAcks.resume();
     watchPresence(currentWatchList());
     // A new connection starts out active; it may still be hidden.
@@ -171,6 +167,8 @@ export function startSyncClient(options: SyncClientOptions): SyncClient {
   });
   socket.on('disconnect', (reason) => {
     setStore({ socket: 'connecting' });
+    // A new connection watches nobody until it asks.
+    watching = null;
     if (!stopped) resetLiveStatus();
     // The client only reconnects by itself after a network loss; a server restart looks like this.
     if (reason === 'io server disconnect') reconnectLater(RECONNECT_AFTER_REFUSAL_MS);
@@ -206,14 +204,18 @@ export function startSyncClient(options: SyncClientOptions): SyncClient {
   });
   socket.on('typing:update', ({ chatId, typing }) => setTyping(chatId, typing));
   socket.on('presence:update', setPresence);
-  socket.on('presence:resubscribe', () => watchPresence(currentWatchList()));
+  socket.on('presence:resubscribe', () => {
+    watching = null;
+    watchPresence(currentWatchList());
+  });
   socket.on('read:update', ({ chatId, lastReadSeq, cursor }) => {
     void engine.onChatChange(chatId, { lastReadSeq }, cursor);
   });
 
-  // The browser knows first, and some environments leave a dead socket open for a long time.
   const onOnline = () => {
-    if (!ended) socket.connect();
+    if (ended) return;
+    socket.connect();
+    void uploader.run();
   };
   const onOffline = () => {
     socket.disconnect();
@@ -237,8 +239,18 @@ export function startSyncClient(options: SyncClientOptions): SyncClient {
       await outbox.enqueue(chatId, text);
       channel.post('outbox-changed');
     },
+    async sendMedia(input) {
+      await outbox.enqueueMedia(input);
+      channel.post('outbox-changed');
+    },
+    async cancelMedia(clientMsgId) {
+      uploader.cancel(clientMsgId);
+      const uploadId = await outbox.cancel(clientMsgId);
+      if (uploadId) await mediaApi.cancel(uploadId).catch(() => undefined);
+    },
     async retry(clientMsgId) {
       await outbox.retry(clientMsgId);
+      void uploader.run();
       channel.post('outbox-changed');
     },
     async markRead(chatId, seq) {
@@ -272,6 +284,7 @@ export function startSyncClient(options: SyncClientOptions): SyncClient {
       clearInterval(stateCheck);
       awayTracker.stop();
       deliveryAcks.stop();
+      uploader.stop();
       resetLiveStatus();
       clearTimeout(reconnectTimer);
       window.removeEventListener('online', onOnline);

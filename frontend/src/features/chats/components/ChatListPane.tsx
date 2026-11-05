@@ -1,5 +1,5 @@
 import { MessageSquarePlus, Search } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChatListSkeleton } from '@/components/common/ChatListSkeleton';
 import { Button } from '@/components/ui/button';
@@ -29,6 +29,62 @@ function EmptyFolder({ folder, searching }: { folder: ChatFolder; searching: boo
         ? 'chats.unreadEmpty'
         : 'chats.noResults';
   return <p className="px-4 py-10 text-center text-sm text-text-muted">{t(key)}</p>;
+}
+
+/**
+ * Scrolls sideways by touch, trackpad and Shift+wheel, with no scrollbar: the edges fade where there
+ * is more to see. Keyboard focus brings a chip into view.
+ */
+function FolderChips(props: { folder: ChatFolder; onChange: (folder: ChatFolder) => void }) {
+  const { t } = useTranslation();
+  const row = useRef<HTMLDivElement>(null);
+  const updateEdges = useCallback(() => {
+    const element = row.current;
+    if (!element) return;
+    element.dataset.atStart = String(element.scrollLeft <= 1);
+    element.dataset.atEnd = String(
+      element.scrollLeft + element.clientWidth >= element.scrollWidth - 1,
+    );
+  }, []);
+  useEffect(() => {
+    updateEdges();
+    const element = row.current;
+    if (!element || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(updateEdges);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [updateEdges]);
+
+  return (
+    <div
+      ref={row}
+      role="tablist"
+      aria-label={t('chats.foldersLabel')}
+      onScroll={updateEdges}
+      className="chip-row -mx-1 flex gap-2 overflow-x-auto px-1 pb-1"
+    >
+      {FOLDERS.map((name) => (
+        <button
+          key={name}
+          type="button"
+          role="tab"
+          aria-selected={props.folder === name}
+          onClick={() => props.onChange(name)}
+          onFocus={(event) =>
+            event.currentTarget.scrollIntoView({ inline: 'nearest', block: 'nearest' })
+          }
+          className={cn(
+            'shrink-0 rounded-full border px-3.5 py-1 text-sm font-medium transition-colors',
+            props.folder === name
+              ? 'border-transparent bg-brand text-brand-foreground'
+              : 'bg-surface text-text-muted hover:text-text',
+          )}
+        >
+          {t(`chats.folders.${name}`)}
+        </button>
+      ))}
+    </div>
+  );
 }
 
 interface ListBodyProps {
@@ -86,11 +142,18 @@ export function ChatListPane() {
   const openPicker = useNewChat((state) => state.open);
   const rows = useChats();
   const unsent = useUnsentByChat();
-  const saved = t('chats.saved');
-  const unknown = t('chats.unknownPerson');
+  const labels = useMemo(
+    () => ({
+      saved: t('chats.saved'),
+      unknown: t('chats.unknownPerson'),
+      photo: t('media.photo'),
+      video: t('media.video'),
+    }),
+    [t],
+  );
   const all = useMemo(
-    () => rows?.map((row) => toChatSummary(row, me, { saved, unknown }, unsent?.get(row.id))),
-    [me, rows, saved, unknown, unsent],
+    () => rows?.map((row) => toChatSummary(row, me, labels, unsent?.get(row.id))),
+    [labels, me, rows, unsent],
   );
   const chats = useMemo(() => filterChats(all ?? [], folder, query), [all, folder, query]);
 
@@ -127,29 +190,7 @@ export function ChatListPane() {
             className="rounded-full border-transparent bg-background pl-9 shadow-none"
           />
         </div>
-        <div
-          role="tablist"
-          aria-label={t('chats.foldersLabel')}
-          className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1"
-        >
-          {FOLDERS.map((name) => (
-            <button
-              key={name}
-              type="button"
-              role="tab"
-              aria-selected={folder === name}
-              onClick={() => setFolder(name)}
-              className={cn(
-                'shrink-0 rounded-full border px-3.5 py-1 text-sm font-medium transition-colors',
-                folder === name
-                  ? 'border-transparent bg-brand text-brand-foreground'
-                  : 'bg-surface text-text-muted hover:text-text',
-              )}
-            >
-              {t(`chats.folders.${name}`)}
-            </button>
-          ))}
-        </div>
+        <FolderChips folder={folder} onChange={setFolder} />
       </header>
 
       <ScrollArea className="min-h-0 flex-1 px-2 pb-3">

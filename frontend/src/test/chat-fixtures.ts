@@ -39,6 +39,8 @@ export const messageFixture = (seq: number, overrides: Partial<Message> = {}): M
   senderId: 'u-asha',
   type: 'text',
   text: `message ${seq}`,
+  media: null,
+  albumId: null,
   replyToId: null,
   editedAt: null,
   deletedForEveryoneAt: null,

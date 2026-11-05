@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/ui/avatar';
+import { AlbumGrid, MessageMedia } from '@/features/media/components/MessageMedia';
 import { cn } from '@/lib/utils';
 import { formatClock } from '../chat-utils';
 import { senderColorClass } from '../sender-color';
@@ -13,6 +14,9 @@ interface MessageBubbleProps {
   /** Group chats: sender names, sender colors and avatars for incoming messages. */
   isGroup: boolean;
   onRetry?: (clientMsgId: string) => void;
+  onOpenMedia?: ((mediaId: string) => void) | undefined;
+  /** Every item of an album, when this bubble shows one. */
+  album?: ChatMessage[] | undefined;
 }
 
 /** Tighter corners along the group "spine"; the last bubble's tail corner is square. */
@@ -98,12 +102,41 @@ function RetryButton({ onRetry }: { onRetry: () => void }) {
   );
 }
 
+/** Media and its caption, or text, always leaving room for the time in the corner. */
+function BubbleContent(props: {
+  message: ChatMessage;
+  mine: boolean;
+  album: ChatMessage[] | undefined;
+  onOpenMedia: ((mediaId: string) => void) | undefined;
+}) {
+  const { message, mine, album, onOpenMedia } = props;
+  const hasMedia = Boolean(album || message.media);
+  const caption = album ? album.find((item) => item.text)?.text : message.text;
+  return (
+    <>
+      {album ? <AlbumGrid items={album} onOpen={onOpenMedia} /> : null}
+      {!album && message.media ? <MessageMedia message={message} onOpen={onOpenMedia} /> : null}
+      {caption || !hasMedia ? (
+        <p className={cn('whitespace-pre-wrap break-words', hasMedia && 'mt-1')}>
+          {caption}
+          {/* Reserve room so the time, and my tick, never overlap the last line. */}
+          <span className={cn('inline-block', mine ? 'w-[5.25rem]' : 'w-16')} aria-hidden />
+        </p>
+      ) : (
+        <div className="h-5" />
+      )}
+    </>
+  );
+}
+
 export function MessageBubble({
   message,
   firstInGroup,
   lastInGroup,
   isGroup,
   onRetry,
+  onOpenMedia,
+  album,
 }: MessageBubbleProps) {
   const { clientMsgId } = message;
   const mine = message.authorId === ME;
@@ -140,11 +173,7 @@ export function MessageBubble({
             </p>
           ) : null}
           {message.replyTo ? <ReplyQuote reply={message.replyTo} mine={mine} /> : null}
-          <p className="whitespace-pre-wrap break-words">
-            {message.text}
-            {/* Reserve room so the time, and my tick, never overlap the last line. */}
-            <span className={cn('inline-block', mine ? 'w-[5.25rem]' : 'w-16')} aria-hidden />
-          </p>
+          <BubbleContent message={message} mine={mine} album={album} onOpenMedia={onOpenMedia} />
           <MessageMeta message={message} mine={mine} />
         </div>
         {message.status === 'failed' && clientMsgId && onRetry ? (

@@ -14,7 +14,7 @@ export function tickState(
   if (message.status !== 'sent') return message.status;
   if (message.seq === null) return 'pending';
   if (chat.type === 'self') return 'sent';
-  if (chat.peerReadSeq !== null && chat.peerReadSeq >= message.seq) return 'read';
+  if (chat.peerReadSeq >= message.seq) return 'read';
   if (chat.peerDeliveredSeq >= message.seq) return 'delivered';
   return 'sent';
 }

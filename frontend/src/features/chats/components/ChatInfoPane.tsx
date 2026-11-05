@@ -1,18 +1,21 @@
-import { Bell, ChevronRight, Image, Star, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
+import { ChatGallery } from '@/features/media/components/ChatGallery';
 import type { ChatSummary } from '../types';
 import { ChatAvatar } from './ChatAvatar';
 
-export function ChatInfoPane({ chat, onClose }: { chat: ChatSummary; onClose: () => void }) {
+export function ChatInfoPane({
+  chat,
+  onClose,
+  onOpenMedia,
+}: {
+  chat: ChatSummary;
+  onClose: () => void;
+  onOpenMedia: (mediaId: string) => void;
+}) {
   const { t } = useTranslation();
-  const rows = [
-    { icon: Image, label: t('info.media') },
-    { icon: Star, label: t('info.starred') },
-    { icon: Bell, label: t('info.notifications') },
-  ];
-
   return (
     <motion.aside
       aria-label={t('conversation.info')}
@@ -37,21 +40,7 @@ export function ChatInfoPane({ chat, onClose }: { chat: ChatSummary; onClose: ()
         {chat.username ? <p className="text-sm text-text-muted">@{chat.username}</p> : null}
         {chat.about ? <p className="text-sm text-text-muted">{chat.about}</p> : null}
       </div>
-      <ul className="space-y-1 px-3">
-        {rows.map(({ icon: Icon, label }) => (
-          <li key={label}>
-            <button
-              type="button"
-              disabled
-              className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm opacity-60"
-            >
-              <Icon className="size-5 text-brand-text" aria-hidden />
-              <span className="flex-1">{label}</span>
-              <ChevronRight className="size-4 text-text-muted" aria-hidden />
-            </button>
-          </li>
-        ))}
-      </ul>
+      {chat.kind === 'saved' ? null : <ChatGallery chatId={chat.id} onOpen={onOpenMedia} />}
     </motion.aside>
   );
 }

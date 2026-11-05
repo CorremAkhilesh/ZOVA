@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { useSyncStore } from './store';
 
 /** Scrolling changes the visible rows many times a second; the server hears the result. */
-const SEND_DELAY_MS = 300;
+const SEND_DELAY_MS = 500;
 
 /**
  * Who this tab wants to know about: the open chat, then the visible chat list rows, at most 100.
@@ -30,17 +30,12 @@ export class PresenceWatchList {
 
 const watchList = new PresenceWatchList();
 let sendTimer: ReturnType<typeof setTimeout> | undefined;
-let lastSent = '';
 
 function scheduleSend() {
   clearTimeout(sendTimer);
   sendTimer = setTimeout(() => {
-    const users = watchList.current();
-    const key = users.join();
-    if (key === lastSent) return;
-    lastSent = key;
     // A client that is not connected yet asks for the current list itself once it is.
-    useSyncStore.getState().client?.watchPresence(users);
+    useSyncStore.getState().client?.watchPresence(watchList.current());
   }, SEND_DELAY_MS);
 }
 

@@ -1,3 +1,5 @@
+import type { MediaInfo } from '@zuvo/protocol';
+
 export type DeliveryStatus = 'pending' | 'failed' | 'sent' | 'delivered' | 'read';
 export type ChatKind = 'personal' | 'group' | 'saved';
 export type ChatFolder = 'all' | 'unread' | 'personal' | 'groups';
@@ -44,5 +46,8 @@ export interface ChatMessage extends MessageAuthor {
   text: string;
   at: Date;
   status?: DeliveryStatus;
+  media?: MediaInfo | null;
+  albumId?: string | null;
+  uploadedBytes?: number | undefined;
   replyTo?: MessageAuthor & { text: string };
 }

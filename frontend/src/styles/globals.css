@@ -188,6 +188,29 @@
   animation: shake 0.4s var(--ease-standard);
 }
 
+/* Folder chips: sideways scrolling with no scrollbar, fading only where there is more to see. */
+.chip-row {
+  scrollbar-width: none;
+  --fade-start: 16px;
+  --fade-end: 16px;
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    black var(--fade-start),
+    black calc(100% - var(--fade-end)),
+    transparent
+  );
+}
+.chip-row::-webkit-scrollbar {
+  display: none;
+}
+.chip-row[data-at-start="true"] {
+  --fade-start: 0px;
+}
+.chip-row[data-at-end="true"] {
+  --fade-end: 0px;
+}
+
 /* Rows off screen skip layout and paint, so a long chat list stays quick. */
 .chat-row {
   content-visibility: auto;
