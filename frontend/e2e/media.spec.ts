@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto';
-import { expect, type Page, test } from '@playwright/test';
+import { closeSync, ftruncateSync, openSync, writeSync } from 'node:fs';
+import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import {
   bubbles,
   expectBubbles,
@@ -24,6 +25,19 @@ const PDF = {
   mimeType: 'application/pdf',
   buffer: Buffer.concat([Buffer.from('%PDF-1.7\n'), randomBytes(4096)]),
 };
+
+const MB = 1024 * 1024;
+const GB = 1024 * MB;
+
+/** A file that is this large on paper, without taking the disk space. */
+function sparsePdf(testInfo: TestInfo, name: string, size: number) {
+  const path = testInfo.outputPath(name);
+  const file = openSync(path, 'w');
+  writeSync(file, '%PDF-1.7\n');
+  ftruncateSync(file, size);
+  closeSync(file);
+  return path;
+}
 
 const thread = (page: Page, name: string) => page.getByRole('list', { name, exact: true });
 
@@ -146,45 +160,33 @@ test('an upload interrupted by going offline resumes, and arrives once', async (
   await bharat.context.close();
 });
 
-test('files over the limit the server gives cannot be sent', async ({ browser }) => {
+test('a file one byte over the limit cannot be sent', async ({ browser }, testInfo) => {
   const [asha] = await chatting(browser);
-  const { page } = asha;
-  await page.route('**/v1/config', (route) =>
-    route.fulfill({ json: { media: { maxFileBytes: 1024 } } }),
-  );
-  await page.reload();
-  await expect(page.getByRole('button', { name: 'Attach a file' })).toBeVisible(SLOW);
-  await sendFile(page, 'pick-document', [PDF]);
+  await sendFile(asha.page, 'pick-document', sparsePdf(testInfo, 'huge.pdf', GB + 1));
 
-  const sheet = page.getByRole('dialog', { name: 'Nothing to send' });
-  await expect(sheet.getByText(/Larger than the 1 KB limit/)).toBeVisible(SLOW);
-  await expect(sheet.getByText(/^4 KB/)).toBeVisible();
+  const sheet = asha.page.getByRole('dialog', { name: 'Nothing to send' });
+  await expect(sheet.getByText(/Larger than the 1 GB limit/)).toBeVisible(SLOW);
   await expect(sheet.getByRole('button', { name: 'Nothing to send' })).toBeDisabled();
 });
 
 test('with no room in the browser, a file still arrives, and the sender is told', async ({
   browser,
-}) => {
+}, testInfo) => {
   const [asha, bharat] = await chatting(browser);
   await asha.page.evaluate(() => {
     navigator.storage.estimate = async () => ({ quota: 1, usage: 1 });
   });
-  // Slow enough to read the notice.
-  await asha.page.route('**/v1/uploads/*', async (route) => {
-    if (route.request().method() === 'PATCH') await asha.page.waitForTimeout(1500);
-    await route.continue();
-  });
 
-  await sendFile(asha.page, 'pick-document', [PDF]);
+  // Large enough to take a moment, so the notice can be read.
+  await sendFile(asha.page, 'pick-document', sparsePdf(testInfo, 'large.pdf', 200 * MB));
   await asha.page.getByRole('button', { name: 'Send', exact: true }).click();
 
-  await expect(asha.page.getByText('Keep this tab open until the upload finishes')).toBeVisible(
-    SLOW,
-  );
-  await expect(thread(bharat.page, 'Asha').getByText('report.pdf')).toBeVisible(SLOW);
-  await expect(asha.page.getByText('Keep this tab open until the upload finishes')).toBeHidden(
-    SLOW,
-  );
+  const notice = asha.page.getByText('Keep this tab open until the upload finishes');
+  await expect(notice).toBeVisible(SLOW);
+  await expect(thread(bharat.page, 'Asha').getByText('large.pdf')).toBeVisible({
+    timeout: 180_000,
+  });
+  await expect(notice).toBeHidden(SLOW);
 });
 
 test('the folder chips scroll sideways with no scrollbar, in a narrow window', async ({ page }) => {
