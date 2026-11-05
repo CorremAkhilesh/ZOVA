@@ -93,7 +93,17 @@ jobs:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
       - name: Frontend unit, component and accessibility tests with coverage
-        run: pnpm --filter @zuvo/frontend test:coverage
+        shell: bash
+        run: pnpm --filter @zuvo/frontend test:coverage 2>&1 | tee frontend-tests.log
+      # Vitest only annotates failed tests. An unhandled error or a missed threshold also fails the run.
+      - name: Show why the frontend tests failed
+        if: failure()
+        shell: bash
+        run: |
+          sed 's/\x1b\[[0-9;]*m//g' frontend-tests.log \
+            | grep -E -A6 'Unhandled|ERROR: Coverage|does not meet|Vitest caught' \
+            | head -20 | cut -c1-300 | tr -d '\r' \
+            | while IFS= read -r line; do echo "::error::$line"; done
       - name: Upload frontend coverage
         if: always()
         uses: actions/upload-artifact@v7

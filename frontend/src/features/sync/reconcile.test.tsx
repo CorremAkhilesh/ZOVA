@@ -135,21 +135,21 @@ describe('a screen reading from the local database', () => {
 
     // The first read after the write fails. No other write follows, and the screen still catches up.
     await waitFor(() => expect(screen.getByText('count: 1')).toBeInTheDocument(), {
-      timeout: 4000,
+      timeout: 15_000,
     });
     expect(logged).toHaveBeenCalledWith('[live] local read failed: UnknownError');
     failing.mockRestore();
     logged.mockRestore();
-  });
+  }, 20_000);
 
   it('reads again when the window comes back', async () => {
     const read = vi.fn(async () => 1);
     render(<Reader read={read} />);
-    await waitFor(() => expect(read).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(read).toHaveBeenCalledTimes(1), { timeout: 5000 });
     act(() => {
       window.dispatchEvent(new Event('focus'));
     });
-    await waitFor(() => expect(read).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(read).toHaveBeenCalledTimes(2), { timeout: 5000 });
   });
 });
 

@@ -53,7 +53,7 @@ export async function reconcileWithServer(
 /** Now and then: wakes anything that may have stopped, and settles unsent messages. */
 export function startReconciling(db: LocalDb, me: string, wake: () => void) {
   const timer = setInterval(() => {
-    if (!navigator.onLine) return;
+    if (!globalThis.navigator?.onLine) return;
     wake();
     void reconcileWithServer(db, me).catch(() => undefined);
   }, RECONCILE_MS);

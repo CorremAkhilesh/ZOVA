@@ -60,7 +60,11 @@ function ViewerVideo({ mediaId, onMissing }: { mediaId: string; onMissing: () =>
     if (Date.now() - renewedAt.current < FRESH_LINK_MS) return onMissing();
     renewedAt.current = Date.now();
     resumeAt.current = video.currentTime;
-    void refetch();
+    const before = data?.url;
+    void refetch().then((fresh) => {
+      // Asked again within the same second: the same link, so nothing would reload by itself.
+      if (fresh.data?.url === before) video.load();
+    });
   }
 
   return (

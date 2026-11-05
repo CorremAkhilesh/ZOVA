@@ -9,7 +9,9 @@ const listeners = new Set<() => void>();
 let stopWatching: (() => void) | undefined;
 
 function refreshAll() {
-  if (document.visibilityState === 'visible') for (const listener of listeners) listener();
+  if (globalThis.document?.visibilityState === 'visible') {
+    for (const listener of listeners) listener();
+  }
 }
 
 function watchForRefresh(listener: () => void) {
