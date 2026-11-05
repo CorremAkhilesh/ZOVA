@@ -62,10 +62,9 @@ it failed. Pictures stay at 100 MB, since both sides decode them; a larger one g
 - **Limits of this:** one `complete` guard and one chunk writer per upload live in the API process. A
   second API instance would need them moved to Redis.
 
-## Backlog
+## What the browser is trusted with
 
-- **No ffmpeg on the server yet.** A video's poster, duration and dimensions come from the browser. The
-  poster is validated and re-encoded as an image; the numbers are only used for display. Server-side
-  extraction would make them trustworthy and allow transcoding.
-- HEIC needs the browser to convert it: standard `sharp` builds cannot decode it. A browser that cannot
-  either (Chrome on desktop) sends it as a document.
+A video's poster, duration and dimensions come from the browser. The poster is validated and re-encoded
+as an image; the numbers are only used for display. HEIC needs the browser to convert it, because standard
+`sharp` builds cannot decode it, and a browser that cannot (Chrome on desktop) sends it as a document. Later
+work on both is in `docs/backlog.md`.

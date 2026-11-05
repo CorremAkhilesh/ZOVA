@@ -2,12 +2,66 @@
 
 [![CI](https://github.com/CorremAkhilesh/ZOVA/actions/workflows/ci.yml/badge.svg?branch=dev)](https://github.com/CorremAkhilesh/ZOVA/actions/workflows/ci.yml)
 
-A modern, private messenger for the Correm Advisory team, delivered as a web app and an installable
-PWA (Windows, macOS, Linux, Android and iPhone). Owned by Correm Advisory India Pvt. Ltd.
+A private, WhatsApp-class messenger for the Correm Advisory team, delivered as a web app and an installable
+PWA for Windows, macOS, Linux, Android and iPhone. There are no native apps. Only `@corremadvisory.com`
+addresses can sign in. Owned by Correm Advisory India Pvt. Ltd.
 
-The full product and engineering brief lives in [CLAUDE.md](CLAUDE.md).
+## What works today
 
-> **Status:** monorepo foundation + shared packages (`@zuvo/config`, `@zuvo/ui-tokens`, `@zuvo/protocol`). No app code yet.
+- **Sign-in:** email and a 6-digit code, 7-day sessions, a list of signed-in devices, new-login alerts.
+- **People:** profiles, a unique `@username`, privacy settings, and admin tools with an audit log.
+- **Chat:** real-time one-to-one messages, ticks, typing and last seen, and offline use with a local
+  database that syncs when back online.
+- **Media:** photos, videos and documents up to 1 GB, with resumable uploads, albums, a viewer and a gallery.
+- **Voice:** voice notes with a waveform, speed and played status, plus a player for audio files.
+- **Everywhere:** English and Hindi, light and dark themes.
+
+Group chats, search, and the rest of the plan are in [CLAUDE.md](CLAUDE.md), the full product and engineering
+brief. Known later work is in [docs/backlog.md](docs/backlog.md).
+
+## Tech stack
+
+| Area     | What it uses                                                                                      |
+| -------- | ------------------------------------------------------------------------------------------------- |
+| Monorepo | pnpm workspaces, Turborepo, Biome, lefthook, TypeScript 7                                         |
+| Frontend | React 19, Vite, TanStack Router and Query, Zustand, Tailwind v4, shadcn/ui, Dexie, Socket.IO      |
+| Backend  | Node.js 24, Fastify, Socket.IO, Better Auth, Mongoose, BullMQ, Nodemailer, web-push               |
+| Data     | MongoDB Atlas, Redis (Memurai on Windows), media files on disk behind a `StorageDriver` interface |
+| Shared   | `@zuvo/protocol` (Zod schemas for every REST call and socket event), `config`, `ui-tokens`        |
+| Tests    | Vitest, Testing Library, MSW, axe, Playwright, `mongodb-memory-server`                            |
+
+Decisions behind this are in [docs/adr/](docs/adr/), and the sync design is in
+[docs/protocol.md](docs/protocol.md).
+
+## Run it locally on Windows
+
+You need Node.js 24, pnpm 10 and Git (versions and install commands are below). Docker is not needed.
+
+```powershell
+git clone https://github.com/CorremAkhilesh/ZOVA.git ZUVO
+cd ZUVO
+git switch dev
+pnpm install
+Copy-Item backend\.env.example backend\.env
+notepad backend\.env    # fill in MONGODB_URI, REDIS_URL, SMTP_PASS, AUTH_SECRET and ADMIN_EMAILS
+pnpm dev
+```
+
+Then open **<http://127.0.0.1:5191>** and sign in with your `@corremadvisory.com` email. `pnpm dev` starts
+Redis, the API on port 4000, the email worker and the frontend on port 5191. To test two people on one
+machine, use a normal window and an Incognito window.
+
+This is a shared machine: never touch the `Memurai` service on port 6379, and never commit `.env` or
+`backend/storage/`.
+
+## Branch workflow
+
+Work only on **`dev`**, using [Conventional Commits](https://www.conventionalcommits.org). Every push runs
+CI. **`main`** only changes through a pull request from `dev`, merged with a merge commit, and only when the
+owner says so.
+
+Staging and production deploys are planned but not set up yet: see
+[docs/runbooks/vps-checklist.md](docs/runbooks/vps-checklist.md).
 
 ---
 
@@ -31,7 +85,7 @@ git --version
 
 ---
 
-## Setup
+## Setup in detail
 
 ```powershell
 # 1. Clone and switch to the working branch
@@ -47,7 +101,7 @@ Copy-Item backend\.env.example backend\.env
 notepad backend\.env
 ```
 
-Secrets you must fill in yourself in `backend\.env`: `MONGODB_URI`, `REDIS_URL`, `SMTP_PASS`.
+Secrets you must fill in yourself in `backend\.env`: `MONGODB_URI`, `REDIS_URL`, `SMTP_PASS`, `AUTH_SECRET`.
 Never commit `.env` files — they are gitignored.
 
 ---
@@ -86,7 +140,7 @@ ZUVO/
 Shared packages export TypeScript source directly (no build step). After changing design tokens, run
 `pnpm --filter @zuvo/ui-tokens generate` to regenerate `tokens.css` (a test fails if you forget).
 
-`infra/` and `.github/` are added as the project grows.
+`infra/` is added when the VPS is set up.
 
 ---
 
@@ -102,7 +156,7 @@ and `/socket.io` are proxied to the backend, so cookies are same-origin in devel
 | `pnpm --filter @zuvo/frontend test`          | Unit, component and accessibility tests (Vitest) |
 | `pnpm --filter @zuvo/frontend test:coverage` | Same, with coverage (fails under 70%)            |
 | `pnpm --filter @zuvo/frontend test:e2e`      | Playwright smoke test (Chromium locally)         |
-| `pnpm --filter @zuvo/frontend build`         | Production build into `frontenddist`             |
+| `pnpm --filter @zuvo/frontend build`         | Production build into `frontend/dist`            |
 
 The chat screens read from a local database (Dexie) that the sync engine keeps up to date, so they
 work offline. See `docs/protocol.md`.
@@ -178,15 +232,7 @@ If it does not start, check `backend\storage\redis\memurai.log`.
 
 ---
 
-## Branch workflow
-
-1. Work only on **`dev`**.
-2. Every push to `dev` runs CI and deploys to **staging**
-   (`dev-app.zuvo.corremadvisory.com`).
-3. When staging is approved, `dev` is merged into **`main`**, which deploys **production**
-   (`app.zuvo.corremadvisory.com`).
-
-### Commit messages
+## Commits
 
 Commits must follow [Conventional Commits](https://www.conventionalcommits.org) — a git hook rejects
 anything else:

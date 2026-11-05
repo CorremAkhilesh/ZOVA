@@ -1,6 +1,6 @@
 # ADR 0004: Voice note formats
 
-**Status:** accepted, with one open question below
+**Status:** accepted
 
 ## Decision
 
@@ -33,8 +33,7 @@ format a browser supports is always decided at runtime with `MediaRecorder.isTyp
 **Opus, recorded by Firefox or by a Chrome with no AAC encoder, cannot play on an iPhone older than
 iOS 18.4.** The app does not fail silently: the bubble says this device cannot play the recording.
 
-The brief says every voice note must play everywhere, and asks to confirm before adding something heavy.
-The options, for the owner to decide:
+The brief says every voice note must play everywhere. The owner chose between three options:
 
 | Option                               | Fixes the gap | Cost                                                                                           |
 | ------------------------------------ | ------------- | ---------------------------------------------------------------------------------------------- |
@@ -42,7 +41,8 @@ The options, for the owner to decide:
 | B. ffmpeg on the server, Opus to AAC | Yes           | A native binary in the image, and a job after each voice note. Also the backlog item for video |
 | C. A WASM AAC encoder in the browser | Yes           | About 1 MB more on first record, and CPU on the sender's device                                |
 
-Recommended: **A for now, then B** when ffmpeg is added for video posters, since it is then almost free.
+**Decision: A for now.** B is planned together with ffmpeg for video, when it is almost free, and is in
+`docs/backlog.md`. C was rejected: it costs every sender for a problem only a few receivers have.
 
 ## Why not decode to draw the waveform
 
