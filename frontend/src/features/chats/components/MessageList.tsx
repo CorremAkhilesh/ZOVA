@@ -2,7 +2,7 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import { type Ref, useImperativeHandle, useLayoutEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { buildTimeline, dayKind } from '../chat-utils';
+import { buildTimeline, dayKind, type TimelineItem } from '../chat-utils';
 import type { ChatMessage } from '../types';
 import { MessageBubble } from './MessageBubble';
 
@@ -33,6 +33,26 @@ function DateSeparator({ date }: { date: Date }) {
       </span>
     </div>
   );
+}
+
+type MessageItem = Extract<TimelineItem, { type: 'message' }>;
+type Row = MessageItem & { date: Date | null };
+
+/**
+ * One list row per message, with its date separator inside. A separator as a row of its own would
+ * lose its identity when older messages arrive, and the list could no longer hold the reader's place.
+ */
+function toRows(timeline: TimelineItem[]): Row[] {
+  let date: Date | null = null;
+  const rows: Row[] = [];
+  for (const item of timeline) {
+    if (item.type === 'date') date = item.date;
+    else {
+      rows.push({ ...item, date });
+      date = null;
+    }
+  }
+  return rows;
 }
 
 export interface MessageListHandle {
@@ -67,15 +87,16 @@ export function MessageList({
   const { t } = useTranslation();
   const viewport = useRef<HTMLDivElement>(null);
   const stick = useRef(true);
-  const timeline = useMemo(() => buildTimeline(messages), [messages]);
+  const rows = useMemo(() => toRows(buildTimeline(messages)), [messages]);
 
   const virtualizer = useVirtualizer({
-    count: timeline.length,
+    count: rows.length,
     getScrollElement: () => viewport.current,
     estimateSize: (index) =>
-      timeline[index]?.type === 'date' ? DATE_ESTIMATE_PX : ROW_ESTIMATE_PX,
-    getItemKey: (index) => timeline[index]?.key ?? index,
+      rows[index]?.date ? ROW_ESTIMATE_PX + DATE_ESTIMATE_PX : ROW_ESTIMATE_PX,
+    getItemKey: (index) => rows[index]?.key ?? index,
     overscan: 10,
+    anchorTo: 'end',
   });
   const total = virtualizer.getTotalSize();
 
@@ -93,21 +114,12 @@ export function MessageList({
     },
   }));
 
-  // After every change in content, before the browser paints.
-  const previous = useRef({ first: messages[0]?.id, last: messages.at(-1)?.id, total });
+  // After every change in content, before the browser paints. Older messages arriving above need
+  // nothing here: `anchorTo` keeps the row the reader is looking at in place.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: both change what the bottom is
   useLayoutEffect(() => {
     const element = viewport.current;
-    if (!element) return;
-    const before = previous.current;
-    const first = messages[0]?.id;
-    const last = messages.at(-1)?.id;
-    if (stick.current) {
-      element.scrollTop = element.scrollHeight;
-    } else if (first !== before.first && last === before.last) {
-      // Older messages arrived above: keep what the reader is looking at in the same place.
-      element.scrollTop += total - before.total;
-    }
-    previous.current = { first, last, total };
+    if (element && stick.current) element.scrollTop = element.scrollHeight;
   }, [messages, total]);
 
   function handleScroll() {
@@ -132,28 +144,25 @@ export function MessageList({
         className="relative mx-auto w-full max-w-3xl"
         style={{ height: total }}
       >
-        {virtualizer.getVirtualItems().map((row) => {
-          const item = timeline[row.index];
-          if (!item) return null;
+        {virtualizer.getVirtualItems().map((virtualRow) => {
+          const row = rows[virtualRow.index];
+          if (!row) return null;
           return (
             <li
-              key={row.key}
-              data-index={row.index}
+              key={virtualRow.key}
+              data-index={virtualRow.index}
               ref={virtualizer.measureElement}
               className="absolute top-0 left-0 w-full"
-              style={{ transform: `translateY(${row.start}px)` }}
+              style={{ transform: `translateY(${virtualRow.start}px)` }}
             >
-              {item.type === 'date' ? (
-                <DateSeparator date={item.date} />
-              ) : (
-                <MessageBubble
-                  message={item.message}
-                  firstInGroup={item.firstInGroup}
-                  lastInGroup={item.lastInGroup}
-                  isGroup={isGroup}
-                  onRetry={onRetry}
-                />
-              )}
+              {row.date ? <DateSeparator date={row.date} /> : null}
+              <MessageBubble
+                message={row.message}
+                firstInGroup={row.firstInGroup}
+                lastInGroup={row.lastInGroup}
+                isGroup={isGroup}
+                onRetry={onRetry}
+              />
             </li>
           );
         })}

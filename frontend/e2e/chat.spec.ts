@@ -188,7 +188,19 @@ test('long chats: older messages load in place, and new ones wait behind a butto
     await expect(anchor).toBeVisible({ timeout: 1000 });
   }).toPass(SLOW);
   // Five rows above the anchor: within the rows the list keeps just outside the viewport.
-  await expect(list.getByText('seeded 66', { exact: true })).toBeAttached(SLOW);
+  await expect(list.getByText('seeded 66', { exact: true }))
+    .toBeAttached(SLOW)
+    .catch(async (error: Error) => {
+      // Which rows the page holds, and where it is scrolled: all a failure in CI can show.
+      const state = await scroller.evaluate((element) => ({
+        top: element.scrollTop,
+        height: element.scrollHeight,
+        rows: [...element.querySelectorAll('li p')].map((row) => row.textContent).join(', '),
+        below: element.parentElement?.lastElementChild?.textContent,
+      }));
+      throw new Error(`${error.message}
+List state: ${JSON.stringify(state)}`);
+    });
   await expect(anchor).toBeInViewport();
 
   // The reader is far from the bottom: a new message waits behind the button.
