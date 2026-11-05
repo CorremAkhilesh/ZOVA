@@ -20,6 +20,8 @@ export interface MessageRow extends Omit<Message, 'id' | 'seq'> {
 export interface ChatRow extends ChatSummary {
   /** Last activity (or creation) in ms: the chat list's sort order. */
   sortAt: number;
+  /** How far this device has told the server it received. Local only. */
+  ackedDeliveredSeq?: number;
 }
 
 export interface OutboxRow {

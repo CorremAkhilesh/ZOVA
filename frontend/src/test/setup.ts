@@ -6,6 +6,7 @@ import { cleanup } from '@testing-library/react';
 import { MotionGlobalConfig } from 'motion/react';
 import { afterAll, afterEach, beforeAll, expect } from 'vitest';
 import { useNewChat } from '@/features/chats/new-chat-store';
+import { resetLiveStatus } from '@/features/sync/live-status';
 import { wipeLocalDatabases } from '@/features/sync/local-db';
 import { INITIAL_SYNC_STATE, useSyncStore } from '@/features/sync/store';
 import { i18n, initI18n } from '@/lib/i18n';
@@ -46,6 +47,7 @@ afterEach(async () => {
   useSyncStore.getState().client?.stop();
   useSyncStore.setState(INITIAL_SYNC_STATE);
   useNewChat.setState({ isOpen: false });
+  resetLiveStatus();
   await wipeLocalDatabases();
   server.resetHandlers();
   // An `offline` event in one test must not pause queries in the next (global in TanStack Query).

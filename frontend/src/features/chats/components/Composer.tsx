@@ -16,6 +16,7 @@ import { useSyncStore } from '@/features/sync/store';
 import { useIsDesktop } from '@/lib/hooks';
 import { cn } from '@/lib/utils';
 import { useLocalDb } from '../queries';
+import { TypingSender } from '../typing-sender';
 import { EmojiPicker } from './EmojiPicker';
 
 /** The counter appears this close to the limit. */
@@ -80,11 +81,21 @@ function useDraft(chatId: string) {
   };
 }
 
+/** One sender per open chat. Leaving the chat stops it. */
+function useTypingSender(chatId: string) {
+  const [sender] = useState(
+    () => new TypingSender((typing) => useSyncStore.getState().client?.sendTyping(chatId, typing)),
+  );
+  useEffect(() => () => sender.stop(), [sender]);
+  return sender;
+}
+
 export function Composer({ chatId, onSent }: ComposerProps) {
   const { t } = useTranslation();
   const isDesktop = useIsDesktop();
   const client = useSyncStore((state) => state.client);
   const { text, update } = useDraft(chatId);
+  const typing = useTypingSender(chatId);
   const field = useRef<HTMLTextAreaElement>(null);
   const hasText = text.trim().length > 0;
   const remaining = MESSAGE_TEXT_MAX - text.length;
@@ -102,6 +113,7 @@ export function Composer({ chatId, onSent }: ComposerProps) {
   function send() {
     if (!canSend) return;
     void client?.sendText(chatId, text);
+    typing.stop();
     update('');
     onSent();
     field.current?.focus();
@@ -160,7 +172,11 @@ export function Composer({ chatId, onSent }: ComposerProps) {
             ref={field}
             rows={1}
             value={text}
-            onChange={(event: ChangeEvent<HTMLTextAreaElement>) => update(event.target.value)}
+            onChange={(event: ChangeEvent<HTMLTextAreaElement>) => {
+              update(event.target.value);
+              typing.input(event.target.value.trim().length > 0);
+            }}
+            onBlur={() => typing.stop()}
             onKeyDown={onKeyDown}
             placeholder={t('conversation.composerPlaceholder')}
             className="max-h-36 min-h-10 flex-1 resize-none rounded-2xl border bg-surface px-4 py-2.5 text-[15px] text-text outline-none placeholder:text-text-muted focus-visible:border-brand focus-visible:ring-3 focus-visible:ring-brand/20"

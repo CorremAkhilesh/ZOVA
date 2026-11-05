@@ -43,7 +43,9 @@ function defaultResponse(event: string, payload: unknown) {
       },
     };
   }
+  if (event === 'presence:subscribe') return { ok: true, data: { users: [] } };
   const { chatId, seq } = payload as { chatId: string; seq: number };
+  if (event === 'delivered:update') return { ok: true, data: { chatId, lastDeliveredSeq: seq } };
   return { ok: true, data: { chatId, lastReadSeq: seq, unreadCount: 0 } };
 }
 
@@ -71,6 +73,10 @@ vi.mock('socket.io-client', () => ({
           event,
           (listeners.get(event) ?? []).filter((candidate) => candidate !== listener),
         );
+        return fake;
+      },
+      emit(event: string, payload: unknown) {
+        fake.emitted.push({ event, payload });
         return fake;
       },
       timeout: () => ({

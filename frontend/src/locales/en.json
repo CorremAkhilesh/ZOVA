@@ -42,7 +42,6 @@
   },
   "conversation": {
     "online": "online",
-    "lastSeen": "last seen {{time}}",
     "members": "{{count}} members",
     "today": "Today",
     "yesterday": "Yesterday",
@@ -72,7 +71,11 @@
     "tooLong_one": "{{count}} character over the limit",
     "tooLong_other": "{{count}} characters over the limit",
     "notOfflineTitle": "Not available offline",
-    "notOfflineBody": "This chat isn’t on this device yet. Connect to the internet to open it."
+    "notOfflineBody": "This chat isn’t on this device yet. Connect to the internet to open it.",
+    "typing": "typing…",
+    "lastSeenToday": "last seen today at {{time}}",
+    "lastSeenYesterday": "last seen yesterday at {{time}}",
+    "lastSeenDate": "last seen {{date}}"
   },
   "empty": {
     "title": "Pick a conversation",

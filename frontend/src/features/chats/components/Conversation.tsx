@@ -10,6 +10,7 @@ import type { ChatRow } from '@/features/sync/local-db';
 import { useSyncStore } from '@/features/sync/store';
 import { useIsDesktop } from '@/lib/hooks';
 import { useConversationMessages } from '../queries';
+import type { ChatSummary } from '../types';
 import { useMarkRead } from '../use-mark-read';
 import { toChatMessage, toChatSummary } from '../view';
 import { ChatInfoPane } from './ChatInfoPane';
@@ -86,36 +87,56 @@ function MobileProfile(props: {
   );
 }
 
-export function Conversation({ chat }: { chat: ChatRow }) {
-  const isDesktop = useIsDesktop();
+/** The chat as the screens show it, and how far its messages go. */
+function useConversationView(chat: ChatRow) {
   const { t } = useTranslation();
   const me = useSession()?.user.id ?? '';
-  const [infoOpen, setInfoOpen] = useState(false);
-  const [atBottom, setAtBottom] = useState(true);
-  const { rows, loadingOlder, loadFailed, hasOlder, loadOlder } = useConversationMessages(chat);
-  const list = useRef<MessageListHandle>(null);
   const saved = t('chats.saved');
   const unknown = t('chats.unknownPerson');
+  const { rows, ...older } = useConversationMessages(chat);
   const summary = useMemo(
     () => toChatSummary(chat, me, { saved, unknown }),
     [chat, me, saved, unknown],
   );
   const messages = useMemo(
-    () => rows?.map((row) => toChatMessage(row, me, summary.name)),
-    [me, rows, summary.name],
+    () => rows?.map((row) => toChatMessage(row, me, summary.name, chat)),
+    [chat, me, rows, summary.name],
   );
-
   const newestSeq = useMemo(() => rows?.findLast((row) => row.seq !== null)?.seq ?? 0, [rows]);
+  return { summary, messages, newestSeq, older };
+}
 
-  // Everything up to here has been seen; the jump button counts what came after.
+/** How many messages came after the reader last was at the bottom. */
+function useNewMessageCount(newestSeq: number, atBottom: boolean): number {
   const seenSeq = useRef(newestSeq);
   if (atBottom) seenSeq.current = newestSeq;
-  const newCount = atBottom ? 0 : Math.max(0, newestSeq - seenSeq.current);
+  return atBottom ? 0 : Math.max(0, newestSeq - seenSeq.current);
+}
 
+function ChatFooter({ chat, onSent }: { chat: ChatSummary; onSent: () => void }) {
+  const { t } = useTranslation();
+  if (chat.deactivated) {
+    return (
+      <p className="glass border-t px-4 py-3 text-center text-sm text-text-muted">
+        {t('people.deactivated')}
+      </p>
+    );
+  }
+  return <Composer chatId={chat.id} onSent={onSent} />;
+}
+
+export function Conversation({ chat }: { chat: ChatRow }) {
+  const isDesktop = useIsDesktop();
+  const [infoOpen, setInfoOpen] = useState(false);
+  const [atBottom, setAtBottom] = useState(true);
+  const { summary, messages, newestSeq, older } = useConversationView(chat);
+  const { loadingOlder, loadFailed, hasOlder, loadOlder } = older;
+  const list = useRef<MessageListHandle>(null);
+  const newCount = useNewMessageCount(newestSeq, atBottom);
   useMarkRead(chat, newestSeq, atBottom);
   const client = useSyncStore((state) => state.client);
-
   const jumpToLatest = useCallback(() => list.current?.scrollToBottom(), []);
+  const showEmpty = messages?.length === 0 && !loadingOlder;
 
   return (
     <div className="flex h-full min-h-0">
@@ -128,9 +149,8 @@ export function Conversation({ chat }: { chat: ChatRow }) {
           onToggleInfo={() => setInfoOpen((open) => !open)}
         />
         <div className="chat-wallpaper relative min-h-0 flex-1">
-          {messages === undefined ? null : messages.length === 0 && !loadingOlder ? (
-            <EmptyChat saved={summary.kind === 'saved'} name={summary.name} />
-          ) : (
+          {showEmpty ? <EmptyChat saved={summary.kind === 'saved'} name={summary.name} /> : null}
+          {messages && !showEmpty ? (
             <MessageList
               ref={list}
               chatName={summary.name}
@@ -140,17 +160,11 @@ export function Conversation({ chat }: { chat: ChatRow }) {
               onAtBottomChange={setAtBottom}
               onRetry={(clientMsgId) => void client?.retry(clientMsgId)}
             />
-          )}
+          ) : null}
           <OlderStatus loading={loadingOlder} failed={loadFailed} onRetry={loadOlder} />
           {atBottom ? null : <JumpToLatest count={newCount} onJump={jumpToLatest} />}
         </div>
-        {summary.deactivated ? (
-          <p className="glass border-t px-4 py-3 text-center text-sm text-text-muted">
-            {t('people.deactivated')}
-          </p>
-        ) : (
-          <Composer chatId={chat.id} onSent={jumpToLatest} />
-        )}
+        <ChatFooter chat={summary} onSent={jumpToLatest} />
       </div>
       {infoOpen && isDesktop ? (
         <ChatInfoPane chat={summary} onClose={() => setInfoOpen(false)} />

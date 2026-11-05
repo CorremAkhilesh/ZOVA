@@ -29,15 +29,29 @@ const sortAtOf = (chat: Pick<ChatSummary, 'lastActivityAt' | 'createdAt'>) =>
 
 export const toChatRow = (chat: ChatSummary): ChatRow => ({ ...chat, sortAt: sortAtOf(chat) });
 
-type ChatChange = Partial<
-  Pick<ChatSummary, 'seq' | 'lastMessage' | 'lastActivityAt' | 'otherUser' | 'createdAt'>
-> &
-  Pick<ChatSummary, 'lastReadSeq'>;
+type ChatChange = {
+  [Field in
+    | 'seq'
+    | 'lastMessage'
+    | 'lastActivityAt'
+    | 'otherUser'
+    | 'createdAt'
+    | 'lastReadSeq'
+    | 'peerDeliveredSeq'
+    | 'peerReadSeq']?: ChatSummary[Field] | undefined;
+};
+
+/** Null means read receipts are off for this chat: nothing already seen stays "read". */
+function mergePeerRead(row: ChatRow, change: ChatChange): number | null {
+  if (change.peerReadSeq === undefined) return row.peerReadSeq ?? null;
+  if (change.peerReadSeq === null) return null;
+  return Math.max(row.peerReadSeq ?? 0, change.peerReadSeq);
+}
 
 /** Positions only move forward, so older news arriving late can never undo newer state. */
 export function mergeChat(row: ChatRow, change: ChatChange): ChatRow {
   const seq = Math.max(row.seq, change.seq ?? row.seq);
-  const lastReadSeq = Math.max(row.lastReadSeq, change.lastReadSeq);
+  const lastReadSeq = Math.max(row.lastReadSeq, change.lastReadSeq ?? row.lastReadSeq);
   const current = change.seq !== undefined && change.seq >= row.seq;
   const lastActivityAt =
     change.lastActivityAt &&
@@ -49,6 +63,8 @@ export function mergeChat(row: ChatRow, change: ChatChange): ChatRow {
     seq,
     lastReadSeq,
     unreadCount: Math.max(0, seq - lastReadSeq),
+    peerDeliveredSeq: Math.max(row.peerDeliveredSeq ?? 0, change.peerDeliveredSeq ?? 0),
+    peerReadSeq: mergePeerRead(row, change),
     lastMessage: current ? (change.lastMessage ?? row.lastMessage) : row.lastMessage,
     lastActivityAt,
     otherUser: change.otherUser === undefined ? row.otherUser : change.otherUser,

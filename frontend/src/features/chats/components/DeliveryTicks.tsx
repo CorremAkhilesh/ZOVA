@@ -15,9 +15,12 @@ const ICONS = {
 export function DeliveryTicks({
   status,
   className,
+  readClassName = 'text-accent-text',
 }: {
   status: DeliveryStatus;
   className?: string;
+  /** The read color depends on the background: the bubble has its own, with AA contrast. */
+  readClassName?: string;
 }) {
   const { t } = useTranslation();
   const Icon = ICONS[status];
@@ -25,7 +28,13 @@ export function DeliveryTicks({
     <Icon
       role="img"
       aria-label={t(`conversation.${status}`)}
-      className={cn('size-4 shrink-0', status === 'read' && 'text-accent-text', className)}
+      // A new key per state replays the fade, subtly marking the change.
+      key={status}
+      className={cn(
+        'size-4 shrink-0 animate-in fade-in-0 duration-300 motion-reduce:animate-none',
+        className,
+        status === 'read' && readClassName,
+      )}
     />
   );
 }

@@ -4,7 +4,15 @@ import { cn } from '@/lib/utils';
 import type { ChatSummary } from '../types';
 
 /** A person's photo or initials; Saved Messages gets its own mark. */
-export function ChatAvatar({ chat, className }: { chat: ChatSummary; className?: string }) {
+export function ChatAvatar({
+  chat,
+  online = false,
+  className,
+}: {
+  chat: ChatSummary;
+  online?: boolean;
+  className?: string;
+}) {
   if (chat.kind === 'saved') {
     return (
       <span
@@ -21,7 +29,7 @@ export function ChatAvatar({ chat, className }: { chat: ChatSummary; className?:
     <Avatar
       name={chat.name}
       src={chat.avatarSrc}
-      online={chat.online === true}
+      online={online}
       {...(className ? { className } : {})}
     />
   );

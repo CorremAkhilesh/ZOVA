@@ -81,12 +81,13 @@ describe('sending', () => {
     input.focus();
     await user.keyboard('later{Enter}');
     expect(await screen.findByText('later')).toBeInTheDocument();
-    expect(await screen.findByRole('img', { name: 'Sending' })).toBeInTheDocument();
+    const thread = await screen.findByRole('list', { name: 'Asha Verma' });
+    expect(await within(thread).findByRole('img', { name: 'Sending' })).toBeInTheDocument();
     expect(sends()).toEqual([]);
 
     act(() => lastSocket().receive('connect'));
     await waitFor(() => expect(sends()).toEqual(['later']));
-    expect(await screen.findByRole('img', { name: 'Sent' })).toBeInTheDocument();
+    expect(await within(thread).findByRole('img', { name: 'Sent' })).toBeInTheDocument();
   });
 
   it('Saved Messages works like any other chat', async () => {

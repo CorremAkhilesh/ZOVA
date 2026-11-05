@@ -42,7 +42,6 @@
   },
   "conversation": {
     "online": "ऑनलाइन",
-    "lastSeen": "आखिरी बार {{time}} देखा गया",
     "members": "{{count}} सदस्य",
     "today": "आज",
     "yesterday": "कल",
@@ -72,7 +71,11 @@
     "tooLong_one": "सीमा से {{count}} अक्षर ज़्यादा",
     "tooLong_other": "सीमा से {{count}} अक्षर ज़्यादा",
     "notOfflineTitle": "ऑफ़लाइन उपलब्ध नहीं",
-    "notOfflineBody": "यह चैट अभी इस डिवाइस पर नहीं है। इसे खोलने के लिए इंटरनेट से जुड़ें।"
+    "notOfflineBody": "यह चैट अभी इस डिवाइस पर नहीं है। इसे खोलने के लिए इंटरनेट से जुड़ें।",
+    "typing": "टाइप कर रहे हैं…",
+    "lastSeenToday": "आखिरी बार आज {{time}} पर देखा गया",
+    "lastSeenYesterday": "आखिरी बार कल {{time}} पर देखा गया",
+    "lastSeenDate": "आखिरी बार {{date}} को देखा गया"
   },
   "empty": {
     "title": "कोई बातचीत चुनें",

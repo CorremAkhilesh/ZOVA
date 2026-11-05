@@ -76,7 +76,8 @@ function MessageMeta({ message, mine }: { message: ChatMessage; mine: boolean })
       {mine && message.status ? (
         <DeliveryTicks
           status={message.status}
-          className={cn('size-3.5', message.status === 'read' && 'text-bubble-outgoing-read')}
+          className="size-3.5"
+          readClassName="text-bubble-outgoing-read"
         />
       ) : null}
     </span>

@@ -11,7 +11,7 @@ import { useSyncStore } from '@/features/sync/store';
 import { cn } from '@/lib/utils';
 import { filterChats } from '../chat-utils';
 import { useNewChat } from '../new-chat-store';
-import { useChats } from '../queries';
+import { useChats, useUnsentByChat } from '../queries';
 import type { ChatFolder, ChatSummary } from '../types';
 import { toChatSummary } from '../view';
 import { ChatListItem } from './ChatListItem';
@@ -85,11 +85,12 @@ export function ChatListPane() {
   const [query, setQuery] = useState('');
   const openPicker = useNewChat((state) => state.open);
   const rows = useChats();
+  const unsent = useUnsentByChat();
   const saved = t('chats.saved');
   const unknown = t('chats.unknownPerson');
   const all = useMemo(
-    () => rows?.map((row) => toChatSummary(row, me, { saved, unknown })),
-    [me, rows, saved, unknown],
+    () => rows?.map((row) => toChatSummary(row, me, { saved, unknown }, unsent?.get(row.id))),
+    [me, rows, saved, unknown, unsent],
   );
   const chats = useMemo(() => filterChats(all ?? [], folder, query), [all, folder, query]);
 

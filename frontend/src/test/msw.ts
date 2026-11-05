@@ -10,6 +10,8 @@ const SAVED_CHAT = {
   lastMessage: null,
   lastReadSeq: 0,
   unreadCount: 0,
+  peerDeliveredSeq: 0,
+  peerReadSeq: null,
   lastActivityAt: '2026-11-01T10:00:00.000Z',
   createdAt: '2026-11-01T10:00:00.000Z',
 };

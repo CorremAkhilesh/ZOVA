@@ -19,6 +19,16 @@ export function useChats(): ChatRow[] | undefined {
   return useLive(() => db?.chats.orderBy('sortAt').reverse().toArray() ?? [], [db]);
 }
 
+/** What is waiting to be sent, per chat, so the list can show a clock or "Not sent". */
+export function useUnsentByChat(): Map<string, 'pending' | 'failed'> | undefined {
+  const db = useLocalDb();
+  return useLive(async () => {
+    const rows = (await db?.outbox.toArray()) ?? [];
+    // In sending order, so each chat ends up with the state of its newest message.
+    return new Map(rows.map((row) => [row.chatId, row.state]));
+  }, [db]);
+}
+
 /** One chat; null when this device does not have it. */
 export function useChat(chatId: string): ChatRow | null | undefined {
   const db = useLocalDb();

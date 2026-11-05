@@ -8,8 +8,12 @@ import Dexie from 'dexie';
 import { io, type Socket } from 'socket.io-client';
 import { chatsApi } from '@/features/chats/api';
 import { applyChats, applyHistory, applyReadAck } from './apply';
+import { trackAway } from './away';
+import { startDeliveryAcks } from './delivery-acks';
+import { replacePresence, resetLiveStatus, setPresence, setTyping } from './live-status';
 import { getUserDb, type LocalDb, PENDING_ORDER_BASE } from './local-db';
 import { DisconnectedError, Outbox, type OutboxTransport } from './outbox';
+import { currentWatchList } from './presence-watch';
 import { useSyncStore } from './store';
 import { SyncEngine } from './sync-engine';
 import { openTabChannel, watchLeadership } from './tabs';
@@ -39,6 +43,9 @@ export interface SyncClient {
   /** Loads the page before the oldest local message. False once the start of the chat is reached. */
   loadOlder(chatId: string): Promise<boolean>;
   syncNow(): Promise<void>;
+  sendTyping(chatId: string, typing: boolean): void;
+  /** Replaces who the server tells this tab about. */
+  watchPresence(userIds: string[]): void;
   stop(): void;
 }
 
@@ -102,6 +109,34 @@ export function startSyncClient(options: SyncClientOptions): SyncClient {
     onProblem: (lastProblem) => setStore({ lastProblem }),
   });
 
+  const deliveryAcks = startDeliveryAcks({
+    db,
+    me: userId,
+    isConnected: () => socket.connected,
+    send: async (chatId, seq) => {
+      const ack = await socket
+        .timeout(ACK_TIMEOUT_MS)
+        .emitWithAck('delivered:update', { chatId, seq })
+        .catch(() => null);
+      return ack?.ok === true;
+    },
+  });
+
+  const watchPresence = (userIds: string[]) => {
+    if (!socket.connected) return;
+    void socket
+      .timeout(ACK_TIMEOUT_MS)
+      .emitWithAck('presence:subscribe', { userIds })
+      .then((ack) => {
+        if (ack.ok && !stopped) replacePresence(ack.data.users);
+      })
+      .catch(() => undefined);
+  };
+
+  const awayTracker = trackAway((active) => {
+    if (socket.connected) socket.emit('presence:active', { active }, () => undefined);
+  });
+
   const channel = openTabChannel((message) => {
     if (message === 'outbox-changed') outbox.resume();
     else onSessionDoubt();
@@ -124,6 +159,10 @@ export function startSyncClient(options: SyncClientOptions): SyncClient {
     setStore({ socket: 'connected', lastHandshakeError: null });
     void engine.run();
     outbox.resume();
+    deliveryAcks.resume();
+    watchPresence(currentWatchList());
+    // A new connection starts out active; it may still be hidden.
+    awayTracker.reconnected();
     // Names and photos change without a new message, so the log says nothing about them.
     void chatsApi
       .recentChats()
@@ -132,6 +171,7 @@ export function startSyncClient(options: SyncClientOptions): SyncClient {
   });
   socket.on('disconnect', (reason) => {
     setStore({ socket: 'connecting' });
+    if (!stopped) resetLiveStatus();
     // The client only reconnects by itself after a network loss; a server restart looks like this.
     if (reason === 'io server disconnect') reconnectLater(RECONNECT_AFTER_REFUSAL_MS);
   });
@@ -154,9 +194,19 @@ export function startSyncClient(options: SyncClientOptions): SyncClient {
     onSessionEnded(reason);
   });
   socket.on('message:new', ({ message, cursor }) => void engine.onMessage(message, cursor));
-  socket.on('chat:updated', ({ chatId, cursor, seq, lastMessage, lastReadSeq, lastActivityAt }) => {
-    void engine.onChatChange(chatId, { seq, lastMessage, lastReadSeq, lastActivityAt }, cursor);
+  socket.on('chat:updated', ({ chatId, cursor, type: _type, unreadCount: _count, ...change }) => {
+    void engine.onChatChange(chatId, change, cursor);
   });
+  socket.on('receipt:update', ({ chatId, lastDeliveredSeq, lastReadSeq, cursor }) => {
+    void engine.onChatChange(
+      chatId,
+      { peerDeliveredSeq: lastDeliveredSeq, peerReadSeq: lastReadSeq },
+      cursor,
+    );
+  });
+  socket.on('typing:update', ({ chatId, typing }) => setTyping(chatId, typing));
+  socket.on('presence:update', setPresence);
+  socket.on('presence:resubscribe', () => watchPresence(currentWatchList()));
   socket.on('read:update', ({ chatId, lastReadSeq, cursor }) => {
     void engine.onChatChange(chatId, { lastReadSeq }, cursor);
   });
@@ -210,11 +260,19 @@ export function startSyncClient(options: SyncClientOptions): SyncClient {
       return page.hasMore;
     },
     syncNow: () => engine.run(),
+    sendTyping(chatId, typing) {
+      if (!socket.connected) return;
+      socket.emit(typing ? 'typing:start' : 'typing:stop', { chatId }, () => undefined);
+    },
+    watchPresence,
     stop() {
       setStore({ socket: 'connecting', isLeader: false });
       stopped = true;
       ended = true;
       clearInterval(stateCheck);
+      awayTracker.stop();
+      deliveryAcks.stop();
+      resetLiveStatus();
       clearTimeout(reconnectTimer);
       window.removeEventListener('online', onOnline);
       window.removeEventListener('offline', onOffline);

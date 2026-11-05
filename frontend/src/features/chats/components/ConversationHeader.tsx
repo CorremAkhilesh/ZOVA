@@ -4,8 +4,13 @@ import { useTranslation } from 'react-i18next';
 import { ComingSoonButton } from '@/components/common/ComingSoonButton';
 import { Button } from '@/components/ui/button';
 import { ConnectionStatus } from '@/features/connection/ConnectionStatus';
+import { useLiveStatus } from '@/features/sync/live-status';
+import { usePresenceWatch } from '@/features/sync/presence-watch';
+import { cn } from '@/lib/utils';
+import { statusLine } from '../status-line';
 import type { ChatSummary } from '../types';
 import { ChatAvatar } from './ChatAvatar';
+import { TypingIndicator } from './TypingIndicator';
 
 interface ConversationHeaderProps {
   chat: ChatSummary;
@@ -20,13 +25,24 @@ export function ConversationHeader({
   onToggleInfo,
   infoOpen,
 }: ConversationHeaderProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+
+  const typing = useLiveStatus((state) => state.typing[chat.id] === true);
+  const presence = useLiveStatus((state) =>
+    chat.otherUserId ? state.presence[chat.otherUserId] : undefined,
+  );
+  usePresenceWatch(chat.otherUserId);
 
   let subtitle = '';
   if (chat.kind === 'saved') subtitle = t('chats.savedHint');
   else if (chat.kind === 'group')
     subtitle = t('conversation.members', { count: chat.memberCount ?? 0 });
-  else if (chat.username) subtitle = `@${chat.username}`;
+  else {
+    // The @username when there is nothing to say, or it is hidden. Hidden never looks different.
+    subtitle =
+      statusLine({ typing: false, presence }, new Date(), i18n.language, t) ||
+      (chat.username ? `@${chat.username}` : '');
+  }
 
   return (
     <header className="glass flex h-16 shrink-0 items-center gap-2 border-b px-2 md:px-4">
@@ -44,10 +60,21 @@ export function ConversationHeader({
         aria-label={t('conversation.info')}
         aria-expanded={infoOpen}
       >
-        <ChatAvatar chat={chat} className="size-10" />
+        <ChatAvatar chat={chat} online={presence?.online === true} className="size-10" />
         <span className="min-w-0">
           <span className="block truncate font-semibold">{chat.name}</span>
-          <span className="block truncate text-xs text-text-muted">{subtitle}</span>
+          {typing ? (
+            <TypingIndicator className="flex text-xs" />
+          ) : (
+            <span
+              className={cn(
+                'block truncate text-xs',
+                presence?.online ? 'text-accent-text' : 'text-text-muted',
+              )}
+            >
+              {subtitle}
+            </span>
+          )}
         </span>
       </button>
       <div className="flex items-center">

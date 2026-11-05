@@ -15,6 +15,7 @@ export interface ChatSummary {
   id: string;
   name: string;
   kind: ChatKind;
+  otherUserId?: string | undefined;
   username?: string | null;
   avatarSrc?: string | undefined;
   deactivated?: boolean;
@@ -30,6 +31,7 @@ export interface ChatSummary {
     | (MessageAuthor & {
         text: string;
         at: Date;
+        status?: DeliveryStatus;
       })
     | null;
 }
