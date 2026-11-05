@@ -122,6 +122,17 @@ describe('preview sheet', () => {
     await waitFor(() => expect(onClose).toHaveBeenCalled());
   });
 
+  it('stays open and says so when the files cannot be queued', async () => {
+    const user = userEvent.setup();
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const { onSend, onClose } = setup([png('a.png')]);
+    onSend.mockRejectedValueOnce(new Error('storage refused'));
+    await user.click(screen.getByRole('button', { name: 'Send' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Couldn’t prepare these files');
+    expect(onClose).not.toHaveBeenCalled();
+    logged.mockRestore();
+  });
+
   it('leaves out a file over the limit, and says so', () => {
     setup([png('huge.png', 101 * 1024 * 1024), png('fine.png', 1024)]);
     expect(screen.getByText('Larger than the 100 MB limit')).toBeInTheDocument();

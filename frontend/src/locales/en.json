@@ -413,6 +413,7 @@
     "noMedia": "No photos or videos yet.",
     "noDocs": "No documents yet.",
     "tabMedia": "Media",
-    "tabDocs": "Docs"
+    "tabDocs": "Docs",
+    "sendFailed": "Couldn’t prepare these files. Try again."
   }
 }

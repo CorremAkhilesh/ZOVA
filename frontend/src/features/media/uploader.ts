@@ -1,5 +1,6 @@
 import type { LocalDb, OutboxRow } from '@/features/sync/local-db';
 import type { Outbox } from '@/features/sync/outbox';
+import { asBlob } from '@/features/sync/stored-bytes';
 import { ApiClientError } from '@/lib/api-client';
 import type { MediaApi } from './api';
 
@@ -142,11 +143,12 @@ export class MediaUploader {
       throw new Error('The file is no longer on this device');
     }
     const key = `${me}:${row.clientMsgId}`;
-    const uploadId = await this.ensureUpload(row, stored.poster);
+    const uploadId = await this.ensureUpload(row, stored.poster && asBlob(stored.poster));
+    const file = asBlob(stored.file);
     let { offset } = await api.state(uploadId);
     while (offset < info.size) {
       if (signal.aborted) return;
-      const chunk = stored.file.slice(offset, offset + chunkBytes);
+      const chunk = file.slice(offset, offset + chunkBytes);
       offset = await api.sendChunk(uploadId, offset, chunk, signal);
       await db.transaction('rw', db.outbox, db.messages, async () => {
         // Also tells other tabs that this one is still at it.

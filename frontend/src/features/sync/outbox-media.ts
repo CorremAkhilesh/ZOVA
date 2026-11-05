@@ -1,6 +1,7 @@
 import { type CreateUploadBody, type LastMessage, MESSAGE_PREVIEW_MAX } from '@zuvo/protocol';
 import { uuidv7 } from '@/lib/uuid';
 import { type LocalDb, PENDING_ORDER_BASE } from './local-db';
+import { toStorable } from './stored-bytes';
 
 export interface EnqueueMedia {
   chatId: string;
@@ -28,8 +29,14 @@ export async function storeMedia(
   const clientMsgId = uuidv7();
   const key = `${me}:${clientMsgId}`;
   const createdAt = new Date().toISOString();
+  const storedFile = await toStorable(db, file);
+  const storedPoster = poster ? await toStorable(db, poster) : undefined;
   await db.transaction('rw', [db.outbox, db.messages, db.chats, db.files], async () => {
-    await db.files.add({ clientMsgId, file, ...(poster ? { poster } : {}) });
+    await db.files.add({
+      clientMsgId,
+      file: storedFile,
+      ...(storedPoster ? { poster: storedPoster } : {}),
+    });
     const n = await db.outbox.add({
       clientMsgId,
       chatId,

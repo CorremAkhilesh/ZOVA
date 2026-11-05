@@ -137,7 +137,6 @@ export class Outbox {
     );
   }
 
-  /** Stored with its file; the uploader takes it from there. */
   async enqueueMedia(input: EnqueueMedia): Promise<string> {
     const { db, me } = this.options;
     const clientMsgId = await storeMedia(db, me, input, (...args) => this.previewInChat(...args));
@@ -145,13 +144,11 @@ export class Outbox {
     return clientMsgId;
   }
 
-  /** Removes a message still waiting to go, with its file. */
   cancel(clientMsgId: string): Promise<string | undefined> {
     const { db, me } = this.options;
     return removeQueued(db, me, clientMsgId);
   }
 
-  /** "Not sent — tap to retry". */
   async retry(clientMsgId: string): Promise<void> {
     const { db, me } = this.options;
     await db.transaction('rw', db.outbox, db.messages, async () => {
@@ -165,7 +162,7 @@ export class Outbox {
     void this.flush();
   }
 
-  /** The connection is back: send now, without waiting out an earlier backoff. */
+  /** The connection is back: send now, ignoring any earlier wait. */
   resume(): void {
     this.waitUntil = 0;
     void this.flush();
@@ -197,7 +194,11 @@ export class Outbox {
     const { db, transport } = this.options;
     while (!this.stopped) {
       if (!transport.isConnected()) return;
-      if (Date.now() < this.waitUntil) return;
+      if (Date.now() < this.waitUntil) {
+        // A timer can fire a moment early. Without this nothing would ever wake the outbox again.
+        this.pause(this.waitUntil - Date.now());
+        return;
+      }
       const rows = await db.outbox.where('state').equals('pending').toArray();
       // A file still uploading holds up only itself: other messages can go ahead of it.
       const row = rows.find((candidate) => !candidate.media || candidate.mediaId);
@@ -211,7 +212,6 @@ export class Outbox {
     }
   }
 
-  /** Time left before a tab without the lock steps in for the one that has it. */
   leaderGrace(row: Pick<OutboxRow, 'queuedAt'>): number {
     const { isLeader, takeoverMs = TAKEOVER_MS } = this.options;
     if (isLeader?.() !== false) return 0;

@@ -94,6 +94,7 @@ export function PreviewSheet({ picked, onChange, onClose, onSend }: PreviewSheet
   const { t, i18n } = useTranslation();
   const [asDocument, setAsDocument] = useState(false);
   const [sending, setSending] = useState(false);
+  const [failed, setFailed] = useState(false);
   const items = picked.slice(0, ALBUM_MAX_ITEMS);
   const overLimit = picked.length > ALBUM_MAX_ITEMS;
   const sendable = items.filter((item) => item.file.size <= MEDIA_MAX_BYTES);
@@ -101,9 +102,13 @@ export function PreviewSheet({ picked, onChange, onClose, onSend }: PreviewSheet
 
   async function send() {
     setSending(true);
+    setFailed(false);
     try {
       await onSend({ items: sendable, asDocument });
       onClose();
+    } catch (error) {
+      console.error(`[media] could not queue: ${error instanceof Error ? error.name : 'unknown'}`);
+      setFailed(true);
     } finally {
       setSending(false);
     }
@@ -129,6 +134,11 @@ export function PreviewSheet({ picked, onChange, onClose, onSend }: PreviewSheet
         {overLimit ? (
           <p role="alert" className="text-sm text-danger">
             {t('media.tooMany', { count: ALBUM_MAX_ITEMS })}
+          </p>
+        ) : null}
+        {failed ? (
+          <p role="alert" className="text-sm text-danger">
+            {t('media.sendFailed')}
           </p>
         ) : null}
         <label className="flex items-center gap-2 text-sm">

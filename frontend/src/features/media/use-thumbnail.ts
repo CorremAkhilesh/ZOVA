@@ -1,8 +1,22 @@
 import { useEffect, useState } from 'react';
 import { useLocalDb } from '@/features/chats/queries';
+import type { LocalDb } from '@/features/sync/local-db';
+import { asBlob, toStorable } from '@/features/sync/stored-bytes';
 import { mediaContentUrl } from './api';
 
 export type ThumbnailState = { url: string | null; missing: boolean };
+
+async function fetchThumbnail(id: string): Promise<Blob | 'missing' | null> {
+  const response = await fetch(mediaContentUrl(id, 'thumb'), { credentials: 'include' });
+  if (response.status === 404) return 'missing';
+  return response.ok ? response.blob() : null;
+}
+
+/** A full or wiped database only means fetching it again next time. */
+async function keep(db: LocalDb | null, mediaId: string, blob: Blob) {
+  if (!db) return;
+  await db.thumbs.put({ mediaId, blob: await toStorable(db, blob) }).catch(() => undefined);
+}
 
 /**
  * A thumbnail from Dexie, or fetched and kept there, so a chat scrolls without the network and
@@ -23,17 +37,14 @@ export function useThumbnail(mediaId: string | undefined, available: boolean): T
     };
     async function load(id: string) {
       const cached = await db?.thumbs.get(id).catch(() => undefined);
-      if (cached) return show(cached.blob);
-      const response = await fetch(mediaContentUrl(id, 'thumb'), { credentials: 'include' });
-      if (response.status === 404) {
+      if (cached) return show(asBlob(cached.blob));
+      const blob = await fetchThumbnail(id);
+      if (blob === 'missing') {
         if (!cancelled) setState({ url: null, missing: true });
-        return;
+      } else if (blob) {
+        show(blob);
+        await keep(db, id, blob);
       }
-      if (!response.ok) return;
-      const blob = await response.blob();
-      show(blob);
-      // Shown either way: a full or wiped database only means fetching it again next time.
-      await db?.thumbs.put({ mediaId: id, blob }).catch(() => undefined);
     }
     // Offline with nothing cached: the blurred placeholder stays.
     void load(mediaId).catch(() => undefined);
@@ -59,7 +70,7 @@ export function useLocalPreview(clientMsgId: string | null | undefined, active: 
       .then((stored) => {
         const source = stored?.poster ?? stored?.file;
         if (!source || cancelled) return;
-        created = URL.createObjectURL(source);
+        created = URL.createObjectURL(asBlob(source));
         setUrl(created);
       })
       .catch(() => undefined);

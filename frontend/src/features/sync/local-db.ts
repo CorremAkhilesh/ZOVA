@@ -43,16 +43,19 @@ export interface OutboxRow {
   albumId?: string | undefined;
 }
 
+/** A Blob, or its bytes where a browser cannot keep Blobs. See stored-bytes.ts. */
+export type StoredBytes = Blob | { bytes: ArrayBuffer; type: string };
+
 /** A file waiting to be uploaded, kept until the server has its message. */
 export interface FileRow {
   clientMsgId: string;
-  file: Blob;
-  poster?: Blob;
+  file: StoredBytes;
+  poster?: StoredBytes;
 }
 
 export interface ThumbRow {
   mediaId: string;
-  blob: Blob;
+  blob: StoredBytes;
 }
 
 export interface MetaRow {

@@ -249,4 +249,24 @@ describe('failures', () => {
     expect(sent).toHaveLength(3);
     logged.mockRestore();
   });
+
+  it('stays awake if its retry timer fires a moment before the wait is over', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    const clock = vi.spyOn(Date, 'now').mockReturnValue(1_000_000);
+    let calls = 0;
+    respond = async () => {
+      calls += 1;
+      return calls === 1 ? refuse('INTERNAL_ERROR') : accept();
+    };
+    await outbox().enqueue('c1', 'hello');
+    await vi.waitFor(async () => {
+      expect((await db.outbox.toArray())[0]?.attempts).toBe(1);
+    });
+    await vi.advanceTimersByTimeAsync(100);
+    // The clock has not moved, so the wait is not over: another timer must be set.
+    await vi.waitFor(() => expect(vi.getTimerCount()).toBeGreaterThan(0));
+    clock.mockRestore();
+    await vi.advanceTimersByTimeAsync(200);
+    await vi.waitFor(() => expect(sent).toHaveLength(2));
+  });
 });
