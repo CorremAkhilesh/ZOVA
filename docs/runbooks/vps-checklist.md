@@ -12,6 +12,8 @@ Do these when setting up the VPS, and check them again before a production deplo
   - `/v1/media/*`: a 1 GB download can run for hours, so no total-time limit. Keep range requests working.
 - **WebSockets.** Proxy `/socket.io` on the app domain and confirm that a real connection upgrades.
 - **Content security policy.** Allow `blob:` for images and media: unsent files preview from blob URLs.
+- **Microphone.** Voice notes need HTTPS, which browsers require for the microphone. If a
+  `Permissions-Policy` header is added, it must allow `microphone=(self)`, or recording fails as "blocked".
 
 ## Disk
 
@@ -26,6 +28,7 @@ Do these when setting up the VPS, and check them again before a production deplo
 ## Environment
 
 - `MEDIA_MAX_FILE_MB` in `/srv/zuvo/*.env`. Leaving it out means 1024 (1 GB).
+- `VOICE_MAX_SECONDS` in the same files. Leaving it out means 900 (15 minutes).
 - `MEDIA_STORAGE_PATH`: `/srv/zuvo/staging/media` or `/srv/zuvo/prod/media`, on a Docker volume.
 
 ## Deploy
