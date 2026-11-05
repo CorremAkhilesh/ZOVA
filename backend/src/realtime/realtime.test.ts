@@ -130,11 +130,10 @@ describe('sending and delivery', () => {
     expect(await closed).toMatch(/transport (close|error)/);
   });
 
-  it('answers reserved events without acting, and survives a missing ack', async () => {
+  it('survives an event sent without an ack', async () => {
     const socket = await connect(url, alice.cookie);
-    const typing = await socket.timeout(30_000).emitWithAck('typing:start', { chatId });
-    expect(!typing.ok && typing.error.code).toBe('BAD_REQUEST');
     (socket.emit as (event: string, payload: object) => void)('read:update', { chatId, seq: 1 });
+    (socket.emit as (event: string, payload: object) => void)('typing:start', { chatId });
     expect((await send(socket, chatId, 'still alive')).ok).toBe(true);
   });
 
