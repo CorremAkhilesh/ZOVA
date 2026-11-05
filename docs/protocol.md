@@ -95,6 +95,11 @@ written into it, so the app works the same offline.
   clientMsgId check makes that safe. An unanswered send (10 s, and the socket is replaced) or a server
   error is retried, 3 tries in all, then the message shows "Not sent — tap to retry". An error that
   cannot succeed fails at once. Being offline never counts as a failure.
+- **Settling:** acks and live events are only the fast path. Every 30 s, a client with unsent messages
+  wakes its outbox and uploader and reads the newest page of those chats from the server, whose rows
+  replace local ones by `senderId:clientMsgId`. Upload requests have deadlines, so a lost answer cannot
+  block the queue. Screens re-read local data every 20 s while visible, on focus, and after a failed
+  read (logged as `[live]`, and shown in the diagnostics panel).
 - **Other tabs** see every change through Dexie, and hear about new outbox rows and ended sessions on a
   BroadcastChannel.
 - **Wiping:** whenever a session ends (sign-out, revoked, expired, deactivated, or found to be gone on

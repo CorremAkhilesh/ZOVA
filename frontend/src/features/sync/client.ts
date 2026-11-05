@@ -3,16 +3,16 @@ import type {
   ServerToClientEvents,
   SessionRevokedReason,
 } from '@zuvo/protocol';
-import Dexie from 'dexie';
 import { io, type Socket } from 'socket.io-client';
 import { chatsApi } from '@/features/chats/api';
 import { mediaApi } from '@/features/media/api';
 import { MediaUploader } from '@/features/media/uploader';
-import { applyChats, applyHistory, applyReadAck } from './apply';
+import { applyChats, applyReadAck } from './apply';
 import { trackAway } from './away';
 import { startDeliveryAcks } from './delivery-acks';
+import { loadOlderMessages, startReconciling } from './history';
 import { replacePresence, resetLiveStatus, setPresence, setTyping } from './live-status';
-import { getUserDb, type LocalDb, PENDING_ORDER_BASE } from './local-db';
+import { getUserDb, type LocalDb } from './local-db';
 import { type EnqueueMedia, Outbox } from './outbox';
 import { currentWatchList } from './presence-watch';
 import { ACK_TIMEOUT_MS, socketTransport } from './socket-transport';
@@ -96,6 +96,11 @@ export function startSyncClient(options: SyncClientOptions): SyncClient {
     api: mediaApi,
     outbox,
     isOnline: () => navigator.onLine,
+  });
+
+  const reconciling = startReconciling(db, userId, () => {
+    outbox.resume();
+    void uploader.run();
   });
 
   const deliveryAcks = startDeliveryAcks({
@@ -261,15 +266,8 @@ export function startSyncClient(options: SyncClientOptions): SyncClient {
         .catch(() => null);
       if (ack?.ok) await applyReadAck(db, chatId, ack.data.lastReadSeq);
     },
-    async loadOlder(chatId) {
-      const oldest = await db.messages
-        .where('[chatId+order]')
-        .between([chatId, Dexie.minKey], [chatId, PENDING_ORDER_BASE], true, false)
-        .first();
-      if (oldest?.seq === 1) return false;
-      const page = await chatsApi.history(chatId, oldest?.seq ?? undefined);
-      await applyHistory(db, userId, page.items);
-      return page.hasMore;
+    loadOlder(chatId) {
+      return loadOlderMessages(db, userId, chatId);
     },
     syncNow: () => engine.run(),
     sendTyping(chatId, typing) {
@@ -285,6 +283,7 @@ export function startSyncClient(options: SyncClientOptions): SyncClient {
       awayTracker.stop();
       deliveryAcks.stop();
       uploader.stop();
+      reconciling.stop();
       resetLiveStatus();
       clearTimeout(reconnectTimer);
       window.removeEventListener('online', onOnline);
