@@ -9,7 +9,8 @@ test('signed-in app loads, switches theme and opens Saved Messages', async ({ pa
   await page.getByRole('link', { name: 'Settings', exact: true }).click();
   await page.getByRole('radio', { name: 'Dark' }).click();
   // Development only: not in this production build.
-  await expect(page.getByText('Diagnostics')).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'About', exact: true })).toHaveCount(0);
+  await expect(page.locator('summary')).toHaveCount(0);
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await page.reload();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
