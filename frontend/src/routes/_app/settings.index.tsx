@@ -8,10 +8,12 @@ import { ThemeSwitcher } from '@/features/theme/ThemeSwitcher';
 import { LANGUAGES } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 
-/** Development builds only: production builds do not even contain the file. */
-const DiagnosticsPanel = import.meta.env.DEV
-  ? lazy(() => import('@/features/sync/DiagnosticsPanel'))
-  : null;
+/** Not in production builds, which do not even contain the file. MODE, not DEV: DEV follows NODE_ENV,
+ * so a build with NODE_ENV=test (as in CI) would count as development. */
+const DiagnosticsPanel =
+  import.meta.env.MODE !== 'production'
+    ? lazy(() => import('@/features/sync/DiagnosticsPanel'))
+    : null;
 
 export const Route = createFileRoute('/_app/settings/')({
   component: Settings,

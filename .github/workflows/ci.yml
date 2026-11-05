@@ -133,7 +133,10 @@ jobs:
       - name: Install Playwright browsers and system dependencies
         run: pnpm --filter @zuvo/frontend exec playwright install --with-deps chromium firefox webkit
 
+      # NODE_ENV=test would give a development build of React, not what users get.
       - name: Build the frontend
+        env:
+          NODE_ENV: production
         run: pnpm --filter @zuvo/frontend build
 
       - name: Run Playwright (vite preview + in-memory test API)
@@ -160,6 +163,8 @@ jobs:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
       - name: Build all packages
+        env:
+          NODE_ENV: production
         run: pnpm build
       - name: Check main bundle size (gzip ≤ 200 KB)
         run: pnpm --filter @zuvo/frontend size
