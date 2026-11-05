@@ -164,6 +164,8 @@
     `GET /v1/config`, so both sides always use the same one. Pictures stay at 100 MB: they are decoded
     on both sides, and a larger one goes as a document.
   - New uploads are refused (`507 STORAGE_FULL`) if the disk would go above 90%.
+  - Voice notes: at most `VOICE_MAX_SECONDS` long (default 900) and 64 MB. Formats and browser support:
+    `docs/adr/0004-voice-notes.md`.
   - MIME type allow-list, verified by file signature (magic bytes), never by extension.
   - Images are compressed on the client before upload.
   - Files get random storage keys (sharded folders). User file names are never used on disk.
