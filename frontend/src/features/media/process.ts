@@ -1,8 +1,10 @@
-import type { MediaKind } from '@zuvo/protocol';
+import { IMAGE_MAX_BYTES, type MediaKind } from '@zuvo/protocol';
 
 export const IMAGE_MAX_PX = 2560;
 const JPEG_QUALITY = 0.8;
 const POSTER_MAX_PX = 640;
+/** A large video must not leave the send button spinning: it can go without a poster. */
+const POSTER_TIMEOUT_MS = 15_000;
 
 /** The largest size that fits, keeping the shape. Never enlarges. */
 export function fitWithin(width: number, height: number, max: number) {
@@ -72,6 +74,8 @@ function loadImage(url: string): Promise<HTMLImageElement> {
  * transparency, and GIF is left alone so it can stay animated.
  */
 export async function prepareImage(file: File): Promise<PreparedFile> {
+  // Decoding this much could take the tab down, and the server would refuse it as a picture.
+  if (file.size > IMAGE_MAX_BYTES) return asDocument(file);
   if (file.type === 'image/gif') return { file, name: file.name, mime: file.type, kind: 'image' };
   const url = URL.createObjectURL(file);
   try {
@@ -83,13 +87,21 @@ export async function prepareImage(file: File): Promise<PreparedFile> {
       type,
       type === 'image/jpeg' ? JPEG_QUALITY : undefined,
     );
-    if (!blob) return asDocument(file);
+    if (!blob || blob.size > IMAGE_MAX_BYTES) return asDocument(file);
     return { file: blob, name: renamed(file.name, type), mime: type, kind: 'image', ...size };
   } catch {
     return asDocument(file);
   } finally {
     URL.revokeObjectURL(url);
   }
+}
+
+export function withTimeout<T>(work: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout>;
+  const expired = new Promise<never>((_resolve, reject) => {
+    timer = setTimeout(() => reject(new Error('Timed out')), ms);
+  });
+  return Promise.race([work, expired]).finally(() => clearTimeout(timer));
 }
 
 function loadVideo(url: string): Promise<HTMLVideoElement> {
@@ -116,10 +128,10 @@ export async function prepareVideo(file: File): Promise<PreparedFile> {
   const basics = { file, name: file.name, mime: file.type, kind: 'video' as const };
   const url = URL.createObjectURL(file);
   try {
-    const video = await loadVideo(url);
+    const video = await withTimeout(loadVideo(url), POSTER_TIMEOUT_MS);
     const duration = Number.isFinite(video.duration) ? video.duration : undefined;
     // Not the very first frame: it is often black.
-    await seek(video, Math.min(0.5, (duration ?? 1) / 2));
+    await withTimeout(seek(video, Math.min(0.5, (duration ?? 1) / 2)), POSTER_TIMEOUT_MS);
     const { videoWidth: width, videoHeight: height } = video;
     if (!width || !height) return { ...basics, ...(duration ? { duration } : {}) };
     const size = fitWithin(width, height, POSTER_MAX_PX);

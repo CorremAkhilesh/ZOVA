@@ -146,6 +146,47 @@ test('an upload interrupted by going offline resumes, and arrives once', async (
   await bharat.context.close();
 });
 
+test('files over the limit the server gives cannot be sent', async ({ browser }) => {
+  const [asha] = await chatting(browser);
+  const { page } = asha;
+  await page.route('**/v1/config', (route) =>
+    route.fulfill({ json: { media: { maxFileBytes: 1024 } } }),
+  );
+  await page.reload();
+  await expect(page.getByRole('button', { name: 'Attach a file' })).toBeVisible(SLOW);
+  await sendFile(page, 'pick-document', [PDF]);
+
+  const sheet = page.getByRole('dialog', { name: 'Nothing to send' });
+  await expect(sheet.getByText(/Larger than the 1 KB limit/)).toBeVisible(SLOW);
+  await expect(sheet.getByText(/^4 KB/)).toBeVisible();
+  await expect(sheet.getByRole('button', { name: 'Nothing to send' })).toBeDisabled();
+});
+
+test('with no room in the browser, a file still arrives, and the sender is told', async ({
+  browser,
+}) => {
+  const [asha, bharat] = await chatting(browser);
+  await asha.page.evaluate(() => {
+    navigator.storage.estimate = async () => ({ quota: 1, usage: 1 });
+  });
+  // Slow enough to read the notice.
+  await asha.page.route('**/v1/uploads/*', async (route) => {
+    if (route.request().method() === 'PATCH') await asha.page.waitForTimeout(1500);
+    await route.continue();
+  });
+
+  await sendFile(asha.page, 'pick-document', [PDF]);
+  await asha.page.getByRole('button', { name: 'Send', exact: true }).click();
+
+  await expect(asha.page.getByText('Keep this tab open until the upload finishes')).toBeVisible(
+    SLOW,
+  );
+  await expect(thread(bharat.page, 'Asha').getByText('report.pdf')).toBeVisible(SLOW);
+  await expect(asha.page.getByText('Keep this tab open until the upload finishes')).toBeHidden(
+    SLOW,
+  );
+});
+
 test('the folder chips scroll sideways with no scrollbar, in a narrow window', async ({ page }) => {
   await page.setViewportSize({ width: 240, height: 700 });
   await signUp(page, 'Chips');

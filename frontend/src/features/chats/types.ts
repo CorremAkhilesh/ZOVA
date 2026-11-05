@@ -1,4 +1,5 @@
 import type { MediaInfo } from '@zuvo/protocol';
+import type { UploadFailReason } from '@/features/sync/local-db';
 
 export type DeliveryStatus = 'pending' | 'failed' | 'sent' | 'delivered' | 'read';
 export type ChatKind = 'personal' | 'group' | 'saved';
@@ -49,5 +50,7 @@ export interface ChatMessage extends MessageAuthor {
   media?: MediaInfo | null;
   albumId?: string | null;
   uploadedBytes?: number | undefined;
+  heldInTab?: boolean | undefined;
+  failReason?: UploadFailReason | undefined;
   replyTo?: MessageAuthor & { text: string };
 }

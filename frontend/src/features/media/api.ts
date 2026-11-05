@@ -1,4 +1,5 @@
 import {
+  appConfigResponseSchema,
   type CreateUploadBody,
   completeUploadResponseSchema,
   galleryResponseSchema,
@@ -18,6 +19,7 @@ import {
 const okSchema = z.object({ ok: z.literal(true) });
 
 export const mediaApi = {
+  config: () => apiGet('/v1/config', appConfigResponseSchema),
   create: (body: CreateUploadBody) => apiPost('/v1/uploads', body, uploadStateSchema),
   state: (id: string) => apiGet(`/v1/uploads/${id}`, uploadStateSchema),
 

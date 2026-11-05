@@ -8,8 +8,13 @@ import {
 } from '@zuvo/protocol';
 import { uuidv7 } from '@/lib/uuid';
 import { mergeChat } from './apply';
-import { type LocalDb, type OutboxRow, PENDING_ORDER_BASE } from './local-db';
-import { type EnqueueMedia, removeQueued, storeMedia } from './outbox-media';
+import {
+  type LocalDb,
+  type OutboxRow,
+  PENDING_ORDER_BASE,
+  type UploadFailReason,
+} from './local-db';
+import { type EnqueueMedia, removeQueued, storeMedia, toPayload } from './outbox-media';
 
 export type { EnqueueMedia };
 export class DisconnectedError extends Error {}
@@ -38,17 +43,6 @@ interface OutboxOptions {
 
 /** Worth trying again; anything else would just fail the same way. */
 const TRANSIENT: ReadonlySet<ErrorCode> = new Set(['INTERNAL_ERROR', 'SERVICE_UNAVAILABLE']);
-
-const toPayload = (row: OutboxRow): SendMessagePayload =>
-  row.media
-    ? {
-        chatId: row.chatId,
-        clientMsgId: row.clientMsgId,
-        mediaIds: [row.mediaId ?? ''],
-        ...(row.text ? { caption: row.text } : {}),
-        ...(row.albumId ? { albumId: row.albumId } : {}),
-      }
-    : { chatId: row.chatId, clientMsgId: row.clientMsgId, text: row.text };
 
 const TAKEOVER_MS = 5000;
 const STORAGE_RETRY_MS = 5000;
@@ -156,7 +150,10 @@ export class Outbox {
         .where('clientMsgId')
         .equals(clientMsgId)
         .modify({ state: 'pending', attempts: 0, queuedAt: Date.now() });
-      await db.messages.update(`${me}:${clientMsgId}`, { status: 'pending' });
+      await db.messages.update(`${me}:${clientMsgId}`, {
+        status: 'pending',
+        failReason: undefined,
+      });
     });
     this.waitUntil = 0;
     void this.flush();
@@ -269,11 +266,14 @@ export class Outbox {
     this.timer = setTimeout(() => void this.flush(), ms);
   }
 
-  async markFailed(row: OutboxRow) {
+  async markFailed(row: OutboxRow, reason?: UploadFailReason) {
     const { db, me } = this.options;
     await db.transaction('rw', db.outbox, db.messages, async () => {
       if (row.n !== undefined) await db.outbox.update(row.n, { state: 'failed' });
-      await db.messages.update(`${me}:${row.clientMsgId}`, { status: 'failed' });
+      await db.messages.update(`${me}:${row.clientMsgId}`, {
+        status: 'failed',
+        failReason: reason,
+      });
     });
   }
 

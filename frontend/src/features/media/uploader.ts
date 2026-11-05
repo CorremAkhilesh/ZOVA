@@ -1,12 +1,30 @@
-import type { LocalDb, OutboxRow } from '@/features/sync/local-db';
+import { UPLOAD_CHUNK_MAX_BYTES } from '@zuvo/protocol';
+import { heldByAnotherTab, heldFile, releaseFile } from '@/features/sync/held-files';
+import type { LocalDb, OutboxRow, UploadFailReason } from '@/features/sync/local-db';
 import type { Outbox } from '@/features/sync/outbox';
 import { asBlob } from '@/features/sync/stored-bytes';
 import { ApiClientError } from '@/lib/api-client';
 import type { MediaApi } from './api';
 
 const CHUNK_BYTES = 4 * 1024 * 1024;
+const LARGE_FILE_BYTES = 100 * 1024 * 1024;
 const MAX_ATTEMPTS = 3;
 const RETRY_BASE_MS = 2000;
+
+/** Smaller chunks lose less on a bad link. A large file would need too many of them. */
+export const chunkSizeFor = (fileBytes: number) =>
+  fileBytes > LARGE_FILE_BYTES ? UPLOAD_CHUNK_MAX_BYTES : CHUNK_BYTES;
+
+class FileLostError extends Error {}
+
+/** Failures that trying again by itself cannot fix, and that the person should hear about. */
+function failReasonOf(error: unknown): UploadFailReason | undefined {
+  if (error instanceof FileLostError) return 'fileLost';
+  if (!(error instanceof ApiClientError)) return undefined;
+  if (error.apiError?.code === 'STORAGE_FULL') return 'diskFull';
+  if (error.apiError?.code === 'PAYLOAD_TOO_LARGE') return 'overLimit';
+  return undefined;
+}
 
 interface UploaderOptions {
   db: LocalDb;
@@ -76,16 +94,28 @@ export class MediaUploader {
     const { db, outbox, isOnline } = this.options;
     while (!this.stopped) {
       if (isOnline?.() === false) return;
-      const rows = await db.outbox.where('state').equals('pending').toArray();
-      const row = rows.find((candidate) => candidate.media && !candidate.mediaId);
+      const row = await this.nextUpload(await db.outbox.where('state').equals('pending').toArray());
       if (!row) return;
-      const grace = outbox.leaderGrace(row);
+      // Only this tab can send a file it holds, leader or not.
+      const grace = heldFile(row.clientMsgId) ? 0 : outbox.leaderGrace(row);
       if (grace > 0) {
         this.later(grace);
         return;
       }
       if (!(await this.uploadOne(row))) return;
     }
+  }
+
+  /** The first file this tab can upload. One whose tab has closed is gone, and is marked so. */
+  private async nextUpload(rows: OutboxRow[]): Promise<OutboxRow | undefined> {
+    for (const row of rows) {
+      if (!row.media || row.mediaId) continue;
+      if (!row.heldInTab || heldFile(row.clientMsgId)) return row;
+      if (!(await heldByAnotherTab(row.clientMsgId))) {
+        await this.options.outbox.markFailed(row, 'fileLost');
+      }
+    }
+    return undefined;
   }
 
   /** False means stop for now: no connection, or a failure to wait out. */
@@ -106,6 +136,11 @@ export class MediaUploader {
 
   private async handleFailure(row: OutboxRow, error: unknown): Promise<boolean> {
     const { db, outbox, retryBaseMs = RETRY_BASE_MS } = this.options;
+    const reason = failReasonOf(error);
+    if (reason) {
+      await outbox.markFailed(row, reason);
+      return true;
+    }
     const status = error instanceof ApiClientError ? error.status : -1;
     if (status === 401) return false;
     if (status === 0) {
@@ -136,12 +171,13 @@ export class MediaUploader {
   }
 
   private async transfer(row: OutboxRow, signal: AbortSignal) {
-    const { db, me, api, chunkBytes = CHUNK_BYTES } = this.options;
-    const stored = await db.files.get(row.clientMsgId);
+    const { db, me, api } = this.options;
+    const stored = heldFile(row.clientMsgId) ?? (await db.files.get(row.clientMsgId));
     const info = row.media;
     if (!stored || !info || row.n === undefined) {
-      throw new Error('The file is no longer on this device');
+      throw new FileLostError('The file is no longer on this device');
     }
+    const chunkBytes = this.options.chunkBytes ?? chunkSizeFor(info.size);
     const key = `${me}:${row.clientMsgId}`;
     const uploadId = await this.ensureUpload(row, stored.poster && asBlob(stored.poster));
     const file = asBlob(stored.file);
@@ -158,9 +194,12 @@ export class MediaUploader {
     }
     const media = await api.complete(uploadId);
     await db.transaction('rw', db.outbox, db.messages, async () => {
-      if (row.n !== undefined) await db.outbox.update(row.n, { mediaId: media.id });
-      await db.messages.update(key, { media });
+      if (row.n !== undefined) {
+        await db.outbox.update(row.n, { mediaId: media.id, heldInTab: false });
+      }
+      await db.messages.update(key, { media, heldInTab: false });
     });
+    releaseFile(row.clientMsgId);
   }
 
   private async ensureUpload(row: OutboxRow, poster: Blob | undefined): Promise<string> {

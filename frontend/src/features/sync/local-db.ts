@@ -1,10 +1,13 @@
 import type { ChatSummary, CreateUploadBody, Message, PublicProfile } from '@zuvo/protocol';
 import Dexie, { type Table } from 'dexie';
+import { releaseAllFiles } from './held-files';
 
 /** Messages not yet accepted by the server sort after every real position. */
 export const PENDING_ORDER_BASE = 1e12;
 
 export type MessageStatus = 'pending' | 'failed' | 'sent';
+/** Why a file was not sent, when the person can do something about it. */
+export type UploadFailReason = 'fileLost' | 'diskFull' | 'overLimit';
 
 export interface MessageRow extends Omit<Message, 'id' | 'seq'> {
   /** Stable across send and ack, so re-applying a message can never duplicate it. */
@@ -17,6 +20,9 @@ export interface MessageRow extends Omit<Message, 'id' | 'seq'> {
   status: MessageStatus;
   /** How much of its file has reached the server, while uploading. */
   uploadedBytes?: number;
+  /** Its file is only held by an open tab. See held-files.ts. */
+  heldInTab?: boolean;
+  failReason?: UploadFailReason | undefined;
 }
 
 export interface ChatRow extends ChatSummary {
@@ -41,6 +47,8 @@ export interface OutboxRow {
   uploadId?: string | undefined;
   mediaId?: string;
   albumId?: string | undefined;
+  /** The file is not in `files`: only an open tab has it. See held-files.ts. */
+  heldInTab?: boolean;
 }
 
 /** A Blob, or its bytes where a browser cannot keep Blobs. See stored-bytes.ts. */
@@ -110,6 +118,7 @@ export function getUserDb(userId: string): LocalDb {
 
 /** Deletes every user's local chats, messages, outbox and drafts on this browser. */
 export async function wipeLocalDatabases(): Promise<void> {
+  releaseAllFiles();
   for (const db of open.values()) db.close();
   open.clear();
   const names = await Dexie.getDatabaseNames();

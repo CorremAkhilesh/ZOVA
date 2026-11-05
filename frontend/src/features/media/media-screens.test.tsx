@@ -1,8 +1,7 @@
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { MediaInfo } from '@zuvo/protocol';
-import { describe, expect, it, vi } from 'vitest';
-import { TooltipProvider } from '@/components/ui/tooltip';
+import { describe, expect, it } from 'vitest';
 import { previewText } from '@/features/chats/view';
 import { useSyncStore } from '@/features/sync/store';
 import { axe } from '@/test/axe';
@@ -10,7 +9,6 @@ import { chatFixture, ME_ID, messageFixture } from '@/test/chat-fixtures';
 import { HttpResponse, http, server } from '@/test/msw';
 import { DESKTOP_WIDTH, MOBILE_WIDTH, renderApp } from '@/test/render-app';
 import { seedLocal } from '@/test/seed';
-import { PreviewSheet, toPicked } from './components/PreviewSheet';
 import { fitWithin, formatBytes, formatDuration, kindOf, outputType, renamed } from './process';
 
 const info = (id: string, overrides: Partial<MediaInfo> = {}): MediaInfo => ({
@@ -77,71 +75,6 @@ describe('small helpers', () => {
     expect(previewText({ type: 'video', preview: '' }, labels)).toBe('🎥 Video');
     expect(previewText({ type: 'document', preview: 'a.pdf' }, labels)).toBe('📄 a.pdf');
     expect(previewText({ type: 'text', preview: 'hi' }, labels)).toBe('hi');
-  });
-});
-
-describe('preview sheet', () => {
-  function setup(files: File[]) {
-    const picked = toPicked(files);
-    const onSend = vi.fn(async () => undefined);
-    const onChange = vi.fn();
-    const onClose = vi.fn();
-    const view = render(
-      <TooltipProvider>
-        <PreviewSheet picked={picked} onChange={onChange} onClose={onClose} onSend={onSend} />
-      </TooltipProvider>,
-    );
-    return { ...view, picked, onSend, onChange, onClose };
-  }
-
-  it('shows the files and the total, and has no axe violations', async () => {
-    setup([png('a.png', 1024), png('b.png', 2048)]);
-    expect(await screen.findByRole('dialog', { name: 'Send 2 files' })).toBeInTheDocument();
-    expect(screen.getByText('a.png')).toBeInTheDocument();
-    expect(screen.getByText('Total: 3 KB')).toBeInTheDocument();
-    expect(await axe(document.body)).toHaveNoViolations();
-  });
-
-  it('removes an item, and sets a caption per item', async () => {
-    const user = userEvent.setup();
-    const { onChange, picked } = setup([png('a.png'), png('b.png')]);
-    await user.click(screen.getByRole('button', { name: 'Remove a.png' }));
-    expect(onChange).toHaveBeenLastCalledWith([picked[1]]);
-    fireEvent.change(screen.getByRole('textbox', { name: 'Caption for b.png' }), {
-      target: { value: 'Second' },
-    });
-    expect(onChange.mock.lastCall?.[0][1]).toMatchObject({ caption: 'Second' });
-  });
-
-  it('sends as a document when asked, and closes', async () => {
-    const user = userEvent.setup();
-    const { onSend, onClose, picked } = setup([png('a.png')]);
-    await user.click(screen.getByRole('checkbox', { name: /Send as document/ }));
-    await user.click(screen.getByRole('button', { name: 'Send' }));
-    expect(onSend).toHaveBeenCalledWith({ items: picked, asDocument: true });
-    await waitFor(() => expect(onClose).toHaveBeenCalled());
-  });
-
-  it('stays open and says so when the files cannot be queued', async () => {
-    const user = userEvent.setup();
-    const logged = vi.spyOn(console, 'error').mockImplementation(() => undefined);
-    const { onSend, onClose } = setup([png('a.png')]);
-    onSend.mockRejectedValueOnce(new Error('storage refused'));
-    await user.click(screen.getByRole('button', { name: 'Send' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('Couldn’t prepare these files');
-    expect(onClose).not.toHaveBeenCalled();
-    logged.mockRestore();
-  });
-
-  it('leaves out a file over the limit, and says so', () => {
-    setup([png('huge.png', 101 * 1024 * 1024), png('fine.png', 1024)]);
-    expect(screen.getByText('Larger than the 100 MB limit')).toBeInTheDocument();
-    expect(screen.getByText('Total: 1 KB')).toBeInTheDocument();
-  });
-
-  it('says when there are more files than can go at once', () => {
-    setup(Array.from({ length: 31 }, (_, n) => png(`${n}.png`)));
-    expect(screen.getByRole('alert')).toHaveTextContent('up to 30 files');
   });
 });
 

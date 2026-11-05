@@ -174,6 +174,7 @@ export function Conversation({ chat }: { chat: ChatRow }) {
       {canSend ? (
         <PreviewSheet
           picked={media.picked}
+          maxBytes={media.maxBytes}
           onChange={media.setPicked}
           onClose={media.clear}
           onSend={media.send}

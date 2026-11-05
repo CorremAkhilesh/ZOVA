@@ -331,7 +331,8 @@
       "user.reactivate": "{{actor}} reactivated {{target}}",
       "user.promote": "{{actor}} made {{target}} an admin",
       "user.demote": "{{actor}} removed admin from {{target}}"
-    }
+    },
+    "storageUsed": "Storage used: {{size}}"
   },
   "people": {
     "title": "New chat",
@@ -387,7 +388,7 @@
     "download": "Download",
     "downloadNamed": "Download {{name}}",
     "removeFile": "Remove {{name}}",
-    "tooBig": "Larger than the 100 MB limit",
+    "tooBig": "Larger than the {{limit}} limit",
     "addCaption": "Add a caption",
     "captionFor": "Caption for {{name}}",
     "previewTitle_one": "Send {{count}} file",
@@ -414,6 +415,11 @@
     "noDocs": "No documents yet.",
     "tabMedia": "Media",
     "tabDocs": "Docs",
-    "sendFailed": "Couldn’t prepare these files. Try again."
+    "sendFailed": "Couldn’t prepare these files. Try again.",
+    "nothingToSend": "Nothing to send",
+    "keepTabOpen": "Keep this tab open until the upload finishes",
+    "fileLost": "This tab closed before the upload finished. Tap to remove, then send the file again.",
+    "diskFull": "The server is low on storage, so this file wasn’t uploaded.",
+    "overLimit": "This file is over the size limit."
   }
 }

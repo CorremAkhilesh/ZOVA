@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useLocalDb } from '@/features/chats/queries';
+import { heldFile } from '@/features/sync/held-files';
 import type { LocalDb } from '@/features/sync/local-db';
 import { asBlob, toStorable } from '@/features/sync/stored-bytes';
 import { mediaContentUrl } from './api';
@@ -65,8 +66,7 @@ export function useLocalPreview(clientMsgId: string | null | undefined, active: 
     if (!db || !clientMsgId || !active) return;
     let cancelled = false;
     let created: string | null = null;
-    void db.files
-      .get(clientMsgId)
+    void Promise.resolve(heldFile(clientMsgId) ?? db.files.get(clientMsgId))
       .then((stored) => {
         const source = stored?.poster ?? stored?.file;
         if (!source || cancelled) return;

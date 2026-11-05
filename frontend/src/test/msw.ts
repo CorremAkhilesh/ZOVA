@@ -88,6 +88,7 @@ const availability = http.get('*/v1/users/username-availability', ({ request }) 
 /** Default handlers: the API is healthy and the user is signed in. Tests override with `server.use(...)`. */
 export const server = setupServer(
   http.get('*/v1/health', healthyResponse),
+  http.get('*/v1/config', () => HttpResponse.json({ media: { maxFileBytes: 1024 ** 3 } })),
   http.get('*/v1/auth/me', () => HttpResponse.json(sessionFixture())),
   http.get('*/v1/me/profile', () => HttpResponse.json({ profile: profileFixture() })),
   http.get('*/v1/me/username-suggestion', () => HttpResponse.json({ username: 'kiran' })),

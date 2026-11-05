@@ -86,6 +86,8 @@ export function toChatMessage(
     media: row.media ?? null,
     albumId: row.albumId ?? null,
     uploadedBytes: row.uploadedBytes,
+    heldInTab: row.heldInTab,
+    failReason: row.failReason,
     ...(mine ? { status: tickState(row, chat) } : {}),
   };
 }

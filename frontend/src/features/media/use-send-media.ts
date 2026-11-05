@@ -1,7 +1,9 @@
+import { useQuery } from '@tanstack/react-query';
 import type { CreateUploadBody } from '@zuvo/protocol';
 import { useCallback, useState } from 'react';
 import { useSyncStore } from '@/features/sync/store';
 import { uuidv7 } from '@/lib/uuid';
+import { mediaApi } from './api';
 import type { PickedFile } from './components/PreviewSheet';
 import { toPicked } from './components/PreviewSheet';
 import { type PreparedFile, prepareFile } from './process';
@@ -19,6 +21,11 @@ const toUploadInfo = (file: PreparedFile): CreateUploadBody => ({
 /** Files chosen, dropped or pasted, on their way through the preview sheet into the outbox. */
 export function useSendMedia(chatId: string) {
   const [picked, setPicked] = useState<PickedFile[]>([]);
+  const config = useQuery({
+    queryKey: ['config'],
+    queryFn: mediaApi.config,
+    staleTime: 5 * 60_000,
+  });
   const addFiles = useCallback(
     (files: File[]) => setPicked((current) => [...current, ...toPicked(files)]),
     [],
@@ -45,5 +52,13 @@ export function useSendMedia(chatId: string) {
     [chatId],
   );
 
-  return { picked, setPicked, addFiles, send, clear: useCallback(() => setPicked([]), []) };
+  return {
+    picked,
+    setPicked,
+    addFiles,
+    send,
+    clear: useCallback(() => setPicked([]), []),
+    // Unknown while offline. The server still decides, and the message then says why it failed.
+    maxBytes: config.data?.media.maxFileBytes ?? null,
+  };
 }

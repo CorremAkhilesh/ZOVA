@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/ui/avatar';
 import { AlbumGrid, MessageMedia } from '@/features/media/components/MessageMedia';
+import { UploadNotice } from '@/features/media/components/UploadNotice';
 import { cn } from '@/lib/utils';
 import { formatClock } from '../chat-utils';
 import { senderColorClass } from '../sender-color';
@@ -88,20 +89,6 @@ function MessageMeta({ message, mine }: { message: ChatMessage; mine: boolean })
   );
 }
 
-/** "Not sent — tap to retry", under the bubble. */
-function RetryButton({ onRetry }: { onRetry: () => void }) {
-  const { t } = useTranslation();
-  return (
-    <button
-      type="button"
-      onClick={onRetry}
-      className="mt-0.5 block w-full text-right text-xs font-semibold text-danger"
-    >
-      {t('conversation.notSentRetry')}
-    </button>
-  );
-}
-
 /** Media and its caption, or text, always leaving room for the time in the corner. */
 function BubbleContent(props: {
   message: ChatMessage;
@@ -138,7 +125,6 @@ export function MessageBubble({
   onOpenMedia,
   album,
 }: MessageBubbleProps) {
-  const { clientMsgId } = message;
   const mine = message.authorId === ME;
   const showAvatarColumn = isGroup && !mine;
 
@@ -176,9 +162,7 @@ export function MessageBubble({
           <BubbleContent message={message} mine={mine} album={album} onOpenMedia={onOpenMedia} />
           <MessageMeta message={message} mine={mine} />
         </div>
-        {message.status === 'failed' && clientMsgId && onRetry ? (
-          <RetryButton onRetry={() => onRetry(clientMsgId)} />
-        ) : null}
+        <UploadNotice message={message} onRetry={onRetry} />
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import { ALBUM_MAX_ITEMS, CAPTION_MAX, MEDIA_MAX_BYTES } from '@zuvo/protocol';
+import { ALBUM_MAX_ITEMS, CAPTION_MAX } from '@zuvo/protocol';
 import { FileText, Loader2, Video, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -23,6 +23,8 @@ interface SendInput {
 
 interface PreviewSheetProps {
   picked: PickedFile[];
+  /** From the server. Null while it is not known, so nothing is left out on a guess. */
+  maxBytes: number | null;
   onChange: (picked: PickedFile[]) => void;
   onClose: () => void;
   onSend: (input: SendInput) => Promise<void>;
@@ -40,16 +42,19 @@ function usePreviewUrl(file: File) {
   return url;
 }
 
+const isTooBig = (file: File, maxBytes: number | null) => maxBytes !== null && file.size > maxBytes;
+
 function PickedItem(props: {
   item: PickedFile;
+  maxBytes: number | null;
   onCaption: (caption: string) => void;
   onRemove: () => void;
 }) {
   const { t, i18n } = useTranslation();
-  const { item } = props;
+  const { item, maxBytes } = props;
   const url = usePreviewUrl(item.file);
   const kind = kindOf(item.file);
-  const tooBig = item.file.size > MEDIA_MAX_BYTES;
+  const tooBig = isTooBig(item.file, maxBytes);
   const Icon = kind === 'video' ? Video : FileText;
   return (
     <li className="flex gap-3 rounded-xl border p-2">
@@ -72,8 +77,14 @@ function PickedItem(props: {
             <X className="size-4" aria-hidden />
           </button>
         </div>
-        <p className={tooBig ? 'text-xs font-semibold text-danger' : 'text-xs text-text-muted'}>
-          {tooBig ? t('media.tooBig') : formatBytes(item.file.size, i18n.language)}
+        <p className="text-xs text-text-muted">
+          {formatBytes(item.file.size, i18n.language)}
+          {tooBig && maxBytes !== null ? (
+            <span className="font-semibold text-danger">
+              {' · '}
+              {t('media.tooBig', { limit: formatBytes(maxBytes, i18n.language) })}
+            </span>
+          ) : null}
         </p>
         <input
           type="text"
@@ -90,14 +101,15 @@ function PickedItem(props: {
 }
 
 /** Check before sending: remove things, add captions, or send without compressing. */
-export function PreviewSheet({ picked, onChange, onClose, onSend }: PreviewSheetProps) {
+export function PreviewSheet({ picked, maxBytes, onChange, onClose, onSend }: PreviewSheetProps) {
   const { t, i18n } = useTranslation();
   const [asDocument, setAsDocument] = useState(false);
   const [sending, setSending] = useState(false);
   const [failed, setFailed] = useState(false);
   const items = picked.slice(0, ALBUM_MAX_ITEMS);
   const overLimit = picked.length > ALBUM_MAX_ITEMS;
-  const sendable = items.filter((item) => item.file.size <= MEDIA_MAX_BYTES);
+  const sendable = items.filter((item) => !isTooBig(item.file, maxBytes));
+  const nothing = sendable.length === 0;
   const total = sendable.reduce((sum, item) => sum + item.file.size, 0);
 
   async function send() {
@@ -116,12 +128,18 @@ export function PreviewSheet({ picked, onChange, onClose, onSend }: PreviewSheet
 
   return (
     <Dialog open={picked.length > 0} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent title={t('media.previewTitle', { count: items.length })} className="max-w-lg">
+      <DialogContent
+        title={
+          nothing ? t('media.nothingToSend') : t('media.previewTitle', { count: sendable.length })
+        }
+        className="max-w-lg"
+      >
         <ul className="max-h-[50vh] space-y-2 overflow-y-auto">
           {items.map((item) => (
             <PickedItem
               key={item.id}
               item={item}
+              maxBytes={maxBytes}
               onCaption={(caption) =>
                 onChange(
                   picked.map((other) => (other.id === item.id ? { ...other, caption } : other)),
@@ -150,18 +168,20 @@ export function PreviewSheet({ picked, onChange, onClose, onSend }: PreviewSheet
           {t('media.sendAsDocument')}
         </label>
         <div className="flex items-center justify-between gap-3">
-          <p className="text-sm text-text-muted">
-            {t('media.totalSize', { size: formatBytes(total, i18n.language) })}
-          </p>
-          <div className="flex gap-2">
+          {nothing ? null : (
+            <p className="text-sm text-text-muted">
+              {t('media.totalSize', { size: formatBytes(total, i18n.language) })}
+            </p>
+          )}
+          <div className="ml-auto flex gap-2">
             <Button variant="ghost" onClick={onClose}>
               {t('media.cancel')}
             </Button>
-            <Button onClick={() => void send()} disabled={sending || sendable.length === 0}>
+            <Button onClick={() => void send()} disabled={sending || nothing}>
               {sending ? (
                 <Loader2 className="size-4 animate-spin motion-reduce:animate-none" aria-hidden />
               ) : null}
-              {t('media.send', { count: sendable.length })}
+              {nothing ? t('media.nothingToSend') : t('media.send', { count: sendable.length })}
             </Button>
           </div>
         </div>

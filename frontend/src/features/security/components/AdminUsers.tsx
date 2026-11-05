@@ -1,5 +1,5 @@
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { AdminUser } from '@zuvo/protocol';
+import type { AdminUser, AdminUserRow } from '@zuvo/protocol';
 import { Search } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { authErrorMessage } from '@/features/auth/errors';
 import { useSession } from '@/features/auth/session';
+import { formatBytes } from '@/features/media/process';
 import { SettingsSection } from '@/features/settings/SettingsPage';
 import { useDebouncedValue } from '@/lib/hooks';
 import { adminApi } from '../api';
@@ -22,11 +23,11 @@ function UserRow({
   self,
   onAction,
 }: {
-  user: AdminUser;
+  user: AdminUserRow;
   self: boolean;
   onAction: (action: Action) => void;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const deactivated = user.status === 'deactivated';
   const admin = user.role === 'admin';
   return (
@@ -40,6 +41,9 @@ function UserRow({
         <p className="truncate text-sm text-text-muted">
           {user.email}
           {user.username ? ` · @${user.username}` : ''}
+        </p>
+        <p className="text-xs text-text-muted">
+          {t('admin.storageUsed', { size: formatBytes(user.storageBytes, i18n.language) })}
         </p>
       </div>
       {self ? (

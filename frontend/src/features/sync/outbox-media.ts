@@ -1,7 +1,24 @@
-import { type CreateUploadBody, type LastMessage, MESSAGE_PREVIEW_MAX } from '@zuvo/protocol';
+import {
+  type CreateUploadBody,
+  type LastMessage,
+  MESSAGE_PREVIEW_MAX,
+  type SendMessagePayload,
+} from '@zuvo/protocol';
 import { uuidv7 } from '@/lib/uuid';
-import { type LocalDb, PENDING_ORDER_BASE } from './local-db';
-import { toStorable } from './stored-bytes';
+import { holdFile, releaseFile } from './held-files';
+import { type FileRow, type LocalDb, type OutboxRow, PENDING_ORDER_BASE } from './local-db';
+import { isQuotaError, mustHold, toStorable } from './stored-bytes';
+
+export const toPayload = (row: OutboxRow): SendMessagePayload =>
+  row.media
+    ? {
+        chatId: row.chatId,
+        clientMsgId: row.clientMsgId,
+        mediaIds: [row.mediaId ?? ''],
+        ...(row.text ? { caption: row.text } : {}),
+        ...(row.albumId ? { albumId: row.albumId } : {}),
+      }
+    : { chatId: row.chatId, clientMsgId: row.clientMsgId, text: row.text };
 
 export interface EnqueueMedia {
   chatId: string;
@@ -18,26 +35,55 @@ type Preview = (
   last: { type: LastMessage['type']; preview: string; createdAt: string },
 ) => Promise<void>;
 
-/** The file, its outbox row and its message all together, so a reload can never split them. */
+/**
+ * Keeps the file for a resumable upload where the browser has room. Where it has none, the upload
+ * still goes ahead from this tab, and the message says to keep the tab open.
+ */
 export async function storeMedia(
   db: LocalDb,
   me: string,
   input: EnqueueMedia,
   preview: Preview,
 ): Promise<string> {
-  const { chatId, caption, info, file, poster, albumId } = input;
+  const { file, poster } = input;
   const clientMsgId = uuidv7();
+  if (!(await mustHold(db, file.size))) {
+    try {
+      const keep: FileRow = { clientMsgId, file: await toStorable(db, file) };
+      if (poster) keep.poster = await toStorable(db, poster);
+      await writeRows(db, me, clientMsgId, input, preview, keep);
+      return clientMsgId;
+    } catch (error) {
+      if (!isQuotaError(error)) throw error;
+    }
+  }
+  holdFile(clientMsgId, file, poster);
+  try {
+    await writeRows(db, me, clientMsgId, input, preview, null);
+  } catch (error) {
+    releaseFile(clientMsgId);
+    throw error;
+  }
+  return clientMsgId;
+}
+
+/** The file, its outbox row and its message all together, so a reload can never split them. */
+async function writeRows(
+  db: LocalDb,
+  me: string,
+  clientMsgId: string,
+  input: EnqueueMedia,
+  preview: Preview,
+  keep: FileRow | null,
+) {
+  const { chatId, caption, info, albumId } = input;
   const key = `${me}:${clientMsgId}`;
   const createdAt = new Date().toISOString();
-  const storedFile = await toStorable(db, file);
-  const storedPoster = poster ? await toStorable(db, poster) : undefined;
+  const held = keep ? {} : { heldInTab: true };
   await db.transaction('rw', [db.outbox, db.messages, db.chats, db.files], async () => {
-    await db.files.add({
-      clientMsgId,
-      file: storedFile,
-      ...(storedPoster ? { poster: storedPoster } : {}),
-    });
+    if (keep) await db.files.add(keep);
     const n = await db.outbox.add({
+      ...held,
       clientMsgId,
       chatId,
       text: caption,
@@ -48,6 +94,7 @@ export async function storeMedia(
       albumId,
     });
     await db.messages.add({
+      ...held,
       key,
       id: null,
       seq: null,
@@ -85,7 +132,6 @@ export async function storeMedia(
       createdAt,
     });
   });
-  return clientMsgId;
 }
 
 export async function removeQueued(
@@ -94,6 +140,7 @@ export async function removeQueued(
   clientMsgId: string,
 ): Promise<string | undefined> {
   let uploadId: string | undefined;
+  releaseFile(clientMsgId);
   await db.transaction('rw', db.outbox, db.messages, db.files, async () => {
     const row = await db.outbox.where('clientMsgId').equals(clientMsgId).first();
     uploadId = row?.uploadId;
