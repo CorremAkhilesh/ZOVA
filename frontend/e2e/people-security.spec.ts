@@ -50,8 +50,9 @@ test('two colleagues: profile, people search, devices and admin deactivation', a
   await expect(picker.getByRole('option')).toHaveCount(1, SLOW);
   await expect(picker.getByRole('option', { name: /Asha Verma/ })).toBeVisible();
   await picker.getByRole('combobox').press('Enter');
-  await expect(b.getByText(`@${username}`)).toBeVisible(SLOW);
-  await expect(b.getByRole('heading', { name: 'Asha Verma' })).toBeAttached();
+  await expect(b.getByRole('heading', { name: 'Asha Verma' })).toBeAttached(SLOW);
+  await b.getByRole('button', { name: 'Chat info' }).first().click();
+  await expect(b.getByText(`@${username}`).first()).toBeVisible(SLOW);
 
   // A signs in on a second device, then signs it out from Settings → Devices.
   const a2 = await newPage(browser);

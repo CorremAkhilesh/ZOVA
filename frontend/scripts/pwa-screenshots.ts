@@ -92,6 +92,20 @@ for (const colorScheme of ['light', 'dark'] as const) {
   }
 }
 
+if (extraDir) {
+  await kiran.page.emulateMedia({ colorScheme: 'light' });
+  await kiran.page.setViewportSize({ width: 1280, height: 800 });
+  // Someone typing, then someone who has left.
+  await asha.page.getByRole('textbox', { name: 'Write a message' }).pressSequentially('Sure');
+  await kiran.page.getByText('typing…').first().waitFor();
+  await kiran.page.screenshot({ path: `${extraDir}/typing-light.png` });
+  await asha.page.getByRole('textbox', { name: 'Write a message' }).fill('');
+  await kiran.page.getByRole('link', { name: /Rahul Menon/ }).click();
+  await rahul.page.context().close();
+  await kiran.page.getByText(/^last seen today/).waitFor();
+  await shot(kiran.page, `${extraDir}/last-seen-light.png`);
+}
+
 // The narrow manifest screenshot is a real phone-sized device: its own context at 2× scale.
 const phone = await browser.newContext({
   baseURL: BASE,

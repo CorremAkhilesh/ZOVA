@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, type Page, test } from '@playwright/test';
 import {
   bubbles,
   expectBubbles,
@@ -14,6 +14,13 @@ import { open, SLOW, waitForActiveServiceWorker } from './helpers';
 
 test.describe.configure({ timeout: 240_000 });
 
+/** Accepted by the server. It may already have moved on to delivered or read. */
+const ACCEPTED = /^(Sent|Delivered|Read)$/;
+
+/** Ticks on the messages only: the chat list's preview shows one as well. */
+const ticks = (page: Page, chatName: string, name: string | RegExp) =>
+  page.getByRole('list', { name: chatName, exact: true }).getByRole('img', { name });
+
 test('two people chat in real time, and reading clears the badge', async ({ browser }) => {
   const asha = await newPerson(browser, 'Asha');
   const bharat = await newPerson(browser, 'Bharat');
@@ -23,10 +30,9 @@ test('two people chat in real time, and reading clears the badge', async ({ brow
   await expect(asha.page.getByRole('link', { name: /Saved Messages/ })).toBeVisible();
 
   await openChatWith(asha.page, bharat);
-  await expect(asha.page.getByText(`@${bharat.username}`)).toBeVisible();
   await send(asha.page, 'Hello Bharat');
   await expectBubbles(asha.page, 'Bharat', ['Hello Bharat']);
-  await expect(asha.page.getByRole('img', { name: 'Sent' })).toBeVisible(SLOW);
+  await expect(ticks(asha.page, 'Bharat', ACCEPTED)).toBeVisible(SLOW);
 
   // Bharat has not opened anything: the chat appears by itself, with a badge.
   const row = bharat.page.getByRole('link', { name: /Asha/ });
@@ -61,7 +67,7 @@ test('both people open the empty chat first, and then either can send', async ({
 
   await send(asha.page, 'from Asha');
   await expectBubbles(bharat.page, 'Asha', ['from Asha']);
-  await expect(asha.page.getByRole('img', { name: 'Sent' })).toBeVisible(SLOW);
+  await expect(ticks(asha.page, 'Bharat', ACCEPTED)).toBeVisible(SLOW);
   await send(bharat.page, 'from Bharat');
   await expectBubbles(asha.page, 'Bharat', ['from Asha', 'from Bharat']);
 
@@ -71,7 +77,7 @@ test('both people open the empty chat first, and then either can send', async ({
   await expectBubbles(asha.page, 'Bharat', ['from Asha', 'from Bharat']);
   await send(asha.page, 'after reload');
   await expectBubbles(bharat.page, 'Asha', ['from Asha', 'from Bharat', 'after reload']);
-  await expect(bharat.page.getByRole('img', { name: 'Sending' })).toHaveCount(0);
+  await expect(ticks(bharat.page, 'Asha', 'Sending')).toHaveCount(0);
 
   await asha.context.close();
   await bharat.context.close();
@@ -102,7 +108,7 @@ test('a stuck tab holding the outbox lock cannot stop another tab from sending',
   await expect(tab.getByRole('status').filter({ hasText: 'Connected' })).toBeAttached(SLOW);
   await send(tab, 'sent past the stuck tab');
   await expectBubbles(bharat.page, 'Asha', ['sent past the stuck tab']);
-  await expect(tab.getByRole('img', { name: 'Sent' })).toBeVisible(SLOW);
+  await expect(ticks(tab, 'Bharat', ACCEPTED)).toBeVisible(SLOW);
 
   await asha.context.close();
   await bharat.context.close();
@@ -120,12 +126,12 @@ test('messages sent offline arrive in order, once, after reconnecting', async ({
   await expect(bharat.page.getByRole('link', { name: /Asha/ })).toBeVisible(SLOW);
   await openFromList(bharat.page, 'Asha');
   await expectBubbles(bharat.page, 'Asha', ['before']);
-  await expect(asha.page.getByRole('img', { name: 'Sent' })).toBeVisible(SLOW);
+  await expect(ticks(asha.page, 'Bharat', ACCEPTED)).toBeVisible(SLOW);
 
   await asha.context.setOffline(true);
   for (const text of ['one', 'two', 'three']) await send(asha.page, text);
   await expectBubbles(asha.page, 'Bharat', ['before', 'one', 'two', 'three']);
-  await expect(asha.page.getByRole('img', { name: 'Sending' })).toHaveCount(3);
+  await expect(ticks(asha.page, 'Bharat', 'Sending')).toHaveCount(3);
   expect(await bubbles(bharat.page, 'Asha')).toEqual(['before']);
 
   // Still there after a reload while offline: the outbox is stored, not in memory. Only Chromium
@@ -137,7 +143,7 @@ test('messages sent offline arrive in order, once, after reconnecting', async ({
 
   await asha.context.setOffline(false);
   await expectBubbles(bharat.page, 'Asha', ['before', 'one', 'two', 'three']);
-  await expect(asha.page.getByRole('img', { name: 'Sent' })).toHaveCount(4, SLOW);
+  await expect(ticks(asha.page, 'Bharat', ACCEPTED)).toHaveCount(4, SLOW);
 
   // Nothing arrives twice, on either side.
   await bharat.page.waitForTimeout(2000);
