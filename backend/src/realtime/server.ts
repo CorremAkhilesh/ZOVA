@@ -90,7 +90,9 @@ async function setupRealtime(app: FastifyInstance, options: RealtimeOptions) {
     // Browsers send Origin: refuse other sites (cross-site WebSocket hijacking).
     allowRequest: (request, callback) => {
       const { origin } = request.headers;
-      callback(null, origin === undefined || origins.has(origin));
+      const allowed = origin === undefined || origins.has(origin);
+      if (!allowed) app.log.warn({ origin }, 'socket refused: origin not allowed');
+      callback(null, allowed);
     },
   });
 
@@ -112,8 +114,10 @@ async function setupRealtime(app: FastifyInstance, options: RealtimeOptions) {
     authenticate(app, socket).then(
       () => next(),
       (error: unknown) => {
-        if (error instanceof Error && 'data' in error) next(error);
-        else {
+        if (error instanceof Error && 'data' in error) {
+          app.log.warn({ code: error.message }, 'socket handshake refused');
+          next(error);
+        } else {
           app.log.error({ err: error }, 'socket authentication failed');
           next(authError('SESSION_EXPIRED'));
         }
@@ -123,6 +127,10 @@ async function setupRealtime(app: FastifyInstance, options: RealtimeOptions) {
 
   io.on('connection', (socket) => {
     const { userId, session } = socket.data;
+    app.log.info({ userId, socketId: socket.id }, 'socket connected');
+    socket.on('disconnect', (reason) => {
+      app.log.info({ userId, socketId: socket.id, reason }, 'socket disconnected');
+    });
     void socket.join([userRoom(userId), sessionRoom(session.id)]);
     armSessionExpiry(socket, session.expiresAt);
     registerHandlers(app, socket);

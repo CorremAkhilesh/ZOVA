@@ -42,6 +42,17 @@ async function assertSendLimit(app: FastifyInstance, userId: string) {
   }
 }
 
+/**
+ * Why an event failed, for the logs. Never message text: our own errors say nothing about content,
+ * and for anything else (a validation error can quote the value) only its name and code are kept.
+ */
+export function safeReason(error: unknown): string {
+  if (error instanceof AppError) return error.message;
+  if (!(error instanceof Error)) return 'unknown';
+  const { code } = error as Error & { code?: unknown };
+  return code === undefined ? error.name : `${error.name} ${String(code)}`;
+}
+
 /** Runs one event: validate, check the session, act, and always acknowledge. */
 async function respond<Schema extends z.ZodType, Data>(
   app: FastifyInstance,
@@ -65,9 +76,15 @@ async function respond<Schema extends z.ZodType, Data>(
   } catch (error) {
     const requestId = randomUUID();
     const { statusCode, body } = toErrorResponse(error, requestId);
-    if (statusCode >= 500) {
-      app.log.error({ err: error, event, requestId, userId: socket.data.userId }, 'socket error');
-    }
+    const failure = {
+      event,
+      code: body.code,
+      reason: safeReason(error),
+      requestId,
+      userId: socket.data.userId,
+    };
+    if (statusCode >= 500) app.log.error(failure, 'socket event failed');
+    else app.log.warn(failure, 'socket event refused');
     reply({ ok: false, error: body });
     // After the reply, so the client still hears why.
     if (body.code === 'SESSION_EXPIRED') closeSocket(socket, 'revoked');
