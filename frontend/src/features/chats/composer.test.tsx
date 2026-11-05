@@ -1,7 +1,7 @@
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MESSAGE_TEXT_MAX } from '@zuvo/protocol';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { getUserDb } from '@/features/sync/local-db';
 import { useSyncStore } from '@/features/sync/store';
 import { axe } from '@/test/axe';
@@ -155,13 +155,31 @@ describe('drafts', () => {
 });
 
 describe('buttons', () => {
-  it('shows voice as disabled, coming soon', async () => {
+  it('offers the mic while the box is empty, and Send once there is text', async () => {
+    const user = userEvent.setup();
+    const { input } = await open();
+    expect(screen.getByRole('button', { name: 'Record a voice note' })).toBeEnabled();
+    input.focus();
+    await user.keyboard('hi');
+    expect(screen.queryByRole('button', { name: 'Record a voice note' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Send' })).toBeInTheDocument();
+  });
+
+  it('explains the microphone before the browser asks', async () => {
     const user = userEvent.setup();
     await open();
-    const voice = screen.getByRole('button', { name: 'Record a voice note' });
-    expect(voice).toHaveAttribute('aria-disabled', 'true');
-    await user.hover(voice);
-    expect(await screen.findByRole('tooltip')).toHaveTextContent('Coming soon');
+    await user.click(screen.getByRole('button', { name: 'Record a voice note' }));
+    expect(await screen.findByRole('dialog', { name: 'Use your microphone?' })).toBeInTheDocument();
+  });
+
+  it('says how to unblock a microphone the browser has blocked', async () => {
+    const user = userEvent.setup();
+    const query = vi.fn(async () => ({ state: 'denied' }));
+    Object.defineProperty(navigator, 'permissions', { value: { query }, configurable: true });
+    await open();
+    await user.click(screen.getByRole('button', { name: 'Record a voice note' }));
+    expect(await screen.findByRole('dialog', { name: 'Microphone blocked' })).toBeInTheDocument();
+    Reflect.deleteProperty(navigator, 'permissions');
   });
 
   it('swaps the voice button for send while typing', async () => {
