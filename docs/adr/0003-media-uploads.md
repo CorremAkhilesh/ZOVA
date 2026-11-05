@@ -39,6 +39,29 @@ own caption, ticks, position and gallery row, and sending one is the same as sen
 The 20 messages per 5 seconds limit also applies to album items. The outbox waits out `RATE_LIMITED`
 without counting it as a failure, so a 30-photo album takes a few seconds longer.
 
+## Files up to 1 GB
+
+The limit is `MEDIA_MAX_FILE_MB` (default 1024), served by `GET /v1/config` so the app and server agree.
+The server decides: if the app cannot ask (offline), it refuses nothing, and the message later says why
+it failed. Pictures stay at 100 MB, since both sides decode them; a larger one goes as a document.
+
+- **Chunks:** 4 MB, or the 8 MB maximum above 100 MB, which keeps a 1 GB file to about 128 requests.
+  Chunks have their own rate limit (1200 a minute), since a whole office can share one address.
+- **Disk:** an upload is refused if it would take the disk above 90%. Each chunk checks again with the
+  bytes still to come, because uploads running side by side can all pass at the start. The partial file
+  stays, so a later retry continues from it.
+- **Finishing:** `complete` hashes and copies the file as streams, which can take minutes on a slow disk.
+  A client that lost the answer and asks again joins the same work instead of storing a second copy.
+- **Cleanup:** an unattached upload older than 24 hours is removed, unless bytes arrived in the last hour.
+- **Browser storage:** before keeping a file in IndexedDB, the app compares it with
+  `navigator.storage.estimate()`. If it does not fit, or the write fails on quota, the file stays only
+  as a handle in the tab (`held-files.ts`): it still uploads, the message says "Keep this tab open until
+  the upload finishes", and leaving the page asks first. Resuming after a reload is then not possible.
+  A Web Lock tells other tabs that the holder is alive. Once it is gone, the message says the file was
+  lost and can be removed, since a retry could never work.
+- **Limits of this:** one `complete` guard and one chunk writer per upload live in the API process. A
+  second API instance would need them moved to Redis.
+
 ## Backlog
 
 - **No ffmpeg on the server yet.** A video's poster, duration and dimensions come from the browser. The

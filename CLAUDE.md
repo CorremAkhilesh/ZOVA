@@ -20,7 +20,7 @@
 
 - Email OTP login, profile, unique `@username`
 - 1:1 chats + groups (≤ 256 members, admins, invite links)
-- Text, photos, videos, documents (≤ 100 MB), voice notes (waveform, playback speed)
+- Text, photos, videos, documents (≤ 1 GB), voice notes (waveform, playback speed)
 - Sent / delivered / read ticks (with privacy toggle), typing indicator, online / last seen
 - Reply, forward, copy, edit (within 15 min), delete for everyone, reactions, star
 - Pin, mute, archive, mark unread; block, report
@@ -160,7 +160,10 @@
 - **Private files.** Media is served only through the API after an authorization check (chat members
   only), using short-lived signed URLs (15 min). Range requests must work so audio and video can seek.
 - **Limits and safety:**
-  - Max 100 MB per file.
+  - Max 1 GB per file, set by env `MEDIA_MAX_FILE_MB` (default 1024). The app reads the limit from
+    `GET /v1/config`, so both sides always use the same one. Pictures stay at 100 MB: they are decoded
+    on both sides, and a larger one goes as a document.
+  - New uploads are refused (`507 STORAGE_FULL`) if the disk would go above 90%.
   - MIME type allow-list, verified by file signature (magic bytes), never by extension.
   - Images are compressed on the client before upload.
   - Files get random storage keys (sharded folders). User file names are never used on disk.
@@ -295,6 +298,7 @@
   `docs/runbooks/ci.md`), then deploys to **staging**. CI never uses secrets, Atlas or real SMTP.
 - Merge `dev` → `main` (**only when the owner says so**) → deploys **production**.
 - Images on GHCR; deploys over SSH with health checks and auto-rollback.
+- Setting up or changing the VPS: `docs/runbooks/vps-checklist.md`.
 - Secrets live in GitHub Secrets and `/srv/zuvo/*.env` on the VPS.
 
 ---
