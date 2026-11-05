@@ -7,6 +7,7 @@ import type { ClientSession } from 'mongoose';
 import { chatModels, oid, requireMember } from '../chats/chats.service.ts';
 import type { MediaDoc } from '../db/chat-models.ts';
 import { AppError } from '../lib/errors.ts';
+import { assertRoomFor, uploadLimit } from './limits.ts';
 import { processImage, processPoster } from './process-image.ts';
 import { UploadArea } from './upload-area.ts';
 import { SNIFF_BYTES, verifyFileType } from './validate.ts';
@@ -16,6 +17,8 @@ export const MAX_OPEN_UPLOADS = 5;
 const OPEN_UPLOAD_WINDOW_MS = 3600_000;
 export const UPLOADS_PER_MINUTE = 60;
 export const ORPHAN_AGE_MS = 24 * 3600_000;
+/** An old upload still receiving bytes is slow, not abandoned. */
+export const ACTIVE_UPLOAD_MS = 3600_000;
 
 const area = (app: FastifyInstance) => new UploadArea(app.env.MEDIA_STORAGE_PATH);
 
@@ -49,6 +52,13 @@ export async function createUpload(app: FastifyInstance, userId: string, body: C
   if ((await app.counterStore.increment(key, 60)) > UPLOADS_PER_MINUTE) {
     throw new AppError('RATE_LIMITED', 'Too many uploads. Try again in a minute.');
   }
+  const limit = uploadLimit(app.env, body.kind);
+  if (body.size > limit) {
+    throw new AppError('PAYLOAD_TOO_LARGE', 'This file is over the size limit.', {
+      maxBytes: limit,
+    });
+  }
+  await assertRoomFor(app, body.size);
   const open = await Media.countDocuments({
     ownerId: oid(userId),
     status: 'pending',
@@ -101,12 +111,16 @@ export async function appendChunk(
   }
   writing.add(id);
   try {
+    await assertRoomFor(app, doc.size - current);
     const next = await uploads.append(
       id,
       chunk,
       Math.min(doc.size - current, UPLOAD_CHUNK_MAX_BYTES),
     );
     return { uploadId: id, offset: next, size: doc.size, status: doc.status };
+  } catch (error) {
+    chunk.resume();
+    throw error;
   } finally {
     writing.delete(id);
   }
@@ -137,13 +151,24 @@ async function sha256Of(uploads: UploadArea, id: string): Promise<string> {
   return hash.digest('hex');
 }
 
+/** Hashing and storing a large file takes a while, and a client that lost the answer asks again. */
+const completing = new Map<string, Promise<MediaInfo>>();
+
 /** The upload is complete: checks the file, processes it and moves it into storage. */
 export async function completeUpload(app: FastifyInstance, userId: string, id: string) {
-  const { Media } = chatModels(app);
   const doc = await ownUpload(app, userId, id);
   if (doc.status === 'ready') return toMediaInfo(doc);
   if (doc.status === 'failed') throw new AppError('CONFLICT', 'This upload has failed.');
+  const running = completing.get(id);
+  if (running) return running;
+  const work = finishUpload(app, doc).finally(() => completing.delete(id));
+  completing.set(id, work);
+  return work;
+}
 
+async function finishUpload(app: FastifyInstance, doc: MediaDoc): Promise<MediaInfo> {
+  const { Media } = chatModels(app);
+  const id = doc._id.toString();
   const uploads = area(app);
   const received = await uploads.offset(id);
   if (received !== doc.size) {
@@ -260,6 +285,13 @@ export async function cleanupOrphans(
     .Media.find({ messageId: null, createdAt: { $lt: new Date(now.getTime() - ORPHAN_AGE_MS) } })
     .limit(batch)
     .lean();
-  for (const doc of orphans) await destroy(app, doc);
-  return orphans.length;
+  let removed = 0;
+  for (const doc of orphans) {
+    const lastWrite =
+      doc.status === 'pending' ? await area(app).lastWrite(doc._id.toString()) : null;
+    if (lastWrite && now.getTime() - lastWrite.getTime() < ACTIVE_UPLOAD_MS) continue;
+    await destroy(app, doc);
+    removed += 1;
+  }
+  return removed;
 }

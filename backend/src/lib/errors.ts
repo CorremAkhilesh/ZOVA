@@ -27,6 +27,7 @@ const STATUS_BY_CODE: Record<ErrorCode, number> = {
   MEDIA_NOT_ATTACHABLE: 409,
   MEDIA_LINK_INVALID: 403,
   UPLOAD_OFFSET_MISMATCH: 409,
+  STORAGE_FULL: 507,
 };
 
 /** An expected error whose message is safe to show to the client. */

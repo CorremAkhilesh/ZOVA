@@ -16,6 +16,7 @@ import { createMemoryMailer, isMemoryMailer } from './mail/memory-mailer.ts';
 import { adminRoutes } from './modules/admin/admin.routes.ts';
 import { authRoutes } from './modules/auth/auth.routes.ts';
 import { chatsRoutes } from './modules/chats/chats.routes.ts';
+import { configRoutes } from './modules/config/config.routes.ts';
 import { healthRoutes } from './modules/health/health.routes.ts';
 import { mediaRoutes } from './modules/media/media.routes.ts';
 import { sessionsRoutes } from './modules/security/sessions.routes.ts';
@@ -63,6 +64,8 @@ export async function buildApp(env: Env, deps: Partial<AppDeps> = {}) {
     // Caddy runs on the same Docker network (private address range).
     trustProxy: ['loopback', 'uniquelocal'],
     bodyLimit: 1024 * 1024,
+    // Long enough for the largest upload chunk on a very slow link. What arrived is kept and resumed.
+    requestTimeout: 10 * 60_000,
   }).withTypeProvider<ZodTypeProvider>();
 
   app.decorate('env', env);
@@ -106,6 +109,7 @@ export async function buildApp(env: Env, deps: Partial<AppDeps> = {}) {
   await app.register(multipart, { limits: { files: 1, fields: 5, fileSize: AVATAR_MAX_BYTES } });
 
   await app.register(healthRoutes, { prefix: '/v1' });
+  await app.register(configRoutes, { prefix: '/v1' });
   await app.register(authRoutes, { prefix: '/v1' });
   await app.register(meRoutes, { prefix: '/v1' });
   await app.register(usersRoutes, { prefix: '/v1' });

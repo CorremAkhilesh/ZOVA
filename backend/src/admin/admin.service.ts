@@ -1,6 +1,7 @@
 import type { AdminUser, AuditAction, AuditLogEntry, SessionUser } from '@zuvo/protocol';
 import type { FastifyInstance } from 'fastify';
 import { Types } from 'mongoose';
+import { chatModels } from '../chats/chats.service.ts';
 import { registerSecurityModels } from '../db/security-models.ts';
 import { AppError } from '../lib/errors.ts';
 import { escapeRegex, loadUser, type UserDoc, usersModel } from '../users/user-record.ts';
@@ -22,6 +23,21 @@ export const toAdminUser = (user: UserDoc): AdminUser => ({
   createdAt: new Date(user.createdAt).toISOString(),
 });
 
+/** The filter behind each person's storage figure. */
+export const storageFilter = (ownerIds: Types.ObjectId[]) => ({
+  ownerId: { $in: ownerIds },
+  status: 'ready' as const,
+});
+
+/** Total bytes of finished files per person (index: ownerId + status + size). */
+async function storageByOwner(app: FastifyInstance, ownerIds: Types.ObjectId[]) {
+  const rows = await chatModels(app).Media.aggregate<{ _id: Types.ObjectId; bytes: number }>([
+    { $match: storageFilter(ownerIds) },
+    { $group: { _id: '$ownerId', bytes: { $sum: '$size' } } },
+  ]);
+  return new Map(rows.map((row) => [row._id.toString(), row.bytes]));
+}
+
 /**
  * Admin → Users, newest first, cursor on _id (default _id index). `q` with "@" is an email
  * prefix (unique email index), otherwise name/username word prefixes (searchTerms index).
@@ -42,7 +58,17 @@ export async function listUsers(app: FastifyInstance, q: string, limit: number, 
     .lean()) as UserDoc[];
   const items = docs.slice(0, limit);
   const next = docs.length > limit ? (items.at(-1)?._id.toString() ?? null) : null;
-  return { items: items.map(toAdminUser), nextCursor: next };
+  const stored = await storageByOwner(
+    app,
+    items.map((user) => user._id),
+  );
+  return {
+    items: items.map((user) => ({
+      ...toAdminUser(user),
+      storageBytes: stored.get(user._id.toString()) ?? 0,
+    })),
+    nextCursor: next,
+  };
 }
 
 export async function findTarget(app: FastifyInstance, id: string): Promise<UserDoc> {

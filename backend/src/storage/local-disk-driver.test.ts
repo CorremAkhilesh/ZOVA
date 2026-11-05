@@ -20,6 +20,13 @@ afterEach(() => root.cleanup());
 const save = (content: string) => driver.save(Readable.from([Buffer.from(content)]));
 
 describe('LocalDiskDriver', () => {
+  it('says how much room the disk has', async () => {
+    const space = await driver.space();
+    expect(space.total).toBeGreaterThan(0);
+    expect(space.free).toBeGreaterThan(0);
+    expect(space.free).toBeLessThanOrEqual(space.total);
+  });
+
   it('saves a stream under a random sharded key and reads it back', async () => {
     const { key, size } = await save('hello world');
     expect(isValidKey(key)).toBe(true);

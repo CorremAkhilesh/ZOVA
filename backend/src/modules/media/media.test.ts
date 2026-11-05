@@ -74,17 +74,6 @@ describe('checking files', () => {
     expect(mediaInfoSchema.parse(media)).toMatchObject({ kind: 'document', mime, name });
   });
 
-  it('refuses a file larger than the limit before any bytes move', async () => {
-    const who = await person();
-    const response = await start(who, {
-      kind: 'document',
-      name: 'huge.pdf',
-      mime: 'application/pdf',
-      size: 100 * 1024 * 1024 + 1,
-    });
-    expect(response.statusCode).toBe(400);
-  });
-
   it('refuses bytes past the declared size', async () => {
     const who = await person();
     const started = await start(who, { kind: 'document', name: 'a.pdf', mime: 'x/y', size: 10 });

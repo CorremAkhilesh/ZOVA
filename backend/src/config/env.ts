@@ -62,6 +62,11 @@ const envSchema = z
       .string()
       .min(1)
       .transform((path) => resolve(path)),
+    /** The largest file a person can send, in MiB. The app reads it from GET /v1/config. */
+    MEDIA_MAX_FILE_MB: z.preprocess(
+      emptyToUndefined,
+      z.coerce.number().int().min(1).max(102_400).default(1024),
+    ),
     LOG_LEVEL: z
       .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
       .default('info'),

@@ -36,6 +36,8 @@ import { StorageError } from '../../storage/driver.ts';
 
 /** A gallery can ask for many thumbnails at once; each is one small read. */
 const CONTENT_RATE_LIMIT = { max: 3000, timeWindow: '1 minute' };
+/** A large file is hundreds of chunks, and a whole office can share one address. */
+export const CHUNK_RATE_LIMIT = { max: 1200, timeWindow: '1 minute' };
 
 const contentQuerySchema = z.object({
   variant: z.enum(['full', 'thumb']).default('full'),
@@ -123,6 +125,7 @@ export const mediaRoutes: FastifyPluginAsyncZod = async (app) => {
       '/uploads/:id',
       {
         bodyLimit: UPLOAD_CHUNK_MAX_BYTES,
+        config: { rateLimit: CHUNK_RATE_LIMIT },
         schema: {
           tags: ['media'],
           summary: 'Send the next chunk, from the offset in the upload-offset header',

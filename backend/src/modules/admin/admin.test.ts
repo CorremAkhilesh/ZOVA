@@ -9,7 +9,8 @@ import { headers, me, signIn } from '../../../test/auth-helpers.ts';
 import { expectIndexedQuery } from '../../../test/expect-indexed-query.ts';
 import { buildTestApp } from '../../../test/helpers.ts';
 import { insertUser } from '../../../test/user-helpers.ts';
-import { assertNotLastAdmin, findTarget } from '../../admin/admin.service.ts';
+import { assertNotLastAdmin, findTarget, storageFilter } from '../../admin/admin.service.ts';
+import { chatModels } from '../../chats/chats.service.ts';
 import { registerSecurityModels } from '../../db/security-models.ts';
 import { usersModel } from '../../users/user-record.ts';
 
@@ -153,6 +154,7 @@ describe('Admin → Users', () => {
         .limit(51),
     );
     await expectIndexedQuery(usersModel(app()).find({ role: 'admin', status: 'active' }));
+    await expectIndexedQuery(chatModels(app()).Media.find(storageFilter([new Types.ObjectId()])));
     await expectIndexedQuery(usersModel(app()).find({ email: /^dev@/ }).sort({ _id: -1 }));
   });
 });

@@ -57,7 +57,11 @@ export const adminUserSchema = z.object({
 export const adminUsersQuerySchema = cursorPageQuerySchema.extend({
   q: z.string().trim().max(100).default(''),
 });
-export const adminUsersResponseSchema = cursorPageSchema(adminUserSchema);
+/** A row of Admin → Users. `storageBytes`: the person's sent and ready files. No quota applies yet. */
+export const adminUserRowSchema = adminUserSchema.extend({
+  storageBytes: z.number().int().nonnegative(),
+});
+export const adminUsersResponseSchema = cursorPageSchema(adminUserRowSchema);
 export const adminRoleBodySchema = z.object({ role: userRoleSchema });
 export const adminUserResponseSchema = z.object({ user: adminUserSchema });
 
@@ -80,5 +84,6 @@ export const auditLogResponseSchema = cursorPageSchema(auditLogEntrySchema);
 
 export type DeviceSession = z.infer<typeof deviceSessionSchema>;
 export type AdminUser = z.infer<typeof adminUserSchema>;
+export type AdminUserRow = z.infer<typeof adminUserRowSchema>;
 export type AuditLogEntry = z.infer<typeof auditLogEntrySchema>;
 export type AuditAction = z.infer<typeof auditActionSchema>;

@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { createReadStream, createWriteStream } from 'node:fs';
-import { mkdir, rename, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdir, rename, rm, stat, statfs, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve, sep } from 'node:path';
 import { type Readable, Transform } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
@@ -10,6 +10,7 @@ import {
   type SaveOptions,
   type StorageDriver,
   StorageError,
+  type StorageSpace,
   type StoredObject,
 } from './driver.ts';
 import { generateKey, isValidKey } from './keys.ts';
@@ -90,6 +91,13 @@ export class LocalDiskDriver implements StorageDriver {
     await mkdir(dirname(probe), { recursive: true });
     await writeFile(probe, 'ok');
     await rm(probe, { force: true });
+  }
+
+  async space(): Promise<StorageSpace> {
+    await mkdir(this.root, { recursive: true });
+    const { blocks, bavail, bsize } = await statfs(this.root);
+    // bavail, as in `df`: what is reserved for root is not ours to use.
+    return { total: blocks * bsize, free: bavail * bsize };
   }
 
   /** Resolves a key to a path, rejecting anything that is not a well-formed key inside root. */

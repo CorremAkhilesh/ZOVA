@@ -30,6 +30,19 @@ describe('loadEnv', () => {
     expect(isAbsolute(env.MEDIA_STORAGE_PATH)).toBe(true);
   });
 
+  it('defaults the file size limit to 1 GB, and reads it when set', () => {
+    expect(loadEnv(testEnvSource()).MEDIA_MAX_FILE_MB).toBe(1024);
+    expect(loadEnv(testEnvSource({ MEDIA_MAX_FILE_MB: '' })).MEDIA_MAX_FILE_MB).toBe(1024);
+    expect(loadEnv(testEnvSource({ MEDIA_MAX_FILE_MB: '200' })).MEDIA_MAX_FILE_MB).toBe(200);
+  });
+
+  it('refuses a file size limit that makes no sense', () => {
+    expect(() => loadEnv(testEnvSource({ MEDIA_MAX_FILE_MB: '0' }))).toThrow('MEDIA_MAX_FILE_MB');
+    expect(() => loadEnv(testEnvSource({ MEDIA_MAX_FILE_MB: 'lots' }))).toThrow(
+      'MEDIA_MAX_FILE_MB',
+    );
+  });
+
   it('defaults the allowed email domains to the organization domain', () => {
     expect(loadEnv(testEnvSource({ ALLOWED_EMAIL_DOMAINS: '' })).ALLOWED_EMAIL_DOMAINS).toEqual([
       'corremadvisory.com',

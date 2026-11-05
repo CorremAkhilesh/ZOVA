@@ -28,6 +28,7 @@ export const errorCodeSchema = z.enum([
   'MEDIA_NOT_ATTACHABLE',
   'MEDIA_LINK_INVALID',
   'UPLOAD_OFFSET_MISMATCH',
+  'STORAGE_FULL',
 ]);
 
 export type ErrorCode = z.infer<typeof errorCodeSchema>;

@@ -31,6 +31,15 @@ export class UploadArea {
     }
   }
 
+  /** When the last bytes arrived, or null if none have. */
+  async lastWrite(id: string): Promise<Date | null> {
+    try {
+      return (await stat(this.pathFor(id))).mtime;
+    } catch {
+      return null;
+    }
+  }
+
   /**
    * Appends up to `maxBytes`. Anything past that is read and dropped rather than cutting the
    * connection, so the client gets a proper answer. Returns the new offset.

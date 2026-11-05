@@ -258,6 +258,8 @@ const mediaSchema = new Schema<MediaDoc>(
 );
 // Serves: how many uploads a person has open (the per-user limit).
 mediaSchema.index({ ownerId: 1, status: 1, createdAt: -1 });
+// Serves: Admin → Users, how much each person stores. Holds `size`, so no document is read.
+mediaSchema.index({ ownerId: 1, status: 1, size: 1 });
 // Serves: the hourly cleanup of uploads never attached to a message.
 mediaSchema.index({ messageId: 1, createdAt: 1 });
 

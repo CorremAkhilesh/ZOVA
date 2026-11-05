@@ -1,6 +1,10 @@
 import { z } from 'zod';
 
-export const MEDIA_MAX_BYTES = 100 * 1024 * 1024;
+/**
+ * Pictures are decoded on both sides, so they keep their own limit. A larger one goes as a document.
+ * Every other file's limit is set per environment: see GET /v1/config.
+ */
+export const IMAGE_MAX_BYTES = 100 * 1024 * 1024;
 /** The largest single chunk a client may send. */
 export const UPLOAD_CHUNK_MAX_BYTES = 8 * 1024 * 1024;
 export const POSTER_MAX_BYTES = 5 * 1024 * 1024;
@@ -32,7 +36,8 @@ export const createUploadBodySchema = z.object({
   kind: mediaKindSchema,
   name: z.string().trim().min(1).max(255),
   mime: z.string().max(127),
-  size: z.number().int().positive().max(MEDIA_MAX_BYTES),
+  /** Checked against the configured limit by the server. */
+  size: z.number().int().positive(),
   /** From the browser, for videos: the server does not decode them. */
   width: z.number().int().positive().max(20_000).optional(),
   height: z.number().int().positive().max(20_000).optional(),
