@@ -25,7 +25,7 @@ brief. Known later work is in [docs/backlog.md](docs/backlog.md).
 | -------- | ------------------------------------------------------------------------------------------------- |
 | Monorepo | pnpm workspaces, Turborepo, Biome, lefthook, TypeScript 7                                         |
 | Frontend | React 19, Vite, TanStack Router and Query, Zustand, Tailwind v4, shadcn/ui, Dexie, Socket.IO      |
-| Backend  | Node.js 24, Fastify, Socket.IO, Better Auth, Mongoose, BullMQ, Nodemailer, web-push               |
+| Backend  | Node.js 24, Fastify, Socket.IO, Better Auth, Mongoose, BullMQ, Nodemailer                         |
 | Data     | MongoDB Atlas, Redis (Memurai on Windows), media files on disk behind a `StorageDriver` interface |
 | Shared   | `@zuvo/protocol` (Zod schemas for every REST call and socket event), `config`, `ui-tokens`        |
 | Tests    | Vitest, Testing Library, MSW, axe, Playwright, `mongodb-memory-server`                            |
