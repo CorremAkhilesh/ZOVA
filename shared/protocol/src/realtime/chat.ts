@@ -10,13 +10,28 @@ import {
   messageTextSchema,
   syncCursorSchema,
 } from '../rest/chats.ts';
+import { CAPTION_MAX } from '../rest/media.ts';
 
-/** message:send (client → server) */
-export const sendMessagePayloadSchema = z.object({
-  chatId: objectIdSchema,
-  clientMsgId: clientMsgIdSchema,
-  text: messageTextSchema,
-});
+/** A caption on media, or a message's text. Must say something if present. */
+const captionSchema = z.string().max(CAPTION_MAX);
+
+/** message:send (client → server): either text, or one finished upload and maybe a caption. */
+export const sendMessagePayloadSchema = z
+  .object({
+    chatId: objectIdSchema,
+    clientMsgId: clientMsgIdSchema,
+    text: messageTextSchema.optional(),
+    mediaIds: z.array(objectIdSchema).length(1).optional(),
+    caption: captionSchema.optional(),
+    /** Client-made, the same on every item of an album. */
+    albumId: z.uuid().optional(),
+  })
+  .refine((message) => (message.text === undefined) !== (message.mediaIds === undefined), {
+    message: 'Send either text or media',
+  })
+  .refine((message) => message.mediaIds !== undefined || message.caption === undefined, {
+    message: 'A caption needs media',
+  });
 export const sendMessageAckSchema = z.object({
   messageId: z.string(),
   seq: z.number().int().positive(),
@@ -47,7 +62,7 @@ export const chatUpdatedEventSchema = z.object({
   lastActivityAt: isoDateTimeSchema.nullable(),
   /** Sent with new messages in direct chats: replying also means having received and read. */
   peerDeliveredSeq: z.number().int().nonnegative().optional(),
-  peerReadSeq: z.number().int().nonnegative().nullable().optional(),
+  peerReadSeq: z.number().int().nonnegative().optional(),
   cursor: syncCursorSchema,
 });
 
@@ -105,8 +120,8 @@ export const receiptEventSchema = z.object({
   chatId: z.string(),
   userId: z.string(),
   lastDeliveredSeq: z.number().int().nonnegative(),
-  /** Null when either person has read receipts off: read information is never sent then. */
-  lastReadSeq: z.number().int().nonnegative().nullable(),
+  /** Stops moving while either person has read receipts off. */
+  lastReadSeq: z.number().int().nonnegative(),
   cursor: syncCursorSchema,
 });
 

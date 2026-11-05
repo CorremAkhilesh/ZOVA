@@ -167,6 +167,7 @@
   - Storage keys are validated, which protects against path traversal.
 - **Cleanup:** deleting a message for everyone, or a disappearing message expiring, also deletes its
   file (background job). A daily job removes orphaned files.
+- **Uploads:** chunked and resumable, see `docs/adr/0003-media-uploads.md`.
 - **Backups:** the media folder is backed up daily along with the database. Send an alert email when
   disk usage passes 80%.
 - **Known dev limitation:** local and staging share the `zuvo_dev` database but not the media folder,

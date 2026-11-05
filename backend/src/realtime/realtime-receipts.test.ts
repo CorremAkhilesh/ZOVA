@@ -165,36 +165,43 @@ describe('read receipts privacy is reciprocal', () => {
   it.each([
     ['the reader', 'bob'],
     ['the sender', 'alice'],
-  ] as const)('with %s switched off, no read position is ever sent', async (_who, off) => {
-    const { alice, bob, chatId } = await pair();
-    const response = await setReadReceipts(off === 'bob' ? bob : alice, false);
-    expect(response.statusCode).toBe(200);
-    const aliceSocket = await connect(url, alice.cookie);
-    const bobSocket = await connect(url, bob.cookie);
-    const receipts = record(aliceSocket, 'receipt:update');
-    const updates = record(aliceSocket, 'chat:updated');
-    await send(aliceSocket, chatId, 'one');
-    await send(aliceSocket, chatId, 'two');
+  ] as const)(
+    'with %s switched off, new reads stay hidden and old ones stay read',
+    async (_who, off) => {
+      const { alice, bob, chatId } = await pair();
+      const aliceSocket = await connect(url, alice.cookie);
+      const bobSocket = await connect(url, bob.cookie);
+      await send(aliceSocket, chatId, 'read before the change');
+      await markRead(app(), bob.id, chatId, 1);
+      expect((await getChat(app(), chatId, alice.id)).peerReadSeq).toBe(1);
 
-    await markDelivered(app(), bob.id, chatId, 1);
-    await markRead(app(), bob.id, chatId, 2);
-    await waitUntil(() => expect(receipts).toHaveLength(2));
-    for (const receipt of receipts) expect(receipt.lastReadSeq).toBeNull();
-    expect(receipts.at(-1)?.lastDeliveredSeq).toBe(2);
-    for (const update of updates) expect(update.peerReadSeq ?? null).toBeNull();
+      const response = await setReadReceipts(off === 'bob' ? bob : alice, false);
+      expect(response.statusCode).toBe(200);
+      const receipts = record(aliceSocket, 'receipt:update');
+      const updates = record(aliceSocket, 'chat:updated');
+      await send(aliceSocket, chatId, 'two');
+      await send(aliceSocket, chatId, 'three');
 
-    // Nor in what the REST API or sync say.
-    expect((await getChat(app(), chatId, alice.id)).peerReadSeq).toBeNull();
-    expect((await getChat(app(), chatId, bob.id)).peerReadSeq).toBeNull();
-    const synced = await syncSince(app(), alice.id, '0', 200);
-    for (const chat of synced.chats) expect(chat.peerReadSeq).toBeNull();
+      await markDelivered(app(), bob.id, chatId, 2);
+      await markRead(app(), bob.id, chatId, 3);
+      await waitUntil(() => expect(receipts).toHaveLength(2));
+      // Message 1 stays read. Nothing about 2 and 3 being read ever leaves the server.
+      for (const receipt of receipts) expect(receipt.lastReadSeq).toBe(1);
+      expect(receipts.at(-1)?.lastDeliveredSeq).toBe(3);
+      for (const update of updates) expect(update.peerReadSeq ?? 1).toBe(1);
 
-    // A reply would otherwise reveal it too.
-    const replies = record(aliceSocket, 'chat:updated');
-    await send(bobSocket, chatId, 'reply');
-    await waitUntil(() => expect(replies).toHaveLength(1));
-    expect(replies[0]).toMatchObject({ peerDeliveredSeq: 3, peerReadSeq: null });
-  });
+      // Nor in what the REST API or sync say.
+      expect((await getChat(app(), chatId, alice.id)).peerReadSeq).toBe(1);
+      const synced = await syncSince(app(), alice.id, '0', 200);
+      for (const chat of synced.chats) expect(chat.peerReadSeq).toBe(1);
+
+      // A reply would otherwise reveal it too.
+      const replies = record(aliceSocket, 'chat:updated');
+      await send(bobSocket, chatId, 'reply');
+      await waitUntil(() => expect(replies).toHaveLength(1));
+      expect(replies[0]).toMatchObject({ peerDeliveredSeq: 4, peerReadSeq: 1 });
+    },
+  );
 
   it('reading further sends nothing at all when nothing new may be known', async () => {
     const { alice, bob, chatId } = await pair();
@@ -210,13 +217,19 @@ describe('read receipts privacy is reciprocal', () => {
     expect((await memberOf(chatId, bob.id))?.lastReadSeq).toBe(1);
   });
 
-  it('shows reads again once both have it on', async () => {
+  it('turning them back on shows only what is read from then on', async () => {
     const { alice, bob, chatId } = await pair();
     await setReadReceipts(bob, false);
-    await send(await connect(url, alice.cookie), chatId, 'one');
+    const aliceSocket = await connect(url, alice.cookie);
+    await send(aliceSocket, chatId, 'read while off');
     await markRead(app(), bob.id, chatId, 1);
-    expect((await getChat(app(), chatId, alice.id)).peerReadSeq).toBeNull();
+    expect((await getChat(app(), chatId, alice.id)).peerReadSeq).toBe(0);
+
     await setReadReceipts(bob, true);
-    expect((await getChat(app(), chatId, alice.id)).peerReadSeq).toBe(1);
+    // Read while off: it stays that way.
+    expect((await getChat(app(), chatId, alice.id)).peerReadSeq).toBe(0);
+    await send(aliceSocket, chatId, 'read after turning on');
+    await markRead(app(), bob.id, chatId, 2);
+    expect((await getChat(app(), chatId, alice.id)).peerReadSeq).toBe(2);
   });
 });

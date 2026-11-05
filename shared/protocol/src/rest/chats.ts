@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { isoDateTimeSchema, objectIdSchema } from '../common/id.ts';
+import { mediaInfoSchema } from './media.ts';
 import { publicProfileSchema } from './profile.ts';
 
 export const MESSAGE_TEXT_MAX = 4096;
@@ -9,8 +10,7 @@ export const CHAT_PAGE_MAX = 50;
 
 export const chatTypeSchema = z.enum(['direct', 'group', 'self']);
 export const chatMemberRoleSchema = z.enum(['member', 'admin', 'owner']);
-/** Media types arrive with the media step; only these exist so far. */
-export const messageTypeSchema = z.enum(['text', 'system']);
+export const messageTypeSchema = z.enum(['text', 'system', 'image', 'video', 'document']);
 
 /** Client-generated id, unique per sender: re-sending the same one never creates a duplicate. */
 export const clientMsgIdSchema = z.uuidv7();
@@ -29,8 +29,12 @@ export const messageSchema = z.object({
   clientMsgId: z.string().nullable(),
   senderId: z.string().nullable(),
   type: messageTypeSchema,
-  /** Null once deleted for everyone. */
+  /** The caption on media. Null once deleted for everyone, or for media with no caption. */
   text: z.string().nullable(),
+  /** Absent from older cached copies; null on text messages. */
+  media: mediaInfoSchema.nullable().default(null),
+  /** Messages sent together as an album share this. */
+  albumId: z.string().nullable().default(null),
   replyToId: z.string().nullable(),
   editedAt: isoDateTimeSchema.nullable(),
   deletedForEveryoneAt: isoDateTimeSchema.nullable(),
@@ -59,8 +63,11 @@ export const chatSummarySchema = z.object({
   unreadCount: z.number().int().nonnegative(),
   /** Direct chats: how far the other person's devices have received. 0 otherwise. */
   peerDeliveredSeq: z.number().int().nonnegative(),
-  /** How far the other person has read. Null when either person has read receipts off. */
-  peerReadSeq: z.number().int().nonnegative().nullable(),
+  /**
+   * How far the other person has read, as far as this user may know. It stops moving while either
+   * person has read receipts off, and what was already read stays read.
+   */
+  peerReadSeq: z.number().int().nonnegative(),
   lastActivityAt: isoDateTimeSchema.nullable(),
   createdAt: isoDateTimeSchema,
 });
@@ -122,6 +129,18 @@ export const syncResponseSchema = z.object({
   chats: z.array(chatSummarySchema),
   /** The missing messages, oldest change first. */
   messages: z.array(messageSchema),
+});
+
+/** GET /v1/chats/:id/media */
+export const galleryQuerySchema = z.object({
+  tab: z.enum(['media', 'docs']),
+  before: z.coerce.number().int().positive().optional(),
+  limit: z.coerce.number().int().min(1).max(MESSAGE_PAGE_MAX).default(60),
+});
+export const galleryResponseSchema = z.object({
+  /** Newest first. */
+  items: z.array(messageSchema),
+  hasMore: z.boolean(),
 });
 
 export type ChatType = z.infer<typeof chatTypeSchema>;

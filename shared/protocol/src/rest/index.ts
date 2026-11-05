@@ -8,5 +8,6 @@ export {
   type ReadyResponse,
   readyResponseSchema,
 } from './health.ts';
+export * from './media.ts';
 export * from './profile.ts';
 export * from './security.ts';

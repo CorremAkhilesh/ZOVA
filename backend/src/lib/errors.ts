@@ -23,6 +23,10 @@ const STATUS_BY_CODE: Record<ErrorCode, number> = {
   SECURITY_TOKEN_INVALID: 400,
   SECURITY_TOKEN_EXPIRED: 400,
   LAST_ADMIN: 409,
+  MEDIA_NOT_FOUND: 404,
+  MEDIA_NOT_ATTACHABLE: 409,
+  MEDIA_LINK_INVALID: 403,
+  UPLOAD_OFFSET_MISMATCH: 409,
 };
 
 /** An expected error whose message is safe to show to the client. */

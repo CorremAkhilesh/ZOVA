@@ -17,6 +17,7 @@ import { adminRoutes } from './modules/admin/admin.routes.ts';
 import { authRoutes } from './modules/auth/auth.routes.ts';
 import { chatsRoutes } from './modules/chats/chats.routes.ts';
 import { healthRoutes } from './modules/health/health.routes.ts';
+import { mediaRoutes } from './modules/media/media.routes.ts';
 import { sessionsRoutes } from './modules/security/sessions.routes.ts';
 import { outboxRoutes } from './modules/test-support/outbox.routes.ts';
 import { meRoutes } from './modules/users/me.routes.ts';
@@ -32,6 +33,12 @@ import { servicesPlugin } from './plugins/services.ts';
 import { realtimePlugin } from './realtime/server.ts';
 import type { StorageDriver } from './storage/driver.ts';
 import { LocalDiskDriver } from './storage/local-disk-driver.ts';
+
+declare module 'fastify' {
+  interface FastifyInstance {
+    env: Env;
+  }
+}
 
 /** Replaceable dependencies, mainly for tests. Anything omitted is created from env. */
 export interface AppDeps {
@@ -58,6 +65,7 @@ export async function buildApp(env: Env, deps: Partial<AppDeps> = {}) {
     bodyLimit: 1024 * 1024,
   }).withTypeProvider<ZodTypeProvider>();
 
+  app.decorate('env', env);
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
 
@@ -103,6 +111,7 @@ export async function buildApp(env: Env, deps: Partial<AppDeps> = {}) {
   await app.register(usersRoutes, { prefix: '/v1' });
   await app.register(sessionsRoutes, { prefix: '/v1' });
   await app.register(chatsRoutes, { prefix: '/v1' });
+  await app.register(mediaRoutes, { prefix: '/v1' });
   await app.register(adminRoutes, { prefix: '/v1' });
   if (env.NODE_ENV === 'test' && isMemoryMailer(app.mailer)) {
     await app.register(outboxRoutes(app.mailer), { prefix: '/v1' });

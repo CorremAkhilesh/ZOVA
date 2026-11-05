@@ -1,3 +1,4 @@
+import type { MediaInfo } from '@zuvo/protocol';
 import { type Connection, type Model, Schema, type Types } from 'mongoose';
 
 const options = { versionKey: false, autoCreate: true } as const;
@@ -7,7 +8,7 @@ export interface LastMessageSnapshot {
   id: Types.ObjectId;
   seq: number;
   senderId: Types.ObjectId | null;
-  type: 'text' | 'system';
+  type: 'text' | 'system' | MediaInfo['kind'];
   preview: string;
   createdAt: Date;
 }
@@ -64,6 +65,11 @@ export interface ChatMemberDoc {
   leftAt: Date | null;
   lastReadSeq: number;
   lastDeliveredSeq: number;
+  /**
+   * How far others may know this member has read. Follows lastReadSeq while read receipts are on for
+   * both people, and stays put otherwise, so what was already shown as read stays read.
+   */
+  sharedReadSeq?: number;
   /** Copied from the chat so the chat list is one index scan. Null hides a chat not yet messaged. */
   lastActivityAt: Date | null;
   // Reserved per-user flags.
@@ -83,6 +89,7 @@ const chatMemberSchema = new Schema<ChatMemberDoc>(
     leftAt: { type: Date, default: null },
     lastReadSeq: { type: Number, default: 0 },
     lastDeliveredSeq: { type: Number, default: 0 },
+    sharedReadSeq: { type: Number },
     lastActivityAt: { type: Date, default: null },
     pinnedAt: Date,
     mutedUntil: Date,
@@ -103,8 +110,11 @@ export interface MessageDoc {
   seq: number;
   clientMsgId: string | null;
   senderId: Types.ObjectId | null;
-  type: 'text' | 'system';
+  type: 'text' | 'system' | MediaInfo['kind'];
   text: string | null;
+  /** What readers need to know about the file, copied here so history needs no second query. */
+  media?: MediaInfo | null;
+  albumId?: string | null;
   /** Reserved for formatting and mentions. */
   entities?: unknown[];
   replyToId: Types.ObjectId | null;
@@ -121,6 +131,8 @@ const messageSchema = new Schema<MessageDoc>(
     senderId: { type: ObjectId, default: null },
     type: { type: String, required: true },
     text: { type: String, default: null },
+    media: { type: Schema.Types.Mixed, default: null },
+    albumId: { type: String, default: null },
     entities: { type: [Schema.Types.Mixed], default: undefined },
     replyToId: { type: ObjectId, default: null },
     editedAt: { type: Date, default: null },
@@ -131,6 +143,8 @@ const messageSchema = new Schema<MessageDoc>(
 );
 // Serves: history pages (before/after a position) and sync. Unique: a position is used only once.
 messageSchema.index({ chatId: 1, seq: -1 }, { unique: true });
+// Serves: the gallery ("Media" and "Docs" in chat info), newest first.
+messageSchema.index({ chatId: 1, type: 1, seq: -1 });
 // Serves: "already sent?" check. Unique: the same clientMsgId can never create a second message.
 // Partial (system messages have none): queries must include `$type: 'string'` to use it.
 messageSchema.index(
@@ -199,6 +213,54 @@ userUpdateSchema.index({ userId: 1, pts: 1 }, { unique: true });
 // TTL: a device away this long reloads its chat list instead (`reset` in the sync response).
 userUpdateSchema.index({ at: 1 }, { expireAfterSeconds: UPDATE_LOG_TTL_DAYS * 86_400 });
 
+export interface MediaDoc {
+  _id: Types.ObjectId;
+  ownerId: Types.ObjectId;
+  kind: MediaInfo['kind'];
+  mime: string;
+  size: number;
+  /** As the user named it: shown and offered on download, and never used on disk. */
+  name: string;
+  width: number | null;
+  height: number | null;
+  duration: number | null;
+  sha256: string | null;
+  storageKey: string | null;
+  thumbnailKey: string | null;
+  placeholder: string | null;
+  status: 'pending' | 'ready' | 'failed';
+  /** Set once, when attached to a message. */
+  messageId: Types.ObjectId | null;
+  chatId: Types.ObjectId | null;
+  createdAt: Date;
+}
+
+const mediaSchema = new Schema<MediaDoc>(
+  {
+    ownerId: { type: ObjectId, required: true },
+    kind: { type: String, required: true },
+    mime: { type: String, required: true },
+    size: { type: Number, required: true },
+    name: { type: String, required: true },
+    width: { type: Number, default: null },
+    height: { type: Number, default: null },
+    duration: { type: Number, default: null },
+    sha256: { type: String, default: null },
+    storageKey: { type: String, default: null },
+    thumbnailKey: { type: String, default: null },
+    placeholder: { type: String, default: null },
+    status: { type: String, required: true, default: 'pending' },
+    messageId: { type: ObjectId, default: null },
+    chatId: { type: ObjectId, default: null },
+    createdAt: { type: Date, default: () => new Date() },
+  },
+  { ...options, collection: 'media' },
+);
+// Serves: how many uploads a person has open (the per-user limit).
+mediaSchema.index({ ownerId: 1, status: 1, createdAt: -1 });
+// Serves: the hourly cleanup of uploads never attached to a message.
+mediaSchema.index({ messageId: 1, createdAt: 1 });
+
 export function registerChatModels(connection: Connection) {
   const model = <T>(name: string, schema: Schema<T>): Model<T> =>
     (connection.models[name] as Model<T> | undefined) ?? connection.model<T>(name, schema);
@@ -206,6 +268,7 @@ export function registerChatModels(connection: Connection) {
     Chat: model('Chat', chatSchema),
     ChatMember: model('ChatMember', chatMemberSchema),
     Message: model('Message', messageSchema),
+    Media: model('Media', mediaSchema),
     MessageHidden: model('MessageHidden', messageHiddenSchema),
     UserSync: model('UserSync', userSyncSchema),
     UserUpdate: model('UserUpdate', userUpdateSchema),

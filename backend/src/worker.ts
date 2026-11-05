@@ -1,6 +1,7 @@
 import { pino } from 'pino';
 import { EnvError, loadEnv } from './config/env.ts';
 import { createEmailWorker } from './jobs/email-worker.ts';
+import { startWorkerMediaCleanup } from './jobs/worker-media-cleanup.ts';
 import { loggerOptions } from './lib/logger.ts';
 import { checkEvictionPolicy, createBullConnection } from './lib/redis.ts';
 import { handleShutdown } from './lib/shutdown.ts';
@@ -18,15 +19,17 @@ async function main() {
   const connection = createBullConnection(env.REDIS_URL, 'zuvo-worker');
   const mailer = createMailer(env);
   const emailWorker = createEmailWorker(connection, mailer, logger);
+  const mediaCleanup = await startWorkerMediaCleanup(env, connection, logger);
 
   handleShutdown(logger, async () => {
     await emailWorker.close();
+    await mediaCleanup.close();
     mailer.close();
     await connection.quit();
   });
   await emailWorker.waitUntilReady();
   await checkEvictionPolicy(connection, logger);
-  logger.info('worker started: email queue');
+  logger.info('worker started: email queue, media cleanup');
 }
 
 main().catch((error: unknown) => {

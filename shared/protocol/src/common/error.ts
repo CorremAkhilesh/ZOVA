@@ -24,6 +24,10 @@ export const errorCodeSchema = z.enum([
   'SECURITY_TOKEN_INVALID',
   'SECURITY_TOKEN_EXPIRED',
   'LAST_ADMIN',
+  'MEDIA_NOT_FOUND',
+  'MEDIA_NOT_ATTACHABLE',
+  'MEDIA_LINK_INVALID',
+  'UPLOAD_OFFSET_MISMATCH',
 ]);
 
 export type ErrorCode = z.infer<typeof errorCodeSchema>;

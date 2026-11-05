@@ -1,12 +1,13 @@
-import type { Message } from '@zuvo/protocol';
+import type { MediaInfo, Message } from '@zuvo/protocol';
 import type { FastifyInstance } from 'fastify';
-import { Types } from 'mongoose';
+import { type ClientSession, Types } from 'mongoose';
 import type { ChatDoc, LastMessageSnapshot, MessageDoc } from '../db/chat-models.ts';
 import { AppError } from '../lib/errors.ts';
 import { KeyedQueue } from '../lib/keyed-queue.ts';
+import { attachMedia, toMediaInfo } from '../media/media.service.ts';
 import { usersModel } from '../users/user-record.ts';
 import { chatModels, isDuplicateKey, oid, requireMember } from './chats.service.ts';
-import { toLastMessage, toMessage, toPreview } from './message-format.ts';
+import { toLastMessage, toMediaPreview, toMessage, toPreview } from './message-format.ts';
 import { readsVisibleBetween } from './receipts.service.ts';
 import { logUpdates } from './updates.ts';
 
@@ -17,7 +18,10 @@ export interface SendInput {
   userId: string;
   chatId: string;
   clientMsgId: string;
-  text: string;
+  /** Text, or the caption on media. */
+  text?: string | undefined;
+  mediaId?: string | undefined;
+  albumId?: string | undefined;
 }
 
 export interface SendResult {
@@ -44,36 +48,44 @@ async function findOriginal(app: FastifyInstance, input: SendInput): Promise<Sen
 async function assertRecipientActive(app: FastifyInstance, chatId: string, userId: string) {
   const { Chat, ChatMember } = chatModels(app);
   const chat = await Chat.findById(chatId, { type: 1 }).lean();
-  if (chat?.type !== 'direct') return;
+  if (chat?.type !== 'direct') return null;
   const other = await ChatMember.findOne({ chatId: oid(chatId), userId: { $ne: oid(userId) } })
     .select({ userId: 1 })
     .lean();
   const deactivated =
     other && (await usersModel(app).exists({ _id: other.userId, status: 'deactivated' }));
   if (deactivated) throw new AppError('FORBIDDEN', 'This account has been deactivated.');
+  return other?.userId.toString() ?? null;
 }
+
+async function attachIfAny(
+  app: FastifyInstance,
+  session: ClientSession,
+  input: { mediaId: string | undefined; userId: string; chatId: string; messageId: Types.ObjectId },
+): Promise<MediaInfo | null> {
+  const { mediaId } = input;
+  return mediaId ? toMediaInfo(await attachMedia(app, session, { ...input, mediaId })) : null;
+}
+
+const typeOf = (media: MediaInfo | null) => media?.kind ?? 'text';
+const previewOf = (media: MediaInfo | null, text: string | undefined) =>
+  media ? toMediaPreview(media, text) : toPreview(text ?? '');
 
 interface DeliveredMember {
   userId: string;
   lastReadSeq: number;
   lastDeliveredSeq: number;
+  sharedReadSeq: number;
   cursor: string;
 }
 
 /** Tells every member's devices: the message, and the chat as that member now sees it. */
-async function deliver(
+function deliver(
   app: FastifyInstance,
   message: Message,
   chat: Pick<ChatDoc, 'type'> & { lastMessage: LastMessageSnapshot },
   members: DeliveredMember[],
 ) {
-  const receipts =
-    chat.type === 'direct'
-      ? await readsVisibleBetween(
-          app,
-          members.map((member) => member.userId),
-        )
-      : false;
   for (const { userId, lastReadSeq, cursor } of members) {
     const peer = chat.type === 'direct' ? members.find((m) => m.userId !== userId) : undefined;
     app.realtime.emitToUser(userId, 'message:new', { message, cursor });
@@ -88,7 +100,7 @@ async function deliver(
       ...(peer
         ? {
             peerDeliveredSeq: peer.lastDeliveredSeq,
-            peerReadSeq: receipts ? peer.lastReadSeq : null,
+            peerReadSeq: peer.sharedReadSeq,
           }
         : {}),
       cursor,
@@ -102,11 +114,13 @@ async function deliver(
  * Sending the same clientMsgId again returns the original message.
  */
 export async function sendMessage(app: FastifyInstance, input: SendInput): Promise<SendResult> {
-  const { userId, chatId, text, clientMsgId } = input;
+  const { userId, chatId, text, clientMsgId, mediaId, albumId } = input;
   await requireMember(app, chatId, userId);
   const earlier = await findOriginal(app, input);
   if (earlier) return earlier;
-  await assertRecipientActive(app, chatId, userId);
+  const peerId = await assertRecipientActive(app, chatId, userId);
+  // Read positions a reply reveals are decided before anything changes.
+  const shareRead = peerId ? await readsVisibleBetween(app, [userId, peerId]) : false;
 
   const models = chatModels(app);
   const chatOid = oid(chatId);
@@ -122,12 +136,14 @@ export async function sendMessage(app: FastifyInstance, input: SendInput): Promi
         ).lean();
         if (!chat) throw new AppError('NOT_FOUND', 'Chat not found.');
         const id = new Types.ObjectId();
+        const media = await attachIfAny(app, session, { mediaId, userId, chatId, messageId: id });
+        const type = typeOf(media);
         const lastMessage: LastMessageSnapshot = {
           id,
           seq: chat.seq,
           senderId,
-          type: 'text',
-          preview: toPreview(text),
+          type,
+          preview: previewOf(media, text),
           createdAt: now,
         };
         await models.Chat.updateOne(
@@ -141,8 +157,10 @@ export async function sendMessage(app: FastifyInstance, input: SendInput): Promi
           seq: chat.seq,
           clientMsgId,
           senderId,
-          type: 'text',
-          text,
+          type,
+          text: text ?? null,
+          media,
+          albumId: albumId ?? null,
           replyToId: null,
           editedAt: null,
           deletedForEveryoneAt: null,
@@ -157,11 +175,17 @@ export async function sendMessage(app: FastifyInstance, input: SendInput): Promi
         // My own messages count as received and read by me.
         await models.ChatMember.updateOne(
           { chatId: chatOid, userId: senderId },
-          { $max: { lastReadSeq: chat.seq, lastDeliveredSeq: chat.seq } },
+          {
+            $max: {
+              lastReadSeq: chat.seq,
+              lastDeliveredSeq: chat.seq,
+              ...(shareRead && { sharedReadSeq: chat.seq }),
+            },
+          },
           { session },
         );
         const members = await models.ChatMember.find({ chatId: chatOid, leftAt: null })
-          .select({ userId: 1, lastReadSeq: 1, lastDeliveredSeq: 1 })
+          .select({ userId: 1, lastReadSeq: 1, lastDeliveredSeq: 1, sharedReadSeq: 1 })
           .session(session)
           .lean();
         const cursors = await logUpdates(
@@ -178,12 +202,13 @@ export async function sendMessage(app: FastifyInstance, input: SendInput): Promi
             userId: member.userId.toString(),
             lastReadSeq: member.lastReadSeq,
             lastDeliveredSeq: member.lastDeliveredSeq,
+            sharedReadSeq: member.sharedReadSeq ?? member.lastReadSeq,
             cursor: cursors.get(member.userId.toString()) ?? '0',
           })),
         };
       }),
     );
-    await deliver(app, stored.message, stored.chat, stored.members);
+    deliver(app, stored.message, stored.chat, stored.members);
     return { message: stored.message, duplicate: false };
   } catch (error) {
     // Two sends of the same clientMsgId raced: the unique index let one through.
@@ -217,4 +242,26 @@ export async function getHistory(
   const page = docs.slice(0, limit);
   if (!forward) page.reverse();
   return { items: page.map(toMessage), hasMore: docs.length > limit };
+}
+
+const GALLERY_TYPES = { media: ['image', 'video'], docs: ['document'] } as const;
+
+/** Newest first: the "Media" and "Docs" tabs in chat info. Members only. */
+export async function chatGallery(
+  app: FastifyInstance,
+  userId: string,
+  chatId: string,
+  query: { tab: 'media' | 'docs'; before?: number | undefined; limit: number },
+) {
+  await requireMember(app, chatId, userId);
+  const docs = await chatModels(app)
+    .Message.find({
+      chatId: oid(chatId),
+      type: { $in: [...GALLERY_TYPES[query.tab]] },
+      ...(query.before !== undefined ? { seq: { $lt: query.before } } : {}),
+    })
+    .sort({ seq: -1 })
+    .limit(query.limit + 1)
+    .lean();
+  return { items: docs.slice(0, query.limit).map(toMessage), hasMore: docs.length > query.limit };
 }

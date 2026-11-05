@@ -131,9 +131,10 @@ The sender's devices get `receipt:update { chatId, userId, lastDeliveredSeq, las
 has a number in the sender's diary, so a sender who was offline catches up through sync, which returns
 the chat with `peerDeliveredSeq` and `peerReadSeq`.
 
-**Read receipts are reciprocal and enforced here:** if either person has them off, `lastReadSeq` and
-`peerReadSeq` are `null` in every event and every response. Reading then sends nothing unless delivered
-moved too. A client seeing `null` shows nothing as read, including what it showed as read before.
+**Read receipts are reciprocal and enforced here, as on WhatsApp:** each member also has `sharedReadSeq`,
+what others may know they have read. It follows `lastReadSeq` while both people have receipts on, and
+stays put while either has them off, so what was already shown as read stays read and nothing newer
+ever leaves the server. Reading then sends nothing unless delivered moved too.
 
 ## Typing
 

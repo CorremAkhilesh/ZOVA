@@ -47,6 +47,9 @@ export async function markRead(app: FastifyInstance, userId: string, chatId: str
 
   const peer = await peerOf(app, chat, userId);
   const visible = peer ? await readsVisibleBetween(app, [userId, peer.userId.toString()]) : false;
+  // What was shared stays shared; only new reads depend on the setting today.
+  const sharedBefore = member.sharedReadSeq ?? member.lastReadSeq;
+  const sharedReadSeq = visible ? target : sharedBefore;
   // Reading also means having received. With receipts off, that is all the sender may learn.
   const lastDeliveredSeq = Math.max(member.lastDeliveredSeq, target);
   const tellPeer = peer && (visible || lastDeliveredSeq > member.lastDeliveredSeq) ? peer : null;
@@ -55,7 +58,7 @@ export async function markRead(app: FastifyInstance, userId: string, chatId: str
   const cursors = await app.mongo.transaction(async (session) => {
     const moved = await models.ChatMember.updateOne(
       { chatId: chat._id, userId: member.userId, lastReadSeq: { $lt: target } },
-      { $set: { lastReadSeq: target }, $max: { lastDeliveredSeq } },
+      { $set: { lastReadSeq: target, sharedReadSeq }, $max: { lastDeliveredSeq } },
       { session },
     );
     if (moved.modifiedCount === 0) return null;
@@ -100,7 +103,7 @@ export async function markRead(app: FastifyInstance, userId: string, chatId: str
       chatId,
       userId,
       lastDeliveredSeq,
-      lastReadSeq: visible ? target : null,
+      lastReadSeq: sharedReadSeq,
       cursor: cursors.theirs,
     });
   }
@@ -143,13 +146,11 @@ export async function markDelivered(
     return cursors.get(peer.userId.toString()) ?? null;
   });
   if (cursor !== null && peer) {
-    const peerId = peer.userId.toString();
-    const visible = await readsVisibleBetween(app, [userId, peerId]);
-    app.realtime.emitToUser(peerId, 'receipt:update', {
+    app.realtime.emitToUser(peer.userId.toString(), 'receipt:update', {
       chatId,
       userId,
       lastDeliveredSeq: target,
-      lastReadSeq: visible ? member.lastReadSeq : null,
+      lastReadSeq: member.sharedReadSeq ?? member.lastReadSeq,
       cursor,
     });
   }

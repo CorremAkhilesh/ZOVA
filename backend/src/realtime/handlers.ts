@@ -118,7 +118,14 @@ export function registerHandlers(app: FastifyInstance, socket: ZuvoSocket): void
       async (input) => {
         await assertSendLimit(app, userId);
         touch();
-        const { message, duplicate } = await sendMessage(app, { ...input, userId });
+        const { message, duplicate } = await sendMessage(app, {
+          userId,
+          chatId: input.chatId,
+          clientMsgId: input.clientMsgId,
+          text: input.text ?? input.caption,
+          mediaId: input.mediaIds?.[0],
+          albumId: input.albumId,
+        });
         return { messageId: message.id, seq: message.seq, createdAt: message.createdAt, duplicate };
       },
     );

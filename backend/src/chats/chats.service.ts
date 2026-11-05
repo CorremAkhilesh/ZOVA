@@ -47,11 +47,10 @@ export async function buildSummaries(
     : [];
   const users = others.length
     ? ((await usersModel(app)
-        .find({ _id: { $in: [...others.map((other) => other.userId), oid(viewerId)] } })
+        .find({ _id: { $in: others.map((other) => other.userId) } })
         .lean()) as UserDoc[])
     : [];
   const userById = new Map(users.map((user) => [user._id.toString(), user]));
-  const viewer = userById.get(viewerId);
   const otherByChat = new Map(others.map((other) => [other.chatId.toString(), other]));
 
   return rows.flatMap((row) => {
@@ -64,27 +63,25 @@ export async function buildSummaries(
         chat,
         row,
         person ? toPublicProfile(person, viewerId) : null,
-        other ? peerProgress(other, viewer, person) : NO_PEER,
+        other ? peerProgress(other) : NO_PEER,
       ),
     ];
   });
 }
 
 type PeerProgress = Pick<ChatSummary, 'peerDeliveredSeq' | 'peerReadSeq'>;
-const NO_PEER: PeerProgress = { peerDeliveredSeq: 0, peerReadSeq: null };
+const NO_PEER: PeerProgress = { peerDeliveredSeq: 0, peerReadSeq: 0 };
 
 /** Reciprocal, like the rest of presence: with receipts off on either side, nobody sees reads. */
 export const readReceiptsVisible = (a: UserDoc | undefined, b: UserDoc | undefined) =>
   Boolean(a && b && privacyOf(a).readReceipts && privacyOf(b).readReceipts);
 
 function peerProgress(
-  other: Pick<ChatMemberDoc, 'lastDeliveredSeq' | 'lastReadSeq'>,
-  viewer: UserDoc | undefined,
-  person: UserDoc | undefined,
+  other: Pick<ChatMemberDoc, 'lastDeliveredSeq' | 'lastReadSeq' | 'sharedReadSeq'>,
 ): PeerProgress {
   return {
     peerDeliveredSeq: other.lastDeliveredSeq,
-    peerReadSeq: readReceiptsVisible(viewer, person) ? other.lastReadSeq : null,
+    peerReadSeq: other.sharedReadSeq ?? other.lastReadSeq,
   };
 }
 
