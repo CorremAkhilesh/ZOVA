@@ -67,6 +67,8 @@ export const apiGet = <Schema extends z.ZodType>(path: string, schema: Schema) =
   apiRequest(path, schema, { method: 'GET' });
 
 function jsonInit(method: string, body: unknown): RequestInit {
+  // Fastify refuses an empty body that says it is JSON, so nothing to send means no such claim.
+  if (body === undefined) return { method };
   return { method, headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) };
 }
 
