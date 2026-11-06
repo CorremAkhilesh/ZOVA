@@ -99,7 +99,8 @@
 
   | Database             | Used by                               |
   | -------------------- | ------------------------------------- |
-  | `zuvo_dev`           | local PC + staging                    |
+  | `zuvo_dev<N>`        | each developer on the shared machine  |
+  | `zuvo_dev`           | staging                               |
   | `zuvo_prod`          | production                            |
   | `zuvo_test_<random>` | tests — throwaway, dropped afterwards |
 
@@ -118,6 +119,10 @@
 - **Local:** no Windows service and no admin rights. `backend/scripts/redis.ts` generates the
   config from `REDIS_URL` and runs `C:\Program Files\Memurai\memurai.exe` as the current user, with
   config, data and log in `backend/storage/redis/` (gitignored). `pnpm dev` starts it automatically.
+- **One machine, many developers:** the local PC is a remote Windows server shared by users `dev1`, `dev2`,
+  and so on. Every developer uses their **own** `MONGODB_DB` (`zuvo_dev1`, `zuvo_dev7`) and their **own**
+  Redis port and password. Sharing either means workers steal each other's jobs and test data mixes. The API
+  and worker log `Using MONGODB_DB=… and Redis host:port` at startup, so this is easy to check.
 - **Shared machine:** the local PC also runs a shared `Memurai` Windows service on port 6379, used
   by other projects. **Never** use, reconfigure or stop it. The script refuses port 6379.
 - Every Zuvo Redis has a password, `maxmemory-policy noeviction` (BullMQ requires it) and AOF
@@ -255,7 +260,8 @@
 - **OTP emails** go through the BullMQ `email` queue (`pnpm dev` also starts the worker). Codes are
   stored hashed, jobs are deleted once sent, and email content is redacted from logs.
 - **`NODE_ENV=test`:** an in-memory mailer, plus `GET /v1/test/outbox/latest` (test only) so tests and
-  E2E can read codes. E2E uses `pnpm --filter @zuvo/backend e2e:server` (in-memory MongoDB, port 4100).
+  E2E can read codes. E2E uses `pnpm --filter @zuvo/backend e2e:server` (in-memory MongoDB, port 4197). E2E never reuses a
+  running server: it refuses to run if its ports are taken, since the owner could be a real API.
 - **Env:** `AUTH_SECRET` (32+ random characters, unique per environment), `ADMIN_EMAILS`,
   `OTP_IP_LIMIT_PER_HOUR`.
 - **Admin account:** `novaadmin@corremadvisory.com` (emails are lowercased, so `novaAdmin@…` is the
@@ -283,7 +289,8 @@
 - **No Docker locally.** `pnpm dev` starts Redis, the backend (`127.0.0.1:4000`) and the frontend
   (`127.0.0.1:5191`, Vite, which proxies `/v1` and `/socket.io` to the backend). Shared machine: every dev
   server binds 127.0.0.1 only, on fixed ports checked to be free.
-- Connects to MongoDB Atlas (`zuvo_dev`) and its own local Memurai process (`127.0.0.1:6391`, started by `pnpm dev`).
+- Connects to MongoDB Atlas (your own `zuvo_dev<N>`) and your own local Memurai process (your own port and
+  password from `REDIS_URL`, started by `pnpm dev`).
 
 ### VPS (Ubuntu + Docker Engine + Docker Compose + Caddy auto-HTTPS)
 

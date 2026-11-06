@@ -11,9 +11,9 @@ import { handleShutdown } from '../lib/shutdown.ts';
 import { directDispatcher } from '../mail/dispatcher.ts';
 import { createMemoryMailer } from '../mail/memory-mailer.ts';
 
-const PORT = Number(process.env.E2E_API_PORT ?? 4100);
+const PORT = Number(process.env.E2E_API_PORT ?? 4197);
 /** The frontend preview origin: the browser talks to the API through its /v1 proxy. */
-const APP_ORIGIN = process.env.E2E_APP_ORIGIN ?? 'http://127.0.0.1:5192';
+const APP_ORIGIN = process.env.E2E_APP_ORIGIN ?? 'http://127.0.0.1:5194';
 
 // In-memory by default. E2E_MONGODB_URI points at a real cluster to debug against it; env validation
 // still only accepts a zuvo_test_ database.

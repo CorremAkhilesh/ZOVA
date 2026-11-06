@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
+import { assertPortsFree } from './e2e/port-guard';
 
 /**
  * The critical chat flows through the Vite dev server, the way `pnpm dev` runs the app: a development
@@ -10,6 +11,8 @@ const PORT = 5193;
 const API_PORT = 4198;
 const BASE_URL = `http://127.0.0.1:${PORT}`;
 const CI = Boolean(process.env.CI);
+
+await assertPortsFree([PORT, API_PORT]);
 
 export default defineConfig({
   testDir: './e2e',

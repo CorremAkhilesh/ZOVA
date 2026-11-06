@@ -2,7 +2,7 @@
  * Captures the manifest screenshots (shown in the browser's install dialog) from a real conversation
  * between demo accounts. Runs against the E2E stack only, which has the test outbox and throwaway data:
  *   pnpm --filter @zuvo/backend e2e:server
- *   ZUVO_API_TARGET=http://127.0.0.1:4100 pnpm --filter @zuvo/frontend exec vite preview
+ *   ZUVO_API_TARGET=http://127.0.0.1:4197 pnpm --filter @zuvo/frontend exec vite preview
  *   pnpm --filter @zuvo/frontend pwa:screenshots [folder for extra light + dark screenshots]
  */
 import { mkdirSync } from 'node:fs';
@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { type Browser, chromium, type Page } from '@playwright/test';
 import { signIn, signUp } from '../e2e/helpers.ts';
 
-const BASE = 'http://127.0.0.1:5192';
+const BASE = 'http://127.0.0.1:5194';
 const outDir = fileURLToPath(new URL('../public/screenshots/', import.meta.url));
 const extraDir = process.argv[2];
 mkdirSync(outDir, { recursive: true });

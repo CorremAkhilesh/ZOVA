@@ -1,5 +1,6 @@
 import { buildApp } from './app.ts';
 import { type Env, EnvError, loadEnv } from './config/env.ts';
+import { connectionsLine, describeConnections } from './lib/connections.ts';
 import { handleShutdown } from './lib/shutdown.ts';
 
 function loadEnvOrExit(): Env {
@@ -20,6 +21,7 @@ async function main() {
   handleShutdown(app.log, () => app.close());
   const host = env.HOST ?? (env.NODE_ENV === 'development' ? '127.0.0.1' : '0.0.0.0');
   await app.listen({ host, port: env.PORT });
+  app.log.info(describeConnections(env), connectionsLine(env));
 }
 
 main().catch((error: unknown) => {

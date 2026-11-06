@@ -54,6 +54,23 @@ machine, use a normal window and an Incognito window.
 This is a shared machine: never touch the `Memurai` service on port 6379, and never commit `.env` or
 `backend/storage/`.
 
+### Sharing a machine
+
+We all work on one remote Windows server, as `dev1`, `dev2`, and so on. **Each developer needs their own
+copy of these in `backend\.env`:**
+
+| Setting      | Example (for `dev7`)                      | What goes wrong if shared                               |
+| ------------ | ----------------------------------------- | ------------------------------------------------------- |
+| `MONGODB_DB` | `zuvo_dev7`                               | Test accounts and messages mix with someone else's      |
+| `REDIS_URL`  | `redis://:<your password>@127.0.0.1:6397` | Workers steal each other's jobs, such as sign-in emails |
+
+Check it at startup: the API and the worker both log a line like
+`Using MONGODB_DB=zuvo_dev7 and Redis 127.0.0.1:6397`. Other people's processes can be seen on this machine,
+and they can connect to your Redis port if they know its password, so use a password of your own.
+
+Playwright never reuses a running server. It uses ports 4197 and 5194, and refuses to run if they are taken.
+To use others on a shared machine, set `E2E_API_PORT` and `E2E_WEB_PORT`.
+
 ## Branch workflow
 
 Work only on **`dev`**, using [Conventional Commits](https://www.conventionalcommits.org). Every push runs

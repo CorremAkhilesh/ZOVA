@@ -2,6 +2,7 @@ import { pino } from 'pino';
 import { EnvError, loadEnv } from './config/env.ts';
 import { createEmailWorker } from './jobs/email-worker.ts';
 import { startWorkerMediaCleanup } from './jobs/worker-media-cleanup.ts';
+import { connectionsLine, describeConnections } from './lib/connections.ts';
 import { loggerOptions } from './lib/logger.ts';
 import { checkEvictionPolicy, createBullConnection } from './lib/redis.ts';
 import { handleShutdown } from './lib/shutdown.ts';
@@ -30,6 +31,7 @@ async function main() {
   await emailWorker.waitUntilReady();
   await checkEvictionPolicy(connection, logger);
   logger.info('worker started: email queue, media cleanup');
+  logger.info(describeConnections(env), connectionsLine(env));
 }
 
 main().catch((error: unknown) => {
