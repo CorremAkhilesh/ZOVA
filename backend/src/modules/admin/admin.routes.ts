@@ -21,7 +21,7 @@ import {
   setRole,
 } from '../../admin/admin.service.ts';
 import { requireAdmin } from '../../auth/session.ts';
-import { onUserDeactivated, onUserReactivated } from '../../chats/group-members.service.ts';
+import { onUserDeactivated, onUserReactivated } from '../../chats/group-ownership.service.ts';
 import { AppError } from '../../lib/errors.ts';
 import { usersModel } from '../../users/user-record.ts';
 

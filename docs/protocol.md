@@ -100,6 +100,11 @@ written into it, so the app works the same offline.
   replace local ones by `senderId:clientMsgId`. Upload requests have deadlines, so a lost answer cannot
   block the queue. Screens re-read local data every 20 s while visible, on focus, and after a failed
   read (logged as `[live]`, and shown in the diagnostics panel).
+- **Groups:** `joinSeq` and `leftSeq` on the membership decide which positions someone may see, in history,
+  sync, the gallery and media downloads. A member who left sees the group as it was then. Ticks use one
+  delivered and one read mark per group (the lowest across members), which only move forward and are
+  announced once per move rather than once per person. Someone with read receipts off counts for the read
+  mark once their device has the message. Chat-list order for a group is written at most once a second.
 - **Other tabs** see every change through Dexie, and hear about new outbox rows and ended sessions on a
   BroadcastChannel.
 - **Wiping:** whenever a session ends (sign-out, revoked, expired, deactivated, or found to be gone on

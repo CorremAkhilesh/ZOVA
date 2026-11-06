@@ -1,8 +1,9 @@
 import type { SyncResponse } from '@zuvo/protocol';
 import type { FastifyInstance } from 'fastify';
 import type { Types } from 'mongoose';
-import { buildSummaries, canSeeSeq, chatModels, oid } from './chats.service.ts';
+import { buildSummaries, chatModels, oid } from './chats.service.ts';
 import { toMessage } from './message-format.ts';
+import { canSeeSeq } from './visibility.ts';
 
 /** A new message, or one whose `played` changed: either way, this device needs its latest copy. */
 const carriesMessage = (row: { kind: string }) => row.kind === 'message' || row.kind === 'played';

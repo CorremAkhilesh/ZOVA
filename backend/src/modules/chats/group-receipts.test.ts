@@ -13,7 +13,7 @@ import {
 } from '../../../test/realtime-helpers.ts';
 import { insertUser } from '../../../test/user-helpers.ts';
 import { chatModels, oid } from '../../chats/chats.service.ts';
-import { onUserDeactivated } from '../../chats/group-members.service.ts';
+import { onUserDeactivated } from '../../chats/group-ownership.service.ts';
 import { sendMessage } from '../../chats/messages.service.ts';
 import { markDelivered, markRead } from '../../chats/receipts.service.ts';
 

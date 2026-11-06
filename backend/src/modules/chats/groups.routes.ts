@@ -34,8 +34,8 @@ import {
   listMembers,
   removeMember,
   setMemberRole,
-  transferOwnership,
 } from '../../chats/group-members.service.ts';
+import { transferOwnership } from '../../chats/group-ownership.service.ts';
 import {
   createGroup,
   setGroupPhoto,

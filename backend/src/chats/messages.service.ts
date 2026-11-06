@@ -6,14 +6,7 @@ import { AppError } from '../lib/errors.ts';
 import { KeyedQueue } from '../lib/keyed-queue.ts';
 import { attachMedia, toMediaInfo } from '../media/media.service.ts';
 import { usersModel } from '../users/user-record.ts';
-import {
-  chatModels,
-  isDuplicateKey,
-  oid,
-  requireMember,
-  requireParticipant,
-  visibleSeqs,
-} from './chats.service.ts';
+import { chatModels, isDuplicateKey, oid, requireMember } from './chats.service.ts';
 import { noteGroupActivity } from './group-activity.ts';
 import { assertAllowed, groupRules } from './group-permissions.ts';
 import { refreshGroupMarks } from './group-receipts.service.ts';
@@ -187,6 +180,14 @@ export async function sendMessage(app: FastifyInstance, input: SendInput): Promi
           createdAt: now,
         };
         await models.Message.insertMany([doc], { session });
+        // A group writes this at most once a second instead: see group-activity.ts.
+        if (chat.type !== 'group') {
+          await models.ChatMember.updateMany(
+            { chatId: chatOid, leftAt: null },
+            { $set: { lastActivityAt: now } },
+            { session },
+          );
+        }
         // My own messages count as received and read by me.
         await models.ChatMember.updateOne(
           { chatId: chatOid, userId: senderId },
@@ -226,17 +227,8 @@ export async function sendMessage(app: FastifyInstance, input: SendInput): Promi
       }),
     );
     deliver(app, stored.message, stored.chat, stored.members);
-    const at = new Date(stored.message.createdAt);
     if (stored.chat.type === 'group') {
-      noteGroupActivity(app, chatId, at);
-    } else {
-      // Also brings a chat into the other person's list at its first message.
-      await models.ChatMember.updateMany(
-        { chatId: chatOid, leftAt: null },
-        { $max: { lastActivityAt: at } },
-      );
-    }
-    if (stored.chat.type === 'group') {
+      noteGroupActivity(app, chatId, new Date(stored.message.createdAt));
       // The sender may have been the last one behind.
       void refreshGroupMarks(app, chatId).catch((error: unknown) =>
         app.log.warn({ err: error }, 'could not refresh group ticks'),
@@ -251,60 +243,4 @@ export async function sendMessage(app: FastifyInstance, input: SendInput): Promi
     }
     throw error;
   }
-}
-
-/** A page of history, always oldest first. Newest page by default; `after` reads forward. */
-export async function getHistory(
-  app: FastifyInstance,
-  userId: string,
-  chatId: string,
-  query: { before?: number | undefined; after?: number | undefined; limit: number },
-) {
-  const member = await requireParticipant(app, chatId, userId);
-  const { before, after, limit } = query;
-  const allowed = visibleSeqs(member);
-  const lowest = Math.max(after ?? 0, allowed.$gt ?? 0);
-  const seq = {
-    ...(before !== undefined ? { $lt: before } : {}),
-    ...(lowest > 0 ? { $gt: lowest } : {}),
-    ...(allowed.$lte !== undefined ? { $lte: allowed.$lte } : {}),
-  };
-  const forward = after !== undefined && before === undefined;
-  const docs = await chatModels(app)
-    .Message.find({ chatId: oid(chatId), ...(Object.keys(seq).length ? { seq } : {}) })
-    .sort({ seq: forward ? 1 : -1 })
-    .limit(limit + 1)
-    .lean();
-  const page = docs.slice(0, limit);
-  if (!forward) page.reverse();
-  return { items: page.map((doc) => toMessage(doc, userId)), hasMore: docs.length > limit };
-}
-
-const GALLERY_TYPES = { media: ['image', 'video'], docs: ['document', 'audio'] } as const;
-
-/** Newest first: the "Media" and "Docs" tabs in chat info. Members only. */
-export async function chatGallery(
-  app: FastifyInstance,
-  userId: string,
-  chatId: string,
-  query: { tab: 'media' | 'docs'; before?: number | undefined; limit: number },
-) {
-  const member = await requireParticipant(app, chatId, userId);
-  const seq = {
-    ...visibleSeqs(member),
-    ...(query.before !== undefined ? { $lt: query.before } : {}),
-  };
-  const docs = await chatModels(app)
-    .Message.find({
-      chatId: oid(chatId),
-      type: { $in: [...GALLERY_TYPES[query.tab]] },
-      ...(Object.keys(seq).length ? { seq } : {}),
-    })
-    .sort({ seq: -1 })
-    .limit(query.limit + 1)
-    .lean();
-  return {
-    items: docs.slice(0, query.limit).map((doc) => toMessage(doc, userId)),
-    hasMore: docs.length > query.limit,
-  };
 }

@@ -19,7 +19,7 @@ import type { FastifyPluginAsyncZod, ZodTypeProvider } from 'fastify-type-provid
 import { z } from 'zod';
 import { currentUserId, requireSession } from '../../auth/session.ts';
 import { chatModels } from '../../chats/chats.service.ts';
-import { chatGallery } from '../../chats/messages.service.ts';
+import { chatGallery } from '../../chats/history.service.ts';
 import type { MediaDoc } from '../../db/chat-models.ts';
 import { AppError } from '../../lib/errors.ts';
 import { parseRange, setFileHeaders } from '../../media/http.ts';

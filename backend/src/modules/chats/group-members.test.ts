@@ -3,7 +3,7 @@ import { groupClient, systemKinds } from '../../../test/group-helpers.ts';
 import { buildTestApp } from '../../../test/helpers.ts';
 import { insertUser } from '../../../test/user-helpers.ts';
 import { chatModels, oid } from '../../chats/chats.service.ts';
-import { onUserDeactivated } from '../../chats/group-members.service.ts';
+import { onUserDeactivated } from '../../chats/group-ownership.service.ts';
 
 let built: Awaited<ReturnType<typeof buildTestApp>>;
 const app = () => built.app;

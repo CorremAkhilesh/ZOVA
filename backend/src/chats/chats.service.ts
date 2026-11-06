@@ -129,37 +129,6 @@ async function summaryFor(app: FastifyInstance, chatId: string, userId: string) 
 
 export const getChat = summaryFor;
 
-/** A member now or before: someone who left keeps the history they were there for. */
-export async function requireParticipant(
-  app: FastifyInstance,
-  chatId: string,
-  userId: string,
-): Promise<ChatMemberDoc> {
-  const member = await chatModels(app)
-    .ChatMember.findOne({ chatId: oid(chatId), userId: oid(userId) })
-    .lean();
-  if (!member) throw new AppError('NOT_FOUND', 'Chat not found.');
-  return member;
-}
-
-/** The positions this member may see: after they joined, and up to when they left. */
-export function visibleSeqs(member: Pick<ChatMemberDoc, 'joinSeq' | 'leftSeq'>) {
-  return {
-    ...(member.joinSeq ? { $gt: member.joinSeq } : {}),
-    ...(typeof member.leftSeq === 'number' ? { $lte: member.leftSeq } : {}),
-  };
-}
-
-export function canSeeSeq(
-  member: Pick<ChatMemberDoc, 'joinSeq' | 'leftSeq' | 'leftAt'>,
-  seq: number,
-) {
-  if (member.leftAt && typeof member.leftSeq !== 'number') return false;
-  return (
-    seq > (member.joinSeq ?? 0) && (typeof member.leftSeq !== 'number' || seq <= member.leftSeq)
-  );
-}
-
 /** Tells the creator's devices about a new chat. The other person hears at the first message. */
 function announceChat(app: FastifyInstance, summary: ChatSummary, userId: string, cursor: string) {
   app.realtime.emitToUser(userId, 'chat:updated', {

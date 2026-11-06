@@ -20,6 +20,13 @@ Known work that was decided on or deliberately left for later. Product scope liv
   designed for direct chats. Both need revisiting when groups are built.
 - **Seeking in long WebM notes** has only been proven on short ones. MediaRecorder writes no seek index.
 
+## Groups
+
+- **Search** does not exist yet. When it is built, it must apply `visibleSeqs` like history does.
+- **Rejoining** a group resets what the server will send to what comes after: older messages stay only on
+  devices that already have them.
+- **Unread counts** include system messages.
+
 ## Operations
 
 - **Alert email at 80% disk use**, required by `CLAUDE.md`.

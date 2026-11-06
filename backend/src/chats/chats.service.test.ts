@@ -10,8 +10,9 @@ import {
   listChats,
   pairKeyOf,
 } from './chats.service.ts';
+import { getHistory } from './history.service.ts';
 import { toPreview } from './message-format.ts';
-import { getHistory, sendMessage } from './messages.service.ts';
+import { sendMessage } from './messages.service.ts';
 import { markRead } from './receipts.service.ts';
 
 let ctx: Awaited<ReturnType<typeof buildTestApp>>;
