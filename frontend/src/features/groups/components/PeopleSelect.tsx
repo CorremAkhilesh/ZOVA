@@ -1,10 +1,12 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import type { PublicProfile } from '@zuvo/protocol';
 import { Check, Search, X } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
+import { useChats } from '@/features/chats/queries';
+import { recentPeople } from '@/features/people/recent-people';
 import { usersApi } from '@/features/profile/api';
 import { useDebouncedValue } from '@/lib/hooks';
 import { cn } from '@/lib/utils';
@@ -25,13 +27,29 @@ export function PeopleSelect({ selected, onChange, excludeIds, max }: PeopleSele
   const results = useQuery({
     queryKey: ['people-select', q],
     queryFn: () => usersApi.search(q),
-    enabled: q.length > 0,
     placeholderData: keepPreviousData,
   });
-  const chosen = new Set(selected.map((person) => person.id));
-  const options = (results.data?.items ?? []).filter(
-    (person) => !person.deactivated && !excludeIds?.has(person.id),
+  // Nothing typed: people from my chats first, then those I opened lately, then the rest.
+  const chats = useChats();
+  const recent = useMemo(
+    () =>
+      q
+        ? []
+        : [
+            ...(chats ?? []).flatMap((chat) =>
+              chat.type === 'direct' && chat.otherUser ? [chat.otherUser] : [],
+            ),
+            ...recentPeople.load(),
+          ],
+    [chats, q],
   );
+  const chosen = new Set(selected.map((person) => person.id));
+  const seen = new Set<string>();
+  const options = [...recent, ...(results.data?.items ?? [])].filter((person) => {
+    if (seen.has(person.id) || person.deactivated || excludeIds?.has(person.id)) return false;
+    seen.add(person.id);
+    return true;
+  });
   const toggle = (person: PublicProfile) =>
     onChange(
       chosen.has(person.id)
@@ -77,12 +95,12 @@ export function PeopleSelect({ selected, onChange, excludeIds, max }: PeopleSele
         aria-label={t('groups.results')}
         className="max-h-64 min-h-24 space-y-0.5 overflow-y-auto"
       >
-        {q && results.isError ? (
+        {results.isError && options.length === 0 ? (
           <li role="alert" className="p-3 text-sm text-danger">
             {t('groups.searchFailed')}
           </li>
         ) : null}
-        {q && results.isSuccess && options.length === 0 ? (
+        {results.isSuccess && options.length === 0 ? (
           <li className="p-3 text-center text-sm text-text-muted">{t('chats.noResults')}</li>
         ) : null}
         {options.map((person) => {
