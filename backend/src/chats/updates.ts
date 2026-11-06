@@ -32,7 +32,8 @@ export async function logUpdates(
     .lean();
   await models.UserUpdate.insertMany(
     counters.map((counter) => ({ ...update, userId: counter._id, pts: counter.seq, at })),
-    { session, ordered: true },
+    // Plain rows, up to 256 at a time: nothing for Mongoose to hydrate.
+    { session, ordered: false, lean: true },
   );
   return new Map(counters.map((counter) => [counter._id.toString(), String(counter.seq)]));
 }

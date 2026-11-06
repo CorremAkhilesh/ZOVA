@@ -4,6 +4,7 @@ import { Types } from 'mongoose';
 import { type ChatDoc, type ChatMemberDoc, registerChatModels } from '../db/chat-models.ts';
 import { AppError } from '../lib/errors.ts';
 import { privacyOf, toPublicProfile, type UserDoc, usersModel } from '../users/user-record.ts';
+import { groupView } from './group-core.ts';
 import { toLastMessage } from './message-format.ts';
 import { logUpdates } from './updates.ts';
 
@@ -51,6 +52,10 @@ export async function buildSummaries(
         .lean()) as UserDoc[])
     : [];
   const userById = new Map(users.map((user) => [user._id.toString(), user]));
+  const viewer = chats.some((chat) => chat.type === 'group')
+    ? ((await usersModel(app).findById(viewerId).select({ privacy: 1 }).lean()) as UserDoc | null)
+    : null;
+  const seesReads = viewer ? privacyOf(viewer).readReceipts : true;
   const otherByChat = new Map(others.map((other) => [other.chatId.toString(), other]));
 
   return rows.flatMap((row) => {
@@ -58,14 +63,17 @@ export async function buildSummaries(
     if (!chat) return [];
     const other = otherByChat.get(chat._id.toString());
     const person = other && userById.get(other.userId.toString());
-    return [
-      toSummary(
-        chat,
-        row,
-        person ? toPublicProfile(person, viewerId) : null,
-        other ? peerProgress(other) : NO_PEER,
-      ),
-    ];
+    const progress =
+      chat.type === 'group'
+        ? {
+            peerDeliveredSeq: chat.group?.deliveredMark ?? 0,
+            // Reciprocal: with my receipts off, I see no reads either.
+            peerReadSeq: seesReads ? (chat.group?.readMark ?? 0) : 0,
+          }
+        : other
+          ? peerProgress(other)
+          : NO_PEER;
+    return [toSummary(chat, row, person ? toPublicProfile(person, viewerId) : null, progress)];
   });
 }
 
@@ -91,14 +99,18 @@ function toSummary(
   otherUser: ChatSummary['otherUser'],
   peer: PeerProgress,
 ): ChatSummary {
+  // Someone who left sees the chat as it was then, however it has moved on since.
+  const seq = member.leftSeq ?? chat.seq;
+  const last = member.leftAt ? member.leftView?.lastMessage : chat.lastMessage;
   return {
     id: chat._id.toString(),
     type: chat.type,
-    seq: chat.seq,
+    seq,
     otherUser,
-    lastMessage: chat.lastMessage ? toLastMessage(chat.lastMessage) : null,
+    group: chat.type === 'group' ? groupView(chat, member) : null,
+    lastMessage: last ? toLastMessage(last) : null,
     lastReadSeq: member.lastReadSeq,
-    unreadCount: Math.max(0, chat.seq - member.lastReadSeq),
+    unreadCount: Math.max(0, seq - member.lastReadSeq),
     ...peer,
     lastActivityAt: member.lastActivityAt?.toISOString() ?? null,
     createdAt: chat.createdAt.toISOString(),
@@ -106,12 +118,47 @@ function toSummary(
 }
 
 async function summaryFor(app: FastifyInstance, chatId: string, userId: string) {
-  const [summary] = await buildSummaries(app, userId, [await requireMember(app, chatId, userId)]);
+  const member = await chatModels(app)
+    .ChatMember.findOne({ chatId: oid(chatId), userId: oid(userId) })
+    .lean();
+  if (!member) throw new AppError('NOT_FOUND', 'Chat not found.');
+  const [summary] = await buildSummaries(app, userId, [member]);
   if (!summary) throw new AppError('NOT_FOUND', 'Chat not found.');
   return summary;
 }
 
 export const getChat = summaryFor;
+
+/** A member now or before: someone who left keeps the history they were there for. */
+export async function requireParticipant(
+  app: FastifyInstance,
+  chatId: string,
+  userId: string,
+): Promise<ChatMemberDoc> {
+  const member = await chatModels(app)
+    .ChatMember.findOne({ chatId: oid(chatId), userId: oid(userId) })
+    .lean();
+  if (!member) throw new AppError('NOT_FOUND', 'Chat not found.');
+  return member;
+}
+
+/** The positions this member may see: after they joined, and up to when they left. */
+export function visibleSeqs(member: Pick<ChatMemberDoc, 'joinSeq' | 'leftSeq'>) {
+  return {
+    ...(member.joinSeq ? { $gt: member.joinSeq } : {}),
+    ...(typeof member.leftSeq === 'number' ? { $lte: member.leftSeq } : {}),
+  };
+}
+
+export function canSeeSeq(
+  member: Pick<ChatMemberDoc, 'joinSeq' | 'leftSeq' | 'leftAt'>,
+  seq: number,
+) {
+  if (member.leftAt && typeof member.leftSeq !== 'number') return false;
+  return (
+    seq > (member.joinSeq ?? 0) && (typeof member.leftSeq !== 'number' || seq <= member.leftSeq)
+  );
+}
 
 /** Tells the creator's devices about a new chat. The other person hears at the first message. */
 function announceChat(app: FastifyInstance, summary: ChatSummary, userId: string, cursor: string) {
@@ -244,7 +291,7 @@ export async function listChats(
   cursor?: string,
 ) {
   const after = decodeChatCursor(cursor);
-  const base = { userId: oid(userId), leftAt: null };
+  const base = { userId: oid(userId) };
   const filter = after
     ? {
         ...base,

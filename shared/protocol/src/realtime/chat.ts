@@ -10,6 +10,7 @@ import {
   messageTextSchema,
   syncCursorSchema,
 } from '../rest/chats.ts';
+import { groupInfoSchema } from '../rest/groups.ts';
 import { CAPTION_MAX } from '../rest/media.ts';
 
 /** A caption on media, or a message's text. Must say something if present. */
@@ -60,6 +61,8 @@ export const chatUpdatedEventSchema = z.object({
   lastReadSeq: z.number().int().nonnegative(),
   unreadCount: z.number().int().nonnegative(),
   lastActivityAt: isoDateTimeSchema.nullable(),
+  /** A group as this user now sees it, when a system message changed it. */
+  group: groupInfoSchema.optional(),
   /** Sent with new messages in direct chats: replying also means having received and read. */
   peerDeliveredSeq: z.number().int().nonnegative().optional(),
   peerReadSeq: z.number().int().nonnegative().optional(),

@@ -1,12 +1,22 @@
-import type { MediaInfo, Message } from '@zuvo/protocol';
+import { DEFAULT_GROUP_SETTINGS, type MediaInfo, type Message } from '@zuvo/protocol';
 import type { FastifyInstance } from 'fastify';
 import { type ClientSession, Types } from 'mongoose';
-import type { ChatDoc, LastMessageSnapshot, MessageDoc } from '../db/chat-models.ts';
+import type { ChatDoc, ChatMemberDoc, LastMessageSnapshot, MessageDoc } from '../db/chat-models.ts';
 import { AppError } from '../lib/errors.ts';
 import { KeyedQueue } from '../lib/keyed-queue.ts';
 import { attachMedia, toMediaInfo } from '../media/media.service.ts';
 import { usersModel } from '../users/user-record.ts';
-import { chatModels, isDuplicateKey, oid, requireMember } from './chats.service.ts';
+import {
+  chatModels,
+  isDuplicateKey,
+  oid,
+  requireMember,
+  requireParticipant,
+  visibleSeqs,
+} from './chats.service.ts';
+import { noteGroupActivity } from './group-activity.ts';
+import { assertAllowed, groupRules } from './group-permissions.ts';
+import { refreshGroupMarks } from './group-receipts.service.ts';
 import { toLastMessage, toMediaPreview, toMessage, toPreview } from './message-format.ts';
 import { readsVisibleBetween } from './receipts.service.ts';
 import { logUpdates } from './updates.ts';
@@ -44,10 +54,20 @@ async function findOriginal(app: FastifyInstance, input: SendInput): Promise<Sen
   return { message: toMessage(original, input.userId), duplicate: true };
 }
 
-/** A 1:1 chat cannot receive new messages once the other person is deactivated. */
-async function assertRecipientActive(app: FastifyInstance, chatId: string, userId: string) {
+/** A group may let only admins speak. A 1:1 chat cannot receive messages once the other person is gone. */
+async function assertMaySend(
+  app: FastifyInstance,
+  chatId: string,
+  userId: string,
+  member: ChatMemberDoc,
+) {
   const { Chat, ChatMember } = chatModels(app);
-  const chat = await Chat.findById(chatId, { type: 1 }).lean();
+  const chat = await Chat.findById(chatId, { type: 1, group: 1 }).lean();
+  if (chat?.type === 'group') {
+    const settings = { ...DEFAULT_GROUP_SETTINGS, ...chat.group?.settings };
+    assertAllowed(groupRules.sendMessages(member.role, settings), 'Only admins can send messages.');
+    return null;
+  }
   if (chat?.type !== 'direct') return null;
   const other = await ChatMember.findOne({ chatId: oid(chatId), userId: { $ne: oid(userId) } })
     .select({ userId: 1 })
@@ -115,10 +135,10 @@ function deliver(
  */
 export async function sendMessage(app: FastifyInstance, input: SendInput): Promise<SendResult> {
   const { userId, chatId, text, clientMsgId, mediaId, albumId } = input;
-  await requireMember(app, chatId, userId);
+  const sender = await requireMember(app, chatId, userId);
   const earlier = await findOriginal(app, input);
   if (earlier) return earlier;
-  const peerId = await assertRecipientActive(app, chatId, userId);
+  const peerId = await assertMaySend(app, chatId, userId, sender);
   // Read positions a reply reveals are decided before anything changes.
   const shareRead = peerId ? await readsVisibleBetween(app, [userId, peerId]) : false;
 
@@ -167,11 +187,6 @@ export async function sendMessage(app: FastifyInstance, input: SendInput): Promi
           createdAt: now,
         };
         await models.Message.insertMany([doc], { session });
-        await models.ChatMember.updateMany(
-          { chatId: chatOid, leftAt: null },
-          { $set: { lastActivityAt: now } },
-          { session },
-        );
         // My own messages count as received and read by me.
         await models.ChatMember.updateOne(
           { chatId: chatOid, userId: senderId },
@@ -179,6 +194,7 @@ export async function sendMessage(app: FastifyInstance, input: SendInput): Promi
             $max: {
               lastReadSeq: chat.seq,
               lastDeliveredSeq: chat.seq,
+              ackReadSeq: chat.seq,
               ...(shareRead && { sharedReadSeq: chat.seq }),
             },
           },
@@ -210,6 +226,22 @@ export async function sendMessage(app: FastifyInstance, input: SendInput): Promi
       }),
     );
     deliver(app, stored.message, stored.chat, stored.members);
+    const at = new Date(stored.message.createdAt);
+    if (stored.chat.type === 'group') {
+      noteGroupActivity(app, chatId, at);
+    } else {
+      // Also brings a chat into the other person's list at its first message.
+      await models.ChatMember.updateMany(
+        { chatId: chatOid, leftAt: null },
+        { $max: { lastActivityAt: at } },
+      );
+    }
+    if (stored.chat.type === 'group') {
+      // The sender may have been the last one behind.
+      void refreshGroupMarks(app, chatId).catch((error: unknown) =>
+        app.log.warn({ err: error }, 'could not refresh group ticks'),
+      );
+    }
     return { message: stored.message, duplicate: false };
   } catch (error) {
     // Two sends of the same clientMsgId raced: the unique index let one through.
@@ -228,11 +260,14 @@ export async function getHistory(
   chatId: string,
   query: { before?: number | undefined; after?: number | undefined; limit: number },
 ) {
-  await requireMember(app, chatId, userId);
+  const member = await requireParticipant(app, chatId, userId);
   const { before, after, limit } = query;
+  const allowed = visibleSeqs(member);
+  const lowest = Math.max(after ?? 0, allowed.$gt ?? 0);
   const seq = {
     ...(before !== undefined ? { $lt: before } : {}),
-    ...(after !== undefined ? { $gt: after } : {}),
+    ...(lowest > 0 ? { $gt: lowest } : {}),
+    ...(allowed.$lte !== undefined ? { $lte: allowed.$lte } : {}),
   };
   const forward = after !== undefined && before === undefined;
   const docs = await chatModels(app)
@@ -254,12 +289,16 @@ export async function chatGallery(
   chatId: string,
   query: { tab: 'media' | 'docs'; before?: number | undefined; limit: number },
 ) {
-  await requireMember(app, chatId, userId);
+  const member = await requireParticipant(app, chatId, userId);
+  const seq = {
+    ...visibleSeqs(member),
+    ...(query.before !== undefined ? { $lt: query.before } : {}),
+  };
   const docs = await chatModels(app)
     .Message.find({
       chatId: oid(chatId),
       type: { $in: [...GALLERY_TYPES[query.tab]] },
-      ...(query.before !== undefined ? { seq: { $lt: query.before } } : {}),
+      ...(Object.keys(seq).length ? { seq } : {}),
     })
     .sort({ seq: -1 })
     .limit(query.limit + 1)

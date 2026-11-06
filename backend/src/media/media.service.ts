@@ -4,7 +4,7 @@ import { pipeline } from 'node:stream/promises';
 import { type CreateUploadBody, type MediaInfo, UPLOAD_CHUNK_MAX_BYTES } from '@zuvo/protocol';
 import type { FastifyInstance } from 'fastify';
 import type { ClientSession } from 'mongoose';
-import { chatModels, oid, requireMember } from '../chats/chats.service.ts';
+import { canSeeSeq, chatModels, oid, requireParticipant } from '../chats/chats.service.ts';
 import type { MediaDoc } from '../db/chat-models.ts';
 import { AppError } from '../lib/errors.ts';
 import { assertRoomFor, assertWithinLimits } from './limits.ts';
@@ -266,9 +266,14 @@ export async function requireReadable(
   if (!doc) throw new AppError('NOT_FOUND', 'Media not found.');
   if (doc.ownerId.toString() === userId) return doc;
   if (!doc.chatId) throw new AppError('NOT_FOUND', 'Media not found.');
-  await requireMember(app, doc.chatId.toString(), userId).catch(() => {
+  // In a group, only what was sent while this person was there.
+  const member = await requireParticipant(app, doc.chatId.toString(), userId).catch(() => {
     throw new AppError('NOT_FOUND', 'Media not found.');
   });
+  const message = await chatModels(app).Message.findById(doc.messageId).select({ seq: 1 }).lean();
+  if (!message || !canSeeSeq(member, message.seq)) {
+    throw new AppError('NOT_FOUND', 'Media not found.');
+  }
   return doc;
 }
 

@@ -28,6 +28,9 @@ const STATUS_BY_CODE: Record<ErrorCode, number> = {
   MEDIA_LINK_INVALID: 403,
   UPLOAD_OFFSET_MISMATCH: 409,
   STORAGE_FULL: 507,
+  GROUP_FULL: 409,
+  OWNER_MUST_TRANSFER: 409,
+  INVITE_INVALID: 404,
 };
 
 /** An expected error whose message is safe to show to the client. */

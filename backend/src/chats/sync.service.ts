@@ -1,7 +1,7 @@
 import type { SyncResponse } from '@zuvo/protocol';
 import type { FastifyInstance } from 'fastify';
 import type { Types } from 'mongoose';
-import { buildSummaries, chatModels, oid } from './chats.service.ts';
+import { buildSummaries, canSeeSeq, chatModels, oid } from './chats.service.ts';
 import { toMessage } from './message-format.ts';
 
 /** A new message, or one whose `played` changed: either way, this device needs its latest copy. */
@@ -51,13 +51,16 @@ export async function syncSince(
   const page = rows.slice(0, limit);
   const lastPts = page.at(-1)?.pts ?? sincePts;
   const chatIds = [...new Map(page.map((row) => [row.chatId.toString(), row.chatId])).values()];
-  // Only chats I am still in: membership is checked here too, not just when the row was written.
-  const members = await ChatMember.find({
+  // Only chats I am or was in, and only what I may see of them. Checked here as well as when the
+  // row was written.
+  const memberRows = await ChatMember.find({
     userId: oid(userId),
-    leftAt: null,
     chatId: { $in: chatIds },
   }).lean();
+  // Left, with no record of when: nothing is known to be theirs, so nothing goes out.
+  const members = memberRows.filter((row) => !row.leftAt || typeof row.leftSeq === 'number');
   const memberChats = new Set(members.map((member) => member.chatId.toString()));
+  const memberByChat = new Map(members.map((member) => [member.chatId.toString(), member]));
 
   const seqsByChat = new Map<string, { chatId: Types.ObjectId; seqs: number[] }>();
   for (const row of page) {
@@ -75,7 +78,8 @@ export async function syncSince(
   const docByKey = new Map(messageDocs.map((doc) => [`${doc.chatId}:${doc.seq}`, doc]));
   const messages = page.flatMap((row) => {
     const doc = carriesMessage(row) ? docByKey.get(`${row.chatId}:${row.seq}`) : undefined;
-    return doc ? [toMessage(doc, userId)] : [];
+    const member = memberByChat.get(row.chatId.toString());
+    return doc && member && canSeeSeq(member, doc.seq) ? [toMessage(doc, userId)] : [];
   });
 
   return {

@@ -28,6 +28,7 @@ export function toMessage(doc: MessageDoc, viewerId: string): Message {
     media: deleted ? null : (doc.media ?? null),
     albumId: doc.albumId ?? null,
     played: playedFor(doc, viewerId),
+    system: doc.system ?? null,
     replyToId: doc.replyToId?.toString() ?? null,
     editedAt: doc.editedAt?.toISOString() ?? null,
     deletedForEveryoneAt: doc.deletedForEveryoneAt?.toISOString() ?? null,
@@ -42,6 +43,7 @@ export function toLastMessage(snapshot: LastMessageSnapshot): LastMessage {
     senderId: snapshot.senderId?.toString() ?? null,
     type: snapshot.type,
     preview: snapshot.preview,
+    system: snapshot.system ?? null,
     createdAt: snapshot.createdAt.toISOString(),
   };
 }

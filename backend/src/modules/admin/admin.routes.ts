@@ -21,6 +21,7 @@ import {
   setRole,
 } from '../../admin/admin.service.ts';
 import { requireAdmin } from '../../auth/session.ts';
+import { onUserDeactivated, onUserReactivated } from '../../chats/group-members.service.ts';
 import { AppError } from '../../lib/errors.ts';
 import { usersModel } from '../../users/user-record.ts';
 
@@ -61,6 +62,9 @@ export const adminRoutes: FastifyPluginAsyncZod = async (app) => {
       app.realtime.revokeUser(id, 'deactivated');
       revokedSessions = (await context.internalAdapter.listSessions(id)).length;
       await context.internalAdapter.deleteUserSessions(id);
+      await onUserDeactivated(app, id);
+    } else {
+      await onUserReactivated(app, id);
     }
     app.log.info(
       { targetUserId: id, adminId: actor.id, status, revokedSessions },

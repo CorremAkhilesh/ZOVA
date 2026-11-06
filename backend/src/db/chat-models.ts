@@ -1,4 +1,4 @@
-import type { MediaInfo } from '@zuvo/protocol';
+import type { GroupSettings, MediaInfo, SystemEvent } from '@zuvo/protocol';
 import { type Connection, type Model, Schema, type Types } from 'mongoose';
 
 const options = { versionKey: false, autoCreate: true } as const;
@@ -10,6 +10,7 @@ export interface LastMessageSnapshot {
   senderId: Types.ObjectId | null;
   type: 'text' | 'system' | MediaInfo['kind'];
   preview: string;
+  system?: SystemEvent | null;
   createdAt: Date;
 }
 
@@ -26,12 +27,17 @@ export interface ChatDoc {
   lastActivityAt: Date | null;
   createdBy: Types.ObjectId;
   createdAt: Date;
-  /** Reserved for groups (Step 13). */
   group?: {
     name?: string;
     photo?: { small: string; large: string; version: string };
     description?: string;
-    settings?: Record<string, unknown>;
+    settings?: Partial<GroupSettings>;
+    memberCount?: number;
+    /** Set while the invite link works. */
+    inviteCode?: string;
+    /** How far every member has received and read. See group-receipts.service.ts. */
+    deliveredMark?: number;
+    readMark?: number;
   };
 }
 
@@ -56,6 +62,13 @@ chatSchema.index({ pairKey: 1 }, { unique: true, partialFilterExpression: { type
 // Partial: queries must include `type: 'self'` for MongoDB to use it.
 chatSchema.index({ selfOwnerId: 1 }, { unique: true, partialFilterExpression: { type: 'self' } });
 
+// Serves: opening an invite link. Unique: a code leads to one group.
+// Partial: queries must include `$type: 'string'` for MongoDB to use it.
+chatSchema.index(
+  { 'group.inviteCode': 1 },
+  { unique: true, partialFilterExpression: { 'group.inviteCode': { $type: 'string' } } },
+);
+
 export interface ChatMemberDoc {
   _id: Types.ObjectId;
   chatId: Types.ObjectId;
@@ -70,6 +83,24 @@ export interface ChatMemberDoc {
    * both people, and stays put otherwise, so what was already shown as read stays read.
    */
   sharedReadSeq?: number;
+  /** Groups: the last position before I joined. I see only what comes after it. */
+  joinSeq?: number;
+  /** Groups: my last position, once I have left. I keep what came up to here. */
+  leftSeq?: number | null;
+  /** Groups: the chat as it was when I left, since I hear nothing after that. */
+  leftView?: {
+    lastMessage: LastMessageSnapshot;
+    group: {
+      name: string;
+      description: string;
+      photo: { small: string; large: string } | null;
+      memberCount: number;
+    };
+  };
+  /** Groups: how far I count towards the color of others' ticks. See group-receipts.service.ts. */
+  ackReadSeq?: number;
+  /** Groups: my account is deactivated, so I no longer hold up their ticks. */
+  suspended?: boolean;
   /** Copied from the chat so the chat list is one index scan. Null hides a chat not yet messaged. */
   lastActivityAt: Date | null;
   // Reserved per-user flags.
@@ -90,6 +121,11 @@ const chatMemberSchema = new Schema<ChatMemberDoc>(
     lastReadSeq: { type: Number, default: 0 },
     lastDeliveredSeq: { type: Number, default: 0 },
     sharedReadSeq: { type: Number },
+    joinSeq: Number,
+    leftSeq: { type: Number, default: null },
+    leftView: Schema.Types.Mixed,
+    ackReadSeq: Number,
+    suspended: Boolean,
     lastActivityAt: { type: Date, default: null },
     pinnedAt: Date,
     mutedUntil: Date,
@@ -101,8 +137,15 @@ const chatMemberSchema = new Schema<ChatMemberDoc>(
 );
 // Serves: membership check on every chat request and event, and "members of this chat".
 chatMemberSchema.index({ chatId: 1, userId: 1 }, { unique: true });
-// Serves: my chat list, most recent first (ESR: user and leftAt equal, then sort on activity + id).
-chatMemberSchema.index({ userId: 1, leftAt: 1, lastActivityAt: -1, chatId: -1 });
+// Serves: my chat list, most recent first, including groups I left, whose history I keep.
+chatMemberSchema.index({ userId: 1, lastActivityAt: -1, chatId: -1 });
+// Serves: the groups of someone being deactivated.
+chatMemberSchema.index({ userId: 1, leftAt: 1 });
+// Serves: the member list, and the oldest member or admin when ownership passes on.
+chatMemberSchema.index({ chatId: 1, leftAt: 1, joinedAt: 1 });
+// Serves: how far everyone in a group has received, and read (the lowest value of each).
+chatMemberSchema.index({ chatId: 1, leftAt: 1, lastDeliveredSeq: 1 });
+chatMemberSchema.index({ chatId: 1, leftAt: 1, ackReadSeq: 1 });
 
 export interface VoicePlay {
   userId: Types.ObjectId;
@@ -122,6 +165,7 @@ export interface MessageDoc {
   /** What readers need to know about the file, copied here so history needs no second query. */
   media?: MediaInfo | null;
   albumId?: string | null;
+  system?: SystemEvent | null;
   /** Voice notes: who played it. Only ever added to, so `played` never goes back. */
   plays?: VoicePlay[];
   /** Reserved for formatting and mentions. */
@@ -142,6 +186,7 @@ const messageSchema = new Schema<MessageDoc>(
     text: { type: String, default: null },
     media: { type: Schema.Types.Mixed, default: null },
     albumId: { type: String, default: null },
+    system: { type: Schema.Types.Mixed, default: undefined },
     plays: { type: [Schema.Types.Mixed], default: undefined },
     entities: { type: [Schema.Types.Mixed], default: undefined },
     replyToId: { type: ObjectId, default: null },
@@ -275,6 +320,32 @@ mediaSchema.index({ ownerId: 1, status: 1, size: 1 });
 // Serves: the hourly cleanup of uploads never attached to a message.
 mediaSchema.index({ messageId: 1, createdAt: 1 });
 
+/** When someone's position moved, so "Read by" can say when. Reads as far as they were shareable. */
+export interface ReceiptEventDoc {
+  chatId: Types.ObjectId;
+  userId: Types.ObjectId;
+  kind: 'delivered' | 'read';
+  seq: number;
+  at: Date;
+}
+
+export const RECEIPT_EVENT_TTL_DAYS = 90;
+
+const receiptEventSchema = new Schema<ReceiptEventDoc>(
+  {
+    chatId: { type: ObjectId, required: true },
+    userId: { type: ObjectId, required: true },
+    kind: { type: String, required: true },
+    seq: { type: Number, required: true },
+    at: { type: Date, required: true },
+  },
+  { ...options, collection: 'receipt_events' },
+);
+// Serves: message info. The first event at or past a message's position is when it got there.
+receiptEventSchema.index({ chatId: 1, seq: 1 });
+// Older times are not worth keeping forever: the lists then show who, without when.
+receiptEventSchema.index({ at: 1 }, { expireAfterSeconds: RECEIPT_EVENT_TTL_DAYS * 86_400 });
+
 export function registerChatModels(connection: Connection) {
   const model = <T>(name: string, schema: Schema<T>): Model<T> =>
     (connection.models[name] as Model<T> | undefined) ?? connection.model<T>(name, schema);
@@ -286,6 +357,7 @@ export function registerChatModels(connection: Connection) {
     MessageHidden: model('MessageHidden', messageHiddenSchema),
     UserSync: model('UserSync', userSyncSchema),
     UserUpdate: model('UserUpdate', userUpdateSchema),
+    ReceiptEvent: model('ReceiptEvent', receiptEventSchema),
   };
 }
 

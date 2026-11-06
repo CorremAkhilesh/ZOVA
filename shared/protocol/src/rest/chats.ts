@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { isoDateTimeSchema, objectIdSchema } from '../common/id.ts';
+import { groupInfoSchema } from './groups.ts';
 import { mediaInfoSchema } from './media.ts';
 import { publicProfileSchema } from './profile.ts';
 
@@ -19,6 +20,29 @@ export const messageTypeSchema = z.enum([
   'voice',
   'audio',
 ]);
+
+/** What a system message says happened. Names are kept with it, so it reads the same later. */
+export const systemEventSchema = z.object({
+  kind: z.enum([
+    'created',
+    'added',
+    'removed',
+    'left',
+    'joined',
+    'renamed',
+    'photo_changed',
+    'description_changed',
+    'promoted',
+    'demoted',
+    'settings_changed',
+    'owner_changed',
+  ]),
+  /** Null when the system did it, such as passing on ownership from a deactivated account. */
+  actor: z.object({ id: z.string(), name: z.string() }).nullable(),
+  targets: z.array(z.object({ id: z.string(), name: z.string() })),
+  /** The new name, or which settings changed: `key:value,key:value`. */
+  value: z.string().nullable(),
+});
 
 /** Client-generated id, unique per sender: re-sending the same one never creates a duplicate. */
 export const clientMsgIdSchema = z.uuidv7();
@@ -48,6 +72,8 @@ export const messageSchema = z.object({
    * For anyone else: they played it themselves, on any device. Once true, it stays true.
    */
   played: z.boolean().default(false),
+  /** System messages only. */
+  system: systemEventSchema.nullable().optional(),
   replyToId: z.string().nullable(),
   editedAt: isoDateTimeSchema.nullable(),
   deletedForEveryoneAt: isoDateTimeSchema.nullable(),
@@ -60,6 +86,7 @@ export const lastMessageSchema = z.object({
   senderId: z.string().nullable(),
   type: messageTypeSchema,
   preview: z.string(),
+  system: systemEventSchema.nullable().optional(),
   createdAt: isoDateTimeSchema,
 });
 
@@ -71,10 +98,12 @@ export const chatSummarySchema = z.object({
   seq: z.number().int().nonnegative(),
   /** Direct chats only, with that person's privacy settings applied. */
   otherUser: publicProfileSchema.nullable(),
+  /** Group chats only. */
+  group: groupInfoSchema.nullable().optional(),
   lastMessage: lastMessageSchema.nullable(),
   lastReadSeq: z.number().int().nonnegative(),
   unreadCount: z.number().int().nonnegative(),
-  /** Direct chats: how far the other person's devices have received. 0 otherwise. */
+  /** How far the other person's devices have received; in a group, everyone's. 0 otherwise. */
   peerDeliveredSeq: z.number().int().nonnegative(),
   /**
    * How far the other person has read, as far as this user may know. It stops moving while either
@@ -166,6 +195,7 @@ export function formatDuration(seconds: number): string {
 export type ChatType = z.infer<typeof chatTypeSchema>;
 export type ChatMemberRole = z.infer<typeof chatMemberRoleSchema>;
 export type Message = z.infer<typeof messageSchema>;
+export type SystemEvent = z.infer<typeof systemEventSchema>;
 export type LastMessage = z.infer<typeof lastMessageSchema>;
 export type ChatSummary = z.infer<typeof chatSummarySchema>;
 export type SyncResponse = z.infer<typeof syncResponseSchema>;

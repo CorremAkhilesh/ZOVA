@@ -1,8 +1,9 @@
 import type { FastifyInstance } from 'fastify';
-import type { Types } from 'mongoose';
+import type { ClientSession, Types } from 'mongoose';
 import { AppError } from '../lib/errors.ts';
 import { type UserDoc, usersModel } from '../users/user-record.ts';
 import { chatModels, oid, readReceiptsVisible, requireMember } from './chats.service.ts';
+import { ownReceiptsOn, refreshGroupMarks } from './group-receipts.service.ts';
 import { toLastMessage } from './message-format.ts';
 import { logUpdates } from './updates.ts';
 
@@ -18,6 +19,22 @@ export async function readsVisibleBetween(
   return readReceiptsVisible(users[0], users[1]);
 }
 
+/** When positions moved, for "Read by" and "Delivered to". */
+function logReceiptEvents(
+  app: FastifyInstance,
+  session: ClientSession,
+  fields: { chatId: Types.ObjectId; userId: Types.ObjectId; at: Date },
+  moved: Array<{ kind: 'delivered' | 'read'; seq: number }>,
+) {
+  if (moved.length === 0) return Promise.resolve();
+  return chatModels(app)
+    .ReceiptEvent.insertMany(
+      moved.map((event) => ({ ...fields, ...event })),
+      { session },
+    )
+    .then(() => undefined);
+}
+
 /** The other member of a direct chat; null for anything else, which has no receipts yet. */
 async function peerOf(
   app: FastifyInstance,
@@ -29,6 +46,17 @@ async function peerOf(
     .ChatMember.findOne({ chatId: chat._id, userId: { $ne: oid(userId) } })
     .select({ userId: 1 })
     .lean();
+}
+
+/** In a group, each person's reads are theirs to share. Reciprocity is applied to whoever is looking. */
+async function sharesReads(
+  app: FastifyInstance,
+  chat: { type: string },
+  peer: { userId: Types.ObjectId } | null,
+  userId: string,
+) {
+  if (chat.type === 'group') return ownReceiptsOn(app, userId);
+  return peer ? readsVisibleBetween(app, [userId, peer.userId.toString()]) : false;
 }
 
 /** Moves my read position forward (never back), tells my other devices and, if allowed, the sender. */
@@ -46,7 +74,7 @@ export async function markRead(app: FastifyInstance, userId: string, chatId: str
   if (target <= member.lastReadSeq) return answer(member.lastReadSeq);
 
   const peer = await peerOf(app, chat, userId);
-  const visible = peer ? await readsVisibleBetween(app, [userId, peer.userId.toString()]) : false;
+  const visible = await sharesReads(app, chat, peer, userId);
   // What was shared stays shared; only new reads depend on the setting today.
   const sharedBefore = member.sharedReadSeq ?? member.lastReadSeq;
   const sharedReadSeq = visible ? target : sharedBefore;
@@ -58,10 +86,19 @@ export async function markRead(app: FastifyInstance, userId: string, chatId: str
   const cursors = await app.mongo.transaction(async (session) => {
     const moved = await models.ChatMember.updateOne(
       { chatId: chat._id, userId: member.userId, lastReadSeq: { $lt: target } },
-      { $set: { lastReadSeq: target, sharedReadSeq }, $max: { lastDeliveredSeq } },
+      {
+        $set: { lastReadSeq: target, sharedReadSeq },
+        $max: { lastDeliveredSeq, ackReadSeq: visible ? target : lastDeliveredSeq },
+      },
       { session },
     );
     if (moved.modifiedCount === 0) return null;
+    await logReceiptEvents(app, session, { chatId: chat._id, userId: member.userId, at: now }, [
+      ...(lastDeliveredSeq > member.lastDeliveredSeq
+        ? [{ kind: 'delivered' as const, seq: lastDeliveredSeq }]
+        : []),
+      ...(visible ? [{ kind: 'read' as const, seq: target }] : []),
+    ]);
     const mine = await logUpdates(
       models,
       session,
@@ -107,6 +144,7 @@ export async function markRead(app: FastifyInstance, userId: string, chatId: str
       cursor: cursors.theirs,
     });
   }
+  if (chat.type === 'group') await refreshGroupMarks(app, chatId);
   return result;
 }
 
@@ -129,13 +167,25 @@ export async function markDelivered(
   if (target <= member.lastDeliveredSeq) return answer(member.lastDeliveredSeq);
 
   const peer = await peerOf(app, chat, userId);
+  // In a group, someone with read receipts off counts as far as they have received.
+  const countsAsRead = chat.type === 'group' && !(await ownReceiptsOn(app, userId));
   const cursor = await app.mongo.transaction(async (session) => {
     const moved = await models.ChatMember.updateOne(
       { chatId: chat._id, userId: member.userId, lastDeliveredSeq: { $lt: target } },
-      { $set: { lastDeliveredSeq: target } },
+      {
+        $set: { lastDeliveredSeq: target },
+        ...(countsAsRead ? { $max: { ackReadSeq: target } } : {}),
+      },
       { session },
     );
-    if (moved.modifiedCount === 0 || !peer) return null;
+    if (moved.modifiedCount === 0) return null;
+    await logReceiptEvents(
+      app,
+      session,
+      { chatId: chat._id, userId: member.userId, at: new Date() },
+      [{ kind: 'delivered', seq: target }],
+    );
+    if (!peer) return null;
     const cursors = await logUpdates(
       models,
       session,
@@ -154,5 +204,6 @@ export async function markDelivered(
       cursor,
     });
   }
+  if (chat.type === 'group') await refreshGroupMarks(app, chatId);
   return answer(target);
 }

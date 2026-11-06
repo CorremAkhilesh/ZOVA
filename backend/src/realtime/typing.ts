@@ -1,5 +1,7 @@
+import { DEFAULT_GROUP_SETTINGS } from '@zuvo/protocol';
 import type { FastifyInstance } from 'fastify';
 import { chatModels, oid, requireMember } from '../chats/chats.service.ts';
+import { assertAllowed, groupRules } from '../chats/group-permissions.ts';
 import { AppError } from '../lib/errors.ts';
 import type { ZuvoSocket } from './server.ts';
 import { windowLimit } from './socket-limit.ts';
@@ -8,7 +10,8 @@ import { windowLimit } from './socket-limit.ts';
 export const TYPING_TTL_MS = 6000;
 /** Clients send at most one every 3 s per chat; this leaves room for a few chats, not for abuse. */
 const TYPING_LIMIT = { max: 20, windowMs: 10_000 };
-const MEMBERS_CACHE_MS = 60_000;
+/** Short: someone removed from a group must stop hearing about it almost at once. */
+const MEMBERS_CACHE_MS = 10_000;
 
 /** Never stored: timers on the instance holding the socket, gone with it. */
 export function createTyping(app: FastifyInstance, socket: ZuvoSocket) {
@@ -17,11 +20,20 @@ export function createTyping(app: FastifyInstance, socket: ZuvoSocket) {
   const others = new Map<string, { ids: string[]; at: number }>();
   const allowed = windowLimit(TYPING_LIMIT.max, TYPING_LIMIT.windowMs);
 
+  async function assertMayType(chatId: string) {
+    const member = await requireMember(app, chatId, userId);
+    const chat = await chatModels(app).Chat.findById(chatId).select({ group: 1, type: 1 }).lean();
+    if (chat?.type !== 'group') return;
+    const settings = { ...DEFAULT_GROUP_SETTINGS, ...chat.group?.settings };
+    assertAllowed(groupRules.sendMessages(member.role, settings), 'Only admins can send messages.');
+  }
+
   /** The other members, so an event can never reach anyone outside the chat. */
   async function otherMembers(chatId: string): Promise<string[]> {
+    // Each time: someone removed from a group, or told only admins may speak there, says nothing.
+    await assertMayType(chatId);
     const cached = others.get(chatId);
     if (cached && Date.now() - cached.at < MEMBERS_CACHE_MS) return cached.ids;
-    await requireMember(app, chatId, userId);
     const members = await chatModels(app)
       .ChatMember.find({ chatId: oid(chatId), leftAt: null })
       .select({ userId: 1 })
