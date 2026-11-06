@@ -3,7 +3,7 @@ import { signUp } from './helpers';
 
 test('signed-in app loads, switches theme and opens Saved Messages', async ({ page }) => {
   await signUp(page);
-  await expect(page.getByRole('heading', { name: 'Chats' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Chats', exact: true })).toBeVisible();
 
   // Theme: dark, persisted across a reload without a flash.
   await page.getByRole('link', { name: 'Settings', exact: true }).click();

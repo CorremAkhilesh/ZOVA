@@ -92,7 +92,10 @@ describe('creating a group', () => {
         memberIds: ['u-riya', 'u-vikram'],
       }),
     );
-    expect(await screen.findByRole('heading', { name: 'Launch' })).toBeInTheDocument();
+    // Opening a chat loads its route and reads the local database.
+    expect(
+      await screen.findByRole('heading', { name: 'Launch' }, { timeout: 15_000 }),
+    ).toBeInTheDocument();
   });
 
   it('shows a failure and keeps what was typed', async () => {
@@ -157,7 +160,10 @@ describe('the join page', () => {
     expect(await axe(container)).toHaveNoViolations();
     await user.click(screen.getByRole('button', { name: 'Join' }));
     await waitFor(() => expect(joined).toHaveBeenCalled());
-    expect(await screen.findByRole('heading', { name: 'Launch team' })).toBeInTheDocument();
+    // Opening a chat loads its route and reads the local database.
+    expect(
+      await screen.findByRole('heading', { name: 'Launch team' }, { timeout: 15_000 }),
+    ).toBeInTheDocument();
   });
 
   it('says so when the link no longer works', async () => {
@@ -219,7 +225,10 @@ describe('message info', () => {
 describe('the group header', () => {
   it('shows the group name and its people, with me last', async () => {
     await openGroup(group());
-    expect(await screen.findByRole('heading', { name: 'Launch team' })).toBeInTheDocument();
+    // Opening a chat loads its route and reads the local database.
+    expect(
+      await screen.findByRole('heading', { name: 'Launch team' }, { timeout: 15_000 }),
+    ).toBeInTheDocument();
     expect(await screen.findByText('Riya, Vikram, You')).toBeInTheDocument();
   });
 

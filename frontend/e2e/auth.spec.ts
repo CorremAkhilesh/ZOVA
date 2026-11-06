@@ -5,12 +5,12 @@ test('sign up with an organization email, stay signed in after reload, then sign
   page,
 }) => {
   await signUp(page, 'Playwright User');
-  await expect(page.getByRole('heading', { name: 'Chats' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Chats', exact: true })).toBeVisible();
 
   // The session survives a reload (httpOnly cookie, restored via /v1/auth/me).
   await page.reload();
   await expect(page).toHaveURL(/\/chats$/);
-  await expect(page.getByRole('heading', { name: 'Chats' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Chats', exact: true })).toBeVisible();
 
   // Settings → Account shows the user and signs out.
   await page.goto('/settings');
