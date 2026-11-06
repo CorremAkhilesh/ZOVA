@@ -2,16 +2,18 @@ import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { type StarredItem, starsResponseSchema } from '@zuvo/protocol';
 import { ArrowLeft, Star } from 'lucide-react';
+import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSession } from '@/features/auth/session';
 import { formatClock } from '@/features/chats/chat-utils';
-import { useChats } from '@/features/chats/queries';
+import { useChats, useLocalDb } from '@/features/chats/queries';
 import { toChatSummary } from '@/features/chats/view';
 import { useKnownPeople } from '@/features/groups/queries';
 import { useSyncStore } from '@/features/sync/store';
+import { useLive } from '@/features/sync/use-live';
 import { apiGet, withQuery } from '@/lib/api-client';
 import { useMessageUi } from '../store';
 
@@ -95,6 +97,13 @@ export function StarredScreen({ chatId }: { chatId?: string | undefined }) {
     (rows ?? []).map((row) => [row.id, toChatSummary(row, me, labels).name] as const),
   );
   const items = stars.data?.pages.flatMap((page) => page.items) ?? [];
+  // A star is told to the server a moment after it shows. When the queue moves, ask again.
+  const db = useLocalDb();
+  const waiting = useLive(() => db?.actions.count() ?? 0, [db]);
+  const { refetch } = stars;
+  useEffect(() => {
+    if (waiting === 0) void refetch();
+  }, [refetch, waiting]);
 
   return (
     <section aria-labelledby="starred-title" className="flex h-full min-h-0 flex-col">

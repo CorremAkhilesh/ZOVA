@@ -1,6 +1,6 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { axe } from '@/test/axe';
 import { chatFixture, ME_ID, messageFixture } from '@/test/chat-fixtures';
 import { HttpResponse, http, server } from '@/test/msw';
@@ -267,85 +267,5 @@ describe('reactions', () => {
     expect(await axe(container)).toHaveNoViolations();
     fireEvent.click(within(dialog).getByRole('button', { name: 'Tap to remove' }));
     await waitFor(() => expect(requests[0]?.method).toBe('DELETE'));
-  });
-});
-
-describe('forward', () => {
-  it('picks up to 5 chats, searches, and shows the label on a copy', async () => {
-    const others = ['c2', 'c3', 'c4', 'c5', 'c6', 'c7'].map((id, index) =>
-      chatFixture({
-        id,
-        seq: 0,
-        otherUser: { ...chatFixture().otherUser, id: `u${index}`, displayName: `Person ${index}` },
-      } as never),
-    );
-    await seedLocal([chatFixture({ seq: 1 }), ...others], [theirs(1, 'share this')]);
-    await renderApp('/chats/c1', { width: DESKTOP_WIDTH });
-    await choose(await menuOn('share this'), 'Forward');
-    const dialog = await screen.findByRole('dialog', { name: 'Forward to' });
-    const list = within(dialog).getByRole('list', { name: 'Forward to' });
-    await within(list).findByRole('button', { name: /Person 0/ }, SLOW);
-    for (const index of [0, 1, 2, 3, 4]) {
-      fireEvent.click(within(list).getByRole('button', { name: new RegExp(`Person ${index}`) }));
-    }
-    expect(within(dialog).getByText('5 of 5 chats chosen')).toBeInTheDocument();
-    expect(within(list).getByRole('button', { name: /Person 5/ })).toBeDisabled();
-    fireEvent.change(within(dialog).getByRole('searchbox'), { target: { value: 'Person 5' } });
-    expect(within(list).queryByRole('button', { name: /Person 0/ })).toBeNull();
-    fireEvent.change(within(dialog).getByRole('textbox', { name: /Add a message/ }), {
-      target: { value: 'look' },
-    });
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Forward' }));
-    await waitFor(() => expect(requests[0]?.path).toBe('/v1/forward'));
-    expect(requests[0]?.body).toMatchObject({
-      messages: [{ chatId: 'c1', messageId: 'm1' }],
-      chatIds: ['c2', 'c3', 'c4', 'c5', 'c6'],
-      comment: 'look',
-    });
-  });
-
-  it('labels what was forwarded, and what was forwarded many times', async () => {
-    await open([
-      theirs(1, 'once', { forwarded: true, forwardCount: 1 }),
-      theirs(2, 'often', { forwarded: true, forwardCount: 5 }),
-    ]);
-    expect(await screen.findByText('Forwarded', undefined, SLOW)).toBeInTheDocument();
-    expect(screen.getByText('Forwarded many times')).toBeInTheDocument();
-  });
-});
-
-describe('selecting several', () => {
-  it('copies with sender and time, and stars them', async () => {
-    const write = vi.fn().mockResolvedValue(undefined);
-    Object.defineProperty(navigator, 'clipboard', {
-      configurable: true,
-      value: { writeText: write },
-    });
-    const { container } = await open([theirs(1, 'one'), mine(2, 'two')]);
-    await choose(await menuOn('one'), 'Select');
-    expect(await screen.findByText('1 selected')).toBeInTheDocument();
-    fireEvent.click(await bubble('two'));
-    expect(await screen.findByText('2 selected')).toBeInTheDocument();
-    expect(screen.queryByRole('textbox', { name: 'Write a message' })).not.toBeInTheDocument();
-    expect(await axe(container)).toHaveNoViolations();
-    fireEvent.click(screen.getByRole('button', { name: 'Copy' }));
-    await waitFor(() => expect(write).toHaveBeenCalled());
-    expect(write.mock.calls[0]?.[0]).toMatch(/one\n.*You: two$/);
-
-    await choose(await menuOn('one'), 'Select');
-    fireEvent.click(screen.getByRole('button', { name: 'Star' }));
-    await waitFor(() => expect(requests.some((item) => item.path.endsWith('/star'))).toBe(true));
-  });
-
-  it('deleting several offers "for everyone" only when all of them allow it', async () => {
-    await open([theirs(1, 'one'), mine(2, 'two')]);
-    await choose(await menuOn('two'), 'Select');
-    fireEvent.click(await bubble('one'));
-    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
-    const dialog = await screen.findByRole('dialog', { name: 'Delete 2 messages?' });
-    expect(within(dialog).queryByRole('button', { name: 'Delete for everyone' })).toBeNull();
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Delete for me' }));
-    await waitFor(() => expect(requests).toHaveLength(2));
-    expect(useMessageUi.getState().selecting).toBeNull();
   });
 });

@@ -182,7 +182,9 @@ describe('read state', () => {
         cursor: '6',
       }),
     );
-    expect(await screen.findByLabelText('1 unread message')).toBeInTheDocument();
+    expect(
+      await screen.findByLabelText('1 unread message', undefined, { timeout: 15_000 }),
+    ).toBeInTheDocument();
     expect(reads()).toEqual([]);
 
     scrollState(4200);

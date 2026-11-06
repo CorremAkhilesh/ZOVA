@@ -52,7 +52,8 @@ test('message actions between two people: reply, edit, react, delete', async ({ 
   const composer = asha.page.getByRole('textbox', { name: 'Write a message' });
   await expect(composer).toHaveValue('this is my reply');
   await composer.fill('this is my edited reply');
-  await composer.press('Enter');
+  // Enter makes a new line on a phone: the button sends everywhere.
+  await asha.page.getByRole('button', { name: 'Send' }).click();
   await expect(bubble(bharat.page, 'Asha', 'this is my edited reply')).toBeVisible(SLOW);
   await expect(thread(bharat.page, 'Asha').getByText('edited', { exact: true })).toBeVisible();
 
@@ -153,7 +154,8 @@ test('an edit and a reaction made offline reach the other person after reconnect
     .click();
   const composer = asha.page.getByRole('textbox', { name: 'Write a message' });
   await composer.fill('changed offline');
-  await composer.press('Enter');
+  // Enter makes a new line on a phone: the button sends everywhere.
+  await asha.page.getByRole('button', { name: 'Send' }).click();
   await expect(bubble(asha.page, 'Bharat', 'changed offline')).toBeVisible();
   await (await menuOn(asha.page, 'Bharat', 'hello from bharat'))
     .getByRole('menuitem', { name: '❤️' })
