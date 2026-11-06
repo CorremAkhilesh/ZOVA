@@ -1,16 +1,20 @@
 import { z } from 'zod';
 import type { AckResponse } from './ack.ts';
 import {
+  chatClearedEventSchema,
   chatUpdatedEventSchema,
   deliveredUpdateAckSchema,
   deliveredUpdatePayloadSchema,
   messageNewEventSchema,
   messagePlayedEventSchema,
+  messageRemovedEventSchema,
+  messageUpdatedEventSchema,
   presenceActivePayloadSchema,
   presenceEventSchema,
   presenceResubscribeEventSchema,
   presenceSubscribeAckSchema,
   presenceSubscribePayloadSchema,
+  reactionPreviewEventSchema,
   readUpdateAckSchema,
   readUpdateEventSchema,
   readUpdatePayloadSchema,
@@ -56,6 +60,10 @@ export const serverToClientEvents = {
   'presence:resubscribe': presenceResubscribeEventSchema,
   'receipt:update': receiptEventSchema,
   'message:played': messagePlayedEventSchema,
+  'message:updated': messageUpdatedEventSchema,
+  'message:removed': messageRemovedEventSchema,
+  'chat:cleared': chatClearedEventSchema,
+  'reaction:preview': reactionPreviewEventSchema,
 } satisfies Record<string, z.ZodType>;
 
 type ClientEvents = typeof clientToServerEvents;

@@ -1,8 +1,27 @@
-import type { GroupSettings, MediaInfo, SystemEvent } from '@zuvo/protocol';
+import type {
+  GroupSettings,
+  LastReaction,
+  MediaInfo,
+  ReplyQuote,
+  SystemEvent,
+} from '@zuvo/protocol';
 import { type Connection, type Model, Schema, type Types } from 'mongoose';
 import { mediaSchema, receiptEventSchema } from './media-models.ts';
+import {
+  messageHiddenSchema,
+  starSchema,
+  userSyncSchema,
+  userUpdateSchema,
+} from './per-user-models.ts';
 
 export type { MediaDoc, ReceiptEventDoc } from './media-models.ts';
+export type {
+  MessageHiddenDoc,
+  StarDoc,
+  UserSyncDoc,
+  UserUpdateDoc,
+} from './per-user-models.ts';
+export { UPDATE_LOG_TTL_DAYS } from './per-user-models.ts';
 
 const options = { versionKey: false, autoCreate: true } as const;
 const { ObjectId } = Schema.Types;
@@ -14,6 +33,7 @@ export interface LastMessageSnapshot {
   type: 'text' | 'system' | MediaInfo['kind'];
   preview: string;
   system?: SystemEvent | null;
+  deleted?: boolean;
   createdAt: Date;
 }
 
@@ -102,6 +122,14 @@ export interface ChatMemberDoc {
   };
   /** Groups: how far I count towards the color of others' ticks. See group-receipts.service.ts. */
   ackReadSeq?: number;
+  /** Cleared the chat: I see nothing up to here. */
+  clearedSeq?: number;
+  /** Deleted the chat's last message for me: up to here, the chat list shows `previewLast` instead. */
+  previewFloor?: number;
+  previewLast?: LastMessageSnapshot | null;
+  markedUnread?: boolean;
+  /** Someone reacted to a message of mine. */
+  lastReaction?: LastReaction;
   /** Groups: my account is deactivated, so I no longer hold up their ticks. */
   suspended?: boolean;
   /** Copied from the chat so the chat list is one index scan. Null hides a chat not yet messaged. */
@@ -128,6 +156,11 @@ const chatMemberSchema = new Schema<ChatMemberDoc>(
     leftSeq: { type: Number, default: null },
     leftView: Schema.Types.Mixed,
     ackReadSeq: Number,
+    clearedSeq: Number,
+    previewFloor: Number,
+    previewLast: Schema.Types.Mixed,
+    markedUnread: Boolean,
+    lastReaction: Schema.Types.Mixed,
     suspended: Boolean,
     lastActivityAt: { type: Date, default: null },
     pinnedAt: Date,
@@ -142,6 +175,11 @@ const chatMemberSchema = new Schema<ChatMemberDoc>(
 chatMemberSchema.index({ chatId: 1, userId: 1 }, { unique: true });
 // Serves: my chat list, most recent first, including groups I left, whose history I keep.
 chatMemberSchema.index({ userId: 1, lastActivityAt: -1, chatId: -1 });
+// Serves: how many chats I have pinned. Partial: most chats are not.
+chatMemberSchema.index(
+  { userId: 1, pinnedAt: 1 },
+  { partialFilterExpression: { pinnedAt: { $type: 'date' } } },
+);
 // Serves: the groups of someone being deactivated.
 chatMemberSchema.index({ userId: 1, leftAt: 1 });
 // Serves: the member list, and the oldest member or admin when ownership passes on.
@@ -149,6 +187,12 @@ chatMemberSchema.index({ chatId: 1, leftAt: 1, joinedAt: 1 });
 // Serves: how far everyone in a group has received, and read (the lowest value of each).
 chatMemberSchema.index({ chatId: 1, leftAt: 1, lastDeliveredSeq: 1 });
 chatMemberSchema.index({ chatId: 1, leftAt: 1, ackReadSeq: 1 });
+
+export interface MessageReaction {
+  userId: Types.ObjectId;
+  emoji: string;
+  at: Date;
+}
 
 export interface VoicePlay {
   userId: Types.ObjectId;
@@ -169,6 +213,13 @@ export interface MessageDoc {
   media?: MediaInfo | null;
   albumId?: string | null;
   system?: SystemEvent | null;
+  replyTo?: ReplyQuote | null;
+  forwarded?: boolean;
+  /** How many times this message has been forwarded, or for a copy, the original had been. */
+  forwardCount?: number;
+  /** One per person, kept with the message so history needs no second query. */
+  reactions?: MessageReaction[];
+  deletedByAdmin?: boolean;
   /** Voice notes: who played it. Only ever added to, so `played` never goes back. */
   plays?: VoicePlay[];
   /** Reserved for formatting and mentions. */
@@ -190,6 +241,11 @@ const messageSchema = new Schema<MessageDoc>(
     media: { type: Schema.Types.Mixed, default: null },
     albumId: { type: String, default: null },
     system: { type: Schema.Types.Mixed, default: undefined },
+    replyTo: { type: Schema.Types.Mixed, default: undefined },
+    forwarded: Boolean,
+    forwardCount: Number,
+    reactions: { type: [Schema.Types.Mixed], default: undefined },
+    deletedByAdmin: Boolean,
     plays: { type: [Schema.Types.Mixed], default: undefined },
     entities: { type: [Schema.Types.Mixed], default: undefined },
     replyToId: { type: ObjectId, default: null },
@@ -201,6 +257,10 @@ const messageSchema = new Schema<MessageDoc>(
 );
 // Serves: history pages (before/after a position) and sync. Unique: a position is used only once.
 messageSchema.index({ chatId: 1, seq: -1 }, { unique: true });
+// Serves: who may open a file, since forwarded copies share one, and whether it is still needed.
+messageSchema.index({ 'media.id': 1 }, { sparse: true });
+// Serves: updating the quotes of a message when it is edited or deleted.
+messageSchema.index({ 'replyTo.id': 1 }, { sparse: true });
 // Serves: the gallery ("Media" and "Docs" in chat info), newest first.
 messageSchema.index({ chatId: 1, type: 1, seq: -1 });
 // Serves: "already sent?" check. Unique: the same clientMsgId can never create a second message.
@@ -209,67 +269,6 @@ messageSchema.index(
   { senderId: 1, clientMsgId: 1 },
   { unique: true, partialFilterExpression: { clientMsgId: { $type: 'string' } } },
 );
-
-/** Reserved: delete for me. */
-export interface MessageHiddenDoc {
-  userId: Types.ObjectId;
-  chatId: Types.ObjectId;
-  messageId: Types.ObjectId;
-  createdAt: Date;
-}
-
-const messageHiddenSchema = new Schema<MessageHiddenDoc>(
-  {
-    userId: { type: ObjectId, required: true },
-    chatId: { type: ObjectId, required: true },
-    messageId: { type: ObjectId, required: true },
-    createdAt: { type: Date, default: () => new Date() },
-  },
-  { ...options, collection: 'message_hidden' },
-);
-// Serves: "which messages of this chat did I hide?". Unique: hiding twice is one row.
-messageHiddenSchema.index({ userId: 1, chatId: 1, messageId: 1 }, { unique: true });
-
-/** One counter per user: how many changes this user has ever had. _id is the user id. */
-export interface UserSyncDoc {
-  _id: Types.ObjectId;
-  seq: number;
-}
-
-const userSyncSchema = new Schema<UserSyncDoc>(
-  { _id: { type: ObjectId, required: true }, seq: { type: Number, default: 0 } },
-  { ...options, collection: 'user_sync' },
-);
-
-export const UPDATE_LOG_TTL_DAYS = 30;
-
-/** One row per change per user, numbered by that user's counter. See docs/protocol.md. */
-export interface UserUpdateDoc {
-  userId: Types.ObjectId;
-  /** This user's change number: 1, 2, 3… with no gaps until old rows expire. */
-  pts: number;
-  kind: 'message' | 'read' | 'chat' | 'receipt' | 'played';
-  chatId: Types.ObjectId;
-  /** kind = message or played: the message's position in its chat. */
-  seq?: number;
-  at: Date;
-}
-
-const userUpdateSchema = new Schema<UserUpdateDoc>(
-  {
-    userId: { type: ObjectId, required: true },
-    pts: { type: Number, required: true },
-    kind: { type: String, required: true },
-    chatId: { type: ObjectId, required: true },
-    seq: Number,
-    at: { type: Date, default: () => new Date() },
-  },
-  { ...options, collection: 'user_updates' },
-);
-// Serves: GET /v1/sync (everything after my cursor, in order). Unique: a number is used only once.
-userUpdateSchema.index({ userId: 1, pts: 1 }, { unique: true });
-// TTL: a device away this long reloads its chat list instead (`reset` in the sync response).
-userUpdateSchema.index({ at: 1 }, { expireAfterSeconds: UPDATE_LOG_TTL_DAYS * 86_400 });
 
 export function registerChatModels(connection: Connection) {
   const model = <T>(name: string, schema: Schema<T>): Model<T> =>
@@ -280,6 +279,7 @@ export function registerChatModels(connection: Connection) {
     Message: model('Message', messageSchema),
     Media: model('Media', mediaSchema),
     MessageHidden: model('MessageHidden', messageHiddenSchema),
+    Star: model('Star', starSchema),
     UserSync: model('UserSync', userSyncSchema),
     UserUpdate: model('UserUpdate', userUpdateSchema),
     ReceiptEvent: model('ReceiptEvent', receiptEventSchema),

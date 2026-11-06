@@ -17,6 +17,7 @@ import { adminRoutes } from './modules/admin/admin.routes.ts';
 import { authRoutes } from './modules/auth/auth.routes.ts';
 import { chatsRoutes } from './modules/chats/chats.routes.ts';
 import { groupsRoutes } from './modules/chats/groups.routes.ts';
+import { messageActionsRoutes } from './modules/chats/message-actions.routes.ts';
 import { configRoutes } from './modules/config/config.routes.ts';
 import { healthRoutes } from './modules/health/health.routes.ts';
 import { mediaRoutes } from './modules/media/media.routes.ts';
@@ -117,6 +118,7 @@ export async function buildApp(env: Env, deps: Partial<AppDeps> = {}) {
   await app.register(sessionsRoutes, { prefix: '/v1' });
   await app.register(chatsRoutes, { prefix: '/v1' });
   await app.register(groupsRoutes, { prefix: '/v1' });
+  await app.register(messageActionsRoutes, { prefix: '/v1' });
   await app.register(mediaRoutes, { prefix: '/v1' });
   await app.register(adminRoutes, { prefix: '/v1' });
   if (env.NODE_ENV === 'test' && isMemoryMailer(app.mailer)) {

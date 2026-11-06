@@ -1,12 +1,71 @@
-import type { SyncResponse } from '@zuvo/protocol';
+import type { Message, SyncResponse } from '@zuvo/protocol';
 import type { FastifyInstance } from 'fastify';
 import type { Types } from 'mongoose';
+import type { ChatMemberDoc, MessageDoc, UserUpdateDoc } from '../db/chat-models.ts';
 import { buildSummaries, chatModels, oid } from './chats.service.ts';
-import { toMessage } from './message-format.ts';
+import { withStars } from './history.service.ts';
+import { hideQuote, toMessage } from './message-format.ts';
 import { canSeeSeq } from './visibility.ts';
 
 /** A new message, or one whose `played` changed: either way, this device needs its latest copy. */
-const carriesMessage = (row: { kind: string }) => row.kind === 'message' || row.kind === 'played';
+const carriesMessage = (row: { kind: string }) =>
+  row.kind === 'message' || row.kind === 'played' || row.kind === 'updated';
+
+type UpdateRow = Pick<UserUpdateDoc, 'kind' | 'chatId' | 'seq'>;
+
+async function hiddenAmong(
+  app: FastifyInstance,
+  userId: string,
+  chatIds: Types.ObjectId[],
+  docs: MessageDoc[],
+) {
+  if (docs.length === 0) return new Set<string>();
+  const rows = await chatModels(app)
+    .MessageHidden.find({
+      userId: oid(userId),
+      chatId: { $in: chatIds },
+      messageId: { $in: docs.map((doc) => doc._id) },
+    })
+    .select({ messageId: 1 })
+    .lean();
+  return new Set(rows.map((row) => row.messageId.toString()));
+}
+
+/** New to this device, or changes to what it may have. A message changed several times goes once. */
+function sortMessages(
+  page: UpdateRow[],
+  docByKey: Map<string, MessageDoc>,
+  memberByChat: Map<string, ChatMemberDoc>,
+  hidden: Set<string>,
+  userId: string,
+) {
+  const sent = new Set<string>();
+  const messages: Message[] = [];
+  const updated: Message[] = [];
+  for (const row of page) {
+    const doc = carriesMessage(row) ? docByKey.get(`${row.chatId}:${row.seq}`) : undefined;
+    const member = memberByChat.get(row.chatId.toString());
+    if (!doc || !member || !canSeeSeq(member, doc.seq)) continue;
+    const id = doc._id.toString();
+    if (hidden.has(id) || sent.has(id)) continue;
+    sent.add(id);
+    (row.kind === 'updated' ? updated : messages).push(hideQuote(toMessage(doc, userId), member));
+  }
+  return { messages, updated };
+}
+
+function removalsIn(page: UpdateRow[]) {
+  const removed: SyncResponse['removed'] = [];
+  const cleared: SyncResponse['cleared'] = [];
+  for (const { kind, chatId, seq } of page) {
+    if (seq === undefined) continue;
+    if (kind === 'hidden') removed.push({ chatId: chatId.toString(), seq });
+    if (kind === 'cleared' || kind === 'chat_removed') {
+      cleared.push({ chatId: chatId.toString(), seq, removeChat: kind === 'chat_removed' });
+    }
+  }
+  return { removed, cleared };
+}
 
 async function currentCursor(app: FastifyInstance, userId: string): Promise<string> {
   const counter = await chatModels(app).UserSync.findById(oid(userId)).lean();
@@ -33,6 +92,9 @@ export async function syncSince(
     hasMore: false,
     chats: [],
     messages: [],
+    updated: [],
+    removed: [],
+    cleared: [],
   });
   if (since === undefined) return reset();
 
@@ -45,7 +107,16 @@ export async function syncSince(
   if (!first) {
     return sincePts > Number(await currentCursor(app, userId))
       ? reset()
-      : { cursor: since, reset: false, hasMore: false, chats: [], messages: [] };
+      : {
+          cursor: since,
+          reset: false,
+          hasMore: false,
+          chats: [],
+          messages: [],
+          updated: [],
+          removed: [],
+          cleared: [],
+        };
   }
   if (first.pts !== sincePts + 1) return reset();
 
@@ -77,17 +148,23 @@ export async function syncSince(
       }).lean()
     : [];
   const docByKey = new Map(messageDocs.map((doc) => [`${doc.chatId}:${doc.seq}`, doc]));
-  const messages = page.flatMap((row) => {
-    const doc = carriesMessage(row) ? docByKey.get(`${row.chatId}:${row.seq}`) : undefined;
-    const member = memberByChat.get(row.chatId.toString());
-    return doc && member && canSeeSeq(member, doc.seq) ? [toMessage(doc, userId)] : [];
-  });
+  const hidden = await hiddenAmong(app, userId, chatIds, messageDocs);
+  const { messages, updated } = sortMessages(page, docByKey, memberByChat, hidden, userId);
+  const { removed, cleared } = removalsIn(page);
 
   return {
     cursor: String(lastPts),
     reset: false,
     hasMore: rows.length > limit,
-    chats: await buildSummaries(app, userId, members),
-    messages,
+    // A chat I deleted stays out of my list, until someone writes again.
+    chats: await buildSummaries(
+      app,
+      userId,
+      members.filter((member) => member.lastActivityAt !== null),
+    ),
+    messages: await withStars(app, userId, messages),
+    updated: await withStars(app, userId, updated),
+    removed,
+    cleared,
   };
 }

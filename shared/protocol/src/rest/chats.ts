@@ -53,6 +53,28 @@ export const messageTextSchema = z
   .max(MESSAGE_TEXT_MAX)
   .refine((text) => text.trim().length > 0, 'Message is empty');
 
+/** What a reply shows of the message it answers. A copy, updated when that message changes. */
+export const replyQuoteSchema = z.object({
+  id: z.string(),
+  chatId: z.string(),
+  seq: z.number().int().positive(),
+  senderId: z.string().nullable(),
+  senderName: z.string(),
+  type: messageTypeSchema,
+  text: z.string(),
+  mediaId: z.string().nullable(),
+  hasThumbnail: z.boolean(),
+  deleted: z.boolean(),
+  /** From before this person joined the group: they get to know only that it was a reply. */
+  unavailable: z.boolean().optional(),
+});
+
+export const messageReactionSchema = z.object({
+  userId: z.string(),
+  emoji: z.string(),
+  at: isoDateTimeSchema,
+});
+
 export const messageSchema = z.object({
   id: z.string(),
   chatId: z.string(),
@@ -74,6 +96,15 @@ export const messageSchema = z.object({
   played: z.boolean().default(false),
   /** System messages only. */
   system: systemEventSchema.nullable().optional(),
+  replyTo: replyQuoteSchema.nullable().optional(),
+  forwarded: z.boolean().optional(),
+  /** How many times the original has been forwarded. */
+  forwardCount: z.number().int().nonnegative().optional(),
+  reactions: z.array(messageReactionSchema).optional(),
+  /** For this user. Absent in events that are not about their own star: keep what you know. */
+  starred: z.boolean().optional(),
+  /** Deleted by a group's admin rather than its sender. */
+  deletedByAdmin: z.boolean().optional(),
   replyToId: z.string().nullable(),
   editedAt: isoDateTimeSchema.nullable(),
   deletedForEveryoneAt: isoDateTimeSchema.nullable(),
@@ -87,7 +118,18 @@ export const lastMessageSchema = z.object({
   type: messageTypeSchema,
   preview: z.string(),
   system: systemEventSchema.nullable().optional(),
+  deleted: z.boolean().optional(),
   createdAt: isoDateTimeSchema,
+});
+
+/** "Riya reacted 👍 to 'hello'", in the chat list. For the message's author only. */
+export const lastReactionSchema = z.object({
+  byId: z.string(),
+  byName: z.string(),
+  emoji: z.string(),
+  text: z.string(),
+  seq: z.number().int().positive(),
+  at: isoDateTimeSchema,
 });
 
 /** A chat as one member sees it. */
@@ -112,6 +154,11 @@ export const chatSummarySchema = z.object({
   peerReadSeq: z.number().int().nonnegative(),
   lastActivityAt: isoDateTimeSchema.nullable(),
   createdAt: isoDateTimeSchema,
+  pinned: z.boolean().optional(),
+  mutedUntil: isoDateTimeSchema.nullable().optional(),
+  archived: z.boolean().optional(),
+  markedUnread: z.boolean().optional(),
+  lastReaction: lastReactionSchema.nullable().optional(),
 });
 
 /** POST /v1/chats/direct */
@@ -171,6 +218,17 @@ export const syncResponseSchema = z.object({
   chats: z.array(chatSummarySchema),
   /** The missing messages, oldest change first. */
   messages: z.array(messageSchema),
+  /**
+   * Messages that changed: apply them only if this device has them. Storing an old one it never
+   * loaded would leave a hole in its history that paging back could not see.
+   */
+  updated: z.array(messageSchema).default([]),
+  /** Messages I deleted for me on another device. */
+  removed: z.array(z.object({ chatId: z.string(), seq: z.number().int() })).default([]),
+  /** Chats I cleared or deleted on another device: everything up to `seq` goes. */
+  cleared: z
+    .array(z.object({ chatId: z.string(), seq: z.number().int(), removeChat: z.boolean() }))
+    .default([]),
 });
 
 /** GET /v1/chats/:id/media */
@@ -195,6 +253,8 @@ export function formatDuration(seconds: number): string {
 export type ChatType = z.infer<typeof chatTypeSchema>;
 export type ChatMemberRole = z.infer<typeof chatMemberRoleSchema>;
 export type Message = z.infer<typeof messageSchema>;
+export type ReplyQuote = z.infer<typeof replyQuoteSchema>;
+export type LastReaction = z.infer<typeof lastReactionSchema>;
 export type SystemEvent = z.infer<typeof systemEventSchema>;
 export type LastMessage = z.infer<typeof lastMessageSchema>;
 export type ChatSummary = z.infer<typeof chatSummarySchema>;

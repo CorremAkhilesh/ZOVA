@@ -21,6 +21,8 @@ export interface MediaDoc {
   thumbnailKey: string | null;
   placeholder: string | null;
   status: 'pending' | 'ready' | 'failed';
+  /** Its message was deleted for everyone: a job removes the file unless a forward still uses it. */
+  deleteRequestedAt?: Date;
   /** Set once, when attached to a message. */
   messageId: Types.ObjectId | null;
   chatId: Types.ObjectId | null;
@@ -43,6 +45,7 @@ export const mediaSchema = new Schema<MediaDoc>(
     thumbnailKey: { type: String, default: null },
     placeholder: { type: String, default: null },
     status: { type: String, required: true, default: 'pending' },
+    deleteRequestedAt: Date,
     messageId: { type: ObjectId, default: null },
     chatId: { type: ObjectId, default: null },
     createdAt: { type: Date, default: () => new Date() },
@@ -53,6 +56,11 @@ export const mediaSchema = new Schema<MediaDoc>(
 mediaSchema.index({ ownerId: 1, status: 1, createdAt: -1 });
 // Serves: Admin → Users, how much each person stores. Holds `size`, so no document is read.
 mediaSchema.index({ ownerId: 1, status: 1, size: 1 });
+// Serves: the cleanup of files whose message was deleted. Partial: almost none are.
+mediaSchema.index(
+  { deleteRequestedAt: 1 },
+  { partialFilterExpression: { deleteRequestedAt: { $type: 'date' } } },
+);
 // Serves: the hourly cleanup of uploads never attached to a message.
 mediaSchema.index({ messageId: 1, createdAt: 1 });
 

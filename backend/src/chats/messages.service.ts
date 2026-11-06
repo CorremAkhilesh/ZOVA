@@ -1,4 +1,9 @@
-import { DEFAULT_GROUP_SETTINGS, type MediaInfo, type Message } from '@zuvo/protocol';
+import {
+  DEFAULT_GROUP_SETTINGS,
+  type MediaInfo,
+  type Message,
+  type ReplyQuote,
+} from '@zuvo/protocol';
 import type { FastifyInstance } from 'fastify';
 import { type ClientSession, Types } from 'mongoose';
 import type { ChatDoc, ChatMemberDoc, LastMessageSnapshot, MessageDoc } from '../db/chat-models.ts';
@@ -10,7 +15,8 @@ import { chatModels, isDuplicateKey, oid, requireMember } from './chats.service.
 import { noteGroupActivity } from './group-activity.ts';
 import { assertAllowed, groupRules } from './group-permissions.ts';
 import { refreshGroupMarks } from './group-receipts.service.ts';
-import { toLastMessage, toMediaPreview, toMessage, toPreview } from './message-format.ts';
+import { hideQuote, previewOf, toLastMessage, toMessage } from './message-format.ts';
+import { quoteOf } from './message-updates.ts';
 import { readsVisibleBetween } from './receipts.service.ts';
 import { logUpdates } from './updates.ts';
 
@@ -25,6 +31,9 @@ export interface SendInput {
   text?: string | undefined;
   mediaId?: string | undefined;
   albumId?: string | undefined;
+  replyTo?: { chatId: string; messageId: string } | undefined;
+  /** A copy of another message: its file is shared, not attached again. */
+  forward?: { media: MediaInfo | null; type: MessageDoc['type']; count: number };
 }
 
 export interface SendResult {
@@ -81,14 +90,22 @@ async function attachIfAny(
 }
 
 const typeOf = (media: MediaInfo | null) => media?.kind ?? 'text';
-const previewOf = (media: MediaInfo | null, text: string | undefined) =>
-  media ? toMediaPreview(media, text) : toPreview(text ?? '');
+
+/** A reply's quote, and a forwarded copy's label and count. Absent on most messages. */
+function extrasOf(replyTo: ReplyQuote | null, forward: SendInput['forward']) {
+  return {
+    ...(replyTo ? { replyTo } : {}),
+    ...(forward ? { forwarded: true, forwardCount: forward.count } : {}),
+  };
+}
 
 interface DeliveredMember {
   userId: string;
   lastReadSeq: number;
   lastDeliveredSeq: number;
   sharedReadSeq: number;
+  joinSeq?: number | undefined;
+  clearedSeq?: number | undefined;
   cursor: string;
 }
 
@@ -99,9 +116,13 @@ function deliver(
   chat: Pick<ChatDoc, 'type'> & { lastMessage: LastMessageSnapshot },
   members: DeliveredMember[],
 ) {
-  for (const { userId, lastReadSeq, cursor } of members) {
+  for (const member of members) {
+    const { userId, lastReadSeq, cursor } = member;
     const peer = chat.type === 'direct' ? members.find((m) => m.userId !== userId) : undefined;
-    app.realtime.emitToUser(userId, 'message:new', { message, cursor });
+    app.realtime.emitToUser(userId, 'message:new', {
+      message: hideQuote(message, member),
+      cursor,
+    });
     app.realtime.emitToUser(userId, 'chat:updated', {
       chatId: message.chatId,
       type: chat.type,
@@ -127,11 +148,12 @@ function deliver(
  * Sending the same clientMsgId again returns the original message.
  */
 export async function sendMessage(app: FastifyInstance, input: SendInput): Promise<SendResult> {
-  const { userId, chatId, text, clientMsgId, mediaId, albumId } = input;
+  const { userId, chatId, text, clientMsgId, mediaId, albumId, forward } = input;
   const sender = await requireMember(app, chatId, userId);
   const earlier = await findOriginal(app, input);
   if (earlier) return earlier;
   const peerId = await assertMaySend(app, chatId, userId, sender);
+  const replyTo = input.replyTo ? await quoteOf(app, userId, input.replyTo) : null;
   // Read positions a reply reveals are decided before anything changes.
   const shareRead = peerId ? await readsVisibleBetween(app, [userId, peerId]) : false;
 
@@ -149,8 +171,11 @@ export async function sendMessage(app: FastifyInstance, input: SendInput): Promi
         ).lean();
         if (!chat) throw new AppError('NOT_FOUND', 'Chat not found.');
         const id = new Types.ObjectId();
-        const media = await attachIfAny(app, session, { mediaId, userId, chatId, messageId: id });
-        const type = typeOf(media);
+        // A forwarded copy shares the file it came with: nothing to attach.
+        const media = forward
+          ? forward.media
+          : await attachIfAny(app, session, { mediaId, userId, chatId, messageId: id });
+        const type = forward?.type ?? typeOf(media);
         const lastMessage: LastMessageSnapshot = {
           id,
           seq: chat.seq,
@@ -174,6 +199,7 @@ export async function sendMessage(app: FastifyInstance, input: SendInput): Promi
           text: text ?? null,
           media,
           albumId: albumId ?? null,
+          ...extrasOf(replyTo, forward),
           replyToId: null,
           editedAt: null,
           deletedForEveryoneAt: null,
@@ -202,7 +228,14 @@ export async function sendMessage(app: FastifyInstance, input: SendInput): Promi
           { session },
         );
         const members = await models.ChatMember.find({ chatId: chatOid, leftAt: null })
-          .select({ userId: 1, lastReadSeq: 1, lastDeliveredSeq: 1, sharedReadSeq: 1 })
+          .select({
+            userId: 1,
+            lastReadSeq: 1,
+            lastDeliveredSeq: 1,
+            sharedReadSeq: 1,
+            joinSeq: 1,
+            clearedSeq: 1,
+          })
           .session(session)
           .lean();
         const cursors = await logUpdates(
@@ -221,6 +254,8 @@ export async function sendMessage(app: FastifyInstance, input: SendInput): Promi
             lastReadSeq: member.lastReadSeq,
             lastDeliveredSeq: member.lastDeliveredSeq,
             sharedReadSeq: member.sharedReadSeq ?? member.lastReadSeq,
+            joinSeq: member.joinSeq,
+            clearedSeq: member.clearedSeq,
             cursor: cursors.get(member.userId.toString()) ?? '0',
           })),
         };

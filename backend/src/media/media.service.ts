@@ -5,7 +5,6 @@ import { type CreateUploadBody, type MediaInfo, UPLOAD_CHUNK_MAX_BYTES } from '@
 import type { FastifyInstance } from 'fastify';
 import type { ClientSession } from 'mongoose';
 import { chatModels, oid } from '../chats/chats.service.ts';
-import { canSeeSeq, requireParticipant } from '../chats/visibility.ts';
 import type { MediaDoc } from '../db/chat-models.ts';
 import { AppError } from '../lib/errors.ts';
 import { assertRoomFor, assertWithinLimits } from './limits.ts';
@@ -219,7 +218,7 @@ async function storeFile(app: FastifyInstance, uploads: UploadArea, doc: MediaDo
 }
 
 /** Removes an upload and everything stored for it. Attached media belongs to its message. */
-async function destroy(app: FastifyInstance, doc: MediaDoc) {
+export async function destroyMedia(app: FastifyInstance, doc: MediaDoc) {
   await area(app).remove(doc._id.toString());
   await Promise.all(
     [doc.storageKey, doc.thumbnailKey].flatMap((key) => (key ? [app.storage.delete(key)] : [])),
@@ -230,7 +229,7 @@ async function destroy(app: FastifyInstance, doc: MediaDoc) {
 export async function cancelUpload(app: FastifyInstance, userId: string, id: string) {
   const doc = await ownUpload(app, userId, id);
   if (doc.messageId) throw new AppError('CONFLICT', 'This file has already been sent.');
-  await destroy(app, doc);
+  await destroyMedia(app, doc);
 }
 
 /** Inside the send transaction. Only the uploader, only finished files, and only once. */
@@ -257,27 +256,6 @@ export async function attachMedia(
   return attached;
 }
 
-/** The uploader, or a member of the chat holding the message. Others cannot tell it exists. */
-export async function requireReadable(
-  app: FastifyInstance,
-  id: string,
-  userId: string,
-): Promise<MediaDoc> {
-  const doc = await chatModels(app).Media.findById(id).lean();
-  if (!doc) throw new AppError('NOT_FOUND', 'Media not found.');
-  if (doc.ownerId.toString() === userId) return doc;
-  if (!doc.chatId) throw new AppError('NOT_FOUND', 'Media not found.');
-  // In a group, only what was sent while this person was there.
-  const member = await requireParticipant(app, doc.chatId.toString(), userId).catch(() => {
-    throw new AppError('NOT_FOUND', 'Media not found.');
-  });
-  const message = await chatModels(app).Message.findById(doc.messageId).select({ seq: 1 }).lean();
-  if (!message || !canSeeSeq(member, message.seq)) {
-    throw new AppError('NOT_FOUND', 'Media not found.');
-  }
-  return doc;
-}
-
 /** Uploads never attached to a message within a day: their files and their records go. */
 export async function cleanupOrphans(
   app: FastifyInstance,
@@ -293,7 +271,7 @@ export async function cleanupOrphans(
     const lastWrite =
       doc.status === 'pending' ? await area(app).lastWrite(doc._id.toString()) : null;
     if (lastWrite && now.getTime() - lastWrite.getTime() < ACTIVE_UPLOAD_MS) continue;
-    await destroy(app, doc);
+    await destroyMedia(app, doc);
     removed += 1;
   }
   return removed;

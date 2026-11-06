@@ -31,6 +31,9 @@ const STATUS_BY_CODE: Record<ErrorCode, number> = {
   GROUP_FULL: 409,
   OWNER_MUST_TRANSFER: 409,
   INVITE_INVALID: 404,
+  EDIT_WINDOW_PASSED: 409,
+  DELETE_WINDOW_PASSED: 409,
+  PIN_LIMIT_REACHED: 409,
 };
 
 /** An expected error whose message is safe to show to the client. */

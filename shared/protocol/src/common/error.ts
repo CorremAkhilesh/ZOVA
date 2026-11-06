@@ -32,6 +32,9 @@ export const errorCodeSchema = z.enum([
   'GROUP_FULL',
   'OWNER_MUST_TRANSFER',
   'INVITE_INVALID',
+  'EDIT_WINDOW_PASSED',
+  'DELETE_WINDOW_PASSED',
+  'PIN_LIMIT_REACHED',
 ]);
 
 export type ErrorCode = z.infer<typeof errorCodeSchema>;

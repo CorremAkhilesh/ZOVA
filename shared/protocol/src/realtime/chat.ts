@@ -4,6 +4,7 @@ import {
   chatTypeSchema,
   clientMsgIdSchema,
   lastMessageSchema,
+  lastReactionSchema,
   markReadBodySchema,
   markReadResponseSchema,
   messageSchema,
@@ -22,6 +23,8 @@ export const sendMessagePayloadSchema = z
     chatId: objectIdSchema,
     clientMsgId: clientMsgIdSchema,
     text: messageTextSchema.optional(),
+    /** The message this answers. Replying privately from a group names a different chat. */
+    replyTo: z.object({ chatId: objectIdSchema, messageId: objectIdSchema }).optional(),
     mediaIds: z.array(objectIdSchema).length(1).optional(),
     caption: captionSchema.optional(),
     /** Client-made, the same on every item of an album. */
@@ -63,6 +66,10 @@ export const chatUpdatedEventSchema = z.object({
   lastActivityAt: isoDateTimeSchema.nullable(),
   /** A group as this user now sees it, when a system message changed it. */
   group: groupInfoSchema.optional(),
+  pinned: z.boolean().optional(),
+  mutedUntil: isoDateTimeSchema.nullable().optional(),
+  archived: z.boolean().optional(),
+  markedUnread: z.boolean().optional(),
   /** Sent with new messages in direct chats: replying also means having received and read. */
   peerDeliveredSeq: z.number().int().nonnegative().optional(),
   peerReadSeq: z.number().int().nonnegative().optional(),
@@ -142,6 +149,33 @@ export const voicePlayedAckSchema = z.object({ messageId: z.string(), played: z.
 export const messagePlayedEventSchema = z.object({
   message: messageSchema,
   cursor: syncCursorSchema,
+});
+
+/** message:updated (server → client): edited, deleted for everyone, reacted to or starred. */
+export const messageUpdatedEventSchema = z.object({
+  message: messageSchema,
+  cursor: syncCursorSchema,
+});
+
+/** message:removed (server → client): I deleted this for me on one of my devices. */
+export const messageRemovedEventSchema = z.object({
+  chatId: z.string(),
+  seq: z.number().int(),
+  cursor: syncCursorSchema,
+});
+
+/** chat:cleared (server → client): I cleared or deleted this chat on one of my devices. */
+export const chatClearedEventSchema = z.object({
+  chatId: z.string(),
+  seq: z.number().int(),
+  removeChat: z.boolean(),
+  cursor: syncCursorSchema,
+});
+
+/** reaction:preview (server → client): to a message's author only. */
+export const reactionPreviewEventSchema = z.object({
+  chatId: z.string(),
+  lastReaction: lastReactionSchema.nullable(),
 });
 
 export type SendMessagePayload = z.infer<typeof sendMessagePayloadSchema>;

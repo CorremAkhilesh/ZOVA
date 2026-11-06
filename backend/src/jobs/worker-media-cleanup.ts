@@ -4,6 +4,7 @@ import mongoose from 'mongoose';
 import type { Logger } from 'pino';
 import type { Env } from '../config/env.ts';
 import { cleanupOrphans } from '../media/media.service.ts';
+import { cleanupDeletedMedia } from '../media/media-access.ts';
 import { LocalDiskDriver } from '../storage/local-disk-driver.ts';
 import { startMediaCleanup } from './media-cleanup.ts';
 
@@ -21,7 +22,11 @@ export async function startWorkerMediaCleanup(env: Env, connection: Redis, logge
     env,
     storage: new LocalDiskDriver(env.MEDIA_STORAGE_PATH),
   } as unknown as FastifyInstance;
-  const job = await startMediaCleanup(connection, () => cleanupOrphans(context), logger);
+  const job = await startMediaCleanup(
+    connection,
+    async () => (await cleanupOrphans(context)) + (await cleanupDeletedMedia(context)),
+    logger,
+  );
   return {
     async close() {
       await job.close();

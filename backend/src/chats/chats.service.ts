@@ -5,7 +5,7 @@ import { type ChatDoc, type ChatMemberDoc, registerChatModels } from '../db/chat
 import { AppError } from '../lib/errors.ts';
 import { privacyOf, toPublicProfile, type UserDoc, usersModel } from '../users/user-record.ts';
 import { groupView } from './group-core.ts';
-import { toLastMessage } from './message-format.ts';
+import { shownLast, toLastMessage } from './message-format.ts';
 import { logUpdates } from './updates.ts';
 
 export const chatModels = (app: FastifyInstance) => registerChatModels(app.mongo);
@@ -99,9 +99,8 @@ function toSummary(
   otherUser: ChatSummary['otherUser'],
   peer: PeerProgress,
 ): ChatSummary {
-  // Someone who left sees the chat as it was then, however it has moved on since.
   const seq = member.leftSeq ?? chat.seq;
-  const last = member.leftAt ? member.leftView?.lastMessage : chat.lastMessage;
+  const last = shownLast(chat, member);
   return {
     id: chat._id.toString(),
     type: chat.type,
@@ -111,6 +110,11 @@ function toSummary(
     lastMessage: last ? toLastMessage(last) : null,
     lastReadSeq: member.lastReadSeq,
     unreadCount: Math.max(0, seq - member.lastReadSeq),
+    pinned: Boolean(member.pinnedAt),
+    mutedUntil: member.mutedUntil?.toISOString() ?? null,
+    archived: Boolean(member.archivedAt),
+    markedUnread: member.markedUnread === true,
+    lastReaction: member.lastReaction ?? null,
     ...peer,
     lastActivityAt: member.lastActivityAt?.toISOString() ?? null,
     createdAt: chat.createdAt.toISOString(),

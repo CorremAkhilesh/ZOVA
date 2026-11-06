@@ -28,10 +28,10 @@ import {
   cancelUpload,
   completeUpload,
   createUpload,
-  requireReadable,
   setPoster,
   uploadState,
 } from '../../media/media.service.ts';
+import { requireReadable } from '../../media/media-access.ts';
 import { StorageError } from '../../storage/driver.ts';
 
 /** A gallery can ask for many thumbnails at once; each is one small read. */
