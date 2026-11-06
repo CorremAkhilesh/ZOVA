@@ -1,5 +1,6 @@
 import type { ChatSummary, CreateUploadBody, Message, PublicProfile } from '@zuvo/protocol';
 import Dexie, { type Table } from 'dexie';
+import type { ActionRow } from './actions-types';
 import { releaseAllFiles } from './held-files';
 
 /** Messages not yet accepted by the server sort after every real position. */
@@ -49,6 +50,8 @@ export interface OutboxRow {
   albumId?: string | undefined;
   /** The file is not in `files`: only an open tab has it. See held-files.ts. */
   heldInTab?: boolean;
+  /** The message this answers. */
+  replyTo?: { chatId: string; messageId: string } | undefined;
 }
 
 /** A Blob, or its bytes where a browser cannot keep Blobs. See stored-bytes.ts. */
@@ -85,6 +88,7 @@ export class LocalDb extends Dexie {
   drafts!: Table<DraftRow, string>;
   files!: Table<FileRow, string>;
   thumbs!: Table<ThumbRow, string>;
+  actions!: Table<ActionRow, number>;
 
   constructor(name: string) {
     // No query cache: it merges writes into stored results instead of re-reading, and a read still
@@ -99,6 +103,7 @@ export class LocalDb extends Dexie {
       drafts: 'chatId',
     });
     this.version(2).stores({ files: 'clientMsgId', thumbs: 'mediaId' });
+    this.version(3).stores({ actions: '++n' });
   }
 }
 

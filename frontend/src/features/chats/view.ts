@@ -1,4 +1,4 @@
-import type { PublicProfile, SystemEvent } from '@zuvo/protocol';
+import type { LastReaction, PublicProfile, SystemEvent } from '@zuvo/protocol';
 import type { ChatRow, MessageRow } from '@/features/sync/local-db';
 import { tickState } from './ticks';
 import { type ChatMessage, type ChatSummary, ME } from './types';
@@ -9,7 +9,9 @@ interface Labels {
   photo?: string;
   video?: string;
   voice?: string;
+  deleted?: string;
   system?: (event: SystemEvent) => string;
+  reacted?: (reaction: LastReaction) => string;
 }
 
 export type KnownPeople = ReadonlyMap<string, PublicProfile>;
@@ -53,10 +55,18 @@ function lastMessageView(
   return {
     authorId: mine ? ME : (lastMessage.senderId ?? ''),
     authorName: person?.displayName ?? name,
-    text: previewText(lastMessage, labels),
+    text: lastMessage.deleted ? (labels.deleted ?? '') : previewText(lastMessage, labels),
     at: new Date(lastMessage.createdAt),
     ...(mine ? { status: tickState({ status, seq: lastMessage.seq }, row) } : {}),
   };
+}
+
+/** Only until something newer happens in the chat. */
+function reactionLine(row: ChatRow, labels: Labels) {
+  const { lastReaction, lastMessage } = row;
+  if (!lastReaction || !labels.reacted) return undefined;
+  const newer = !lastMessage || Date.parse(lastReaction.at) > Date.parse(lastMessage.createdAt);
+  return newer ? labels.reacted(lastReaction) : undefined;
 }
 
 /** A stored chat as the screens show it. Privacy was already applied by the server. */
@@ -81,8 +91,11 @@ export function toChatSummary(
     memberCount: group?.memberCount ?? 0,
     deactivated: otherUser?.deactivated === true,
     about: otherUser?.about ?? null,
-    pinned: false,
-    muted: false,
+    pinned: row.pinned === true,
+    muted: Boolean(row.mutedUntil && Date.parse(row.mutedUntil) > Date.now()),
+    archived: row.archived === true,
+    markedUnread: row.markedUnread === true,
+    reactionLine: reactionLine(row, labels),
     unread: row.unreadCount,
     activityAt: new Date(row.sortAt),
     lastMessage: lastMessageView(row, me, name, labels, unsent, people),
@@ -111,8 +124,18 @@ export function toChatMessage(
     text: row.text ?? '',
     at: new Date(row.createdAt),
     media: row.media ?? null,
-    albumId: row.albumId ?? null,
+    // What is left of an album after a delete is a tombstone of its own.
+    albumId: row.deletedForEveryoneAt ? null : (row.albumId ?? null),
     serverId: row.id,
+    seq: row.seq,
+    replyTo: row.replyTo ?? null,
+    forwarded: row.forwarded === true,
+    forwardCount: row.forwardCount ?? 0,
+    reactions: row.reactions ?? [],
+    starred: row.starred === true,
+    edited: Boolean(row.editedAt),
+    deleted: Boolean(row.deletedForEveryoneAt),
+    deletedByAdmin: row.deletedByAdmin === true,
     played: row.played === true,
     uploadedBytes: row.uploadedBytes,
     heldInTab: row.heldInTab,

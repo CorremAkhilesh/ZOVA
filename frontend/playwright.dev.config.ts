@@ -16,8 +16,8 @@ await assertPortsFree([PORT, API_PORT]);
 
 export default defineConfig({
   testDir: './e2e',
-  testMatch: /(chat|presence|media|media-sender|voice|groups)\.spec\.ts/,
-  grep: /two people chat|second device|both people open|stuck tab|ticks, read-receipt|photos with captions|upload interrupted|over the limit|no room in the browser|sender|expired video|voice note|cancelling discards|seeking moves|recorded offline|group/,
+  testMatch: /(chat|presence|media|media-sender|voice|groups|messages)\.spec\.ts/,
+  grep: /two people chat|second device|both people open|stuck tab|ticks, read-receipt|photos with captions|upload interrupted|over the limit|no room in the browser|sender|expired video|voice note|cancelling discards|seeking moves|recorded offline|group|message actions|forward to two|made offline/,
   outputDir: './test-results/dev',
   workers: 1,
   forbidOnly: CI,

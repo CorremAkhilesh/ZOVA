@@ -55,5 +55,8 @@ export const syncPage = (overrides: Partial<SyncResponse> = {}): SyncResponse =>
   hasMore: false,
   chats: [],
   messages: [],
+  updated: [],
+  removed: [],
+  cleared: [],
   ...overrides,
 });

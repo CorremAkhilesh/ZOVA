@@ -19,6 +19,12 @@ export function useMarkRead(chat: ChatRow, newestSeq: number, atBottom: boolean)
     });
   }, [atBottom, chat.id, chat.lastReadSeq, client, connected, newestSeq, visible]);
 
+  // Opening a chat I had marked unread settles that, even with nothing new in it.
+  useEffect(() => {
+    if (!client || !visible || !chat.markedUnread) return;
+    void client.act({ type: 'prefs', chatId: chat.id, prefs: { unread: false } });
+  }, [chat.id, chat.markedUnread, client, visible]);
+
   // A dropped connection may have lost the request: ask again when it returns.
   useEffect(() => {
     if (!connected) requested.current = 0;

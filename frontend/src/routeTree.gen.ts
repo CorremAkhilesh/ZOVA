@@ -14,6 +14,7 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as VerifyRouteImport } from './routes/verify'
 import { Route as AppCallsRouteImport } from './routes/_app/calls'
 import { Route as AppChatsRouteImport } from './routes/_app/chats'
+import { Route as AppStarredRouteImport } from './routes/_app/starred'
 import { Route as AppUpdatesRouteImport } from './routes/_app/updates'
 import { Route as SecurityNotMeRouteImport } from './routes/security.not-me'
 import { Route as WelcomeNameRouteImport } from './routes/welcome.name'
@@ -49,6 +50,11 @@ const AppCallsRoute = AppCallsRouteImport.update({
 const AppChatsRoute = AppChatsRouteImport.update({
   id: '/chats',
   path: '/chats',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppStarredRoute = AppStarredRouteImport.update({
+  id: '/starred',
+  path: '/starred',
   getParentRoute: () => AppRoute,
 } as any)
 const AppUpdatesRoute = AppUpdatesRouteImport.update({
@@ -117,6 +123,7 @@ export interface FileRoutesByFullPath {
   '/verify': typeof VerifyRoute
   '/calls': typeof AppCallsRoute
   '/chats': typeof AppChatsRouteWithChildren
+  '/starred': typeof AppStarredRoute
   '/updates': typeof AppUpdatesRoute
   '/security/not-me': typeof SecurityNotMeRoute
   '/welcome/name': typeof WelcomeNameRoute
@@ -134,6 +141,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/verify': typeof VerifyRoute
   '/calls': typeof AppCallsRoute
+  '/starred': typeof AppStarredRoute
   '/updates': typeof AppUpdatesRoute
   '/security/not-me': typeof SecurityNotMeRoute
   '/welcome/name': typeof WelcomeNameRoute
@@ -154,6 +162,7 @@ export interface FileRoutesById {
   '/verify': typeof VerifyRoute
   '/_app/calls': typeof AppCallsRoute
   '/_app/chats': typeof AppChatsRouteWithChildren
+  '/_app/starred': typeof AppStarredRoute
   '/_app/updates': typeof AppUpdatesRoute
   '/security/not-me': typeof SecurityNotMeRoute
   '/welcome/name': typeof WelcomeNameRoute
@@ -174,6 +183,7 @@ export interface FileRouteTypes {
     | '/verify'
     | '/calls'
     | '/chats'
+    | '/starred'
     | '/updates'
     | '/security/not-me'
     | '/welcome/name'
@@ -191,6 +201,7 @@ export interface FileRouteTypes {
     | '/'
     | '/verify'
     | '/calls'
+    | '/starred'
     | '/updates'
     | '/security/not-me'
     | '/welcome/name'
@@ -210,6 +221,7 @@ export interface FileRouteTypes {
     | '/verify'
     | '/_app/calls'
     | '/_app/chats'
+    | '/_app/starred'
     | '/_app/updates'
     | '/security/not-me'
     | '/welcome/name'
@@ -267,6 +279,13 @@ declare module '@tanstack/react-router' {
       path: '/chats'
       fullPath: '/chats'
       preLoaderRoute: typeof AppChatsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/starred': {
+      id: '/_app/starred'
+      path: '/starred'
+      fullPath: '/starred'
+      preLoaderRoute: typeof AppStarredRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/updates': {
@@ -373,6 +392,7 @@ const AppChatsRouteWithChildren = AppChatsRoute._addFileChildren(
 interface AppRouteChildren {
   AppCallsRoute: typeof AppCallsRoute
   AppChatsRoute: typeof AppChatsRouteWithChildren
+  AppStarredRoute: typeof AppStarredRoute
   AppUpdatesRoute: typeof AppUpdatesRoute
   AppJoinCodeRoute: typeof AppJoinCodeRoute
   AppSettingsDevicesRoute: typeof AppSettingsDevicesRoute
@@ -386,6 +406,7 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppCallsRoute: AppCallsRoute,
   AppChatsRoute: AppChatsRouteWithChildren,
+  AppStarredRoute: AppStarredRoute,
   AppUpdatesRoute: AppUpdatesRoute,
   AppJoinCodeRoute: AppJoinCodeRoute,
   AppSettingsDevicesRoute: AppSettingsDevicesRoute,

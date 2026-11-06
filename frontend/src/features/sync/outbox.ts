@@ -3,18 +3,21 @@ import {
   type ErrorCode,
   type LastMessage,
   MESSAGE_PREVIEW_MAX,
+  type ReplyQuote,
   type SendMessageAck,
   type SendMessagePayload,
 } from '@zuvo/protocol';
 import { uuidv7 } from '@/lib/uuid';
 import { mergeChat } from './apply';
+import type { LocalDb, OutboxRow, UploadFailReason } from './local-db';
 import {
-  type LocalDb,
-  type OutboxRow,
-  PENDING_ORDER_BASE,
-  type UploadFailReason,
-} from './local-db';
-import { type EnqueueMedia, removeQueued, storeMedia, toPayload } from './outbox-media';
+  type EnqueueMedia,
+  outboxReply,
+  pendingTextRow,
+  removeQueued,
+  storeMedia,
+  toPayload,
+} from './outbox-media';
 
 export type { EnqueueMedia };
 export class DisconnectedError extends Error {}
@@ -70,7 +73,7 @@ export class Outbox {
   }
 
   /** Stored locally first: it shows at once with a clock, and survives a reload or going offline. */
-  async enqueue(chatId: string, text: string): Promise<string> {
+  async enqueue(chatId: string, text: string, quote?: ReplyQuote | null): Promise<string> {
     const { db, me } = this.options;
     const clientMsgId = uuidv7();
     const key = `${me}:${clientMsgId}`;
@@ -83,26 +86,10 @@ export class Outbox {
         attempts: 0,
         state: 'pending',
         queuedAt: Date.now(),
+        ...outboxReply(quote),
       });
-      await db.messages.add({
-        key,
-        id: null,
-        seq: null,
-        order: PENDING_ORDER_BASE + n,
-        chatId,
-        clientMsgId,
-        senderId: me,
-        type: 'text',
-        text,
-        media: null,
-        albumId: null,
-        played: false,
-        replyToId: null,
-        editedAt: null,
-        deletedForEveryoneAt: null,
-        createdAt,
-        status: 'pending',
-      });
+      const input = { key, n, chatId, clientMsgId, me, text };
+      await db.messages.add(pendingTextRow(input, createdAt, quote));
       await this.previewInChat(chatId, key, {
         type: 'text',
         preview: text.slice(0, MESSAGE_PREVIEW_MAX),

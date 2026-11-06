@@ -1,7 +1,17 @@
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { type Ref, useImperativeHandle, useLayoutEffect, useMemo, useRef } from 'react';
+import {
+  type Ref,
+  useEffect,
+  useImperativeHandle,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useMessageUi } from '@/features/messages/store';
 import { buildTimeline, dayKind, type TimelineItem } from '../chat-utils';
 import type { ChatMessage } from '../types';
 import { MessageBubble } from './MessageBubble';
@@ -12,6 +22,7 @@ const BOTTOM_SLOP_PX = 64;
 const TOP_SLOP_PX = 600;
 const ROW_ESTIMATE_PX = 52;
 const DATE_ESTIMATE_PX = 44;
+const HIGHLIGHT_MS = 2000;
 
 function DateSeparator({ date }: { date: Date }) {
   const { t, i18n } = useTranslation();
@@ -72,6 +83,9 @@ function toRows(timeline: TimelineItem[]): Row[] {
   }
   return rows;
 }
+
+const rowHasSeq = (row: Row, seq: number) =>
+  row.message.seq === seq || row.album?.some((item) => item.seq === seq) === true;
 
 export interface MessageListHandle {
   scrollToBottom(): void;
@@ -139,6 +153,33 @@ export function MessageList({
     },
   }));
 
+  // Asked to show a message: read further back until it is there, then bring it into view.
+  const jump = useMessageUi((state) => (state.jump?.chatId === chatId ? state.jump : null));
+  const [highlight, setHighlight] = useState<number | null>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the virtualizer is a new object each render
+  useEffect(() => {
+    if (!jump) return;
+    const index = rows.findIndex((row) => rowHasSeq(row, jump.seq));
+    const oldest = rows[0]?.message.seq ?? 0;
+    if (index >= 0) {
+      stick.current = false;
+      onAtBottomChange(false);
+      virtualizer.scrollToIndex(index, { align: 'center' });
+      setHighlight(jump.seq);
+      useMessageUi.getState().set({ jump: null });
+    } else if (onReachTop && oldest > jump.seq) {
+      onReachTop();
+    } else {
+      useMessageUi.getState().set({ jump: null });
+      toast.error(t('messages.notAvailable'));
+    }
+  }, [jump, rows, onReachTop]);
+  useEffect(() => {
+    if (highlight === null) return;
+    const timer = setTimeout(() => setHighlight(null), HIGHLIGHT_MS);
+    return () => clearTimeout(timer);
+  }, [highlight]);
+
   // After every change in content, before the browser paints. Older messages arriving above need
   // nothing here: `anchorTo` keeps the row the reader is looking at in place.
   // biome-ignore lint/correctness/useExhaustiveDependencies: both change what the bottom is
@@ -190,6 +231,7 @@ export function MessageList({
                 onRetry={onRetry}
                 onOpenMedia={onOpenMedia}
                 album={row.album ?? undefined}
+                highlighted={highlight !== null && rowHasSeq(row, highlight)}
               />
             </li>
           );

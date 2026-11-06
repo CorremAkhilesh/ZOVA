@@ -3,11 +3,18 @@ import {
   formatDuration,
   type LastMessage,
   MESSAGE_PREVIEW_MAX,
+  type ReplyQuote,
   type SendMessagePayload,
 } from '@zuvo/protocol';
 import { uuidv7 } from '@/lib/uuid';
 import { holdFile, releaseFile } from './held-files';
-import { type FileRow, type LocalDb, type OutboxRow, PENDING_ORDER_BASE } from './local-db';
+import {
+  type FileRow,
+  type LocalDb,
+  type MessageRow,
+  type OutboxRow,
+  PENDING_ORDER_BASE,
+} from './local-db';
 import { isQuotaError, mustHold, toStorable } from './stored-bytes';
 
 /** The same line the server will write for the chat list. */
@@ -25,10 +32,47 @@ export const toPayload = (row: OutboxRow): SendMessagePayload =>
         chatId: row.chatId,
         clientMsgId: row.clientMsgId,
         mediaIds: [row.mediaId ?? ''],
+        ...(row.replyTo ? { replyTo: row.replyTo } : {}),
         ...(row.text ? { caption: row.text } : {}),
         ...(row.albumId ? { albumId: row.albumId } : {}),
       }
-    : { chatId: row.chatId, clientMsgId: row.clientMsgId, text: row.text };
+    : {
+        chatId: row.chatId,
+        clientMsgId: row.clientMsgId,
+        text: row.text,
+        ...(row.replyTo ? { replyTo: row.replyTo } : {}),
+      };
+
+const refOf = (quote: ReplyQuote | null | undefined) =>
+  quote ? { replyTo: { chatId: quote.chatId, messageId: quote.id } } : {};
+
+/** A text message as it shows until the server has it. */
+export const pendingTextRow = (
+  input: { key: string; n: number; chatId: string; clientMsgId: string; me: string; text: string },
+  createdAt: string,
+  quote: ReplyQuote | null | undefined,
+): MessageRow => ({
+  key: input.key,
+  id: null,
+  seq: null,
+  order: PENDING_ORDER_BASE + input.n,
+  chatId: input.chatId,
+  clientMsgId: input.clientMsgId,
+  senderId: input.me,
+  type: 'text',
+  text: input.text,
+  media: null,
+  albumId: null,
+  played: false,
+  replyTo: quote ?? null,
+  replyToId: null,
+  editedAt: null,
+  deletedForEveryoneAt: null,
+  createdAt,
+  status: 'pending',
+});
+
+export const outboxReply = refOf;
 
 export interface EnqueueMedia {
   chatId: string;
@@ -37,6 +81,7 @@ export interface EnqueueMedia {
   file: Blob;
   poster?: Blob | undefined;
   albumId?: string | undefined;
+  replyTo?: ReplyQuote | null | undefined;
 }
 
 type Preview = (
@@ -86,7 +131,7 @@ async function writeRows(
   preview: Preview,
   keep: FileRow | null,
 ) {
-  const { chatId, caption, info, albumId } = input;
+  const { chatId, caption, info, albumId, replyTo } = input;
   const key = `${me}:${clientMsgId}`;
   const createdAt = new Date().toISOString();
   const held = keep ? {} : { heldInTab: true };
@@ -102,6 +147,7 @@ async function writeRows(
       queuedAt: Date.now(),
       media: info,
       albumId,
+      ...refOf(replyTo),
     });
     await db.messages.add({
       ...held,
@@ -129,6 +175,7 @@ async function writeRows(
       },
       albumId: albumId ?? null,
       played: false,
+      replyTo: replyTo ?? null,
       replyToId: null,
       editedAt: null,
       deletedForEveryoneAt: null,

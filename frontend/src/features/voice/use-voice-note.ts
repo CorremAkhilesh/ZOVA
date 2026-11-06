@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { useAppConfig } from '@/features/media/use-app-config';
+import { useMessageUi } from '@/features/messages/store';
 import { useSyncStore } from '@/features/sync/store';
 import { hasExplainedMic, readMicPermission, rememberMicExplained } from './permission';
 import { useVoiceRecorder, type VoiceRecording } from './use-voice-recorder';
@@ -16,8 +17,11 @@ export function useVoiceNote(chatId: string, onSent: () => void) {
 
   const onRecorded = useCallback(
     (recording: VoiceRecording) => {
+      const replyTo = useMessageUi.getState().replies[chatId];
+      useMessageUi.getState().setReply(chatId, undefined);
       void useSyncStore.getState().client?.sendMedia({
         chatId,
+        replyTo,
         caption: '',
         file: recording.blob,
         info: {

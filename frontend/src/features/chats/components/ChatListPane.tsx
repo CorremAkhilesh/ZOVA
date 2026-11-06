@@ -1,5 +1,6 @@
-import type { SystemEvent } from '@zuvo/protocol';
-import { MessageSquarePlus, Search } from 'lucide-react';
+import { Link } from '@tanstack/react-router';
+import type { LastReaction, SystemEvent } from '@zuvo/protocol';
+import { Archive, ArrowLeft, MessageSquarePlus, Search, Star } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChatListSkeleton } from '@/components/common/ChatListSkeleton';
@@ -11,6 +12,7 @@ import { ConnectionStatus } from '@/features/connection/ConnectionStatus';
 import { useKnownPeople } from '@/features/groups/queries';
 import { useNewGroup } from '@/features/groups/rules';
 import { systemText } from '@/features/groups/wording';
+import { ChatMenu } from '@/features/messages/components/ChatMenu';
 import { useSyncStore } from '@/features/sync/store';
 import { cn } from '@/lib/utils';
 import { filterChats } from '../chat-utils';
@@ -161,6 +163,13 @@ export function ChatListPane() {
       photo: t('media.photo'),
       voice: t('voice.preview'),
       system: (event: SystemEvent) => systemText(event, me, t),
+      deleted: t('messages.deleted'),
+      reacted: (reaction: LastReaction) =>
+        t('messages.reactedLine', {
+          name: reaction.byName.split(' ')[0],
+          emoji: reaction.emoji,
+          text: reaction.text,
+        }),
       video: t('media.video'),
     }),
     [me, t],
@@ -169,7 +178,13 @@ export function ChatListPane() {
     () => rows?.map((row) => toChatSummary(row, me, labels, unsent?.get(row.id), people)),
     [labels, me, people, rows, unsent],
   );
-  const chats = useMemo(() => filterChats(all ?? [], folder, query), [all, folder, query]);
+  const [archivedList, setArchivedList] = useState(false);
+  const chats = useMemo(
+    () => filterChats(all ?? [], folder, query, archivedList),
+    [all, archivedList, folder, query],
+  );
+  const archivedCount = all?.filter((chat) => chat.archived).length ?? 0;
+  const showArchivedRow = !archivedList && !query.trim() && folder === 'all' && archivedCount > 0;
 
   return (
     <section aria-labelledby="chat-list-title" className="flex h-full min-h-0 flex-col">
@@ -180,6 +195,11 @@ export function ChatListPane() {
           </h1>
           <div className="flex items-center gap-1">
             <ConnectionStatus />
+            <Button asChild variant="ghost" size="icon-sm">
+              <Link to="/starred" aria-label={t('messages.starredTitle')}>
+                <Star className="size-5" aria-hidden />
+              </Link>
+            </Button>
             <Button
               variant="ghost"
               size="icon-sm"
@@ -207,7 +227,29 @@ export function ChatListPane() {
         <FolderChips folder={folder} onChange={setFolder} />
       </header>
 
+      <ChatMenu />
       <ScrollArea className="min-h-0 flex-1 px-2 pb-3">
+        {archivedList ? (
+          <button
+            type="button"
+            onClick={() => setArchivedList(false)}
+            className="mb-1 flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold hover:bg-background"
+          >
+            <ArrowLeft className="size-4" aria-hidden />
+            {t('messages.archivedBack')}
+          </button>
+        ) : null}
+        {showArchivedRow ? (
+          <button
+            type="button"
+            onClick={() => setArchivedList(true)}
+            className="mb-1 flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold hover:bg-background"
+          >
+            <Archive className="size-4 text-text-muted" aria-hidden />
+            <span className="flex-1 text-left">{t('messages.archived')}</span>
+            <span className="text-xs font-normal text-text-muted">{archivedCount}</span>
+          </button>
+        ) : null}
         <ListBody
           chats={chats}
           folder={folder}

@@ -1,5 +1,6 @@
 import type { CreateUploadBody } from '@zuvo/protocol';
 import { useCallback, useState } from 'react';
+import { useMessageUi } from '@/features/messages/store';
 import { useSyncStore } from '@/features/sync/store';
 import { uuidv7 } from '@/lib/uuid';
 import type { PickedFile } from './components/PreviewSheet';
@@ -35,15 +36,20 @@ export function useSendMedia(chatId: string) {
       const prepared = await Promise.all(items.map((item) => prepareFile(item.file, asDocument)));
       const visual = prepared.filter((file) => isVisual(file.kind));
       const albumId = visual.length > 1 ? uuidv7() : undefined;
+      // An album answers once, with its first item.
+      let replyTo = useMessageUi.getState().replies[chatId];
+      useMessageUi.getState().setReply(chatId, undefined);
       for (const [index, file] of prepared.entries()) {
         await client.sendMedia({
           chatId,
+          replyTo,
           caption: items[index]?.caption.trim() ?? '',
           file: file.file,
           poster: file.poster,
           albumId: isVisual(file.kind) ? albumId : undefined,
           info: toUploadInfo(file),
         });
+        replyTo = undefined;
       }
     },
     [chatId],

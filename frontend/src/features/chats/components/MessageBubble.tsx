@@ -1,5 +1,5 @@
 import type { SystemEvent } from '@zuvo/protocol';
-import { Mic } from 'lucide-react';
+import { Check, Mic } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/ui/avatar';
 import { useSession } from '@/features/auth/session';
@@ -7,6 +7,17 @@ import { MessageInfoButton } from '@/features/groups/components/MessageInfoButto
 import { systemText } from '@/features/groups/wording';
 import { AlbumGrid, MessageMedia } from '@/features/media/components/MessageMedia';
 import { UploadNotice } from '@/features/media/components/UploadNotice';
+import {
+  ForwardedLabel,
+  HoverActions,
+  QuoteBlock,
+  ReactionPills,
+  StarMark,
+  Tombstone,
+} from '@/features/messages/components/BubbleExtras';
+import { canAct } from '@/features/messages/rules';
+import { useMessageUi } from '@/features/messages/store';
+import { useBubbleGestures } from '@/features/messages/use-bubble-gestures';
 import { cn } from '@/lib/utils';
 import { formatClock } from '../chat-utils';
 import { senderColorClass } from '../sender-color';
@@ -25,6 +36,8 @@ interface MessageBubbleProps {
   onOpenMedia?: ((mediaId: string) => void) | undefined;
   /** Every item of an album, when this bubble shows one. */
   album?: ChatMessage[] | undefined;
+  /** The list took the reader here, so it stands out for a moment. */
+  highlighted?: boolean;
 }
 
 /** Tighter corners along the group "spine"; the last bubble's tail corner is square. */
@@ -51,29 +64,6 @@ function BubbleTail({ mine }: { mine: boolean }) {
   );
 }
 
-function ReplyQuote({
-  reply,
-  mine,
-}: {
-  reply: NonNullable<ChatMessage['replyTo']>;
-  mine: boolean;
-}) {
-  const { t } = useTranslation();
-  return (
-    <div
-      className={cn(
-        'mb-1 rounded-lg border-l-4 px-2 py-1 text-xs',
-        mine
-          ? 'border-bubble-outgoing-meta bg-black/15 text-bubble-outgoing-text'
-          : 'border-brand bg-background text-bubble-incoming-text',
-      )}
-    >
-      <p className="font-semibold">{reply.authorId === ME ? t('chats.you') : reply.authorName}</p>
-      <p className="line-clamp-2 opacity-90">{reply.text}</p>
-    </div>
-  );
-}
-
 /** Time and, for my messages, delivery ticks in the bubble's bottom-right corner. */
 function MessageMeta({ message, mine }: { message: ChatMessage; mine: boolean }) {
   const { t, i18n } = useTranslation();
@@ -84,6 +74,8 @@ function MessageMeta({ message, mine }: { message: ChatMessage; mine: boolean })
         mine ? 'text-bubble-outgoing-meta' : 'text-bubble-incoming-meta',
       )}
     >
+      <StarMark message={message} />
+      {message.edited && !message.deleted ? <span>{t('messages.edited')}</span> : null}
       <time dateTime={message.at.toISOString()}>{formatClock(message.at, i18n.language)}</time>
       {mine && message.media?.kind === 'voice' ? (
         <Mic
@@ -121,7 +113,15 @@ function BubbleContent(props: {
         <p className={cn('whitespace-pre-wrap break-words', hasMedia && 'mt-1')}>
           {caption}
           {/* Reserve room so the time, and my tick, never overlap the last line. */}
-          <span className={cn('inline-block', mine ? 'w-[5.25rem]' : 'w-16')} aria-hidden />
+          <span
+            className={cn(
+              'inline-block',
+              mine ? 'w-[5.25rem]' : 'w-16',
+              message.edited && 'ml-10',
+              message.starred && 'ml-4',
+            )}
+            aria-hidden
+          />
         </p>
       ) : (
         <div className="h-5" />
@@ -140,65 +140,125 @@ function SystemPill({ event }: { event: SystemEvent }) {
   );
 }
 
-export function MessageBubble({
-  message,
-  firstInGroup,
-  lastInGroup,
-  isGroup,
-  chatId,
-  onRetry,
-  onOpenMedia,
-  album,
-}: MessageBubbleProps) {
-  if (message.system) return <SystemPill event={message.system} />;
+export function MessageBubble(props: MessageBubbleProps) {
+  if (props.message.system) return <SystemPill event={props.message.system} />;
+  return <UserBubble {...props} />;
+}
+
+function SelectMark({ selected }: { selected: boolean }) {
+  const { t } = useTranslation();
+  return (
+    <span
+      role="img"
+      aria-label={t(selected ? 'messages.isSelected' : 'messages.notSelected')}
+      className={cn(
+        'mr-auto flex size-5 shrink-0 items-center justify-center self-center rounded-full border-2',
+        selected ? 'border-brand bg-brand text-brand-foreground' : 'border-text-muted',
+      )}
+    >
+      {selected ? <Check className="size-3.5" aria-hidden /> : null}
+    </span>
+  );
+}
+
+function AvatarColumn({ message, show }: { message: ChatMessage; show: boolean }) {
+  return (
+    <div className="w-7 shrink-0">
+      {show ? (
+        <Avatar
+          name={message.authorName}
+          src={message.authorAvatar}
+          className="size-7 text-[10px]"
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function BubbleBody(props: MessageBubbleProps & { mine: boolean }) {
+  const { message, firstInGroup, lastInGroup, isGroup, onOpenMedia, album, mine } = props;
+  return (
+    <div
+      className={cn(
+        'relative rounded-2xl px-3 py-1.5 text-[15px] leading-snug shadow-sm',
+        mine
+          ? 'bg-bubble-outgoing text-bubble-outgoing-text'
+          : 'bg-bubble-incoming text-bubble-incoming-text',
+        bubbleCorners(mine, firstInGroup, lastInGroup),
+      )}
+    >
+      {lastInGroup ? <BubbleTail mine={mine} /> : null}
+      {isGroup && firstInGroup && !mine ? (
+        <p className={cn('mb-0.5 text-xs font-semibold', senderColorClass(message.authorId))}>
+          {message.authorName}
+        </p>
+      ) : null}
+      {message.deleted ? (
+        <Tombstone message={message} />
+      ) : (
+        <>
+          <ForwardedLabel message={message} />
+          <QuoteBlock message={message} mine={mine} />
+          <BubbleContent message={message} mine={mine} album={album} onOpenMedia={onOpenMedia} />
+        </>
+      )}
+      <MessageMeta message={message} mine={mine} />
+    </div>
+  );
+}
+
+function rowClass(row: {
+  mine: boolean;
+  lastInGroup: boolean;
+  selected: boolean;
+  selecting: boolean;
+  highlighted: boolean | undefined;
+}) {
+  return cn(
+    'group/message flex items-end gap-2 rounded-xl outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brand/40',
+    row.mine ? 'justify-end' : 'justify-start',
+    row.lastInGroup ? 'mb-3' : 'mb-[3px]',
+    row.selected && 'bg-brand/15',
+    row.highlighted && 'bg-brand/25',
+    row.selecting && 'cursor-pointer',
+  );
+}
+
+function UserBubble(props: MessageBubbleProps) {
+  const { message, lastInGroup, isGroup, chatId, onRetry, album, highlighted } = props;
   const mine = message.authorId === ME;
-  const showAvatarColumn = isGroup && !mine;
+  const gestures = useBubbleGestures(message, album ?? [message]);
+  const selecting = useMessageUi((state) => state.selecting !== null);
+  const selected = useMessageUi((state) => state.selected.some((item) => item.id === message.id));
+  const canUse = canAct(message);
+  const actions =
+    canUse && !selecting ? (
+      <HoverActions onReply={gestures.reply} onMenu={gestures.openMenu} />
+    ) : null;
 
   return (
     // No entrance animation: rows re-enter the page each time they are scrolled back into view.
     <div
-      className={cn(
-        'group/message flex items-end gap-2',
-        mine ? 'justify-end' : 'justify-start',
-        lastInGroup ? 'mb-3' : 'mb-[3px]',
-      )}
+      {...gestures.handlers}
+      tabIndex={canUse ? 0 : undefined}
+      data-seq={message.seq ?? undefined}
+      className={rowClass({ mine, lastInGroup, selected, selecting, highlighted })}
     >
-      {showAvatarColumn ? (
-        <div className="w-7 shrink-0">
-          {lastInGroup ? (
-            <Avatar
-              name={message.authorName}
-              src={message.authorAvatar}
-              className="size-7 text-[10px]"
-            />
-          ) : null}
-        </div>
-      ) : null}
+      {selecting && canUse ? <SelectMark selected={selected} /> : null}
+      {isGroup && !mine ? <AvatarColumn message={message} show={lastInGroup} /> : null}
       {mine && chatId && message.serverId ? (
         <MessageInfoButton chatId={chatId} messageId={message.serverId} />
       ) : null}
-      <div className="max-w-[min(78%,34rem)]">
-        <div
-          className={cn(
-            'relative rounded-2xl px-3 py-1.5 text-[15px] leading-snug shadow-sm',
-            mine
-              ? 'bg-bubble-outgoing text-bubble-outgoing-text'
-              : 'bg-bubble-incoming text-bubble-incoming-text',
-            bubbleCorners(mine, firstInGroup, lastInGroup),
-          )}
-        >
-          {lastInGroup ? <BubbleTail mine={mine} /> : null}
-          {isGroup && firstInGroup && !mine ? (
-            <p className={cn('mb-0.5 text-xs font-semibold', senderColorClass(message.authorId))}>
-              {message.authorName}
-            </p>
-          ) : null}
-          {message.replyTo ? <ReplyQuote reply={message.replyTo} mine={mine} /> : null}
-          <BubbleContent message={message} mine={mine} album={album} onOpenMedia={onOpenMedia} />
-          <MessageMeta message={message} mine={mine} />
-        </div>
+      {mine ? actions : null}
+      <div
+        className="max-w-[min(78%,34rem)]"
+        style={gestures.swipe ? { transform: `translateX(${gestures.swipe}px)` } : undefined}
+      >
+        <BubbleBody {...props} mine={mine} />
+        <ReactionPills message={message} />
         <UploadNotice message={message} onRetry={onRetry} />
       </div>
+      {mine ? null : actions}
     </div>
   );
 }

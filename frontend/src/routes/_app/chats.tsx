@@ -19,10 +19,11 @@ export const Route = createFileRoute('/_app/chats')({
 function ChatsLayout() {
   const isDesktop = useIsDesktop();
   const matchRoute = useMatchRoute();
-  const chatOpen = Boolean(matchRoute({ to: '/chats/$chatId' }));
+  const match = matchRoute({ to: '/chats/$chatId' });
+  const chatOpen = Boolean(match);
   const pickerOpen = useNewChat((state) => state.isOpen);
   const setPickerOpen = useNewChat((state) => state.setOpen);
-  useChatShortcuts(chatOpen);
+  useChatShortcuts(match ? match.chatId : undefined);
   const navigate = useNavigate();
   // Signed in from an invite link: carry on to it.
   useEffect(() => {

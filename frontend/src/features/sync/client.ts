@@ -1,15 +1,18 @@
 import type {
   ClientToServerEvents,
+  ReplyQuote,
   ServerToClientEvents,
   SessionRevokedReason,
 } from '@zuvo/protocol';
 import { io, type Socket } from 'socket.io-client';
+import { toast } from 'sonner';
 import { chatsApi } from '@/features/chats/api';
 import { mediaApi } from '@/features/media/api';
 import { MediaUploader } from '@/features/media/uploader';
+import { ActionQueue } from './actions';
+import type { QueuedAction } from './actions-types';
 import { applyChats, applyReadAck } from './apply';
 import { trackAway } from './away';
-import { startDeliveryAcks } from './delivery-acks';
 import { loadOlderMessages, startReconciling } from './history';
 import { resetLiveStatus, setPresence, setTyping } from './live-status';
 import { getUserDb, type LocalDb, type MessageRow } from './local-db';
@@ -17,6 +20,7 @@ import { type EnqueueMedia, Outbox } from './outbox';
 import { messageAfter, socketPlayReports } from './played-reports';
 import { presenceSubscriber } from './presence-socket';
 import { currentWatchList } from './presence-watch';
+import { socketDeliveryAcks, wireSyncEvents } from './socket-events';
 import { ACK_TIMEOUT_MS, socketTransport } from './socket-transport';
 import { useSyncStore } from './store';
 import { SyncEngine } from './sync-engine';
@@ -41,7 +45,9 @@ export interface SyncClientOptions {
 export interface SyncClient {
   db: LocalDb;
   userId: string;
-  sendText(chatId: string, text: string): Promise<void>;
+  sendText(chatId: string, text: string, quote?: ReplyQuote | null): Promise<void>;
+  /** Edit, delete, react, star and the rest: shown at once, and told to the server in order. */
+  act(action: QueuedAction): Promise<void>;
   sendMedia(input: EnqueueMedia): Promise<void>;
   cancelMedia(clientMsgId: string): Promise<void>;
   retry(clientMsgId: string): Promise<void>;
@@ -96,6 +102,12 @@ export function startSyncClient(options: SyncClientOptions): SyncClient {
     onProblem: (lastProblem) => setStore({ lastProblem }),
     onMediaQueued: () => void uploader.run(),
   });
+  const actions = new ActionQueue({
+    db,
+    me: userId,
+    isLeader: () => isLeader,
+    onRefused: (reason) => toast.error(reason),
+  });
   const uploader = new MediaUploader({
     db,
     me: userId,
@@ -106,21 +118,11 @@ export function startSyncClient(options: SyncClientOptions): SyncClient {
 
   const reconciling = startReconciling(db, userId, () => {
     outbox.resume();
+    actions.resume();
     void uploader.run();
   });
 
-  const deliveryAcks = startDeliveryAcks({
-    db,
-    me: userId,
-    isConnected: () => socket.connected,
-    send: async (chatId, seq) => {
-      const ack = await socket
-        .timeout(ACK_TIMEOUT_MS)
-        .emitWithAck('delivered:update', { chatId, seq })
-        .catch(() => null);
-      return ack?.ok === true;
-    },
-  });
+  const deliveryAcks = socketDeliveryAcks(socket, db, userId);
 
   const presence = presenceSubscriber(socket, () => stopped);
   const plays = socketPlayReports(db, socket);
@@ -132,6 +134,7 @@ export function startSyncClient(options: SyncClientOptions): SyncClient {
   const channel = openTabChannel((message) => {
     if (message === 'outbox-changed') {
       outbox.resume();
+      actions.resume();
       void uploader.run();
     } else onSessionDoubt();
   });
@@ -139,6 +142,7 @@ export function startSyncClient(options: SyncClientOptions): SyncClient {
     isLeader = true;
     setStore({ isLeader });
     outbox.resume();
+    actions.resume();
     void uploader.run();
   });
 
@@ -154,6 +158,7 @@ export function startSyncClient(options: SyncClientOptions): SyncClient {
     setStore({ socket: 'connected', lastHandshakeError: null });
     void engine.run();
     outbox.resume();
+    actions.resume();
     void uploader.run();
     deliveryAcks.resume();
     presence.watch(currentWatchList());
@@ -191,26 +196,12 @@ export function startSyncClient(options: SyncClientOptions): SyncClient {
     ended = true;
     onSessionEnded(reason);
   });
-  socket.on('message:new', ({ message, cursor }) => void engine.onMessage(message, cursor));
-  socket.on('chat:updated', ({ chatId, cursor, type: _type, unreadCount: _count, ...change }) => {
-    void engine.onChatChange(chatId, change, cursor);
-  });
-  socket.on('receipt:update', ({ chatId, lastDeliveredSeq, lastReadSeq, cursor }) => {
-    void engine.onChatChange(
-      chatId,
-      { peerDeliveredSeq: lastDeliveredSeq, peerReadSeq: lastReadSeq },
-      cursor,
-    );
-  });
+  wireSyncEvents(socket, engine, db);
   socket.on('typing:update', ({ chatId, userId: who, typing }) => setTyping(chatId, who, typing));
   socket.on('presence:update', setPresence);
   socket.on('presence:resubscribe', () => {
     presence.forget();
     presence.watch(currentWatchList());
-  });
-  socket.on('message:played', ({ message, cursor }) => void engine.onMessage(message, cursor));
-  socket.on('read:update', ({ chatId, lastReadSeq, cursor }) => {
-    void engine.onChatChange(chatId, { lastReadSeq }, cursor);
   });
 
   const onOnline = () => {
@@ -237,8 +228,12 @@ export function startSyncClient(options: SyncClientOptions): SyncClient {
   return {
     db,
     userId,
-    async sendText(chatId, text) {
-      await outbox.enqueue(chatId, text);
+    async sendText(chatId, text, quote) {
+      await outbox.enqueue(chatId, text, quote);
+      channel.post('outbox-changed');
+    },
+    async act(action) {
+      await actions.enqueue(action);
       channel.post('outbox-changed');
     },
     async sendMedia(input) {
@@ -289,6 +284,7 @@ export function startSyncClient(options: SyncClientOptions): SyncClient {
       window.removeEventListener('offline', onOffline);
       engine.stop();
       outbox.stop();
+      actions.stop();
       leadership.stop();
       channel.close();
       socket.disconnect();

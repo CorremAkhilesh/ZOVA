@@ -82,16 +82,21 @@ export function buildTimeline(messages: ChatMessage[]): TimelineItem[] {
   return items;
 }
 
-/** Folder + name search. Saved Messages first, then pinned chats, then the latest activity. */
+/**
+ * Folder + name search. Saved Messages first, then pinned chats, then the latest activity. Archived
+ * chats have their own list, and a search finds them anywhere.
+ */
 export function filterChats(
   chats: ChatSummary[],
   folder: ChatFolder,
   query: string,
+  archivedList = false,
 ): ChatSummary[] {
   const needle = query.trim().toLocaleLowerCase();
   return chats
     .filter((chat) => {
-      if (folder === 'unread' && chat.unread === 0) return false;
+      if (!needle && (chat.archived === true) !== archivedList) return false;
+      if (folder === 'unread' && chat.unread === 0 && !chat.markedUnread) return false;
       if (folder === 'groups' && chat.kind !== 'group') return false;
       if (folder === 'personal' && chat.kind === 'group') return false;
       return !needle || chat.name.toLocaleLowerCase().includes(needle);

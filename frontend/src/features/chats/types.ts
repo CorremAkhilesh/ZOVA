@@ -1,4 +1,4 @@
-import type { GroupInfo, MediaInfo, SystemEvent } from '@zuvo/protocol';
+import type { GroupInfo, MediaInfo, Message, ReplyQuote, SystemEvent } from '@zuvo/protocol';
 import type { UploadFailReason } from '@/features/sync/local-db';
 
 export type DeliveryStatus = 'pending' | 'failed' | 'sent' | 'delivered' | 'read';
@@ -28,6 +28,10 @@ export interface ChatSummary {
   lastSeenAt?: Date;
   pinned: boolean;
   muted: boolean;
+  archived?: boolean;
+  markedUnread?: boolean;
+  /** "Riya reacted 👍 to 'hello'": shown instead of the last message, to its author. */
+  reactionLine?: string | undefined;
   unread: number;
   about?: string | null;
   activityAt: Date;
@@ -61,5 +65,14 @@ export interface ChatMessage extends MessageAuthor {
   uploadedBytes?: number | undefined;
   heldInTab?: boolean | undefined;
   failReason?: UploadFailReason | undefined;
-  replyTo?: MessageAuthor & { text: string };
+  /** Its position in the chat, once the server has given it one. */
+  seq?: number | null;
+  replyTo?: ReplyQuote | null | undefined;
+  forwarded?: boolean;
+  forwardCount?: number;
+  reactions?: Message['reactions'];
+  starred?: boolean;
+  edited?: boolean;
+  deleted?: boolean;
+  deletedByAdmin?: boolean;
 }

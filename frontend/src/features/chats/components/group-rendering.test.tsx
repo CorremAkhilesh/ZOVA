@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { buildTimeline } from '../chat-utils';
@@ -30,20 +31,22 @@ const GROUP: ChatMessage[] = [
 
 function renderThread(messages: ChatMessage[], isGroup: boolean) {
   render(
-    <ol aria-label="Thread">
-      {buildTimeline(messages).map((item) =>
-        item.type === 'date' ? null : (
-          <li key={item.key}>
-            <MessageBubble
-              message={item.message}
-              firstInGroup={item.firstInGroup}
-              lastInGroup={item.lastInGroup}
-              isGroup={isGroup}
-            />
-          </li>
-        ),
-      )}
-    </ol>,
+    <QueryClientProvider client={new QueryClient()}>
+      <ol aria-label="Thread">
+        {buildTimeline(messages).map((item) =>
+          item.type === 'date' ? null : (
+            <li key={item.key}>
+              <MessageBubble
+                message={item.message}
+                firstInGroup={item.firstInGroup}
+                lastInGroup={item.lastInGroup}
+                isGroup={isGroup}
+              />
+            </li>
+          ),
+        )}
+      </ol>
+    </QueryClientProvider>,
   );
   return within(screen.getByRole('list', { name: 'Thread' }));
 }

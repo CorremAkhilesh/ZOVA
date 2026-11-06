@@ -12,6 +12,8 @@ import {
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { AttachMenu } from '@/features/media/components/AttachMenu';
+import { ComposerBanner } from '@/features/messages/components/ComposerBanner';
+import { useComposerActions } from '@/features/messages/use-composer-actions';
 import { useSyncStore } from '@/features/sync/store';
 import { MicButton } from '@/features/voice/components/MicButton';
 import { MicBlockedDialog, MicExplainDialog } from '@/features/voice/components/MicDialogs';
@@ -19,71 +21,17 @@ import { RecordingBar } from '@/features/voice/components/RecordingBar';
 import { useVoiceNote } from '@/features/voice/use-voice-note';
 import { useIsDesktop } from '@/lib/hooks';
 import { cn } from '@/lib/utils';
-import { useLocalDb } from '../queries';
 import { TypingSender } from '../typing-sender';
+import { useDraft } from '../use-draft';
 import { EmojiPicker } from './EmojiPicker';
 
 /** The counter appears this close to the limit. */
 const COUNTER_FROM = 200;
-const DRAFT_SAVE_MS = 300;
 
 interface ComposerProps {
   chatId: string;
   onSent: () => void;
   onFiles: (files: File[]) => void;
-}
-
-/** A draft per chat, in Dexie, so a sign-out wipes it with everything else. */
-function useDraft(chatId: string) {
-  const db = useLocalDb();
-  const [text, setText] = useState('');
-  const latest = useRef({ text: '', dirty: false });
-
-  useEffect(() => {
-    let cancelled = false;
-    void db?.drafts
-      .get(chatId)
-      .then((draft) => {
-        if (!cancelled && draft && !latest.current.dirty) setText(draft.text);
-      })
-      .catch(() => undefined);
-    return () => {
-      cancelled = true;
-    };
-  }, [chatId, db]);
-
-  const save = () => {
-    if (!latest.current.dirty) return;
-    latest.current.dirty = false;
-    const { text: value } = latest.current;
-    const write = async () => {
-      if (value) await db?.drafts.put({ chatId, text: value });
-      else await db?.drafts.delete(chatId);
-    };
-    void write().catch(() => undefined);
-  };
-
-  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const saveRef = useRef(save);
-  saveRef.current = save;
-  // Leaving the chat saves right away rather than waiting for the timer.
-  useEffect(
-    () => () => {
-      clearTimeout(timer.current);
-      saveRef.current();
-    },
-    [],
-  );
-
-  return {
-    text,
-    update(next: string) {
-      setText(next);
-      latest.current = { text: next, dirty: true };
-      clearTimeout(timer.current);
-      timer.current = setTimeout(() => saveRef.current(), DRAFT_SAVE_MS);
-    },
-  };
 }
 
 /** One sender per open chat. Leaving the chat stops it. */
@@ -107,6 +55,7 @@ export function Composer({ chatId, onSent, onFiles }: ComposerProps) {
   const canSend = hasText && remaining >= 0 && client !== null;
   const voice = useVoiceNote(chatId, onSent);
   const { recorder } = voice;
+  const actions = useComposerActions(chatId, text, update, field);
 
   // Grows with the text, up to the field's max height.
   // biome-ignore lint/correctness/useExhaustiveDependencies: `text` changes the content being measured
@@ -119,7 +68,8 @@ export function Composer({ chatId, onSent, onFiles }: ComposerProps) {
 
   function send() {
     if (!canSend) return;
-    void client?.sendText(chatId, text);
+    if (actions.finishEdit()) return;
+    void client?.sendText(chatId, text, actions.takeReply());
     typing.stop();
     update('');
     onSent();
@@ -132,6 +82,7 @@ export function Composer({ chatId, onSent, onFiles }: ComposerProps) {
   }
 
   function onKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (actions.onKeyDown(event)) return;
     // isComposing: Enter is confirming a word in a Hindi (or any other) input method.
     if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing) return;
     // Phones and tablets have no Shift key to hand: Enter makes a new line, the button sends.
@@ -161,6 +112,7 @@ export function Composer({ chatId, onSent, onFiles }: ComposerProps) {
           onClose={voice.closeExplaining}
         />
         <MicBlockedDialog open={voice.blockedOpen} onClose={voice.closeBlocked} />
+        <ComposerBanner chatId={chatId} />
         {recorder.problem && recorder.problem !== 'blocked' ? (
           <p role="status" className="mb-1 text-xs font-medium text-text-muted">
             {t(`voice.problems.${recorder.problem}`)}
@@ -221,7 +173,7 @@ export function Composer({ chatId, onSent, onFiles }: ComposerProps) {
               />
             </>
           )}
-          {hasText ? (
+          {hasText || actions.editing ? (
             <Button
               type="submit"
               size="icon"

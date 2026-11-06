@@ -9,6 +9,7 @@ import {
   applySyncPage,
   readCursor,
 } from './apply';
+import { applyLiveClear, applyLiveRemoval, applyLiveUpdate } from './apply-updates';
 import type { LocalDb } from './local-db';
 
 export type SyncStatus = 'syncing' | 'idle' | 'error';
@@ -76,6 +77,21 @@ export class SyncEngine {
     cursor: string,
   ): Promise<void> {
     return this.inOrder(() => applyLiveChatChange(this.options.db, chatId, change, cursor));
+  }
+
+  onUpdate(message: Message, cursor: string): Promise<void> {
+    return this.inOrder(() => applyLiveUpdate(this.options.db, message, cursor));
+  }
+
+  onRemoved(chatId: string, seq: number, cursor: string): Promise<void> {
+    return this.inOrder(() => applyLiveRemoval(this.options.db, chatId, seq, cursor));
+  }
+
+  onCleared(
+    change: { chatId: string; seq: number; removeChat: boolean },
+    cursor: string,
+  ): Promise<void> {
+    return this.inOrder(() => applyLiveClear(this.options.db, change, cursor));
   }
 
   /** Events apply one at a time, in arrival order: database writes finish asynchronously. */

@@ -13,6 +13,10 @@ import { DropZone } from '@/features/media/components/DropZone';
 import { MediaViewer, toViewerItem } from '@/features/media/components/MediaViewer';
 import { PreviewSheet } from '@/features/media/components/PreviewSheet';
 import { useSendMedia } from '@/features/media/use-send-media';
+import { MessageDialogs } from '@/features/messages/components/MessageDialogs';
+import { MessageMenu } from '@/features/messages/components/MessageMenu';
+import { SelectionBar } from '@/features/messages/components/SelectionBar';
+import { useMessageUi } from '@/features/messages/store';
 import { ProfileCard } from '@/features/people/components/ProfileCard';
 import type { ChatRow } from '@/features/sync/local-db';
 import { useSyncStore } from '@/features/sync/store';
@@ -180,6 +184,8 @@ function ChatFooter({
 }) {
   const { t } = useTranslation();
   const blocked = footerNotice(chat);
+  const selecting = useMessageUi((state) => state.selecting === chat.id);
+  if (selecting) return <SelectionBar />;
   if (blocked) {
     return (
       <p className="glass border-t px-4 py-3 text-center text-sm text-text-muted">{t(blocked)}</p>
@@ -238,6 +244,8 @@ export function Conversation({ chat }: { chat: ChatRow }) {
         onFiles={canSend ? media.addFiles : undefined}
       >
         <h2 className="sr-only">{summary.name}</h2>
+        <MessageMenu chat={summary} />
+        <MessageDialogs chat={summary} />
         <ConversationHeader
           chat={summary}
           showBack={!isDesktop}

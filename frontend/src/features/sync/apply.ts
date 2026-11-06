@@ -1,4 +1,5 @@
 import type { ChatSummary, Message, SyncResponse } from '@zuvo/protocol';
+import { clearUpTo, mergeUpdated, removeAt } from './local-changes';
 import type { ChatRow, LocalDb, MessageRow } from './local-db';
 
 const CURSOR = 'cursor';
@@ -39,8 +40,31 @@ type ChatChange = {
     | 'createdAt'
     | 'lastReadSeq'
     | 'peerDeliveredSeq'
-    | 'peerReadSeq']?: ChatSummary[Field] | undefined;
+    | 'peerReadSeq'
+    | 'pinned'
+    | 'mutedUntil'
+    | 'archived'
+    | 'markedUnread'
+    | 'lastReaction']?: ChatSummary[Field] | undefined;
 };
+
+const PERSONAL = ['pinned', 'mutedUntil', 'archived', 'markedUnread', 'lastReaction'] as const;
+
+/** Mine alone, and only what this change says: an event about a message leaves them be. */
+function personalPart(change: ChatChange): Partial<ChatRow> {
+  const part: Record<string, unknown> = {};
+  for (const field of PERSONAL) {
+    if (change[field] !== undefined) part[field] = change[field];
+  }
+  return part;
+}
+
+/** Null is news only if nothing newer waits to go: my own unsent message is ahead of `seq`. */
+function nextLastMessage(row: ChatRow, change: ChatChange, current: boolean) {
+  if (!current || change.lastMessage === undefined) return row.lastMessage;
+  if (change.lastMessage) return change.lastMessage;
+  return (row.lastMessage?.seq ?? 0) > (change.seq ?? 0) ? row.lastMessage : null;
+}
 
 /** Positions only move forward, so older news arriving late can never undo newer state. */
 export function mergeChat(row: ChatRow, change: ChatChange): ChatRow {
@@ -59,15 +83,17 @@ export function mergeChat(row: ChatRow, change: ChatChange): ChatRow {
     unreadCount: Math.max(0, seq - lastReadSeq),
     peerDeliveredSeq: Math.max(row.peerDeliveredSeq ?? 0, change.peerDeliveredSeq ?? 0),
     peerReadSeq: Math.max(row.peerReadSeq ?? 0, change.peerReadSeq ?? 0),
-    lastMessage: current ? (change.lastMessage ?? row.lastMessage) : row.lastMessage,
+    lastMessage: nextLastMessage(row, change, current),
     lastActivityAt,
     otherUser: change.otherUser === undefined ? row.otherUser : change.otherUser,
     group: change.group === undefined ? row.group : change.group,
+    ...personalPart(change),
   };
   return { ...merged, sortAt: Math.max(row.sortAt, sortAtOf(merged)) };
 }
 
-const allStores = (db: LocalDb) => [
+export const allStores = (db: LocalDb) => [
+  db.drafts,
   db.chats,
   db.profiles,
   db.messages,
@@ -89,7 +115,14 @@ async function settleOutbox(db: LocalDb, messages: Message[]) {
 }
 
 async function storeMessages(db: LocalDb, me: string, messages: Message[]) {
-  await db.messages.bulkPut(messages.map(toMessageRow));
+  const rows = messages.map(toMessageRow);
+  // Only history and sync know about stars. A live event leaves mine as it was.
+  const known = await db.messages.bulkGet(rows.map((row) => row.key));
+  await db.messages.bulkPut(
+    rows.map((row, index) =>
+      row.starred === undefined ? { ...row, starred: known[index]?.starred } : row,
+    ),
+  );
   await settleOutbox(
     db,
     messages.filter((message) => message.senderId === me),
@@ -108,14 +141,14 @@ async function storeChats(db: LocalDb, chats: ChatSummary[]) {
 }
 
 /** Decides what a numbered live event means: next, already seen, or proof of a gap. */
-function classify(local: string | undefined, cursor: string) {
+export function classify(local: string | undefined, cursor: string) {
   if (local === undefined) return 'gap' as const;
   const difference = Number(cursor) - Number(local);
   if (difference > 1) return 'gap' as const;
   return difference === 1 ? ('next' as const) : ('seen' as const);
 }
 
-async function advance(db: LocalDb, cursor: string) {
+export async function advance(db: LocalDb, cursor: string) {
   await db.meta.put({ key: CURSOR, value: cursor });
 }
 
@@ -163,6 +196,9 @@ export function applySyncPage(db: LocalDb, me: string, page: SyncResponse): Prom
   return db.transaction('rw', allStores(db), async () => {
     await storeChats(db, page.chats);
     await storeMessages(db, me, page.messages);
+    await mergeUpdated(db, page.updated);
+    for (const { chatId, seq } of page.removed) await removeAt(db, chatId, seq);
+    for (const change of page.cleared) await clearUpTo(db, change);
     const local = await readCursor(db);
     if (local === undefined || Number(page.cursor) > Number(local)) {
       await advance(db, page.cursor);
