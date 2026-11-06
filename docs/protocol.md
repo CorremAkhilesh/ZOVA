@@ -146,6 +146,35 @@ what others may know they have read. It follows `lastReadSeq` while both people 
 stays put while either has them off, so what was already shown as read stays read and nothing newer
 ever leaves the server. Reading then sends nothing unless delivered moved too.
 
+## Message actions
+
+Edits, deletes, reactions, stars and chat preferences go over REST (`/v1/chats/:id/messages/:messageId…`,
+`/v1/forward`, `/v1/chats/:id/prefs`). Each one is checked against what the person can see (`canSeeSeq`), and
+each is safe to repeat, so a lost answer can never do it twice.
+
+They are logged in the per-user update log, so an offline device catches up:
+
+| Log kind       | Live event        | In `GET /v1/sync`                           |
+| -------------- | ----------------- | ------------------------------------------- |
+| `updated`      | `message:updated` | `updated`: the message as it is now         |
+| `hidden`       | `message:removed` | `removed`: deleted for me on another device |
+| `cleared`      | `chat:cleared`    | `cleared`: everything up to `seq` goes      |
+| `chat_removed` | `chat:cleared`    | `cleared` with `removeChat`: the chat goes  |
+| `chat`         | `chat:updated`    | `chats`: pin, mute, archive, unread         |
+
+`updated` is separate from `messages` for one reason: a device applies it only to a message it already has.
+Storing an old message it never loaded would leave a hole in its history that paging back could not see.
+
+`reaction:preview` carries no number. It only updates the "Riya reacted" line in the chat list, for the
+message's author; the reaction itself comes through `message:updated`, and sync brings the line with the chat.
+`starred` is known only for the person who starred: an event that leaves it out means "keep what you have".
+
+On the device, actions go through a queue in Dexie (`actions`): shown at once, sent in order by one tab, kept
+across a reload or going offline. If the server refuses one, the device asks how things really are and shows why.
+
+Clearing a chat stores one position (`clearedSeq`), not a row per message. Seeing and quoting both start after
+`max(joinSeq, clearedSeq)`.
+
 ## Typing
 
 `typing:start` and `typing:stop` reach only the other members' sockets, and are never stored. The server

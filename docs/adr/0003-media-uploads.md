@@ -39,6 +39,10 @@ own caption, ticks, position and gallery row, and sending one is the same as sen
 The 20 messages per 5 seconds limit also applies to album items. The outbox waits out `RATE_LIMITED`
 without counting it as a failure, so a 30-photo album takes a few seconds longer.
 
+**Forwarding** is the one exception: a forwarded copy refers to the same record and file, so nothing is
+uploaded again. Who may open a file is therefore decided by the messages that use it (`media.id`), in any chat.
+Deleting a message for everyone marks the file, and an hourly job removes it only if no message still uses it.
+
 ## Files up to 1 GB
 
 The limit is `MEDIA_MAX_FILE_MB` (default 1024), served by `GET /v1/config` so the app and server agree.

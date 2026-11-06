@@ -27,6 +27,15 @@ Known work that was decided on or deliberately left for later. Product scope liv
   devices that already have them.
 - **Unread counts** include system messages.
 
+## Message actions
+
+- **Quotes** of a message are refreshed for its latest 100 replies only when it is edited or deleted.
+- **Reply privately** quotes a group message in a 1:1 chat. If the other person cannot open its picture, the
+  quote shows without it.
+- **A deleted file** stays reachable by its uploader until the hourly job removes it, up to an hour.
+- **Starred messages for one chat** open from the chat's menu in the list, not yet from chat info.
+- **Refused actions** show the server's English message rather than a translated one.
+
 ## Operations
 
 - **Alert email at 80% disk use**, required by `CLAUDE.md`.
