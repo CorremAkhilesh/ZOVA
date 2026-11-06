@@ -19,6 +19,7 @@ import { Route as SecurityNotMeRouteImport } from './routes/security.not-me'
 import { Route as WelcomeNameRouteImport } from './routes/welcome.name'
 import { Route as AppChatsIndexRouteImport } from './routes/_app/chats.index'
 import { Route as AppChatsChatIdRouteImport } from './routes/_app/chats.$chatId'
+import { Route as AppJoinCodeRouteImport } from './routes/_app/join.$code'
 import { Route as AppSettingsIndexRouteImport } from './routes/_app/settings.index'
 import { Route as AppSettingsDevicesRouteImport } from './routes/_app/settings.devices'
 import { Route as AppSettingsPrivacyRouteImport } from './routes/_app/settings.privacy'
@@ -75,6 +76,11 @@ const AppChatsChatIdRoute = AppChatsChatIdRouteImport.update({
   path: '/$chatId',
   getParentRoute: () => AppChatsRoute,
 } as any)
+const AppJoinCodeRoute = AppJoinCodeRouteImport.update({
+  id: '/join/$code',
+  path: '/join/$code',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppSettingsIndexRoute = AppSettingsIndexRouteImport.update({
   id: '/settings/',
   path: '/settings/',
@@ -115,6 +121,7 @@ export interface FileRoutesByFullPath {
   '/security/not-me': typeof SecurityNotMeRoute
   '/welcome/name': typeof WelcomeNameRoute
   '/chats/$chatId': typeof AppChatsChatIdRoute
+  '/join/$code': typeof AppJoinCodeRoute
   '/settings/devices': typeof AppSettingsDevicesRoute
   '/settings/privacy': typeof AppSettingsPrivacyRoute
   '/settings/profile': typeof AppSettingsProfileRoute
@@ -131,6 +138,7 @@ export interface FileRoutesByTo {
   '/security/not-me': typeof SecurityNotMeRoute
   '/welcome/name': typeof WelcomeNameRoute
   '/chats/$chatId': typeof AppChatsChatIdRoute
+  '/join/$code': typeof AppJoinCodeRoute
   '/settings/devices': typeof AppSettingsDevicesRoute
   '/settings/privacy': typeof AppSettingsPrivacyRoute
   '/settings/profile': typeof AppSettingsProfileRoute
@@ -150,6 +158,7 @@ export interface FileRoutesById {
   '/security/not-me': typeof SecurityNotMeRoute
   '/welcome/name': typeof WelcomeNameRoute
   '/_app/chats/$chatId': typeof AppChatsChatIdRoute
+  '/_app/join/$code': typeof AppJoinCodeRoute
   '/_app/settings/devices': typeof AppSettingsDevicesRoute
   '/_app/settings/privacy': typeof AppSettingsPrivacyRoute
   '/_app/settings/profile': typeof AppSettingsProfileRoute
@@ -169,6 +178,7 @@ export interface FileRouteTypes {
     | '/security/not-me'
     | '/welcome/name'
     | '/chats/$chatId'
+    | '/join/$code'
     | '/settings/devices'
     | '/settings/privacy'
     | '/settings/profile'
@@ -185,6 +195,7 @@ export interface FileRouteTypes {
     | '/security/not-me'
     | '/welcome/name'
     | '/chats/$chatId'
+    | '/join/$code'
     | '/settings/devices'
     | '/settings/privacy'
     | '/settings/profile'
@@ -203,6 +214,7 @@ export interface FileRouteTypes {
     | '/security/not-me'
     | '/welcome/name'
     | '/_app/chats/$chatId'
+    | '/_app/join/$code'
     | '/_app/settings/devices'
     | '/_app/settings/privacy'
     | '/_app/settings/profile'
@@ -292,6 +304,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppChatsChatIdRouteImport
       parentRoute: typeof AppChatsRoute
     }
+    '/_app/join/$code': {
+      id: '/_app/join/$code'
+      path: '/join/$code'
+      fullPath: '/join/$code'
+      preLoaderRoute: typeof AppJoinCodeRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/settings/': {
       id: '/_app/settings/'
       path: '/settings'
@@ -355,6 +374,7 @@ interface AppRouteChildren {
   AppCallsRoute: typeof AppCallsRoute
   AppChatsRoute: typeof AppChatsRouteWithChildren
   AppUpdatesRoute: typeof AppUpdatesRoute
+  AppJoinCodeRoute: typeof AppJoinCodeRoute
   AppSettingsDevicesRoute: typeof AppSettingsDevicesRoute
   AppSettingsPrivacyRoute: typeof AppSettingsPrivacyRoute
   AppSettingsProfileRoute: typeof AppSettingsProfileRoute
@@ -367,6 +387,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppCallsRoute: AppCallsRoute,
   AppChatsRoute: AppChatsRouteWithChildren,
   AppUpdatesRoute: AppUpdatesRoute,
+  AppJoinCodeRoute: AppJoinCodeRoute,
   AppSettingsDevicesRoute: AppSettingsDevicesRoute,
   AppSettingsPrivacyRoute: AppSettingsPrivacyRoute,
   AppSettingsProfileRoute: AppSettingsProfileRoute,

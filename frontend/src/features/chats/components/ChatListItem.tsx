@@ -15,7 +15,7 @@ import { TypingIndicator } from './TypingIndicator';
 /** In Saved Messages everything is mine, so a prefix would say nothing. */
 function previewPrefix(chat: ChatSummary, you: string): string {
   const { lastMessage, kind } = chat;
-  if (!lastMessage || kind === 'saved') return '';
+  if (!lastMessage || kind === 'saved' || lastMessage.isSystem) return '';
   if (lastMessage.authorId === ME) return `${you}: `;
   return kind === 'group' ? `${lastMessage.authorName.split(' ')[0]}: ` : '';
 }
@@ -36,7 +36,12 @@ function Preview({ chat, typing }: { chat: ChatSummary; typing: boolean }) {
       {lastMessage?.status && chat.kind !== 'saved' ? (
         <DeliveryTicks status={lastMessage.status} className="text-text-muted" />
       ) : null}
-      <p className="min-w-0 flex-1 truncate text-sm text-text-muted">
+      <p
+        className={cn(
+          'min-w-0 flex-1 truncate text-sm text-text-muted',
+          lastMessage?.isSystem && 'italic',
+        )}
+      >
         {lastMessage
           ? `${previewPrefix(chat, t('chats.you'))}${lastMessage.text}`
           : t(chat.kind === 'saved' ? 'chats.savedHint' : 'chats.noMessages')}
@@ -83,7 +88,7 @@ export function ChatListItem({ chat, now }: { chat: ChatSummary; now: Date }) {
     : '';
   const row = useRef<HTMLAnchorElement>(null);
   usePresenceWatchWhileVisible(row, chat.otherUserId);
-  const typing = useLiveStatus((state) => state.typing[chat.id] === true);
+  const typing = useLiveStatus((state) => (state.typing[chat.id]?.length ?? 0) > 0);
   const online = useLiveStatus((state) =>
     chat.otherUserId ? state.presence[chat.otherUserId]?.online === true : false,
   );

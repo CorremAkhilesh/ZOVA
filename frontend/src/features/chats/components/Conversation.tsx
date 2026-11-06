@@ -5,6 +5,9 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { useSession } from '@/features/auth/session';
+import { GroupInfoBody } from '@/features/groups/components/GroupInfoPane';
+import { useGroupMembers, useKnownPeople } from '@/features/groups/queries';
+import { groupAbilities } from '@/features/groups/rules';
 import { ChatGallery } from '@/features/media/components/ChatGallery';
 import { DropZone } from '@/features/media/components/DropZone';
 import { MediaViewer, toViewerItem } from '@/features/media/components/MediaViewer';
@@ -97,6 +100,39 @@ function MobileProfile(props: {
   );
 }
 
+/** On a phone, chat info opens over the conversation. */
+function MobileInfo(props: {
+  row: ChatRow;
+  chat: ChatSummary;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onOpenMedia: (mediaId: string) => void;
+}) {
+  const { t } = useTranslation();
+  const { row, chat, open, onOpenChange, onOpenMedia } = props;
+  if (chat.kind === 'group') {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent title={t('conversation.info')} className="max-w-lg">
+          <div className="flex max-h-[75vh] flex-col">
+            <GroupInfoBody row={row} chat={chat} onOpenMedia={onOpenMedia} />
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+  if (!row.otherUser) return null;
+  return (
+    <MobileProfile
+      chatId={row.id}
+      onOpenMedia={onOpenMedia}
+      person={row.otherUser}
+      open={open}
+      onOpenChange={onOpenChange}
+    />
+  );
+}
+
 /** The chat as the screens show it, and how far its messages go. */
 function useConversationView(chat: ChatRow) {
   const { t } = useTranslation();
@@ -104,16 +140,18 @@ function useConversationView(chat: ChatRow) {
   const saved = t('chats.saved');
   const unknown = t('chats.unknownPerson');
   const { rows, ...older } = useConversationMessages(chat);
+  const members = useGroupMembers(chat);
+  const people = useKnownPeople();
   const summary = useMemo(
     () => toChatSummary(chat, me, { saved, unknown }),
     [chat, me, saved, unknown],
   );
   const messages = useMemo(
-    () => rows?.map((row) => toChatMessage(row, me, summary.name, chat)),
-    [chat, me, rows, summary.name],
+    () => rows?.map((row) => toChatMessage(row, me, summary.name, chat, people, unknown)),
+    [chat, me, people, rows, summary.name, unknown],
   );
   const newestSeq = useMemo(() => rows?.findLast((row) => row.seq !== null)?.seq ?? 0, [rows]);
-  return { summary, messages, rows, newestSeq, older };
+  return { summary, messages, rows, newestSeq, older, members };
 }
 
 /** How many messages came after the reader last was at the bottom. */
@@ -121,6 +159,14 @@ function useNewMessageCount(newestSeq: number, atBottom: boolean): number {
   const seenSeq = useRef(newestSeq);
   if (atBottom) seenSeq.current = newestSeq;
   return atBottom ? 0 : Math.max(0, newestSeq - seenSeq.current);
+}
+
+/** Why this person cannot write here, if they cannot. The server refuses anyway. */
+function footerNotice(chat: ChatSummary): string | null {
+  if (chat.deactivated) return 'people.deactivated';
+  if (!chat.group) return null;
+  if (!chat.group.active) return 'groups.noLongerMember';
+  return groupAbilities(chat.group).send ? null : 'groups.onlyAdminsSend';
 }
 
 function ChatFooter({
@@ -133,11 +179,10 @@ function ChatFooter({
   onFiles: (files: File[]) => void;
 }) {
   const { t } = useTranslation();
-  if (chat.deactivated) {
+  const blocked = footerNotice(chat);
+  if (blocked) {
     return (
-      <p className="glass border-t px-4 py-3 text-center text-sm text-text-muted">
-        {t('people.deactivated')}
-      </p>
+      <p className="glass border-t px-4 py-3 text-center text-sm text-text-muted">{t(blocked)}</p>
     );
   }
   return <Composer chatId={chat.id} onSent={onSent} onFiles={onFiles} />;
@@ -147,7 +192,7 @@ export function Conversation({ chat }: { chat: ChatRow }) {
   const isDesktop = useIsDesktop();
   const [infoOpen, setInfoOpen] = useState(false);
   const [atBottom, setAtBottom] = useState(true);
-  const { summary, messages, rows, newestSeq, older } = useConversationView(chat);
+  const { summary, messages, rows, newestSeq, older, members } = useConversationView(chat);
   const { loadingOlder, loadFailed, hasOlder, loadOlder } = older;
   const list = useRef<MessageListHandle>(null);
   const newCount = useNewMessageCount(newestSeq, atBottom);
@@ -167,7 +212,7 @@ export function Conversation({ chat }: { chat: ChatRow }) {
       }),
     [rows],
   );
-  const canSend = !summary.deactivated;
+  const canSend = footerNotice(summary) === null;
 
   return (
     <div className="flex h-full min-h-0">
@@ -198,6 +243,7 @@ export function Conversation({ chat }: { chat: ChatRow }) {
           showBack={!isDesktop}
           infoOpen={infoOpen}
           onToggleInfo={() => setInfoOpen((open) => !open)}
+          members={members}
         />
         <div className="chat-wallpaper relative min-h-0 flex-1">
           {showEmpty ? <EmptyChat saved={summary.kind === 'saved'} name={summary.name} /> : null}
@@ -206,6 +252,7 @@ export function Conversation({ chat }: { chat: ChatRow }) {
               ref={list}
               chatName={summary.name}
               isGroup={summary.kind === 'group'}
+              chatId={chat.id}
               messages={messages}
               onReachTop={hasOlder ? loadOlder : undefined}
               onAtBottomChange={setAtBottom}
@@ -219,17 +266,22 @@ export function Conversation({ chat }: { chat: ChatRow }) {
         <ChatFooter chat={summary} onSent={jumpToLatest} onFiles={media.addFiles} />
       </DropZone>
       {infoOpen && isDesktop ? (
-        <ChatInfoPane chat={summary} onClose={() => setInfoOpen(false)} onOpenMedia={setViewing} />
-      ) : null}
-      {!isDesktop && chat.otherUser ? (
-        <MobileProfile
-          chatId={chat.id}
+        <ChatInfoPane
+          chat={summary}
+          row={chat}
+          onClose={() => setInfoOpen(false)}
           onOpenMedia={setViewing}
-          person={chat.otherUser}
-          open={infoOpen}
-          onOpenChange={setInfoOpen}
         />
       ) : null}
+      {isDesktop ? null : (
+        <MobileInfo
+          row={chat}
+          chat={summary}
+          open={infoOpen}
+          onOpenChange={setInfoOpen}
+          onOpenMedia={setViewing}
+        />
+      )}
     </div>
   );
 }

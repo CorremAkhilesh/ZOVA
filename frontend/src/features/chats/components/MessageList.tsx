@@ -81,6 +81,7 @@ interface MessageListProps {
   ref: Ref<MessageListHandle>;
   chatName: string;
   isGroup: boolean;
+  chatId?: string;
   messages: ChatMessage[];
   /** Undefined when there is nothing older to load. */
   onReachTop: (() => void) | undefined;
@@ -98,6 +99,7 @@ export function MessageList({
   ref,
   chatName,
   isGroup,
+  chatId,
   messages,
   onReachTop,
   onAtBottomChange,
@@ -184,6 +186,7 @@ export function MessageList({
                 firstInGroup={row.firstInGroup}
                 lastInGroup={row.lastInGroup}
                 isGroup={isGroup}
+                chatId={chatId}
                 onRetry={onRetry}
                 onOpenMedia={onOpenMedia}
                 album={row.album ?? undefined}

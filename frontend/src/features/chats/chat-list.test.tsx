@@ -182,7 +182,7 @@ describe('folders and search', () => {
     expect(screen.getByRole('link', { name: /Saved Messages/ })).toBeInTheDocument();
 
     await user.click(screen.getByRole('tab', { name: 'Groups' }));
-    expect(screen.getByText('Group chats are coming soon.')).toBeInTheDocument();
+    expect(screen.getByText(/No groups yet/)).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /Asha Verma/ })).not.toBeInTheDocument();
   });
 

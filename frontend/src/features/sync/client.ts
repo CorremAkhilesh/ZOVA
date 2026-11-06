@@ -202,7 +202,7 @@ export function startSyncClient(options: SyncClientOptions): SyncClient {
       cursor,
     );
   });
-  socket.on('typing:update', ({ chatId, typing }) => setTyping(chatId, typing));
+  socket.on('typing:update', ({ chatId, userId: who, typing }) => setTyping(chatId, who, typing));
   socket.on('presence:update', setPresence);
   socket.on('presence:resubscribe', () => {
     presence.forget();

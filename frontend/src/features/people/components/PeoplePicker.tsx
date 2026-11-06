@@ -1,13 +1,15 @@
 import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import type { PublicProfile } from '@zuvo/protocol';
-import { Search } from 'lucide-react';
+import { Search, Users } from 'lucide-react';
 import { type KeyboardEvent, useEffect, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { chatsApi } from '@/features/chats/api';
 import { useLocalDb } from '@/features/chats/queries';
+import { useNewGroup } from '@/features/groups/rules';
 import { usersApi } from '@/features/profile/api';
 import { applyChats } from '@/features/sync/apply';
 import { useDebouncedValue } from '@/lib/hooks';
@@ -33,6 +35,7 @@ export function PeoplePicker({ open, onOpenChange }: PeoplePickerProps) {
   const q = useDebouncedValue(query.trim(), 250);
   const navigate = useNavigate();
   const db = useLocalDb();
+  const openNewGroup = useNewGroup((state) => state.setOpen);
 
   const openChat = useMutation({
     mutationFn: async (person: PublicProfile) => {
@@ -119,6 +122,17 @@ export function PeoplePicker({ open, onOpenChange }: PeoplePickerProps) {
                 autoFocus
               />
             </div>
+            <Button
+              variant="outline"
+              className="w-full justify-start"
+              onClick={() => {
+                onOpenChange(false);
+                openNewGroup(true);
+              }}
+            >
+              <Users className="size-4" aria-hidden />
+              {t('groups.newTitle')}
+            </Button>
             <div className="min-h-48 overflow-y-auto">
               <PeopleResults
                 listId={listId}

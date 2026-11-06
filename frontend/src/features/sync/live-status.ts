@@ -10,8 +10,8 @@ export const TYPING_FALLBACK_MS = 8000;
 type PresenceEntry = Pick<PresenceEvent, 'online' | 'lastSeenAt'>;
 
 interface LiveStatus {
-  /** Chats where someone is typing right now. */
-  typing: Record<string, boolean>;
+  /** Who is typing right now, per chat. */
+  typing: Record<string, string[]>;
   presence: Record<string, PresenceEntry>;
 }
 
@@ -20,16 +20,20 @@ export const useLiveStatus = create<LiveStatus>(() => ({ typing: {}, presence: {
 
 const typingTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
-export function setTyping(chatId: string, typing: boolean): void {
-  clearTimeout(typingTimers.get(chatId));
-  typingTimers.delete(chatId);
+export function setTyping(chatId: string, userId: string, typing: boolean): void {
+  const key = `${chatId}:${userId}`;
+  clearTimeout(typingTimers.get(key));
+  typingTimers.delete(key);
   if (typing) {
     typingTimers.set(
-      chatId,
-      setTimeout(() => setTyping(chatId, false), TYPING_FALLBACK_MS),
+      key,
+      setTimeout(() => setTyping(chatId, userId, false), TYPING_FALLBACK_MS),
     );
   }
-  useLiveStatus.setState((state) => ({ typing: { ...state.typing, [chatId]: typing } }));
+  useLiveStatus.setState((state) => {
+    const others = (state.typing[chatId] ?? []).filter((id) => id !== userId);
+    return { typing: { ...state.typing, [chatId]: typing ? [...others, userId] : others } };
+  });
 }
 
 /** One person changed. */

@@ -1,4 +1,4 @@
-import type { MediaInfo } from '@zuvo/protocol';
+import type { GroupInfo, MediaInfo, SystemEvent } from '@zuvo/protocol';
 import type { UploadFailReason } from '@/features/sync/local-db';
 
 export type DeliveryStatus = 'pending' | 'failed' | 'sent' | 'delivered' | 'read';
@@ -23,6 +23,7 @@ export interface ChatSummary {
   avatarSrc?: string | undefined;
   deactivated?: boolean;
   memberCount?: number;
+  group?: GroupInfo | null;
   online?: boolean;
   lastSeenAt?: Date;
   pinned: boolean;
@@ -35,6 +36,8 @@ export interface ChatSummary {
         text: string;
         at: Date;
         status?: DeliveryStatus;
+        /** A system message, which shows differently and has no author. */
+        isSystem?: boolean;
       })
     | null;
 }
@@ -49,6 +52,8 @@ export interface ChatMessage extends MessageAuthor {
   status?: DeliveryStatus;
   media?: MediaInfo | null;
   albumId?: string | null;
+  system?: SystemEvent | null;
+  authorAvatar?: string | undefined;
   /** The server's id for this message, once it has one. */
   serverId?: string | null;
   /** Voice notes. See `played` in the protocol. */

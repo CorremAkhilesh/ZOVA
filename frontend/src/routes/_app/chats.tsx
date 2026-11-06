@@ -1,9 +1,12 @@
-import { createFileRoute, Outlet, useMatchRoute } from '@tanstack/react-router';
+import { createFileRoute, Outlet, useMatchRoute, useNavigate } from '@tanstack/react-router';
+import { useEffect } from 'react';
 import { Group, Panel, Separator } from 'react-resizable-panels';
 import { ChatListSkeleton } from '@/components/common/ChatListSkeleton';
 import { ChatListPane } from '@/features/chats/components/ChatListPane';
 import { useNewChat } from '@/features/chats/new-chat-store';
 import { useChatShortcuts } from '@/features/chats/use-chat-shortcuts';
+import { NewGroupDialog } from '@/features/groups/components/NewGroupDialog';
+import { takeJoinPath } from '@/features/groups/rules';
 import { PeoplePicker } from '@/features/people/components/PeoplePicker';
 import { useIsDesktop } from '@/lib/hooks';
 
@@ -20,10 +23,17 @@ function ChatsLayout() {
   const pickerOpen = useNewChat((state) => state.isOpen);
   const setPickerOpen = useNewChat((state) => state.setOpen);
   useChatShortcuts(chatOpen);
+  const navigate = useNavigate();
+  // Signed in from an invite link: carry on to it.
+  useEffect(() => {
+    const path = takeJoinPath();
+    if (path) void navigate({ to: path });
+  }, [navigate]);
 
   return (
     <>
       <PeoplePicker open={pickerOpen} onOpenChange={setPickerOpen} />
+      <NewGroupDialog />
       {isDesktop ? (
         <Group orientation="horizontal" id="zuvo-chats-layout" className="h-full">
           <Panel

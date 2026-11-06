@@ -1,3 +1,4 @@
+import type { SystemEvent } from '@zuvo/protocol';
 import { MessageSquarePlus, Search } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -7,6 +8,9 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useSession } from '@/features/auth/session';
 import { ConnectionStatus } from '@/features/connection/ConnectionStatus';
+import { useKnownPeople } from '@/features/groups/queries';
+import { useNewGroup } from '@/features/groups/rules';
+import { systemText } from '@/features/groups/wording';
 import { useSyncStore } from '@/features/sync/store';
 import { cn } from '@/lib/utils';
 import { filterChats } from '../chat-utils';
@@ -21,13 +25,20 @@ const FOLDERS: ChatFolder[] = ['all', 'unread', 'personal', 'groups'];
 
 function EmptyFolder({ folder, searching }: { folder: ChatFolder; searching: boolean }) {
   const { t } = useTranslation();
+  const openNewGroup = useNewGroup((state) => state.setOpen);
+  if (folder === 'groups' && !searching) {
+    return (
+      <div className="flex flex-col items-center gap-3 px-4 py-10 text-center">
+        <p className="text-sm text-text-muted">{t('chats.groupsEmpty')}</p>
+        <Button onClick={() => openNewGroup(true)}>{t('groups.newTitle')}</Button>
+      </div>
+    );
+  }
   const key = searching
     ? 'chats.noResults'
-    : folder === 'groups'
-      ? 'chats.groupsEmpty'
-      : folder === 'unread'
-        ? 'chats.unreadEmpty'
-        : 'chats.noResults';
+    : folder === 'unread'
+      ? 'chats.unreadEmpty'
+      : 'chats.noResults';
   return <p className="px-4 py-10 text-center text-sm text-text-muted">{t(key)}</p>;
 }
 
@@ -142,19 +153,21 @@ export function ChatListPane() {
   const openPicker = useNewChat((state) => state.open);
   const rows = useChats();
   const unsent = useUnsentByChat();
+  const people = useKnownPeople();
   const labels = useMemo(
     () => ({
       saved: t('chats.saved'),
       unknown: t('chats.unknownPerson'),
       photo: t('media.photo'),
       voice: t('voice.preview'),
+      system: (event: SystemEvent) => systemText(event, me, t),
       video: t('media.video'),
     }),
-    [t],
+    [me, t],
   );
   const all = useMemo(
-    () => rows?.map((row) => toChatSummary(row, me, labels, unsent?.get(row.id))),
-    [labels, me, rows, unsent],
+    () => rows?.map((row) => toChatSummary(row, me, labels, unsent?.get(row.id), people)),
+    [labels, me, people, rows, unsent],
   );
   const chats = useMemo(() => filterChats(all ?? [], folder, query), [all, folder, query]);
 

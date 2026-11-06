@@ -53,6 +53,20 @@ export function usePresenceWatch(userId: string | undefined): void {
   useEffect(() => (userId ? watch(userId, true) : undefined), [userId]);
 }
 
+/** The people in an open group, as many as the limit allows. */
+export function usePresenceWatchMany(userIds: string[]): void {
+  const key = userIds.join();
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `key` is the list's contents
+  useEffect(() => {
+    const stops = userIds.slice(0, PRESENCE_WATCH_MAX).map((userId) => watchList.add(userId, true));
+    scheduleSend();
+    return () => {
+      for (const stop of stops) stop();
+      scheduleSend();
+    };
+  }, [key]);
+}
+
 /** A chat list row: watched only while on screen. */
 export function usePresenceWatchWhileVisible(
   element: React.RefObject<HTMLElement | null>,

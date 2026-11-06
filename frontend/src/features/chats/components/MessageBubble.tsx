@@ -1,6 +1,10 @@
+import type { SystemEvent } from '@zuvo/protocol';
 import { Mic } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/ui/avatar';
+import { useSession } from '@/features/auth/session';
+import { MessageInfoButton } from '@/features/groups/components/MessageInfoButton';
+import { systemText } from '@/features/groups/wording';
 import { AlbumGrid, MessageMedia } from '@/features/media/components/MessageMedia';
 import { UploadNotice } from '@/features/media/components/UploadNotice';
 import { cn } from '@/lib/utils';
@@ -15,6 +19,8 @@ interface MessageBubbleProps {
   lastInGroup: boolean;
   /** Group chats: sender names, sender colors and avatars for incoming messages. */
   isGroup: boolean;
+  /** Offers "Message info" on my own messages. */
+  chatId?: string | undefined;
   onRetry?: (clientMsgId: string) => void;
   onOpenMedia?: ((mediaId: string) => void) | undefined;
   /** Every item of an album, when this bubble shows one. */
@@ -124,15 +130,27 @@ function BubbleContent(props: {
   );
 }
 
+function SystemPill({ event }: { event: SystemEvent }) {
+  const { t } = useTranslation();
+  const me = useSession()?.user.id ?? '';
+  return (
+    <p className="mx-auto mb-3 w-fit max-w-[90%] rounded-full bg-surface/80 px-3 py-1 text-center text-xs text-text-muted shadow-sm">
+      {systemText(event, me, t)}
+    </p>
+  );
+}
+
 export function MessageBubble({
   message,
   firstInGroup,
   lastInGroup,
   isGroup,
+  chatId,
   onRetry,
   onOpenMedia,
   album,
 }: MessageBubbleProps) {
+  if (message.system) return <SystemPill event={message.system} />;
   const mine = message.authorId === ME;
   const showAvatarColumn = isGroup && !mine;
 
@@ -140,15 +158,24 @@ export function MessageBubble({
     // No entrance animation: rows re-enter the page each time they are scrolled back into view.
     <div
       className={cn(
-        'flex items-end gap-2',
+        'group/message flex items-end gap-2',
         mine ? 'justify-end' : 'justify-start',
         lastInGroup ? 'mb-3' : 'mb-[3px]',
       )}
     >
       {showAvatarColumn ? (
         <div className="w-7 shrink-0">
-          {lastInGroup ? <Avatar name={message.authorName} className="size-7 text-[10px]" /> : null}
+          {lastInGroup ? (
+            <Avatar
+              name={message.authorName}
+              src={message.authorAvatar}
+              className="size-7 text-[10px]"
+            />
+          ) : null}
         </div>
+      ) : null}
+      {mine && chatId && message.serverId ? (
+        <MessageInfoButton chatId={chatId} messageId={message.serverId} />
       ) : null}
       <div className="max-w-[min(78%,34rem)]">
         <div

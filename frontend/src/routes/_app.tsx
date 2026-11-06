@@ -4,6 +4,7 @@ import { BottomTabs } from '@/components/common/BottomTabs';
 import { ErrorScreen, NotFound } from '@/components/common/StatusScreens';
 import { SessionGate } from '@/features/auth/components/SessionGate';
 import { requireCompleteSession } from '@/features/auth/guards';
+import { rememberJoinPath } from '@/features/groups/rules';
 import { InstallBanner } from '@/features/install/InstallUi';
 import { useSyncClient } from '@/features/sync/use-sync-client';
 import { MiniPlayer } from '@/features/voice/components/MiniPlayer';
@@ -11,7 +12,15 @@ import { useIsDesktop } from '@/lib/hooks';
 
 export const Route = createFileRoute('/_app')({
   // Signed in with a display name, or off to the welcome / name screens.
-  beforeLoad: ({ context }) => requireCompleteSession(context.queryClient),
+  beforeLoad: async ({ context, location }) => {
+    try {
+      return await requireCompleteSession(context.queryClient);
+    } catch (redirected) {
+      // Sent to sign in first: carry on to the invite link afterwards.
+      rememberJoinPath(location.pathname);
+      throw redirected;
+    }
+  },
   component: AppShell,
   // Rendered inside the shell's <main>, so no extra landmark here.
   notFoundComponent: NotFound,

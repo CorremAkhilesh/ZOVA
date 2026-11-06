@@ -1,3 +1,4 @@
+import type { PublicProfile, SystemEvent } from '@zuvo/protocol';
 import type { ChatRow, MessageRow } from '@/features/sync/local-db';
 import { tickState } from './ticks';
 import { type ChatMessage, type ChatSummary, ME } from './types';
@@ -8,7 +9,10 @@ interface Labels {
   photo?: string;
   video?: string;
   voice?: string;
+  system?: (event: SystemEvent) => string;
 }
+
+export type KnownPeople = ReadonlyMap<string, PublicProfile>;
 
 /** "📷 Photo", "🎥 Video", "📄 report.pdf", with the caption if there is one. */
 export function previewText(
@@ -29,15 +33,26 @@ function lastMessageView(
   name: string,
   labels: Labels,
   unsent: 'pending' | 'failed' | undefined,
+  people: KnownPeople | undefined,
 ): ChatSummary['lastMessage'] {
   const { lastMessage } = row;
   if (!lastMessage) return null;
+  if (lastMessage.system) {
+    return {
+      authorId: '',
+      authorName: '',
+      text: labels.system?.(lastMessage.system) ?? '',
+      at: new Date(lastMessage.createdAt),
+      isSystem: true,
+    };
+  }
   const mine = lastMessage.senderId === me;
+  const person = row.type === 'group' ? people?.get(lastMessage.senderId ?? '') : undefined;
   // A preview ahead of the chat's position is still waiting for the server.
   const status = unsent ?? (lastMessage.seq > row.seq ? 'pending' : 'sent');
   return {
     authorId: mine ? ME : (lastMessage.senderId ?? ''),
-    authorName: name,
+    authorName: person?.displayName ?? name,
     text: previewText(lastMessage, labels),
     at: new Date(lastMessage.createdAt),
     ...(mine ? { status: tickState({ status, seq: lastMessage.seq }, row) } : {}),
@@ -50,23 +65,27 @@ export function toChatSummary(
   me: string,
   labels: Labels,
   unsent?: 'pending' | 'failed',
+  people?: KnownPeople,
 ): ChatSummary {
-  const { otherUser } = row;
-  const name = row.type === 'self' ? labels.saved : (otherUser?.displayName ?? labels.unknown);
+  const { otherUser, group } = row;
+  const name =
+    row.type === 'self' ? labels.saved : (group?.name ?? otherUser?.displayName ?? labels.unknown);
   return {
     id: row.id,
     name,
     kind: row.type === 'self' ? 'saved' : row.type === 'group' ? 'group' : 'personal',
     otherUserId: otherUser?.id,
     username: otherUser?.username ?? null,
-    avatarSrc: otherUser?.avatar?.small,
+    avatarSrc: group ? (group.photo?.small ?? undefined) : otherUser?.avatar?.small,
+    group: group ?? null,
+    memberCount: group?.memberCount ?? 0,
     deactivated: otherUser?.deactivated === true,
     about: otherUser?.about ?? null,
     pinned: false,
     muted: false,
     unread: row.unreadCount,
     activityAt: new Date(row.sortAt),
-    lastMessage: lastMessageView(row, me, name, labels, unsent),
+    lastMessage: lastMessageView(row, me, name, labels, unsent, people),
   };
 }
 
@@ -76,14 +95,19 @@ export function toChatMessage(
   me: string,
   chatName: string,
   chat: ChatRow,
+  people?: KnownPeople,
+  unknown = '',
 ): ChatMessage {
   const mine = row.senderId === me;
+  const person = chat.type === 'group' ? people?.get(row.senderId ?? '') : undefined;
   return {
     id: row.key,
     chatId: row.chatId,
     clientMsgId: row.clientMsgId,
     authorId: mine ? ME : (row.senderId ?? ''),
-    authorName: chatName,
+    authorName: chat.type === 'group' ? (person?.displayName ?? unknown) : chatName,
+    authorAvatar: person?.avatar?.small,
+    system: row.system ?? null,
     text: row.text ?? '',
     at: new Date(row.createdAt),
     media: row.media ?? null,

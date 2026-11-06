@@ -160,11 +160,11 @@ describe('who to watch', () => {
 describe('live status', () => {
   it('drops "typing…" by itself if the stop never arrives', () => {
     vi.useFakeTimers();
-    setTyping('c1', true);
+    setTyping('c1', 'u-other', true);
     vi.advanceTimersByTime(TYPING_FALLBACK_MS - 1);
-    expect(useLiveStatus.getState().typing.c1).toBe(true);
+    expect(useLiveStatus.getState().typing.c1).toEqual(['u-other']);
     vi.advanceTimersByTime(1);
-    expect(useLiveStatus.getState().typing.c1).toBe(false);
+    expect(useLiveStatus.getState().typing.c1).toEqual([]);
     vi.useRealTimers();
   });
 });

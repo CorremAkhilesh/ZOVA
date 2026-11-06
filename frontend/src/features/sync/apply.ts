@@ -35,6 +35,7 @@ type ChatChange = {
     | 'lastMessage'
     | 'lastActivityAt'
     | 'otherUser'
+    | 'group'
     | 'createdAt'
     | 'lastReadSeq'
     | 'peerDeliveredSeq'
@@ -61,6 +62,7 @@ export function mergeChat(row: ChatRow, change: ChatChange): ChatRow {
     lastMessage: current ? (change.lastMessage ?? row.lastMessage) : row.lastMessage,
     lastActivityAt,
     otherUser: change.otherUser === undefined ? row.otherUser : change.otherUser,
+    group: change.group === undefined ? row.group : change.group,
   };
   return { ...merged, sortAt: Math.max(row.sortAt, sortAtOf(merged)) };
 }
