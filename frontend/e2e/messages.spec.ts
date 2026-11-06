@@ -3,6 +3,8 @@ import { newPerson, openChatWith, openFromList, send, thread } from './chat-help
 import { SLOW } from './helpers';
 
 test.describe.configure({ timeout: 300_000 });
+// Something stuck should fail with a reason, and not use up the whole job.
+test.use({ actionTimeout: 30_000 });
 
 const bubble = (page: Page, chat: string, text: string) =>
   thread(page, chat).getByText(text, { exact: true });
