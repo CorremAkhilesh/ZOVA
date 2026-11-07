@@ -22,7 +22,6 @@ Known work that was decided on or deliberately left for later. Product scope liv
 
 ## Groups
 
-- **Search** does not exist yet. When it is built, it must apply `visibleSeqs` like history does.
 - **Rejoining** a group resets what the server will send to what comes after: older messages stay only on
   devices that already have them.
 - **Unread counts** include system messages.
@@ -35,6 +34,30 @@ Known work that was decided on or deliberately left for later. Product scope liv
 - **A deleted file** stays reachable by its uploader until the hourly job removes it, up to an hour.
 - **Starred messages for one chat** open from the chat's menu in the list, not yet from chat info.
 - **Refused actions** show the server's English message rather than a translated one.
+
+## Search
+
+- **Whole words only** on the server (MongoDB text index, [ADR 0005](adr/0005-message-search.md)): no
+  prefix or typo matching, and Hindi words are not stemmed. The app's local search matches parts of words,
+  but only for what the device has. Atlas Search would fix both; switching needs the owner's go-ahead.
+- **Local search** scans the device's whole message cache; fine at today's sizes, worth an index if
+  caches grow large.
+- **Message search hides people I blocked in groups too**, a stricter rule than history, which still
+  shows their group messages.
+
+## Link previews
+
+- **Preview pictures are never deleted.** A daily job should remove `link_preview_images` no message
+  points at (and the cache's older copy when a link is fetched again after a day).
+- **Forwarding** copies the text; the preview is fetched again only if the forwarder's app asks.
+- **Only the first link** in a message gets a preview.
+
+## Blocking and reports
+
+- **The blocked person** learns only from a refused send (`CANNOT_MESSAGE`, "Not sent"); the app could
+  say so in the chat instead.
+- **Report evidence** names files but does not copy them, so an admin cannot open a reported picture.
+- **Reports** can be resolved but not reopened.
 
 ## Operations
 

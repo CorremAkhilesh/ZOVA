@@ -132,7 +132,7 @@ describe('the composer', () => {
     input.focus();
     await user.keyboard('https://example.com/results');
     await screen.findByRole('region', { name: 'Link preview' }, WAIT);
-    await user.click(screen.getByRole('button', { name: 'Send without a preview' }));
+    await user.click(screen.getByRole('button', { name: 'Remove the link preview' }));
     input.focus();
     await user.keyboard(' ok');
     await new Promise((resolve) => setTimeout(resolve, 800));

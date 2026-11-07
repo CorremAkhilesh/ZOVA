@@ -201,3 +201,57 @@ the same as one who never appeared. Changing the setting takes effect immediatel
 
 `lastSeenAt` is stored on the user when the last socket goes, at most once per 30 s per API instance, so
 a flapping connection does not hammer MongoDB.
+
+A block (either way) also hides presence: the server makes both people's sockets leave each other's watch
+room at once and sends both `presence:resubscribe`, and later subscriptions answer "hidden".
+
+## Account events
+
+Things about my account that are not chats or messages reach my other devices directly, and are fetched
+again whenever a socket reconnects (they are not in the sync log):
+
+| Event              | When                                           | The app                           |
+| ------------------ | ---------------------------------------------- | --------------------------------- |
+| `settings:updated` | My chat settings changed (Keep chats archived) | Stores the new settings           |
+| `blocks:changed`   | I blocked or unblocked someone                 | Fetches `GET /v1/me/blocks` again |
+
+**Keep chats archived** (`PATCH /v1/me/chat-settings`, on by default): on, an archived chat stays archived
+when new messages arrive. Off, a message from someone else clears `archivedAt` for that member in the same
+transaction as the message; their `chat:updated` carries `archived: false`, and sync returns the chat as
+unarchived. Writing in an archived chat never brings it back for the writer.
+
+## Blocking
+
+`PUT/DELETE /v1/me/blocks/:userId`, mine alone; the other person is not told. While either person has
+blocked the other, in their **direct** chat:
+
+- sending is refused: `BLOCKED` for the one who blocked, `CANNOT_MESSAGE` for the other (forwarding and
+  replying privately go through the same send);
+- typing goes nowhere, and presence is hidden both ways.
+
+Always, whatever the chat: someone I blocked sees neither my photo nor my about (profiles, chat summaries,
+group member lists, message info, and the avatar route answers 404); people who blocked me do not show in
+my people search; my message search leaves out what people I blocked sent. Groups otherwise work as before.
+
+## Reports
+
+`POST /v1/reports` reports a person, messages or a group, with a reason, an optional note and
+`block: true` for "report and block". The server copies the evidence at that moment: the picked messages
+and the person's last 5 messages in that chat, only ones the reporter may see (history limits,
+delete-for-me and clears apply). Later edits or deletes do not change the copy; files are named, not
+copied. At most 20 reports an hour per person. Admins list, open and resolve reports
+(`/v1/admin/reports…`); opening one and resolving it are written to the audit log (`report.view`,
+`report.resolve`), and "deactivate" goes through the same path as Admin → Users.
+
+## Link previews and search
+
+See [ADR 0006](adr/0006-link-previews.md) (previews: fetched once by our server, SSRF rules, cache) and
+[ADR 0005](adr/0005-message-search.md) (search: text index, visibility rules, local results first).
+A message with a link has `hasLink: true` (the Links tab in chat info) and may carry a `linkPreview` copy,
+which goes with a delete for everyone and when an edit removes every link.
+
+## Formatting
+
+Formatting is not stored: the text keeps its markers (`*bold*`, `_italic_`, `~strike~`, `` `code` ``,
+` ``` ` blocks, `> ` quotes, `- ` lists), and the app renders them as React elements, never HTML.
+Links are only ever `http(s)`, `mailto` or `tel`. The chat list and search show plain text.

@@ -10,6 +10,7 @@ import { loadEnv } from '../config/env.ts';
 import { handleShutdown } from '../lib/shutdown.ts';
 import { directDispatcher } from '../mail/dispatcher.ts';
 import { createMemoryMailer } from '../mail/memory-mailer.ts';
+import { E2E_ADMIN_EMAIL, startPreviewSite } from './e2e-preview-site.ts';
 
 const PORT = Number(process.env.E2E_API_PORT ?? 4197);
 /** The frontend preview origin: the browser talks to the API through its /v1 proxy. */
@@ -43,21 +44,30 @@ const env = loadEnv({
   MAIL_FROM: 'nova@corremadvisory.com',
   ALLOWED_EMAIL_DOMAINS: 'corremadvisory.com',
   AUTH_SECRET: 'e2e-secret-e2e-secret-e2e-secret-e2e',
-  ADMIN_EMAILS: '',
+  // Admin → Reports in E2E. A test-only address, on an in-memory database.
+  ADMIN_EMAILS: E2E_ADMIN_EMAIL,
   // Every browser project shares one IP; keep the per-IP OTP limit out of the way.
   OTP_IP_LIMIT_PER_HOUR: '10000',
   MEDIA_STORAGE_PATH: './storage/e2e',
   LOG_LEVEL: 'warn',
 });
 
+// A web page to preview, on this machine. Only the fake name `preview.test` may reach it: the
+// fetcher's real address checks still refuse every other private address.
+const site = await startPreviewSite();
+
 // Sign-in codes stay readable through the test outbox, also when Redis would queue them for a worker.
 const mailer = createMemoryMailer();
 const app = await buildApp(env, {
   mailer,
   emailDispatcher: directDispatcher(mailer, { error: (...args) => console.error(...args) }),
+  linkPreviewOptions: site.fetchOptions,
 });
+// Where the E2E spec finds that page.
+app.get('/v1/test/preview-site', async () => ({ url: site.url('/article') }));
 handleShutdown(app.log, async () => {
   await app.close();
+  await site.close();
   await mongo?.stop();
 });
 await app.listen({ host: '127.0.0.1', port: PORT });

@@ -365,7 +365,7 @@
     "open": "Open {{title}} on {{site}}",
     "attached": "Link preview",
     "loading": "Getting a preview…",
-    "remove": "Send without a preview"
+    "remove": "Remove the link preview"
   },
   "chatSettings": {
     "title": "Chats",
