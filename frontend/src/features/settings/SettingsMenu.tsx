@@ -1,6 +1,7 @@
 import { Link } from '@tanstack/react-router';
 import {
   ChevronRight,
+  Flag,
   MessagesSquare,
   MonitorSmartphone,
   ScrollText,
@@ -18,6 +19,7 @@ type Entry = {
     | '/settings/chats'
     | '/settings/devices'
     | '/settings/admin/users'
+    | '/settings/admin/reports'
     | '/settings/admin/audit';
   label: string;
   hint: string;
@@ -101,6 +103,12 @@ export function SettingsMenu() {
               label: t('admin.usersTitle'),
               hint: t('admin.usersSubtitle'),
               icon: Users,
+            },
+            {
+              to: '/settings/admin/reports',
+              label: t('adminReports.title'),
+              hint: t('adminReports.subtitle'),
+              icon: Flag,
             },
             {
               to: '/settings/admin/audit',

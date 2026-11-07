@@ -67,9 +67,10 @@ describe('loading older messages', () => {
     scrollState(100);
     expect(await screen.findByText('Loading older messages…')).toBeInTheDocument();
     await waitFor(() => expect(before).toEqual(['6']));
-    await waitFor(async () => expect(await getUserDb(ME_ID).messages.count()).toBe(SEQ));
-    await waitFor(() =>
-      expect(screen.queryByText('Loading older messages…')).not.toBeInTheDocument(),
+    await waitFor(async () => expect(await getUserDb(ME_ID).messages.count()).toBe(SEQ), ARRIVAL);
+    await waitFor(
+      () => expect(screen.queryByText('Loading older messages…')).not.toBeInTheDocument(),
+      ARRIVAL,
     );
 
     // The start of the chat is known now: no more requests.
@@ -89,7 +90,7 @@ describe('loading older messages', () => {
     await screen.findByRole('list', { name: 'Asha Verma' });
     await ready();
     const viewport = scrollState(100);
-    await waitFor(async () => expect(await getUserDb(ME_ID).messages.count()).toBe(SEQ));
+    await waitFor(async () => expect(await getUserDb(ME_ID).messages.count()).toBe(SEQ), ARRIVAL);
     // Stays away from the bottom: it did not jump to the end. (Exact pixels: see e2e/chat.spec.ts.)
     await waitFor(() => expect(viewport.scrollTop).toBeGreaterThanOrEqual(100));
     expect(viewport.scrollTop).toBeLessThan(5000);
@@ -154,9 +155,9 @@ describe('read state', () => {
     await renderApp('/chats/c1', { width: DESKTOP_WIDTH });
     await screen.findByRole('list', { name: 'Asha Verma' });
     await connectSocket();
-    await waitFor(() => expect(reads()).toHaveLength(1));
+    await waitFor(() => expect(reads()).toHaveLength(1), ARRIVAL);
     expect(reads()[0]?.payload).toEqual({ chatId: 'c1', seq: SEQ });
-    await waitFor(() => expect(screen.queryByLabelText(/unread/)).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByLabelText(/unread/)).not.toBeInTheDocument(), ARRIVAL);
   });
 
   it('waits for the connection', async () => {

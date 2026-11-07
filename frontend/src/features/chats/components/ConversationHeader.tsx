@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { useSession } from '@/features/auth/session';
 import { ConnectionStatus } from '@/features/connection/ConnectionStatus';
 import { memberNames, typingLine } from '@/features/groups/wording';
+import { useInChatSearch } from '@/features/search/in-chat-store';
 import { useLiveStatus } from '@/features/sync/live-status';
 import { usePresenceWatch, usePresenceWatchMany } from '@/features/sync/presence-watch';
 import { cn } from '@/lib/utils';
@@ -58,6 +59,7 @@ export function ConversationHeader({
   members,
 }: ConversationHeaderProps) {
   const { t, i18n } = useTranslation();
+  const searching = useInChatSearch((state) => state.chatId === chat.id);
 
   const typingIds = useLiveStatus((state) => state.typing[chat.id]);
   const typing = (typingIds?.length ?? 0) > 0;
@@ -122,7 +124,19 @@ export function ConversationHeader({
           className="hidden sm:inline-flex"
         />
         <ComingSoonButton label={t('nav.calls')} icon={Phone} className="hidden sm:inline-flex" />
-        <ComingSoonButton label={t('conversation.searchInChat')} icon={Search} />
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label={t('conversation.searchInChat')}
+          aria-pressed={searching}
+          onClick={() =>
+            searching
+              ? useInChatSearch.getState().close()
+              : useInChatSearch.getState().open(chat.id)
+          }
+        >
+          <Search className="size-5" />
+        </Button>
         <Button
           variant="ghost"
           size="icon"

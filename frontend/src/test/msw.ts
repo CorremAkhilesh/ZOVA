@@ -95,6 +95,11 @@ export const server = setupServer(
   http.get('*/v1/me/profile', () => HttpResponse.json({ profile: profileFixture() })),
   http.get('*/v1/me/username-suggestion', () => HttpResponse.json({ username: 'kiran' })),
   http.get('*/v1/me/privacy', () => HttpResponse.json({ privacy: privacyFixture })),
+  http.get('*/v1/me/blocks', () => HttpResponse.json({ items: [] })),
+  http.get('*/v1/me/chat-settings', () =>
+    HttpResponse.json({ settings: { keepChatsArchived: true } }),
+  ),
+  http.get('*/v1/search/messages', () => HttpResponse.json({ items: [], nextCursor: null })),
   http.get('*/v1/users/search', () => HttpResponse.json({ items: [], nextCursor: null })),
   availability,
   // A new device with no chats yet; only Saved Messages exists.

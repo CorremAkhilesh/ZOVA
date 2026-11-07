@@ -27,6 +27,7 @@ import { Route as AppSettingsDevicesRouteImport } from './routes/_app/settings.d
 import { Route as AppSettingsPrivacyRouteImport } from './routes/_app/settings.privacy'
 import { Route as AppSettingsProfileRouteImport } from './routes/_app/settings.profile'
 import { Route as AppSettingsAdminAuditRouteImport } from './routes/_app/settings.admin.audit'
+import { Route as AppSettingsAdminReportsRouteImport } from './routes/_app/settings.admin.reports'
 import { Route as AppSettingsAdminUsersRouteImport } from './routes/_app/settings.admin.users'
 
 const IndexRoute = IndexRouteImport.update({
@@ -118,6 +119,11 @@ const AppSettingsAdminAuditRoute = AppSettingsAdminAuditRouteImport.update({
   path: '/settings/admin/audit',
   getParentRoute: () => AppRoute,
 } as any)
+const AppSettingsAdminReportsRoute = AppSettingsAdminReportsRouteImport.update({
+  id: '/settings/admin/reports',
+  path: '/settings/admin/reports',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppSettingsAdminUsersRoute = AppSettingsAdminUsersRouteImport.update({
   id: '/settings/admin/users',
   path: '/settings/admin/users',
@@ -142,6 +148,7 @@ export interface FileRoutesByFullPath {
   '/chats/': typeof AppChatsIndexRoute
   '/settings/': typeof AppSettingsIndexRoute
   '/settings/admin/audit': typeof AppSettingsAdminAuditRoute
+  '/settings/admin/reports': typeof AppSettingsAdminReportsRoute
   '/settings/admin/users': typeof AppSettingsAdminUsersRoute
 }
 export interface FileRoutesByTo {
@@ -161,6 +168,7 @@ export interface FileRoutesByTo {
   '/chats': typeof AppChatsIndexRoute
   '/settings': typeof AppSettingsIndexRoute
   '/settings/admin/audit': typeof AppSettingsAdminAuditRoute
+  '/settings/admin/reports': typeof AppSettingsAdminReportsRoute
   '/settings/admin/users': typeof AppSettingsAdminUsersRoute
 }
 export interface FileRoutesById {
@@ -183,6 +191,7 @@ export interface FileRoutesById {
   '/_app/chats/': typeof AppChatsIndexRoute
   '/_app/settings/': typeof AppSettingsIndexRoute
   '/_app/settings/admin/audit': typeof AppSettingsAdminAuditRoute
+  '/_app/settings/admin/reports': typeof AppSettingsAdminReportsRoute
   '/_app/settings/admin/users': typeof AppSettingsAdminUsersRoute
 }
 export interface FileRouteTypes {
@@ -205,6 +214,7 @@ export interface FileRouteTypes {
     | '/chats/'
     | '/settings/'
     | '/settings/admin/audit'
+    | '/settings/admin/reports'
     | '/settings/admin/users'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -224,6 +234,7 @@ export interface FileRouteTypes {
     | '/chats'
     | '/settings'
     | '/settings/admin/audit'
+    | '/settings/admin/reports'
     | '/settings/admin/users'
   id:
     | '__root__'
@@ -245,6 +256,7 @@ export interface FileRouteTypes {
     | '/_app/chats/'
     | '/_app/settings/'
     | '/_app/settings/admin/audit'
+    | '/_app/settings/admin/reports'
     | '/_app/settings/admin/users'
   fileRoutesById: FileRoutesById
 }
@@ -384,6 +396,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsAdminAuditRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/settings/admin/reports': {
+      id: '/_app/settings/admin/reports'
+      path: '/settings/admin/reports'
+      fullPath: '/settings/admin/reports'
+      preLoaderRoute: typeof AppSettingsAdminReportsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/settings/admin/users': {
       id: '/_app/settings/admin/users'
       path: '/settings/admin/users'
@@ -420,6 +439,7 @@ interface AppRouteChildren {
   AppSettingsProfileRoute: typeof AppSettingsProfileRoute
   AppSettingsIndexRoute: typeof AppSettingsIndexRoute
   AppSettingsAdminAuditRoute: typeof AppSettingsAdminAuditRoute
+  AppSettingsAdminReportsRoute: typeof AppSettingsAdminReportsRoute
   AppSettingsAdminUsersRoute: typeof AppSettingsAdminUsersRoute
 }
 
@@ -435,6 +455,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppSettingsProfileRoute: AppSettingsProfileRoute,
   AppSettingsIndexRoute: AppSettingsIndexRoute,
   AppSettingsAdminAuditRoute: AppSettingsAdminAuditRoute,
+  AppSettingsAdminReportsRoute: AppSettingsAdminReportsRoute,
   AppSettingsAdminUsersRoute: AppSettingsAdminUsersRoute,
 }
 

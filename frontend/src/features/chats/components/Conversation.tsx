@@ -7,7 +7,6 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { useSession } from '@/features/auth/session';
 import { GroupInfoBody } from '@/features/groups/components/GroupInfoPane';
 import { useGroupMembers, useKnownPeople } from '@/features/groups/queries';
-import { groupAbilities } from '@/features/groups/rules';
 import { ChatGallery } from '@/features/media/components/ChatGallery';
 import { DropZone } from '@/features/media/components/DropZone';
 import { MediaViewer, toViewerItem } from '@/features/media/components/MediaViewer';
@@ -15,9 +14,8 @@ import { PreviewSheet } from '@/features/media/components/PreviewSheet';
 import { useSendMedia } from '@/features/media/use-send-media';
 import { MessageDialogs } from '@/features/messages/components/MessageDialogs';
 import { MessageMenu } from '@/features/messages/components/MessageMenu';
-import { SelectionBar } from '@/features/messages/components/SelectionBar';
-import { useMessageUi } from '@/features/messages/store';
 import { ProfileCard } from '@/features/people/components/ProfileCard';
+import { InChatSearchBar } from '@/features/search/components/InChatSearchBar';
 import type { ChatRow } from '@/features/sync/local-db';
 import { useSyncStore } from '@/features/sync/store';
 import { useIsDesktop } from '@/lib/hooks';
@@ -25,8 +23,8 @@ import { useConversationMessages } from '../queries';
 import type { ChatSummary } from '../types';
 import { useMarkRead } from '../use-mark-read';
 import { toChatMessage, toChatSummary } from '../view';
+import { ChatFooter, footerNotice } from './ChatFooter';
 import { ChatInfoPane } from './ChatInfoPane';
-import { Composer } from './Composer';
 import { ConversationHeader } from './ConversationHeader';
 import { MessageList, type MessageListHandle } from './MessageList';
 
@@ -165,35 +163,6 @@ function useNewMessageCount(newestSeq: number, atBottom: boolean): number {
   return atBottom ? 0 : Math.max(0, newestSeq - seenSeq.current);
 }
 
-/** Why this person cannot write here, if they cannot. The server refuses anyway. */
-function footerNotice(chat: ChatSummary): string | null {
-  if (chat.deactivated) return 'people.deactivated';
-  if (!chat.group) return null;
-  if (!chat.group.active) return 'groups.noLongerMember';
-  return groupAbilities(chat.group).send ? null : 'groups.onlyAdminsSend';
-}
-
-function ChatFooter({
-  chat,
-  onSent,
-  onFiles,
-}: {
-  chat: ChatSummary;
-  onSent: () => void;
-  onFiles: (files: File[]) => void;
-}) {
-  const { t } = useTranslation();
-  const blocked = footerNotice(chat);
-  const selecting = useMessageUi((state) => state.selecting === chat.id);
-  if (selecting) return <SelectionBar />;
-  if (blocked) {
-    return (
-      <p className="glass border-t px-4 py-3 text-center text-sm text-text-muted">{t(blocked)}</p>
-    );
-  }
-  return <Composer chatId={chat.id} onSent={onSent} onFiles={onFiles} />;
-}
-
 export function Conversation({ chat }: { chat: ChatRow }) {
   const isDesktop = useIsDesktop();
   const [infoOpen, setInfoOpen] = useState(false);
@@ -253,6 +222,7 @@ export function Conversation({ chat }: { chat: ChatRow }) {
           onToggleInfo={() => setInfoOpen((open) => !open)}
           members={members}
         />
+        <InChatSearchBar chatId={chat.id} />
         <div className="chat-wallpaper relative min-h-0 flex-1">
           {showEmpty ? <EmptyChat saved={summary.kind === 'saved'} name={summary.name} /> : null}
           {messages && !showEmpty ? (

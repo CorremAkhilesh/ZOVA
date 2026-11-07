@@ -6,6 +6,8 @@ import { SessionGate } from '@/features/auth/components/SessionGate';
 import { requireCompleteSession } from '@/features/auth/guards';
 import { rememberJoinPath } from '@/features/groups/rules';
 import { InstallBanner } from '@/features/install/InstallUi';
+import { ModerationHost } from '@/features/moderation/components/ModerationHost';
+import { SearchHost } from '@/features/search/components/SearchHost';
 import { useSyncClient } from '@/features/sync/use-sync-client';
 import { MiniPlayer } from '@/features/voice/components/MiniPlayer';
 import { useIsDesktop } from '@/lib/hooks';
@@ -36,10 +38,18 @@ function AppShell() {
   const isDesktop = useIsDesktop();
   const matchRoute = useMatchRoute();
   const inConversation = Boolean(matchRoute({ to: '/chats/$chatId' }));
+  // Opened from anywhere: menus, the search box, Ctrl/Cmd+K. Their code loads on first use.
+  const hosts = (
+    <>
+      <ModerationHost />
+      <SearchHost />
+    </>
+  );
 
   if (isDesktop) {
     return (
       <div className="flex h-full">
+        {hosts}
         <AppRail />
         <main className="flex min-w-0 flex-1 flex-col">
           <SessionGate />
@@ -54,6 +64,7 @@ function AppShell() {
   }
   return (
     <div className="flex h-full flex-col">
+      {hosts}
       <main className="glass flex min-h-0 flex-1 flex-col">
         <SessionGate />
         {inConversation ? null : <InstallBanner />}

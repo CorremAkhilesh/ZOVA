@@ -13,6 +13,7 @@ import { useKnownPeople } from '@/features/groups/queries';
 import { useNewGroup } from '@/features/groups/rules';
 import { systemText } from '@/features/groups/wording';
 import { ChatMenu } from '@/features/messages/components/ChatMenu';
+import { useGlobalSearch } from '@/features/search/store';
 import { useSyncStore } from '@/features/sync/store';
 import { cn } from '@/lib/utils';
 import { filterChats } from '../chat-utils';
@@ -258,6 +259,16 @@ export function ChatListPane() {
           onlySaved={all?.every((chat) => chat.kind === 'saved') ?? false}
           onStart={openPicker}
         />
+        {query.trim() ? (
+          <button
+            type="button"
+            onClick={() => useGlobalSearch.getState().show(query.trim())}
+            className="mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-brand-text hover:bg-background"
+          >
+            <Search className="size-4" aria-hidden />
+            {t('search.inMessages', { q: query.trim() })}
+          </button>
+        ) : null}
       </ScrollArea>
     </section>
   );

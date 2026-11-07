@@ -1,10 +1,11 @@
 import { useNavigate } from '@tanstack/react-router';
-import { REACTIONS_QUICK } from '@zuvo/protocol';
+import { type PublicProfile, REACTIONS_QUICK } from '@zuvo/protocol';
 import {
   CheckSquare,
   Copy,
   CornerUpLeft,
   CornerUpRight,
+  Flag,
   type LucideIcon,
   MessageCircle,
   Pencil,
@@ -21,6 +22,7 @@ import { chatsApi } from '@/features/chats/api';
 import { EMOJI_GROUPS } from '@/features/chats/emoji-data';
 import { useLocalDb } from '@/features/chats/queries';
 import { type ChatMessage, type ChatSummary, ME } from '@/features/chats/types';
+import { useModeration } from '@/features/moderation/store';
 import { applyChats } from '@/features/sync/apply';
 import { useSyncStore } from '@/features/sync/store';
 import { canEdit, targetOf, toQuote } from '../rules';
@@ -185,8 +187,32 @@ function Entries({ request, chat }: { request: MenuRequest; chat: ChatSummary })
         label={t('messages.delete')}
         onSelect={() => set({ deleting: items })}
       />
+      {message.authorId !== ME && !message.system && message.serverId ? (
+        <Entry
+          danger
+          icon={Flag}
+          label={t('report.reportMessage')}
+          onSelect={() => reportMessage(chat, message)}
+        />
+      ) : null}
     </div>
   );
+}
+
+/** Report this message (and the sender's latest ones) about the person who sent it. */
+function reportMessage(chat: ChatSummary, message: ChatMessage) {
+  const person: PublicProfile = {
+    id: message.authorId,
+    displayName: message.authorName,
+    username: null,
+    about: null,
+    avatar: null,
+    deactivated: false,
+  };
+  useModeration.getState().openReport({
+    target: { kind: 'message', chatId: chat.id, messageIds: [message.serverId ?? ''] },
+    person,
+  });
 }
 
 /** One menu for the whole chat, opened where the pointer or finger was. */

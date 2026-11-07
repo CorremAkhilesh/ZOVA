@@ -22,6 +22,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { useChats } from '@/features/chats/queries';
 import type { ChatSummary } from '@/features/chats/types';
+import { ModerationEntries } from '@/features/moderation/components/ModerationEntries';
 import { useSyncStore } from '@/features/sync/store';
 import { type ChatMenuRequest, useMessageUi } from '../store';
 
@@ -164,6 +165,7 @@ function Entries(props: {
           onSelect={() => onConfirm(true)}
         />
       ) : null}
+      <ModerationEntries chat={chat} />
     </>
   );
 }
