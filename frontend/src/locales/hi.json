@@ -338,7 +338,9 @@
       "user.deactivate": "{{actor}} ने {{target}} को निष्क्रिय किया",
       "user.reactivate": "{{actor}} ने {{target}} को फिर सक्रिय किया",
       "user.promote": "{{actor}} ने {{target}} को एडमिन बनाया",
-      "user.demote": "{{actor}} ने {{target}} से एडमिन हटाया"
+      "user.demote": "{{actor}} ने {{target}} से एडमिन हटाया",
+      "report.view": "{{actor}} ने {{target}} के बारे में रिपोर्ट देखी",
+      "report.resolve": "{{actor}} ने {{target}} के बारे में रिपोर्ट सुलझाई"
     },
     "storageUsed": "उपयोग की गई जगह: {{size}}"
   },

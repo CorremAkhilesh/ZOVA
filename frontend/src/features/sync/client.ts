@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { chatsApi } from '@/features/chats/api';
 import { mediaApi } from '@/features/media/api';
 import { MediaUploader } from '@/features/media/uploader';
+import { type AccountChange, wireAccountEvents } from './account-events';
 import { ActionQueue } from './actions';
 import type { QueuedAction } from './actions-types';
 import { applyChats, applyReadAck } from './apply';
@@ -40,6 +41,8 @@ export interface SyncClientOptions {
   onSessionEnded: (reason: SessionRevokedReason) => void;
   /** The handshake was refused or a request got 401: ask the API whether the session still exists. */
   onSessionDoubt: () => void;
+  /** Settings or blocks changed on another device, or the socket came back. */
+  onAccountChange?: (change: AccountChange) => void;
 }
 
 export interface SyncClient {
@@ -66,7 +69,7 @@ export interface SyncClient {
 
 /** Everything that talks to the server for one signed-in user. One per tab. */
 export function startSyncClient(options: SyncClientOptions): SyncClient {
-  const { userId, onSessionEnded, onSessionDoubt } = options;
+  const { userId, onSessionEnded, onSessionDoubt, onAccountChange } = options;
   const db = getUserDb(userId);
   let stopped = false;
   // A stopped client's socket must not overwrite the state of the one that replaced it.
@@ -171,6 +174,7 @@ export function startSyncClient(options: SyncClientOptions): SyncClient {
       .then((chats) => applyChats(db, chats))
       .catch(() => undefined);
   });
+  wireAccountEvents(socket, (change) => onAccountChange?.(change));
   socket.on('disconnect', (reason) => {
     setStore({ socket: 'connecting' });
     presence.forget();

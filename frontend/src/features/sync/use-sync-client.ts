@@ -2,6 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { sessionQuery, useSession } from '@/features/auth/session';
 import { useSignOut } from '@/features/auth/use-sign-out';
+import { applyAccountChange } from '@/features/settings/chat-settings';
 import { startSyncClient } from './client';
 import { useSyncStore } from './store';
 
@@ -25,6 +26,7 @@ export function useSyncClient(): void {
       onSessionDoubt: () => {
         void queryClient.invalidateQueries({ queryKey: sessionQuery.queryKey });
       },
+      onAccountChange: (change) => applyAccountChange(queryClient, change),
     });
     useSyncStore.setState({ client });
     return () => {

@@ -338,7 +338,9 @@
       "user.deactivate": "{{actor}} deactivated {{target}}",
       "user.reactivate": "{{actor}} reactivated {{target}}",
       "user.promote": "{{actor}} made {{target}} an admin",
-      "user.demote": "{{actor}} removed admin from {{target}}"
+      "user.demote": "{{actor}} removed admin from {{target}}",
+      "report.view": "{{actor}} viewed a report about {{target}}",
+      "report.resolve": "{{actor}} resolved a report about {{target}}"
     },
     "storageUsed": "Storage used: {{size}}"
   },

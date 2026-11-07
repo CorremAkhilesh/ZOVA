@@ -1,12 +1,24 @@
 import { Link } from '@tanstack/react-router';
-import { ChevronRight, MonitorSmartphone, ScrollText, Shield, Users } from 'lucide-react';
+import {
+  ChevronRight,
+  MessagesSquare,
+  MonitorSmartphone,
+  ScrollText,
+  Shield,
+  Users,
+} from 'lucide-react';
 import type { ComponentType } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/ui/avatar';
 import { useSession } from '@/features/auth/session';
 
 type Entry = {
-  to: '/settings/privacy' | '/settings/devices' | '/settings/admin/users' | '/settings/admin/audit';
+  to:
+    | '/settings/privacy'
+    | '/settings/chats'
+    | '/settings/devices'
+    | '/settings/admin/users'
+    | '/settings/admin/audit';
   label: string;
   hint: string;
   icon: ComponentType<{ className?: string }>;
@@ -65,6 +77,12 @@ export function SettingsMenu() {
             label: t('privacy.title'),
             hint: t('privacy.subtitle'),
             icon: Shield,
+          },
+          {
+            to: '/settings/chats',
+            label: t('chatSettings.title'),
+            hint: t('chatSettings.subtitle'),
+            icon: MessagesSquare,
           },
           {
             to: '/settings/devices',
