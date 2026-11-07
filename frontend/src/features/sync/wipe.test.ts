@@ -49,6 +49,21 @@ describe('wiping local data', () => {
     expect(await db.drafts.count()).toBe(0);
   });
 
+  it('a read or a write while the wipe runs cannot bring the database back', async () => {
+    await seed('u-one');
+    const wiping = wipeLocalDatabases();
+    // A screen re-rendering mid-wipe asks for the database again, reads, and saves a draft.
+    const late = getUserDb('u-one');
+    await Promise.allSettled([
+      late.chats.count(),
+      late.drafts.put({ chatId: 'c1', text: 'typed during sign-out' }),
+    ]);
+    const result = await wiping;
+    await Promise.allSettled([late.drafts.put({ chatId: 'c1', text: 'and after it' })]);
+    expect(await localDatabases()).toEqual([]);
+    expect(result).toEqual({ complete: true });
+  });
+
   it('keeps each user in a separate database', async () => {
     const one = await seed('u-one');
     const two = getUserDb('u-two');

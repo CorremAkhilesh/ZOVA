@@ -38,6 +38,11 @@ async function connectSocket() {
 
 const reads = () => lastSocket().emitted.filter((entry) => entry.event === 'read:update');
 
+/** A pushed message goes socket → sync engine → Dexie → live query: slow on a busy CI runner. */
+const ARRIVAL = { timeout: 15_000 };
+// Room for those waits: the default 5 s per test would end them early.
+vi.setConfig({ testTimeout: 30_000 });
+
 function arrives(seq: number, cursor: string) {
   act(() => lastSocket().receive('message:new', { message: messageFixture(seq), cursor }));
 }
@@ -111,8 +116,8 @@ describe('sticking to the bottom', () => {
     const viewport = screen.getByLabelText('Messages');
     Object.defineProperty(viewport, 'scrollHeight', { configurable: true, value: 7777 });
     arrives(41, '6');
-    await screen.findByText('message 41');
-    await waitFor(() => expect(viewport.scrollTop).toBe(7777));
+    await screen.findByText('message 41', undefined, ARRIVAL);
+    await waitFor(() => expect(viewport.scrollTop).toBe(7777), ARRIVAL);
     expect(screen.queryByRole('button', { name: /Jump to latest/ })).not.toBeInTheDocument();
   });
 
@@ -128,7 +133,7 @@ describe('sticking to the bottom', () => {
 
     arrives(41, '6');
     arrives(42, '7');
-    await waitFor(() => expect(jump).toHaveTextContent('2'));
+    await waitFor(() => expect(jump).toHaveTextContent('2'), ARRIVAL);
     // The reader was not moved.
     expect(viewport.scrollTop).toBe(2000);
     expect(await axe(container)).toHaveNoViolations();
@@ -183,7 +188,7 @@ describe('read state', () => {
       }),
     );
     expect(
-      await screen.findByLabelText('1 unread message', undefined, { timeout: 15_000 }),
+      await screen.findByLabelText('1 unread message', undefined, ARRIVAL),
     ).toBeInTheDocument();
     expect(reads()).toEqual([]);
 

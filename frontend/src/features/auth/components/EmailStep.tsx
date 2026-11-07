@@ -2,7 +2,7 @@ import { useMutation } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { brand } from '@zuvo/config';
 import { isAllowedEmail, normalizeEmail } from '@zuvo/protocol';
-import { Info, Loader2, Lock } from 'lucide-react';
+import { Info, Loader2, Lock, TriangleAlert } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
@@ -16,7 +16,8 @@ import { AuthCard, FormError } from './AuthCard';
 export function EmailStep() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { pendingEmail, codeSent, signedOutReason, setSignedOutReason } = useAuthFlow();
+  const { pendingEmail, codeSent, signedOutReason, setSignedOutReason, wipeIncomplete } =
+    useAuthFlow();
   const [email, setEmail] = useState(pendingEmail);
   const [clientError, setClientError] = useState('');
   const domains = [brand.domains.organization];
@@ -55,6 +56,15 @@ export function EmailStep() {
         >
           <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
           {t('auth.sessionEnded')}
+        </p>
+      ) : null}
+      {wipeIncomplete ? (
+        <p
+          role="alert"
+          className="mb-6 flex items-start gap-2 rounded-xl bg-brand-subtle p-3 text-sm font-medium text-danger"
+        >
+          <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
+          {t('auth.wipeIncomplete', { brand: brand.name })}
         </p>
       ) : null}
       <form className="space-y-3" onSubmit={submit} noValidate>

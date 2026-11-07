@@ -108,12 +108,25 @@ export class LocalDb extends Dexie {
 }
 
 const DB_PREFIX = 'zuvo-user-';
-/** A browser can leave a delete blocked by another tab; sign-out must not hang on that. */
-const WIPE_TIMEOUT_MS = 3000;
 const open = new Map<string, LocalDb>();
+/** Handed out while a wipe runs: closed for good, so a late read or write cannot reopen it. */
+const retired = new Map<string, LocalDb>();
+let wipesRunning = 0;
+
+function closedForGood(db: LocalDb): LocalDb {
+  db.close({ disableAutoOpen: true });
+  return db;
+}
 
 /** One database per signed-in user, so two people on one browser never mix. */
 export function getUserDb(userId: string): LocalDb {
+  if (wipesRunning > 0) {
+    // A screen re-rendering during sign-out. Opening the database now would block the delete,
+    // or create it again right after: its queries fail instead, and the screen is going anyway.
+    const db = retired.get(userId) ?? closedForGood(new LocalDb(`${DB_PREFIX}${userId}`));
+    retired.set(userId, db);
+    return db;
+  }
   const existing = open.get(userId);
   if (existing && !existing.hasBeenClosed()) return existing;
   const db = new LocalDb(`${DB_PREFIX}${userId}`);
@@ -121,14 +134,73 @@ export function getUserDb(userId: string): LocalDb {
   return db;
 }
 
-/** Deletes every user's local chats, messages, outbox and drafts on this browser. */
-export async function wipeLocalDatabases(): Promise<void> {
-  releaseAllFiles();
-  for (const db of open.values()) db.close();
-  open.clear();
-  const names = await Dexie.getDatabaseNames();
-  const deleting = Promise.all(
-    names.filter((name) => name.startsWith(DB_PREFIX)).map((name) => Dexie.delete(name)),
-  );
-  await Promise.race([deleting, new Promise((resolve) => setTimeout(resolve, WIPE_TIMEOUT_MS))]);
+export interface WipeResult {
+  /** False when a database could not be deleted yet: it is deleted when the app next opens. */
+  complete: boolean;
+}
+
+/** How long one delete may wait for other tabs to let go (tests shorten it), and how many times. */
+export const wipeTiming = { attemptMs: 3000 };
+const WIPE_ATTEMPTS = 3;
+const PENDING_KEY = 'zuvo-wipe-pending';
+
+const userDatabases = async () =>
+  (await Dexie.getDatabaseNames()).filter((name) => name.startsWith(DB_PREFIX));
+
+async function deleteWithin(name: string, ms: number): Promise<void> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  await Promise.race([
+    // A blocked delete stays queued in the browser; asking again just queues another.
+    Dexie.delete(name).catch(() => undefined),
+    new Promise((resolve) => {
+      timer = setTimeout(resolve, ms);
+    }),
+  ]);
+  clearTimeout(timer);
+}
+
+const remember = (names: string[]) => {
+  try {
+    if (names.length) localStorage.setItem(PENDING_KEY, JSON.stringify(names));
+    else localStorage.removeItem(PENDING_KEY);
+  } catch {
+    // No storage: the next wipe still finds the databases by name.
+  }
+};
+
+/**
+ * Deletes every user's local chats, messages, outbox and drafts on this browser. Every connection
+ * this tab has is closed for good first. A delete another tab blocks is asked again a few times; if
+ * it still has not happened, that is reported and remembered, never silently left behind.
+ */
+export async function wipeLocalDatabases(): Promise<WipeResult> {
+  const { attemptMs } = wipeTiming;
+  wipesRunning += 1;
+  try {
+    releaseAllFiles();
+    for (const db of open.values()) closedForGood(db);
+    open.clear();
+    for (let attempt = 1; attempt <= WIPE_ATTEMPTS; attempt++) {
+      const left = await userDatabases();
+      if (left.length === 0) break;
+      await Promise.all(left.map((name) => deleteWithin(name, attemptMs)));
+    }
+    const left = await userDatabases();
+    remember(left);
+    if (left.length)
+      console.error(`[wipe] ${left.length} local database(s) could not be deleted yet`);
+    return { complete: left.length === 0 };
+  } finally {
+    wipesRunning -= 1;
+    if (wipesRunning === 0) retired.clear();
+  }
+}
+
+/** A wipe that a blocked delete left unfinished. */
+export function hasPendingWipe(): boolean {
+  try {
+    return localStorage.getItem(PENDING_KEY) !== null;
+  } catch {
+    return false;
+  }
 }
