@@ -47,6 +47,8 @@ test('A searches a word and opens the result in the right chat', async ({ browse
   const word = `zebra${Date.now().toString(36)}`;
   await openChatWith(asha.page, chitra);
   await send(asha.page, 'nothing to see here');
+  // On a phone the open chat covers the list, and with it the New chat button.
+  await asha.page.goto('/chats');
   await openChatWith(asha.page, bharat);
   await send(asha.page, `the ${word} plan is ready`);
   await asha.page.goto('/chats');
