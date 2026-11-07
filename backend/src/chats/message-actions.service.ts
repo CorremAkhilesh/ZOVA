@@ -3,6 +3,7 @@ import type { FastifyInstance } from 'fastify';
 import type { ClientSession } from 'mongoose';
 import type { MessageDoc } from '../db/chat-models.ts';
 import { AppError } from '../lib/errors.ts';
+import { hasLink } from '../previews/link-text.ts';
 import { chatModels, oid } from './chats.service.ts';
 import { namesOf } from './group-core.ts';
 import { isAdminRole } from './group-permissions.ts';
@@ -59,9 +60,17 @@ export async function editMessage(
   if (text === doc.text) return;
   const { Message, Chat } = chatModels(app);
   const editedAt = new Date();
-  const updated: MessageDoc = { ...doc, text, editedAt };
+  // Taking every link out also takes the preview away; any link keeps it.
+  const linked = hasLink(text);
+  const { hasLink: _had, linkPreview: _preview, ...rest } = doc;
+  const updated: MessageDoc = linked
+    ? { ...rest, text, editedAt, hasLink: true, linkPreview: doc.linkPreview ?? null }
+    : { ...rest, text, editedAt };
+  const change = linked
+    ? { $set: { text, editedAt, hasLink: true } }
+    : { $set: { text, editedAt }, $unset: { hasLink: 1, linkPreview: 1 } };
   const pending = await app.mongo.transaction(async (session) => {
-    await Message.updateOne({ _id: doc._id }, { $set: { text, editedAt } }, { session });
+    await Message.updateOne({ _id: doc._id }, change, { session });
     const preview = await Chat.updateOne(
       { _id: doc.chatId, 'lastMessage.seq': doc.seq },
       { $set: { 'lastMessage.preview': previewOf(doc.media, text) } },

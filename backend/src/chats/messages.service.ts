@@ -11,6 +11,7 @@ import { AppError } from '../lib/errors.ts';
 import { KeyedQueue } from '../lib/keyed-queue.ts';
 import { attachMedia, toMediaInfo } from '../media/media.service.ts';
 import { assertNotBlocked } from '../moderation/blocks.service.ts';
+import { linkFields } from '../previews/link-previews.service.ts';
 import { usersModel } from '../users/user-record.ts';
 import { chatModels, isDuplicateKey, oid, requireMember } from './chats.service.ts';
 import { noteGroupActivity } from './group-activity.ts';
@@ -36,6 +37,8 @@ export interface SendInput {
   replyTo?: { chatId: string; messageId: string } | undefined;
   /** A copy of another message: its file is shared, not attached again. */
   forward?: { media: MediaInfo | null; type: MessageDoc['type']; count: number };
+  /** A preview the sender looked up for a link in `text`. */
+  linkPreviewId?: string | undefined;
 }
 
 export interface SendResult {
@@ -162,6 +165,7 @@ export async function sendMessage(app: FastifyInstance, input: SendInput): Promi
   const replyTo = input.replyTo ? await quoteOf(app, userId, input.replyTo) : null;
   // Read positions a reply reveals are decided before anything changes.
   const shareRead = peerId ? await readsVisibleBetween(app, [userId, peerId]) : false;
+  const links = await linkFields(app, input.linkPreviewId, text);
 
   const models = chatModels(app);
   const chatOid = oid(chatId);
@@ -206,6 +210,7 @@ export async function sendMessage(app: FastifyInstance, input: SendInput): Promi
           media,
           albumId: albumId ?? null,
           ...extrasOf(replyTo, forward),
+          ...links,
           replyToId: null,
           editedAt: null,
           deletedForEveryoneAt: null,

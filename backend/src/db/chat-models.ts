@@ -1,6 +1,7 @@
 import type {
   GroupSettings,
   LastReaction,
+  LinkPreview,
   MediaInfo,
   ReplyQuote,
   SystemEvent,
@@ -15,12 +16,7 @@ import {
 } from './per-user-models.ts';
 
 export type { MediaDoc, ReceiptEventDoc } from './media-models.ts';
-export type {
-  MessageHiddenDoc,
-  StarDoc,
-  UserSyncDoc,
-  UserUpdateDoc,
-} from './per-user-models.ts';
+export type { MessageHiddenDoc, StarDoc, UserSyncDoc, UserUpdateDoc } from './per-user-models.ts';
 export { UPDATE_LOG_TTL_DAYS } from './per-user-models.ts';
 
 const options = { versionKey: false, autoCreate: true } as const;
@@ -222,8 +218,11 @@ export interface MessageDoc {
   deletedByAdmin?: boolean;
   /** Voice notes: who played it. Only ever added to, so `played` never goes back. */
   plays?: VoicePlay[];
-  /** Reserved for formatting and mentions. */
+  /** Reserved for mentions. Formatting is read from the text itself. */
   entities?: unknown[];
+  /** A copy of the sender's preview, kept after the cache forgets it. `hasLink`: the Links tab. */
+  linkPreview?: LinkPreview | null;
+  hasLink?: boolean;
   replyToId: Types.ObjectId | null;
   editedAt: Date | null;
   deletedForEveryoneAt: Date | null;
@@ -248,6 +247,8 @@ const messageSchema = new Schema<MessageDoc>(
     deletedByAdmin: Boolean,
     plays: { type: [Schema.Types.Mixed], default: undefined },
     entities: { type: [Schema.Types.Mixed], default: undefined },
+    linkPreview: { type: Schema.Types.Mixed, default: undefined },
+    hasLink: { type: Boolean, default: undefined },
     replyToId: { type: ObjectId, default: null },
     editedAt: { type: Date, default: null },
     deletedForEveryoneAt: { type: Date, default: null },
@@ -263,6 +264,11 @@ messageSchema.index({ 'media.id': 1 }, { sparse: true });
 messageSchema.index({ 'replyTo.id': 1 }, { sparse: true });
 // Serves: the gallery ("Media" and "Docs" in chat info), newest first.
 messageSchema.index({ chatId: 1, type: 1, seq: -1 });
+// Serves: the "Links" tab in chat info, newest first. Partial: most messages have no link.
+messageSchema.index(
+  { chatId: 1, hasLink: 1, seq: -1 },
+  { partialFilterExpression: { hasLink: true } },
+);
 // Serves: "already sent?" check. Unique: the same clientMsgId can never create a second message.
 // Partial (system messages have none): queries must include `$type: 'string'` to use it.
 messageSchema.index(

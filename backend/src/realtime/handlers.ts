@@ -128,6 +128,7 @@ export function registerHandlers(app: FastifyInstance, socket: ZuvoSocket): void
           mediaId: input.mediaIds?.[0],
           albumId: input.albumId,
           replyTo: input.replyTo,
+          linkPreviewId: input.linkPreviewId,
         });
         return { messageId: message.id, seq: message.seq, createdAt: message.createdAt, duplicate };
       },

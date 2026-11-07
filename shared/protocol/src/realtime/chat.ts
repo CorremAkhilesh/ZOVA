@@ -29,6 +29,8 @@ export const sendMessagePayloadSchema = z
     caption: captionSchema.optional(),
     /** Client-made, the same on every item of an album. */
     albumId: z.uuid().optional(),
+    /** From POST /v1/link-previews, for a link in `text`. Dropped if it no longer matches. */
+    linkPreviewId: objectIdSchema.optional(),
   })
   .refine((message) => (message.text === undefined) !== (message.mediaIds === undefined), {
     message: 'Send either text or media',

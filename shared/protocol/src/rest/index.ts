@@ -10,6 +10,7 @@ export {
   type ReadyResponse,
   readyResponseSchema,
 } from './health.ts';
+export * from './link-previews.ts';
 export * from './media.ts';
 export * from './message-actions.ts';
 export * from './moderation.ts';

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { isoDateTimeSchema, objectIdSchema } from '../common/id.ts';
 import { groupInfoSchema } from './groups.ts';
+import { linkPreviewSchema } from './link-previews.ts';
 import { mediaInfoSchema } from './media.ts';
 import { publicProfileSchema } from './profile.ts';
 
@@ -105,6 +106,8 @@ export const messageSchema = z.object({
   starred: z.boolean().optional(),
   /** Deleted by a group's admin rather than its sender. */
   deletedByAdmin: z.boolean().optional(),
+  /** The sender attached a preview of a link in the text. Gone once deleted for everyone. */
+  linkPreview: linkPreviewSchema.nullable().optional(),
   replyToId: z.string().nullable(),
   editedAt: isoDateTimeSchema.nullable(),
   deletedForEveryoneAt: isoDateTimeSchema.nullable(),
@@ -233,7 +236,7 @@ export const syncResponseSchema = z.object({
 
 /** GET /v1/chats/:id/media */
 export const galleryQuerySchema = z.object({
-  tab: z.enum(['media', 'docs']),
+  tab: z.enum(['media', 'docs', 'links']),
   before: z.coerce.number().int().positive().optional(),
   limit: z.coerce.number().int().min(1).max(MESSAGE_PAGE_MAX).default(60),
 });

@@ -58,12 +58,16 @@ export async function getHistory(
 
 const GALLERY_TYPES = { media: ['image', 'video'], docs: ['document', 'audio'] } as const;
 
-/** Newest first: the "Media" and "Docs" tabs in chat info. Members only. */
+/** Media and Docs go by type; Links by whether the text has a link (a partial index). */
+const galleryFilter = (tab: 'media' | 'docs' | 'links') =>
+  tab === 'links' ? { hasLink: true } : { type: { $in: [...GALLERY_TYPES[tab]] } };
+
+/** Newest first: the "Media", "Docs" and "Links" tabs in chat info. Members only. */
 export async function chatGallery(
   app: FastifyInstance,
   userId: string,
   chatId: string,
-  query: { tab: 'media' | 'docs'; before?: number | undefined; limit: number },
+  query: { tab: 'media' | 'docs' | 'links'; before?: number | undefined; limit: number },
 ) {
   const member = await requireParticipant(app, chatId, userId);
   const seq = {
@@ -73,7 +77,7 @@ export async function chatGallery(
   const docs = await chatModels(app)
     .Message.find({
       chatId: oid(chatId),
-      type: { $in: [...GALLERY_TYPES[query.tab]] },
+      ...galleryFilter(query.tab),
       deletedForEveryoneAt: null,
       _id: { $nin: await hiddenIds(app, userId, chatId) },
       ...(Object.keys(seq).length ? { seq } : {}),

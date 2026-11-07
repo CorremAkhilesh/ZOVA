@@ -40,6 +40,7 @@ export function toMessage(doc: MessageDoc, viewerId: string): Message {
           at: reaction.at.toISOString(),
         })),
     deletedByAdmin: doc.deletedByAdmin === true,
+    linkPreview: deleted ? null : (doc.linkPreview ?? null),
     replyToId: doc.replyToId?.toString() ?? null,
     editedAt: doc.editedAt?.toISOString() ?? null,
     deletedForEveryoneAt: doc.deletedForEveryoneAt?.toISOString() ?? null,
