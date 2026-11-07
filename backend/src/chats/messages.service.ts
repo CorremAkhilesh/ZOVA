@@ -18,6 +18,7 @@ import { refreshGroupMarks } from './group-receipts.service.ts';
 import { hideQuote, previewOf, toLastMessage, toMessage } from './message-format.ts';
 import { quoteOf } from './message-updates.ts';
 import { readsVisibleBetween } from './receipts.service.ts';
+import { unarchiveForNewMessage } from './unarchive.ts';
 import { logUpdates } from './updates.ts';
 
 /** Sends to one chat run one at a time per process, so they do not abort each other in MongoDB. */
@@ -107,6 +108,8 @@ interface DeliveredMember {
   joinSeq?: number | undefined;
   clearedSeq?: number | undefined;
   cursor: string;
+  /** This message brought the chat back from this member's archive. */
+  unarchived: boolean;
 }
 
 /** Tells every member's devices: the message, and the chat as that member now sees it. */
@@ -131,6 +134,7 @@ function deliver(
       lastReadSeq,
       unreadCount: Math.max(0, message.seq - lastReadSeq),
       lastActivityAt: message.createdAt,
+      ...(member.unarchived ? { archived: false } : {}),
       ...(peer
         ? {
             peerDeliveredSeq: peer.lastDeliveredSeq,
@@ -235,9 +239,11 @@ export async function sendMessage(app: FastifyInstance, input: SendInput): Promi
             sharedReadSeq: 1,
             joinSeq: 1,
             clearedSeq: 1,
+            archivedAt: 1,
           })
           .session(session)
           .lean();
+        const unarchived = await unarchiveForNewMessage(app, session, chatOid, members, senderId);
         const cursors = await logUpdates(
           models,
           session,
@@ -257,6 +263,7 @@ export async function sendMessage(app: FastifyInstance, input: SendInput): Promi
             joinSeq: member.joinSeq,
             clearedSeq: member.clearedSeq,
             cursor: cursors.get(member.userId.toString()) ?? '0',
+            unarchived: unarchived.has(member.userId.toString()),
           })),
         };
       }),

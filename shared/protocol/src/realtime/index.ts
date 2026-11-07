@@ -1,3 +1,4 @@
+export * from './account.ts';
 export { type AckResponse, ackResponseSchema } from './ack.ts';
 export * from './chat.ts';
 export {

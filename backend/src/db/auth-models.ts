@@ -16,6 +16,7 @@ const userSchema = new Schema(
     about: String,
     avatar: { small: String, large: String, version: String },
     privacy: { lastSeen: String, profilePhoto: String, about: String, readReceipts: Boolean },
+    chatSettings: { keepChatsArchived: Boolean },
     /** Lowercase words of the display name and username, for prefix search. */
     searchTerms: [String],
     role: String,

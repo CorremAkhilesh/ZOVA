@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { settingsUpdatedEventSchema } from './account.ts';
 import type { AckResponse } from './ack.ts';
 import {
   chatClearedEventSchema,
@@ -64,6 +65,7 @@ export const serverToClientEvents = {
   'message:removed': messageRemovedEventSchema,
   'chat:cleared': chatClearedEventSchema,
   'reaction:preview': reactionPreviewEventSchema,
+  'settings:updated': settingsUpdatedEventSchema,
 } satisfies Record<string, z.ZodType>;
 
 type ClientEvents = typeof clientToServerEvents;

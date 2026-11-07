@@ -1,4 +1,5 @@
 import {
+  type ChatSettings,
   type PrivacySettings,
   type PublicProfile,
   USERNAME_CHANGE_INTERVAL_DAYS,
@@ -11,6 +12,7 @@ import { Types } from 'mongoose';
 import { AppError } from '../lib/errors.ts';
 import {
   buildSearchTerms,
+  chatSettingsOf,
   escapeRegex,
   loadUser,
   privacyOf,
@@ -134,6 +136,26 @@ export async function updatePrivacy(
 
 export async function getPrivacy(app: FastifyInstance, userId: string): Promise<PrivacySettings> {
   return privacyOf(await requireUser(app, userId));
+}
+
+/** Changes only the settings given; my other devices hear about it. */
+export async function updateChatSettings(
+  app: FastifyInstance,
+  userId: string,
+  changes: { [K in keyof ChatSettings]?: ChatSettings[K] | undefined },
+): Promise<ChatSettings> {
+  const set = Object.fromEntries(
+    Object.entries(changes)
+      .filter(([, value]) => value !== undefined)
+      .map(([key, value]) => [`chatSettings.${key}`, value]),
+  );
+  const updated = (await usersModel(app)
+    .findByIdAndUpdate(userId, { $set: set }, { returnDocument: 'after' })
+    .lean()) as UserDoc | null;
+  if (!updated) throw new AppError('NOT_FOUND', 'User not found.');
+  const settings = chatSettingsOf(updated);
+  app.realtime.emitToUser(userId, 'settings:updated', { settings });
+  return settings;
 }
 
 interface SearchInput {

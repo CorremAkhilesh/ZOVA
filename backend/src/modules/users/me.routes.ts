@@ -2,10 +2,12 @@ import { randomBytes } from 'node:crypto';
 import { Readable } from 'node:stream';
 import {
   AVATAR_MAX_BYTES,
+  chatSettingsResponseSchema,
   myProfileResponseSchema,
   privacyResponseSchema,
   privacySettingsSchema,
   setUsernameBodySchema,
+  updateChatSettingsBodySchema,
   updateProfileBodySchema,
   usernameSuggestionResponseSchema,
 } from '@zuvo/protocol';
@@ -13,12 +15,13 @@ import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { currentUserId, requireSession } from '../../auth/session.ts';
 import { AppError } from '../../lib/errors.ts';
 import { processAvatar } from '../../users/avatar.ts';
-import { toMyProfile, type UserDoc, usersModel } from '../../users/user-record.ts';
+import { chatSettingsOf, toMyProfile, type UserDoc, usersModel } from '../../users/user-record.ts';
 import {
   getPrivacy,
   requireUser,
   setUsername,
   suggestUsername,
+  updateChatSettings,
   updatePrivacy,
   updateProfile,
 } from '../../users/users.service.ts';
@@ -95,6 +98,29 @@ export const meRoutes: FastifyPluginAsyncZod = async (app) => {
       app.realtime.presence.privacyChanged(userId, privacy.lastSeen === 'nobody');
       return { privacy };
     },
+  );
+
+  app.get(
+    '/me/chat-settings',
+    { schema: { tags: ['settings'], response: { 200: chatSettingsResponseSchema } } },
+    async (request) => ({
+      settings: chatSettingsOf(await requireUser(app, currentUserId(request))),
+    }),
+  );
+
+  app.patch(
+    '/me/chat-settings',
+    {
+      schema: {
+        tags: ['settings'],
+        summary: 'Change chat settings, such as keeping archived chats archived',
+        body: updateChatSettingsBodySchema,
+        response: { 200: chatSettingsResponseSchema },
+      },
+    },
+    async (request) => ({
+      settings: await updateChatSettings(app, currentUserId(request), request.body),
+    }),
   );
 
   app.post(

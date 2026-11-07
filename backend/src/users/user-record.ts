@@ -1,5 +1,7 @@
 import { brand } from '@zuvo/config';
 import {
+  type ChatSettings,
+  DEFAULT_CHAT_SETTINGS,
   DEFAULT_PRIVACY,
   type MyProfile,
   type PrivacySettings,
@@ -20,6 +22,7 @@ export interface UserDoc {
   about?: string | null;
   avatar?: { small: string; large: string; version: string } | null;
   privacy?: Partial<PrivacySettings> | null;
+  chatSettings?: Partial<ChatSettings> | null;
   searchTerms?: string[];
   role?: string | null;
   status?: string | null;
@@ -39,6 +42,10 @@ export async function loadUser(app: FastifyInstance, id: string): Promise<UserDo
 
 export function privacyOf(user: UserDoc): PrivacySettings {
   return { ...DEFAULT_PRIVACY, ...(user.privacy ?? {}) };
+}
+
+export function chatSettingsOf(user: Pick<UserDoc, 'chatSettings'>): ChatSettings {
+  return { ...DEFAULT_CHAT_SETTINGS, ...(user.chatSettings ?? {}) };
 }
 
 export function avatarUrls(user: UserDoc): { small: string; large: string } | null {
