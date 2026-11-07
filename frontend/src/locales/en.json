@@ -251,6 +251,13 @@
       "removeBody": "Your initials will be shown instead."
     }
   },
+  "chatSettings": {
+    "title": "Chats",
+    "subtitle": "How your chat list behaves",
+    "keepArchived": "Keep chats archived",
+    "keepArchivedHint": "Archived chats stay archived when new messages arrive. Turn this off to bring a chat back to your list when someone writes.",
+    "loadFailed": "Couldn’t load your chat settings."
+  },
   "privacy": {
     "title": "Privacy",
     "subtitle": "Choose who sees your details.",
@@ -659,5 +666,16 @@
     "starredFailed": "Could not load your starred messages.",
     "openStarred": "Open this message in {{name}}",
     "backToChats": "Back to chats"
+  },
+  "formatting": {
+    "copy": "Copy",
+    "copied": "Copied",
+    "copyCode": "Copy code",
+    "code": "Code",
+    "bold": "bold",
+    "italic": "italic",
+    "strike": "strike",
+    "codeSample": "code",
+    "hint": "Formatting: *asterisks* for bold, _underscores_ for italic, ~tildes~ for strikethrough, `backticks` for code."
   }
 }

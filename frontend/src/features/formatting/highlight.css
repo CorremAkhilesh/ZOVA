@@ -1,0 +1,109 @@
+/* Code token colors (highlight.js class names). Loaded with the lazy highlighter chunk only. */
+
+.zuvo-code {
+  --code-keyword: #4f46e5;
+  --code-string: #0f766e;
+  --code-number: #b45309;
+  --code-comment: #6b7280;
+  --code-title: #7c3aed;
+  --code-type: #0e7490;
+  --code-attr: #4338ca;
+  --code-variable: #be185d;
+  --code-meta: #64748b;
+  --code-addition: #15803d;
+  --code-deletion: #b91c1c;
+}
+
+[data-theme="dark"] .zuvo-code {
+  --code-keyword: #a5b4fc;
+  --code-string: #5eead4;
+  --code-number: #fcd34d;
+  --code-comment: #9ca3af;
+  --code-title: #c4b5fd;
+  --code-type: #67e8f9;
+  --code-attr: #93c5fd;
+  --code-variable: #f9a8d4;
+  --code-meta: #cbd5e1;
+  --code-addition: #86efac;
+  --code-deletion: #fca5a5;
+}
+
+.zuvo-code .hljs-keyword,
+.zuvo-code .hljs-selector-tag,
+.zuvo-code .hljs-doctag,
+.zuvo-code .hljs-section {
+  color: var(--code-keyword);
+  font-weight: 600;
+}
+
+.zuvo-code .hljs-string,
+.zuvo-code .hljs-regexp,
+.zuvo-code .hljs-char.escape_,
+.zuvo-code .hljs-template-tag,
+.zuvo-code .hljs-template-variable {
+  color: var(--code-string);
+}
+
+.zuvo-code .hljs-number,
+.zuvo-code .hljs-literal,
+.zuvo-code .hljs-symbol,
+.zuvo-code .hljs-bullet,
+.zuvo-code .hljs-link {
+  color: var(--code-number);
+}
+
+.zuvo-code .hljs-comment,
+.zuvo-code .hljs-quote {
+  color: var(--code-comment);
+  font-style: italic;
+}
+
+.zuvo-code .hljs-title,
+.zuvo-code .hljs-title.function_,
+.zuvo-code .hljs-title.class_,
+.zuvo-code .hljs-name {
+  color: var(--code-title);
+}
+
+.zuvo-code .hljs-type,
+.zuvo-code .hljs-built_in,
+.zuvo-code .hljs-title.class_.inherited__,
+.zuvo-code .hljs-selector-class,
+.zuvo-code .hljs-selector-id {
+  color: var(--code-type);
+}
+
+.zuvo-code .hljs-attr,
+.zuvo-code .hljs-attribute,
+.zuvo-code .hljs-property,
+.zuvo-code .hljs-selector-attr,
+.zuvo-code .hljs-selector-pseudo {
+  color: var(--code-attr);
+}
+
+.zuvo-code .hljs-variable,
+.zuvo-code .hljs-params,
+.zuvo-code .hljs-subst {
+  color: var(--code-variable);
+}
+
+.zuvo-code .hljs-meta,
+.zuvo-code .hljs-meta .hljs-keyword {
+  color: var(--code-meta);
+}
+
+.zuvo-code .hljs-addition {
+  color: var(--code-addition);
+}
+
+.zuvo-code .hljs-deletion {
+  color: var(--code-deletion);
+}
+
+.zuvo-code .hljs-emphasis {
+  font-style: italic;
+}
+
+.zuvo-code .hljs-strong {
+  font-weight: 700;
+}
