@@ -102,7 +102,7 @@ export const mediaApi = {
       mediaLinkResponseSchema,
     ),
 
-  gallery: (chatId: string, tab: 'media' | 'docs', before: number | undefined) =>
+  gallery: (chatId: string, tab: 'media' | 'docs' | 'links', before: number | undefined) =>
     apiGet(withQuery(`/v1/chats/${chatId}/media`, { tab, before }), galleryResponseSchema),
 };
 

@@ -11,6 +11,7 @@ import { uuidv7 } from '@/lib/uuid';
 import { mergeChat } from './apply';
 import type { LocalDb, OutboxRow, UploadFailReason } from './local-db';
 import {
+  type AttachedPreview,
   type EnqueueMedia,
   outboxReply,
   pendingTextRow,
@@ -19,7 +20,7 @@ import {
   toPayload,
 } from './outbox-media';
 
-export type { EnqueueMedia };
+export type { AttachedPreview, EnqueueMedia };
 export class DisconnectedError extends Error {}
 
 export interface OutboxTransport {
@@ -73,7 +74,12 @@ export class Outbox {
   }
 
   /** Stored locally first: it shows at once with a clock, and survives a reload or going offline. */
-  async enqueue(chatId: string, text: string, quote?: ReplyQuote | null): Promise<string> {
+  async enqueue(
+    chatId: string,
+    text: string,
+    quote?: ReplyQuote | null,
+    link?: AttachedPreview | null,
+  ): Promise<string> {
     const { db, me } = this.options;
     const clientMsgId = uuidv7();
     const key = `${me}:${clientMsgId}`;
@@ -87,9 +93,13 @@ export class Outbox {
         state: 'pending',
         queuedAt: Date.now(),
         ...outboxReply(quote),
+        ...(link ? { linkPreviewId: link.id } : {}),
       });
       const input = { key, n, chatId, clientMsgId, me, text };
-      await db.messages.add(pendingTextRow(input, createdAt, quote));
+      await db.messages.add({
+        ...pendingTextRow(input, createdAt, quote),
+        linkPreview: link?.preview ?? null,
+      });
       await this.previewInChat(chatId, key, {
         type: 'text',
         preview: text.slice(0, MESSAGE_PREVIEW_MAX),

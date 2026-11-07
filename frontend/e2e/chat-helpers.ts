@@ -57,7 +57,7 @@ export async function send(page: Page, text: string): Promise<void> {
 export const bubbles = (page: Page, chatName: string) =>
   page
     .getByRole('list', { name: chatName, exact: true })
-    .locator('p.whitespace-pre-wrap')
+    .locator('[data-formatted]')
     .allTextContents();
 
 export async function expectBubbles(page: Page, chatName: string, texts: string[]): Promise<void> {

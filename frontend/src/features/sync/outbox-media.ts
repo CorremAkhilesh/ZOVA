@@ -2,6 +2,7 @@ import {
   type CreateUploadBody,
   formatDuration,
   type LastMessage,
+  type LinkPreview,
   MESSAGE_PREVIEW_MAX,
   type ReplyQuote,
   type SendMessagePayload,
@@ -41,7 +42,14 @@ export const toPayload = (row: OutboxRow): SendMessagePayload =>
         clientMsgId: row.clientMsgId,
         text: row.text,
         ...(row.replyTo ? { replyTo: row.replyTo } : {}),
+        ...(row.linkPreviewId ? { linkPreviewId: row.linkPreviewId } : {}),
       };
+
+/** A preview the sender looked up for a link in the text, sent along with it. */
+export interface AttachedPreview {
+  id: string;
+  preview: LinkPreview;
+}
 
 const refOf = (quote: ReplyQuote | null | undefined) =>
   quote ? { replyTo: { chatId: quote.chatId, messageId: quote.id } } : {};

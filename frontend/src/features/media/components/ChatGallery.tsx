@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { type ChatMessage, ME } from '@/features/chats/types';
+import { LinkRow } from '@/features/link-previews/LinkRow';
 import { cn } from '@/lib/utils';
 import { mediaApi } from '../api';
 import { DocumentCard } from './DocumentCard';
@@ -14,7 +15,17 @@ const COLUMNS = 3;
 const ROW_PX = 96;
 const DOC_ROW_PX = 80;
 
-type Tab = 'media' | 'docs';
+type Tab = 'media' | 'docs' | 'links';
+const EMPTY: Record<Tab, string> = {
+  media: 'media.noMedia',
+  docs: 'media.noDocs',
+  links: 'media.noLinks',
+};
+const TAB_LABEL: Record<Tab, string> = {
+  media: 'media.tabMedia',
+  docs: 'media.tabDocs',
+  links: 'media.tabLinks',
+};
 
 /** A gallery item in the form the bubbles' media components take. */
 function toItem(message: Message): ChatMessage {
@@ -28,6 +39,7 @@ function toItem(message: Message): ChatMessage {
     at: new Date(message.createdAt),
     media: message.media,
     albumId: message.albumId,
+    linkPreview: message.linkPreview ?? null,
   };
 }
 
@@ -76,11 +88,7 @@ function GalleryList({
   }
   if (query.isPending) return <p className="p-4 text-center text-sm text-text-muted">…</p>;
   if (items.length === 0) {
-    return (
-      <p className="p-4 text-center text-sm text-text-muted">
-        {t(tab === 'media' ? 'media.noMedia' : 'media.noDocs')}
-      </p>
-    );
+    return <p className="p-4 text-center text-sm text-text-muted">{t(EMPTY[tab])}</p>;
   }
   return (
     <ScrollArea viewportRef={viewport} tabIndex={0} className="min-h-0 flex-1 px-3">
@@ -101,6 +109,8 @@ function GalleryList({
                   <div key={item.id} className="h-full">
                     <MediaVisual message={item} onOpen={onOpen} fill />
                   </div>
+                ) : tab === 'links' ? (
+                  <LinkRow key={item.id} message={item} />
                 ) : (
                   <DocumentCard key={item.id} message={item} />
                 ),
@@ -113,14 +123,14 @@ function GalleryList({
   );
 }
 
-/** "Media" and "Docs" in chat info. Newest first. */
+/** "Media", "Docs" and "Links" in chat info. Newest first. */
 export function ChatGallery(props: { chatId: string; onOpen: (mediaId: string) => void }) {
   const { t } = useTranslation();
   const [tab, setTab] = useState<Tab>('media');
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div role="tablist" aria-label={t('info.media')} className="flex gap-1 px-3 pb-2">
-        {(['media', 'docs'] as const).map((name) => (
+        {(['media', 'docs', 'links'] as const).map((name) => (
           <button
             key={name}
             type="button"
@@ -134,7 +144,7 @@ export function ChatGallery(props: { chatId: string; onOpen: (mediaId: string) =
                 : 'text-text-muted hover:bg-background',
             )}
           >
-            {t(name === 'media' ? 'media.tabMedia' : 'media.tabDocs')}
+            {t(TAB_LABEL[name])}
           </button>
         ))}
       </div>

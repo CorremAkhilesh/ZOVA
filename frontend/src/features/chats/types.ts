@@ -1,4 +1,11 @@
-import type { GroupInfo, MediaInfo, Message, ReplyQuote, SystemEvent } from '@zuvo/protocol';
+import type {
+  GroupInfo,
+  LinkPreview,
+  MediaInfo,
+  Message,
+  ReplyQuote,
+  SystemEvent,
+} from '@zuvo/protocol';
 import type { UploadFailReason } from '@/features/sync/local-db';
 
 export type DeliveryStatus = 'pending' | 'failed' | 'sent' | 'delivered' | 'read';
@@ -75,4 +82,6 @@ export interface ChatMessage extends MessageAuthor {
   edited?: boolean;
   deleted?: boolean;
   deletedByAdmin?: boolean;
+  /** Fetched by our server for the sender; nobody's app contacts the site. */
+  linkPreview?: LinkPreview | null;
 }

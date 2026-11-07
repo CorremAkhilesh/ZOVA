@@ -11,6 +11,10 @@ import {
 } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
+import { formatShortcut } from '@/features/formatting/composer-shortcut';
+import { FormattingHint } from '@/features/formatting/FormattingHint';
+import { ComposerLinkPreview } from '@/features/link-previews/LinkPreviewCard';
+import { useLinkPreviewDraft } from '@/features/link-previews/use-link-preview-draft';
 import { AttachMenu } from '@/features/media/components/AttachMenu';
 import { ComposerBanner } from '@/features/messages/components/ComposerBanner';
 import { useComposerActions } from '@/features/messages/use-composer-actions';
@@ -56,6 +60,8 @@ export function Composer({ chatId, onSent, onFiles }: ComposerProps) {
   const voice = useVoiceNote(chatId, onSent);
   const { recorder } = voice;
   const actions = useComposerActions(chatId, text, update, field);
+  const link = useLinkPreviewDraft(text, !actions.editing);
+  const showHint = isDesktop && hasText && !recorder.active;
 
   // Grows with the text, up to the field's max height.
   // biome-ignore lint/correctness/useExhaustiveDependencies: `text` changes the content being measured
@@ -69,7 +75,7 @@ export function Composer({ chatId, onSent, onFiles }: ComposerProps) {
   function send() {
     if (!canSend) return;
     if (actions.finishEdit()) return;
-    void client?.sendText(chatId, text, actions.takeReply());
+    void client?.sendText(chatId, text, actions.takeReply(), link.take());
     typing.stop();
     update('');
     onSent();
@@ -82,7 +88,7 @@ export function Composer({ chatId, onSent, onFiles }: ComposerProps) {
   }
 
   function onKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
-    if (actions.onKeyDown(event)) return;
+    if (actions.onKeyDown(event) || formatShortcut(event, update)) return;
     // isComposing: Enter is confirming a word in a Hindi (or any other) input method.
     if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing) return;
     // Phones and tablets have no Shift key to hand: Enter makes a new line, the button sends.
@@ -113,6 +119,7 @@ export function Composer({ chatId, onSent, onFiles }: ComposerProps) {
         />
         <MicBlockedDialog open={voice.blockedOpen} onClose={voice.closeBlocked} />
         <ComposerBanner chatId={chatId} />
+        <ComposerLinkPreview preview={link.preview} loading={link.loading} onRemove={link.remove} />
         {recorder.problem && recorder.problem !== 'blocked' ? (
           <p role="status" className="mb-1 text-xs font-medium text-text-muted">
             {t(`voice.problems.${recorder.problem}`)}
@@ -168,6 +175,7 @@ export function Composer({ chatId, onSent, onFiles }: ComposerProps) {
                   onFiles(files);
                 }}
                 onKeyDown={onKeyDown}
+                aria-describedby={showHint ? 'composer-hint' : undefined}
                 placeholder={t('conversation.composerPlaceholder')}
                 className="max-h-36 min-h-10 flex-1 resize-none rounded-2xl border bg-surface px-4 py-2.5 text-[15px] text-text outline-none placeholder:text-text-muted focus-visible:border-brand focus-visible:ring-3 focus-visible:ring-brand/20"
               />
@@ -194,6 +202,8 @@ export function Composer({ chatId, onSent, onFiles }: ComposerProps) {
             />
           )}
         </form>
+        {/* Desktop only: phones have no keyboard shortcuts, and little room. */}
+        {showHint ? <FormattingHint id="composer-hint" className="mt-1 pl-24" /> : null}
       </div>
     </div>
   );

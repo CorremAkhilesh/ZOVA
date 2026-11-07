@@ -3,8 +3,10 @@ import { Check, Mic } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/ui/avatar';
 import { useSession } from '@/features/auth/session';
+import { FormattedText } from '@/features/formatting/FormattedText';
 import { MessageInfoButton } from '@/features/groups/components/MessageInfoButton';
 import { systemText } from '@/features/groups/wording';
+import { LinkPreviewCard } from '@/features/link-previews/LinkPreviewCard';
 import { AlbumGrid, MessageMedia } from '@/features/media/components/MessageMedia';
 import { UploadNotice } from '@/features/media/components/UploadNotice';
 import {
@@ -18,6 +20,7 @@ import {
 import { canAct } from '@/features/messages/rules';
 import { useMessageUi } from '@/features/messages/store';
 import { useBubbleGestures } from '@/features/messages/use-bubble-gestures';
+import { useInChatSearch } from '@/features/search/in-chat-store';
 import { cn } from '@/lib/utils';
 import { formatClock } from '../chat-utils';
 import { senderColorClass } from '../sender-color';
@@ -105,24 +108,33 @@ function BubbleContent(props: {
   const { message, mine, album, onOpenMedia } = props;
   const hasMedia = Boolean(album || message.media);
   const caption = album ? album.find((item) => item.text)?.text : message.text;
+  const highlight = useInChatSearch((state) => (state.chatId === message.chatId ? state.term : ''));
+  // Reserve room so the time, and my tick, never overlap the last line.
+  const room = (
+    <span
+      className={cn(
+        'inline-block',
+        mine ? 'w-[5.25rem]' : 'w-16',
+        message.edited && 'ml-10',
+        message.starred && 'ml-4',
+      )}
+      aria-hidden
+    />
+  );
   return (
     <>
       {album ? <AlbumGrid items={album} onOpen={onOpenMedia} /> : null}
       {!album && message.media ? <MessageMedia message={message} onOpen={onOpenMedia} /> : null}
+      {message.linkPreview && !message.deleted ? (
+        <LinkPreviewCard preview={message.linkPreview} mine={mine} />
+      ) : null}
       {caption || !hasMedia ? (
-        <p className={cn('whitespace-pre-wrap break-words', hasMedia && 'mt-1')}>
-          {caption}
-          {/* Reserve room so the time, and my tick, never overlap the last line. */}
-          <span
-            className={cn(
-              'inline-block',
-              mine ? 'w-[5.25rem]' : 'w-16',
-              message.edited && 'ml-10',
-              message.starred && 'ml-4',
-            )}
-            aria-hidden
-          />
-        </p>
+        <FormattedText
+          text={caption ?? ''}
+          highlight={highlight}
+          trailing={room}
+          className={cn('break-words', hasMedia && 'mt-1')}
+        />
       ) : (
         <div className="h-5" />
       )}

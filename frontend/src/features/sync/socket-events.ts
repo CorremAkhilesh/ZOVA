@@ -2,7 +2,9 @@ import type { ClientToServerEvents, ServerToClientEvents } from '@zuvo/protocol'
 import type { Socket } from 'socket.io-client';
 import { applyLastReaction } from './apply-updates';
 import { startDeliveryAcks } from './delivery-acks';
+import { setPresence, setTyping } from './live-status';
 import type { LocalDb } from './local-db';
+import { currentWatchList } from './presence-watch';
 import { ACK_TIMEOUT_MS } from './socket-transport';
 import type { SyncEngine } from './sync-engine';
 
@@ -34,6 +36,20 @@ export function wireSyncEvents(
   });
   socket.on('read:update', ({ chatId, lastReadSeq, cursor }) => {
     void engine.onChatChange(chatId, { lastReadSeq }, cursor);
+  });
+}
+
+/** Typing and online status: shown live, never stored. */
+export function wireLiveStatus(
+  socket: Socket<ServerToClientEvents, ClientToServerEvents>,
+  presence: { forget(): void; watch(userIds: string[]): void },
+) {
+  socket.on('typing:update', ({ chatId, userId, typing }) => setTyping(chatId, userId, typing));
+  socket.on('presence:update', setPresence);
+  // Someone's privacy changed, or a block: ask again, and the server answers with what is allowed.
+  socket.on('presence:resubscribe', () => {
+    presence.forget();
+    presence.watch(currentWatchList());
   });
 }
 

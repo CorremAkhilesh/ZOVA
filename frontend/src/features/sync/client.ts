@@ -15,19 +15,20 @@ import type { QueuedAction } from './actions-types';
 import { applyChats, applyReadAck } from './apply';
 import { trackAway } from './away';
 import { loadOlderMessages, startReconciling } from './history';
-import { resetLiveStatus, setPresence, setTyping } from './live-status';
+import { resetLiveStatus } from './live-status';
 import { getUserDb, type LocalDb, type MessageRow } from './local-db';
-import { type EnqueueMedia, Outbox } from './outbox';
+import { type AttachedPreview, type EnqueueMedia, Outbox } from './outbox';
 import { messageAfter, socketPlayReports } from './played-reports';
 import { presenceSubscriber } from './presence-socket';
 import { currentWatchList } from './presence-watch';
-import { socketDeliveryAcks, wireSyncEvents } from './socket-events';
+import { socketDeliveryAcks, wireLiveStatus, wireSyncEvents } from './socket-events';
 import { ACK_TIMEOUT_MS, socketTransport } from './socket-transport';
 import { useSyncStore } from './store';
 import { SyncEngine } from './sync-engine';
 import { openTabChannel, watchLeadership } from './tabs';
 
 export type AppSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
+type Quote = ReplyQuote | null;
 
 /** Corrects the pill if an event was ever missed: it shows what the socket says right now. */
 const STATE_CHECK_MS = 3000;
@@ -48,7 +49,12 @@ export interface SyncClientOptions {
 export interface SyncClient {
   db: LocalDb;
   userId: string;
-  sendText(chatId: string, text: string, quote?: ReplyQuote | null): Promise<void>;
+  sendText(
+    chatId: string,
+    text: string,
+    quote?: Quote,
+    link?: AttachedPreview | null,
+  ): Promise<void>;
   /** Edit, delete, react, star and the rest: shown at once, and told to the server in order. */
   act(action: QueuedAction): Promise<void>;
   sendMedia(input: EnqueueMedia): Promise<void>;
@@ -201,12 +207,7 @@ export function startSyncClient(options: SyncClientOptions): SyncClient {
     onSessionEnded(reason);
   });
   wireSyncEvents(socket, engine, db);
-  socket.on('typing:update', ({ chatId, userId: who, typing }) => setTyping(chatId, who, typing));
-  socket.on('presence:update', setPresence);
-  socket.on('presence:resubscribe', () => {
-    presence.forget();
-    presence.watch(currentWatchList());
-  });
+  wireLiveStatus(socket, presence);
 
   const onOnline = () => {
     if (ended) return;
@@ -232,8 +233,8 @@ export function startSyncClient(options: SyncClientOptions): SyncClient {
   return {
     db,
     userId,
-    async sendText(chatId, text, quote) {
-      await outbox.enqueue(chatId, text, quote);
+    async sendText(chatId, text, quote, link) {
+      await outbox.enqueue(chatId, text, quote, link);
       channel.post('outbox-changed');
     },
     async act(action) {

@@ -52,6 +52,8 @@ export interface OutboxRow {
   heldInTab?: boolean;
   /** The message this answers. */
   replyTo?: { chatId: string; messageId: string } | undefined;
+  /** A link preview the sender kept, by its id on the server. */
+  linkPreviewId?: string | undefined;
 }
 
 /** A Blob, or its bytes where a browser cannot keep Blobs. See stored-bytes.ts. */

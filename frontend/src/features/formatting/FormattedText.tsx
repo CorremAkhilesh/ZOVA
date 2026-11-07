@@ -90,10 +90,15 @@ function renderLines(lines: InlineLine[], mark: Marker, prefix: string): ReactNo
   ));
 }
 
-function renderBlock(block: BlockNode, mark: Marker, key: string): ReactNode {
+function renderBlock(block: BlockNode, mark: Marker, key: string, trailing?: ReactNode): ReactNode {
   switch (block.type) {
     case 'paragraph':
-      return <p key={key}>{renderLines(block.lines, mark, key)}</p>;
+      return (
+        <p key={key}>
+          {renderLines(block.lines, mark, key)}
+          {trailing}
+        </p>
+      );
     case 'quote':
       return (
         <blockquote key={key} className="my-0.5 border-l-4 border-current/40 pl-2 opacity-90">
@@ -120,6 +125,8 @@ interface FormattedTextProps {
   /** In-chat search term, marked case-insensitively in plain text (not in code). */
   highlight?: string | undefined;
   className?: string | undefined;
+  /** Inline content kept at the end of the last line (the bubble's room for its time). */
+  trailing?: ReactNode;
 }
 
 /**
@@ -127,12 +134,18 @@ interface FormattedTextProps {
  * auto-links. Output is built from React elements only: no HTML strings, and links are limited
  * to http(s), mailto and tel. The root is a <div> (it holds blocks), keeping line breaks.
  */
-export function FormattedText({ text, highlight, className }: FormattedTextProps) {
+export function FormattedText({ text, highlight, className, trailing }: FormattedTextProps) {
   const blocks = useMemo(() => parse(text), [text]);
   const mark = useMemo(() => makeMarker(highlight), [highlight]);
+  const last = blocks.length - 1;
+  // A paragraph keeps `trailing` on its last line; anything else gets it on a line of its own.
+  const inline = blocks[last]?.type === 'paragraph';
   return (
-    <div className={cn('whitespace-pre-wrap [overflow-wrap:anywhere]', className)}>
-      {blocks.map((block, index) => renderBlock(block, mark, `b${index}`))}
+    <div data-formatted className={cn('whitespace-pre-wrap [overflow-wrap:anywhere]', className)}>
+      {blocks.map((block, index) =>
+        renderBlock(block, mark, `b${index}`, index === last && inline ? trailing : undefined),
+      )}
+      {trailing && !inline ? <p>{trailing}</p> : null}
     </div>
   );
 }

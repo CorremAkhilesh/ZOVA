@@ -251,6 +251,12 @@
       "removeBody": "Your initials will be shown instead."
     }
   },
+  "linkPreview": {
+    "open": "Open {{title}} on {{site}}",
+    "attached": "Link preview",
+    "loading": "Getting a preview…",
+    "remove": "Send without a preview"
+  },
   "chatSettings": {
     "title": "Chats",
     "subtitle": "How your chat list behaves",
@@ -423,6 +429,8 @@
     "galleryFailed": "Couldn’t load this. Check your connection.",
     "noMedia": "No photos or videos yet.",
     "noDocs": "No documents yet.",
+    "noLinks": "No links yet.",
+    "tabLinks": "Links",
     "tabMedia": "Media",
     "tabDocs": "Docs",
     "sendFailed": "Couldn’t prepare these files. Try again.",

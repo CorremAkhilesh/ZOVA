@@ -1,4 +1,5 @@
 import type { LastReaction, PublicProfile, SystemEvent } from '@zuvo/protocol';
+import { toPlainText } from '@/features/formatting/parse';
 import type { ChatRow, MessageRow } from '@/features/sync/local-db';
 import { tickState } from './ticks';
 import { type ChatMessage, type ChatSummary, ME } from './types';
@@ -16,17 +17,18 @@ interface Labels {
 
 export type KnownPeople = ReadonlyMap<string, PublicProfile>;
 
-/** "📷 Photo", "🎥 Video", "📄 report.pdf", with the caption if there is one. */
+/** "📷 Photo", "🎥 Video", "📄 report.pdf", with the caption if there is one. Plain: no markers. */
 export function previewText(
   last: { type: string; preview: string },
   labels: Pick<Labels, 'photo' | 'video' | 'voice'>,
 ): string {
-  if (last.type === 'image') return `📷 ${last.preview || labels.photo}`;
-  if (last.type === 'video') return `🎥 ${last.preview || labels.video}`;
+  const caption = toPlainText(last.preview).replace(/\s+/gu, ' ').trim();
+  if (last.type === 'image') return `📷 ${caption || labels.photo}`;
+  if (last.type === 'video') return `🎥 ${caption || labels.video}`;
   if (last.type === 'document') return `📄 ${last.preview}`;
   if (last.type === 'voice') return `🎤 ${labels.voice} (${last.preview})`;
   if (last.type === 'audio') return `🎵 ${last.preview}`;
-  return last.preview;
+  return caption;
 }
 
 function lastMessageView(
@@ -136,6 +138,7 @@ export function toChatMessage(
     edited: Boolean(row.editedAt),
     deleted: Boolean(row.deletedForEveryoneAt),
     deletedByAdmin: row.deletedByAdmin === true,
+    linkPreview: row.deletedForEveryoneAt ? null : (row.linkPreview ?? null),
     played: row.played === true,
     uploadedBytes: row.uploadedBytes,
     heldInTab: row.heldInTab,
