@@ -163,7 +163,8 @@ describe('people search', () => {
 
   it('uses indexes for every search query shape (no COLLSCAN)', async () => {
     const Users = usersModel(app());
-    const notMe = { $ne: new Types.ObjectId(viewer) };
+    // Me, and anyone who blocked me.
+    const notMe = { $nin: [new Types.ObjectId(viewer), new Types.ObjectId()] };
     await expectIndexedQuery(
       Users.find({ status: 'active', _id: notMe }).sort({ lastLoginAt: -1 }).limit(20),
     );

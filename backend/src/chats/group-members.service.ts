@@ -3,6 +3,7 @@ import type { FastifyInstance } from 'fastify';
 import type { ClientSession } from 'mongoose';
 import type { ChatDoc, LastMessageSnapshot } from '../db/chat-models.ts';
 import { AppError } from '../lib/errors.ts';
+import { blockersAmong } from '../moderation/blocks.service.ts';
 import { toPublicProfile, type UserDoc, usersModel } from '../users/user-record.ts';
 import { chatModels, getChat, oid } from './chats.service.ts';
 import {
@@ -30,12 +31,14 @@ export async function listMembers(
     .find({ _id: { $in: rows.map((row) => row.userId) } })
     .lean()) as UserDoc[];
   const byId = new Map(users.map((user) => [user._id.toString(), user]));
+  // A group still works with someone who blocked me, but their photo and about stay hidden.
+  const blockers = await blockersAmong(app, userId, [...byId.keys()]);
   return rows.flatMap((row) => {
     const user = byId.get(row.userId.toString());
     if (!user) return [];
     return [
       {
-        user: toPublicProfile(user, userId),
+        user: toPublicProfile(user, userId, { blockedViewer: blockers.has(user._id.toString()) }),
         role: row.role,
         joinedAt: row.joinedAt.toISOString(),
       },

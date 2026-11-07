@@ -1,6 +1,7 @@
 import type { PresenceEvent } from '@zuvo/protocol';
 import type { FastifyInstance } from 'fastify';
 import { chatModels, oid, pairKeyOf } from '../chats/chats.service.ts';
+import { blockedEitherWay } from '../moderation/blocks.service.ts';
 import { privacyOf, type UserDoc, usersModel } from '../users/user-record.ts';
 import type { PresenceStore } from './presence-store.ts';
 import { userRoom, type ZuvoServer, type ZuvoSocket } from './server.ts';
@@ -25,6 +26,8 @@ export interface Presence {
   /** Replaces what this socket watches, and answers with what it may see. */
   subscribe(socket: ZuvoSocket, userIds: string[]): Promise<PresenceEvent[]>;
   privacyChanged(userId: string, hideLastSeen: boolean): void;
+  /** One of them blocked or unblocked the other: neither hears about the other from now on. */
+  blockChanged(userId: string, otherId: string): void;
   stop(): void;
 }
 
@@ -123,13 +126,15 @@ export function createPresence(
             .lean()
         : [];
       const pairKeys = new Set(shared.map((chat) => chat.pairKey));
+      const blocked = canLook ? await blockedEitherWay(app, viewerId, userIds) : new Set();
       const visible = userIds.filter((id) => {
         const doc = byId.get(id);
         return (
           doc &&
           doc.status !== 'deactivated' &&
           privacyOf(doc).lastSeen !== 'nobody' &&
-          pairKeys.has(pairKeyOf(id, viewerId))
+          pairKeys.has(pairKeyOf(id, viewerId)) &&
+          !blocked.has(id)
         );
       });
 
@@ -163,6 +168,15 @@ export function createPresence(
       else mine.socketsLeave(HIDDEN_ROOM);
       io.to(watchRoom(userId)).emit('presence:resubscribe', {});
       io.to(userRoom(userId)).emit('presence:resubscribe', {});
+    },
+
+    blockChanged(userId, otherId) {
+      // Enforced at once, even for a client that never asks again. An unblock lets them back in
+      // only through a new subscribe, which checks everything again.
+      io.in(userRoom(userId)).socketsLeave(watchRoom(otherId));
+      io.in(userRoom(otherId)).socketsLeave(watchRoom(userId));
+      io.to(userRoom(userId)).emit('presence:resubscribe', {});
+      io.to(userRoom(otherId)).emit('presence:resubscribe', {});
     },
 
     stop() {

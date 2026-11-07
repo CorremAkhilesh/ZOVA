@@ -3,3 +3,6 @@ import { chatSettingsSchema } from '../rest/settings.ts';
 
 /** settings:updated (server → my devices): my chat settings changed on one of my devices. */
 export const settingsUpdatedEventSchema = z.object({ settings: chatSettingsSchema });
+
+/** blocks:changed (server → my devices): I blocked or unblocked someone, on one of my devices. */
+export const blocksChangedEventSchema = z.object({ userId: z.string(), blocked: z.boolean() });

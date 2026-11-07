@@ -3,6 +3,7 @@ import type { FastifyInstance } from 'fastify';
 import { Types } from 'mongoose';
 import { type ChatDoc, type ChatMemberDoc, registerChatModels } from '../db/chat-models.ts';
 import { AppError } from '../lib/errors.ts';
+import { blockersAmong } from '../moderation/blocks.service.ts';
 import { privacyOf, toPublicProfile, type UserDoc, usersModel } from '../users/user-record.ts';
 import { groupView } from './group-core.ts';
 import { shownLast, toLastMessage } from './message-format.ts';
@@ -52,6 +53,7 @@ export async function buildSummaries(
         .lean()) as UserDoc[])
     : [];
   const userById = new Map(users.map((user) => [user._id.toString(), user]));
+  const blockers = await blockersAmong(app, viewerId, [...userById.keys()]);
   const viewer = chats.some((chat) => chat.type === 'group')
     ? ((await usersModel(app).findById(viewerId).select({ privacy: 1 }).lean()) as UserDoc | null)
     : null;
@@ -73,7 +75,10 @@ export async function buildSummaries(
         : other
           ? peerProgress(other)
           : NO_PEER;
-    return [toSummary(chat, row, person ? toPublicProfile(person, viewerId) : null, progress)];
+    const profile = person
+      ? toPublicProfile(person, viewerId, { blockedViewer: blockers.has(person._id.toString()) })
+      : null;
+    return [toSummary(chat, row, profile, progress)];
   });
 }
 

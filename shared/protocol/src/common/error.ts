@@ -35,6 +35,12 @@ export const errorCodeSchema = z.enum([
   'EDIT_WINDOW_PASSED',
   'DELETE_WINDOW_PASSED',
   'PIN_LIMIT_REACHED',
+  /** I blocked this person: unblock them to write. */
+  'BLOCKED',
+  /** This person blocked me. Deliberately vague, as in other messengers. */
+  'CANNOT_MESSAGE',
+  /** No link preview for this address: not a web page, not reachable, or not allowed. */
+  'PREVIEW_UNAVAILABLE',
 ]);
 
 export type ErrorCode = z.infer<typeof errorCodeSchema>;

@@ -91,8 +91,15 @@ export function toMyProfile(user: UserDoc): MyProfile {
   };
 }
 
-/** What `viewerId` may see of `user`. The owner always sees everything. */
-export function toPublicProfile(user: UserDoc, viewerId: string): PublicProfile {
+/**
+ * What `viewerId` may see of `user`. The owner always sees everything. Someone `user` blocked
+ * (`blockedViewer`) sees neither their photo nor their about, whatever their privacy says.
+ */
+export function toPublicProfile(
+  user: UserDoc,
+  viewerId: string,
+  options: { blockedViewer?: boolean } = {},
+): PublicProfile {
   const id = user._id.toString();
   if (isDeactivated(user)) {
     return {
@@ -106,12 +113,14 @@ export function toPublicProfile(user: UserDoc, viewerId: string): PublicProfile 
   }
   const self = id === viewerId;
   const privacy = privacyOf(user);
+  const shows = (setting: 'everyone' | 'nobody') =>
+    self || (setting === 'everyone' && !options.blockedViewer);
   return {
     id,
     displayName: user.displayName ?? user.email.split('@')[0] ?? 'User',
     username: user.username ?? null,
-    about: self || privacy.about === 'everyone' ? (user.about ?? brand.defaultAbout) : null,
-    avatar: self || privacy.profilePhoto === 'everyone' ? avatarUrls(user) : null,
+    about: shows(privacy.about) ? (user.about ?? brand.defaultAbout) : null,
+    avatar: shows(privacy.profilePhoto) ? avatarUrls(user) : null,
     deactivated: false,
   };
 }

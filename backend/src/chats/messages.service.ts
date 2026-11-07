@@ -10,6 +10,7 @@ import type { ChatDoc, ChatMemberDoc, LastMessageSnapshot, MessageDoc } from '..
 import { AppError } from '../lib/errors.ts';
 import { KeyedQueue } from '../lib/keyed-queue.ts';
 import { attachMedia, toMediaInfo } from '../media/media.service.ts';
+import { assertNotBlocked } from '../moderation/blocks.service.ts';
 import { usersModel } from '../users/user-record.ts';
 import { chatModels, isDuplicateKey, oid, requireMember } from './chats.service.ts';
 import { noteGroupActivity } from './group-activity.ts';
@@ -78,6 +79,7 @@ async function assertMaySend(
   const deactivated =
     other && (await usersModel(app).exists({ _id: other.userId, status: 'deactivated' }));
   if (deactivated) throw new AppError('FORBIDDEN', 'This account has been deactivated.');
+  if (other) await assertNotBlocked(app, userId, other.userId.toString());
   return other?.userId.toString() ?? null;
 }
 

@@ -10,22 +10,12 @@ import {
 } from '@zuvo/protocol';
 import type { FastifyRequest } from 'fastify';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
-import {
-  type Actor,
-  assertNotLastAdmin,
-  assertNotSelf,
-  audit,
-  findTarget,
-  listAudit,
-  listUsers,
-  setRole,
-} from '../../admin/admin.service.ts';
+import { type Actor, listAudit, listUsers, setRole } from '../../admin/admin.service.ts';
+import { setUserStatus } from '../../admin/user-status.ts';
 import { requireAdmin } from '../../auth/session.ts';
-import { onUserDeactivated, onUserReactivated } from '../../chats/group-ownership.service.ts';
 import { AppError } from '../../lib/errors.ts';
-import { usersModel } from '../../users/user-record.ts';
 
-function actorOf(request: FastifyRequest): Actor {
+export function actorOf(request: FastifyRequest): Actor {
   if (!request.auth) throw new AppError('UNAUTHENTICATED', 'Please sign in.');
   return {
     id: request.auth.user.id,
@@ -39,39 +29,8 @@ export const adminRoutes: FastifyPluginAsyncZod = async (app) => {
   // onRequest: authentication is decided before any body is parsed or validated (401 before 400).
   app.addHook('onRequest', requireAdmin);
 
-  async function setStatus(actor: Actor, id: string, status: 'active' | 'deactivated') {
-    const target = await findTarget(app, id);
-    if (status === 'deactivated') {
-      assertNotSelf(actor, target, 'deactivate');
-      await assertNotLastAdmin(app, target);
-    }
-    const context = await app.auth.$context;
-    let revokedSessions = 0;
-    if ((target.status ?? 'active') !== status) {
-      // Block new logins and socket connections first, then close what is open.
-      await usersModel(app).updateOne({ _id: target._id }, { $set: { status } });
-      await audit(
-        app,
-        actor,
-        status === 'deactivated' ? 'user.deactivate' : 'user.reactivate',
-        target,
-      );
-    }
-    if (status === 'deactivated') {
-      // Sockets first, so they hear "deactivated" rather than a plain session revocation.
-      app.realtime.revokeUser(id, 'deactivated');
-      revokedSessions = (await context.internalAdapter.listSessions(id)).length;
-      await context.internalAdapter.deleteUserSessions(id);
-      await onUserDeactivated(app, id);
-    } else {
-      await onUserReactivated(app, id);
-    }
-    app.log.info(
-      { targetUserId: id, adminId: actor.id, status, revokedSessions },
-      'user status changed',
-    );
-    return { user: { id, email: target.email, status }, revokedSessions };
-  }
+  const setStatus = (actor: Actor, id: string, status: 'active' | 'deactivated') =>
+    setUserStatus(app, actor, id, status);
 
   app.get(
     '/admin/users',

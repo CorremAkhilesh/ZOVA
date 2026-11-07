@@ -11,6 +11,7 @@ import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { currentUserId, requireSession } from '../../auth/session.ts';
 import { AppError } from '../../lib/errors.ts';
+import { blockersAmong } from '../../moderation/blocks.service.ts';
 import { privacyOf, toPublicProfile } from '../../users/user-record.ts';
 import { requireUser, searchUsers, usernameAvailability } from '../../users/users.service.ts';
 
@@ -62,9 +63,14 @@ export const usersRoutes: FastifyPluginAsyncZod = async (app) => {
         response: { 200: publicProfileResponseSchema },
       },
     },
-    async (request) => ({
-      user: toPublicProfile(await requireUser(app, request.params.id), currentUserId(request)),
-    }),
+    async (request) => {
+      const viewer = currentUserId(request);
+      const user = await requireUser(app, request.params.id);
+      const blockers = await blockersAmong(app, viewer, [user._id]);
+      return {
+        user: toPublicProfile(user, viewer, { blockedViewer: blockers.size > 0 }),
+      };
+    },
   );
 
   app.get(
@@ -83,7 +89,11 @@ export const usersRoutes: FastifyPluginAsyncZod = async (app) => {
     async (request, reply) => {
       const user = await requireUser(app, request.params.id);
       const viewer = currentUserId(request);
-      const hidden = user._id.toString() !== viewer && privacyOf(user).profilePhoto === 'nobody';
+      const other = user._id.toString() !== viewer;
+      const hidden =
+        other &&
+        (privacyOf(user).profilePhoto === 'nobody' ||
+          (await blockersAmong(app, viewer, [user._id])).size > 0);
       if (!user.avatar || hidden || user.status === 'deactivated') {
         throw new AppError('NOT_FOUND', 'No photo.');
       }

@@ -10,6 +10,7 @@ import {
 import type { FastifyInstance } from 'fastify';
 import { Types } from 'mongoose';
 import { AppError } from '../lib/errors.ts';
+import { blockerIds } from '../moderation/blocks.service.ts';
 import {
   buildSearchTerms,
   chatSettingsOf,
@@ -175,7 +176,9 @@ export async function searchUsers(app: FastifyInstance, input: SearchInput) {
   const { viewerId, limit } = input;
   const q = input.q.trim().toLocaleLowerCase();
   const Users = usersModel(app);
-  const base = { status: { $ne: 'deactivated' }, _id: { $ne: new Types.ObjectId(viewerId) } };
+  // People who blocked me cannot be found by me.
+  const hidden = [new Types.ObjectId(viewerId), ...(await blockerIds(app, viewerId))];
+  const base = { status: { $ne: 'deactivated' }, _id: { $nin: hidden } };
   const page = (docs: UserDoc[], nextCursor: string | null) => ({
     items: docs.map((doc): PublicProfile => toPublicProfile(doc, viewerId)),
     nextCursor,
@@ -199,7 +202,7 @@ export async function searchUsers(app: FastifyInstance, input: SearchInput) {
     searchTerms: { $all: words.map((word) => new RegExp(`^${escapeRegex(word)}`)) },
   };
   if (input.cursor && Types.ObjectId.isValid(input.cursor)) {
-    filter._id = { $ne: new Types.ObjectId(viewerId), $gt: new Types.ObjectId(input.cursor) };
+    filter._id = { $nin: hidden, $gt: new Types.ObjectId(input.cursor) };
   }
   const docs = (await Users.find(filter)
     .sort({ _id: 1 })

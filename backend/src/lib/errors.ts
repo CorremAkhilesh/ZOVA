@@ -34,6 +34,9 @@ const STATUS_BY_CODE: Record<ErrorCode, number> = {
   EDIT_WINDOW_PASSED: 409,
   DELETE_WINDOW_PASSED: 409,
   PIN_LIMIT_REACHED: 409,
+  BLOCKED: 403,
+  CANNOT_MESSAGE: 403,
+  PREVIEW_UNAVAILABLE: 422,
 };
 
 /** An expected error whose message is safe to show to the client. */

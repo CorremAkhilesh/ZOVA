@@ -3,6 +3,7 @@ import type { FastifyInstance } from 'fastify';
 import { chatModels, oid, requireMember } from '../chats/chats.service.ts';
 import { assertAllowed, groupRules } from '../chats/group-permissions.ts';
 import { AppError } from '../lib/errors.ts';
+import { blockedEitherWay } from '../moderation/blocks.service.ts';
 import type { ZuvoSocket } from './server.ts';
 import { windowLimit } from './socket-limit.ts';
 
@@ -23,23 +24,31 @@ export function createTyping(app: FastifyInstance, socket: ZuvoSocket) {
   async function assertMayType(chatId: string) {
     const member = await requireMember(app, chatId, userId);
     const chat = await chatModels(app).Chat.findById(chatId).select({ group: 1, type: 1 }).lean();
-    if (chat?.type !== 'group') return;
+    if (chat?.type !== 'group') return chat?.type ?? null;
     const settings = { ...DEFAULT_GROUP_SETTINGS, ...chat.group?.settings };
     assertAllowed(groupRules.sendMessages(member.role, settings), 'Only admins can send messages.');
+    return chat.type;
   }
 
   /** The other members, so an event can never reach anyone outside the chat. */
   async function otherMembers(chatId: string): Promise<string[]> {
     // Each time: someone removed from a group, or told only admins may speak there, says nothing.
-    await assertMayType(chatId);
+    const type = await assertMayType(chatId);
     const cached = others.get(chatId);
-    if (cached && Date.now() - cached.at < MEMBERS_CACHE_MS) return cached.ids;
-    const members = await chatModels(app)
-      .ChatMember.find({ chatId: oid(chatId), leftAt: null })
-      .select({ userId: 1 })
-      .lean();
-    const ids = members.map((member) => member.userId.toString()).filter((id) => id !== userId);
-    others.set(chatId, { ids, at: Date.now() });
+    const ids =
+      cached && Date.now() - cached.at < MEMBERS_CACHE_MS
+        ? cached.ids
+        : (
+            await chatModels(app)
+              .ChatMember.find({ chatId: oid(chatId), leftAt: null })
+              .select({ userId: 1 })
+              .lean()
+          )
+            .map((member) => member.userId.toString())
+            .filter((id) => id !== userId);
+    others.set(chatId, { ids, at: cached?.at ?? Date.now() });
+    // A direct chat with a block either way: typing goes nowhere, and the typist is not told why.
+    if (type === 'direct' && (await blockedEitherWay(app, userId, ids)).size > 0) return [];
     return ids;
   }
 
