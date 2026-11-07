@@ -304,9 +304,13 @@
 - Work only on `dev`.
 - Push to `dev` → GitHub Actions runs CI (`.github/workflows/ci.yml`: quality, backend + frontend tests
   with coverage gates, E2E on 4 browsers, build + bundle budget, audit + gitleaks; see
-  `docs/runbooks/ci.md`), then deploys to **staging**. CI never uses secrets, Atlas or real SMTP.
-- Merge `dev` → `main` (**only when the owner says so**) → deploys **production**.
-- Images on GHCR; deploys over SSH with health checks and auto-rollback.
+  `docs/runbooks/ci.md`). CI never uses secrets, Atlas or real SMTP.
+- **Deploys come later.** The app is built first and deployed to the VPS at the end (Steps 22–25).
+  Until then a push to `dev` runs **CI only**: no deploy workflow exists and nothing reaches staging.
+- Planned once deploys exist:
+  - push to `dev` → CI, then deploy to **staging**
+  - merge `dev` → `main` (**only when the owner says so**) → deploy **production**
+  - images on GHCR; deploys over SSH with health checks and auto-rollback
 - Setting up or changing the VPS: `docs/runbooks/vps-checklist.md`.
 - Secrets live in GitHub Secrets and `/srv/zuvo/*.env` on the VPS.
 

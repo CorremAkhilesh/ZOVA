@@ -39,6 +39,13 @@ Known work that was decided on or deliberately left for later. Product scope liv
 ## Operations
 
 - **Alert email at 80% disk use**, required by `CLAUDE.md`.
-- **Deploy workflows and `infra/`** do not exist yet: see `docs/runbooks/vps-checklist.md`.
+- **Deploy workflows and `infra/`** do not exist yet (Steps 22–25): see `docs/runbooks/vps-checklist.md`.
+
+## Performance
+
+- **CI E2E is getting slower.** Run 38 (71edc1f, 2026-11-07) took 19:40 for the E2E job, against 13–16
+  minutes for the runs just before it. Look at it in the performance step: the slowest specs per browser,
+  the worker count, and whether the dev-server pass repeats flows the production pass already covers.
+  Not optimised yet, on purpose.
 - **More than one API instance:** the upload guards against double-processing and overlapping chunk
   writes live in the API's memory, and would need to move to Redis.
