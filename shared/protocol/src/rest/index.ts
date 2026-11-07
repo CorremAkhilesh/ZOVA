@@ -15,5 +15,6 @@ export * from './media.ts';
 export * from './message-actions.ts';
 export * from './moderation.ts';
 export * from './profile.ts';
+export * from './search.ts';
 export * from './security.ts';
 export * from './settings.ts';

@@ -25,6 +25,7 @@ import { mediaRoutes } from './modules/media/media.routes.ts';
 import { blocksRoutes } from './modules/moderation/blocks.routes.ts';
 import { adminReportsRoutes, reportsRoutes } from './modules/moderation/reports.routes.ts';
 import { linkPreviewsRoutes } from './modules/previews/link-previews.routes.ts';
+import { searchRoutes } from './modules/search/search.routes.ts';
 import { sessionsRoutes } from './modules/security/sessions.routes.ts';
 import { outboxRoutes } from './modules/test-support/outbox.routes.ts';
 import { meRoutes } from './modules/users/me.routes.ts';
@@ -132,6 +133,7 @@ export async function buildApp(env: Env, deps: Partial<AppDeps> = {}) {
   await app.register(reportsRoutes, { prefix: '/v1' });
   await app.register(adminReportsRoutes, { prefix: '/v1' });
   await app.register(linkPreviewsRoutes, { prefix: '/v1' });
+  await app.register(searchRoutes, { prefix: '/v1' });
   if (env.NODE_ENV === 'test' && isMemoryMailer(app.mailer)) {
     await app.register(outboxRoutes(app.mailer), { prefix: '/v1' });
   }
