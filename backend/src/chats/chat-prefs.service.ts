@@ -57,6 +57,8 @@ export async function announceOwnChat(
     mutedUntil: summary.mutedUntil ?? null,
     archived: summary.archived ?? false,
     markedUnread: summary.markedUnread ?? false,
+    pins: summary.pins ?? [],
+    mentionSeqs: summary.mentionSeqs ?? [],
     cursor,
   });
   return summary;
@@ -114,7 +116,7 @@ export async function clearChat(
           ...(options.removeChat ? { lastActivityAt: null } : {}),
         },
         $max: { lastReadSeq: seq, lastDeliveredSeq: seq, ackReadSeq: seq },
-        $unset: { lastReaction: 1 },
+        $unset: { lastReaction: 1, mentionSeqs: 1 },
       },
       { session },
     );

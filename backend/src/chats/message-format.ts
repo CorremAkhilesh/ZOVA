@@ -41,6 +41,16 @@ export function toMessage(doc: MessageDoc, viewerId: string): Message {
         })),
     deletedByAdmin: doc.deletedByAdmin === true,
     linkPreview: deleted ? null : (doc.linkPreview ?? null),
+    ...(doc.mentions?.length && !deleted
+      ? {
+          mentions: doc.mentions.map((mention) => ({
+            userId: mention.userId.toString(),
+            offset: mention.offset,
+            length: mention.length,
+          })),
+        }
+      : {}),
+    ...(doc.mentionsEveryone && !deleted ? { mentionsEveryone: true } : {}),
     replyToId: doc.replyToId?.toString() ?? null,
     editedAt: doc.editedAt?.toISOString() ?? null,
     deletedForEveryoneAt: doc.deletedForEveryoneAt?.toISOString() ?? null,

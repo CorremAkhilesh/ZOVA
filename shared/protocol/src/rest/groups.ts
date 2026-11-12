@@ -14,12 +14,18 @@ export const groupSettingsSchema = z.object({
   editInfo: groupAudienceSchema,
   sendMessages: groupAudienceSchema,
   addMembers: groupAudienceSchema,
+  /** Who may pin messages for everyone. Defaults keep copies cached before this existed valid. */
+  pinMessages: groupAudienceSchema.default('all'),
+  /** "@everyone": admins may use it, or nobody. */
+  mentionEveryone: z.enum(['admins', 'off']).default('admins'),
 });
 
 export const DEFAULT_GROUP_SETTINGS: z.infer<typeof groupSettingsSchema> = {
   editInfo: 'all',
   sendMessages: 'all',
   addMembers: 'admins',
+  pinMessages: 'all',
+  mentionEveryone: 'admins',
 };
 
 /** A group as one member sees it. */

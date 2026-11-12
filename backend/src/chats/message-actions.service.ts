@@ -4,9 +4,11 @@ import type { ClientSession } from 'mongoose';
 import type { MessageDoc } from '../db/chat-models.ts';
 import { AppError } from '../lib/errors.ts';
 import { hasLink } from '../previews/link-text.ts';
+import { announceOwnChat } from './chat-prefs.service.ts';
 import { chatModels, oid } from './chats.service.ts';
 import { namesOf } from './group-core.ts';
 import { isAdminRole } from './group-permissions.ts';
+import { checkMentions, editMentions, type MentionInput, mentionUpdate } from './mentions.ts';
 import { previewOf } from './message-format.ts';
 import {
   announceMessageUpdate,
@@ -41,8 +43,9 @@ export async function editMessage(
   chatId: string,
   messageId: string,
   input: string,
+  mentionInput: MentionInput = {},
 ) {
-  const { doc } = await requireVisibleMessage(app, userId, chatId, messageId);
+  const { doc, member } = await requireVisibleMessage(app, userId, chatId, messageId);
   assertActionable(doc);
   if (doc.senderId?.toString() !== userId) {
     throw new AppError('FORBIDDEN', 'You can only edit your own messages.');
@@ -58,19 +61,28 @@ export async function editMessage(
   const text = trimmed ? input : null;
   // Sent again by a device catching up: nothing has changed.
   if (text === doc.text) return;
+  const checked = await checkMentions(app, doc.chatId, member, text, mentionInput);
   const { Message, Chat } = chatModels(app);
   const editedAt = new Date();
   // Taking every link out also takes the preview away; any link keeps it.
   const linked = hasLink(text);
-  const { hasLink: _had, linkPreview: _preview, ...rest } = doc;
-  const updated: MessageDoc = linked
-    ? { ...rest, text, editedAt, hasLink: true, linkPreview: doc.linkPreview ?? null }
-    : { ...rest, text, editedAt };
-  const change = linked
-    ? { $set: { text, editedAt, hasLink: true } }
-    : { $set: { text, editedAt }, $unset: { hasLink: 1, linkPreview: 1 } };
+  const mention = mentionUpdate(checked);
+  const { hasLink: _had, linkPreview: _preview, mentions: _m, mentionsEveryone: _e, ...rest } = doc;
+  const updated: MessageDoc = {
+    ...rest,
+    text,
+    editedAt,
+    ...mention.set,
+    ...(linked ? { hasLink: true, linkPreview: doc.linkPreview ?? null } : {}),
+  };
+  const change = {
+    $set: { text, editedAt, ...mention.set, ...(linked ? { hasLink: true } : {}) },
+    $unset: { ...mention.unset, ...(linked ? {} : { hasLink: 1, linkPreview: 1 }) },
+  };
+  const touched: string[] = [];
   const pending = await app.mongo.transaction(async (session) => {
     await Message.updateOne({ _id: doc._id }, change, { session });
+    touched.push(...(await editMentions(app, session, doc, checked)));
     const preview = await Chat.updateOne(
       { _id: doc.chatId, 'lastMessage.seq': doc.seq },
       { $set: { 'lastMessage.preview': previewOf(doc.media, text) } },
@@ -82,6 +94,8 @@ export async function editMessage(
     return logMessageUpdate(app, session, updated, { chatChanged: preview.modifiedCount > 0 });
   });
   announceMessageUpdate(app, pending);
+  // Their "@" on the chat may have come or gone.
+  for (const id of touched) await announceOwnChat(app, id, chatId, '0').catch(() => undefined);
   await refreshQuotes(app, doc, { text: previewOf(doc.media, text), deleted: false });
 }
 
@@ -130,6 +144,12 @@ export async function deleteForEveryone(
     const preview = await Chat.updateOne(
       { _id: doc.chatId, 'lastMessage.seq': doc.seq },
       { $set: { 'lastMessage.preview': '', 'lastMessage.deleted': true } },
+      { session },
+    );
+    // A deleted message stays pinned for nobody.
+    await Chat.updateOne(
+      { _id: doc.chatId },
+      { $pull: { pins: { messageId: doc._id } } },
       { session },
     );
     await patchPreviewCopies(app, session, doc, {

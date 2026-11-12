@@ -1,6 +1,9 @@
 export * from './auth.ts';
+export * from './chat-extras.ts';
 export * from './chats.ts';
 export * from './config.ts';
+export * from './drafts.ts';
+export * from './folders.ts';
 export * from './groups.ts';
 export {
   type CheckStatus,

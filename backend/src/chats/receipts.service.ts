@@ -89,6 +89,8 @@ export async function markRead(app: FastifyInstance, userId: string, chatId: str
       {
         $set: { lastReadSeq: target, sharedReadSeq },
         $max: { lastDeliveredSeq, ackReadSeq: visible ? target : lastDeliveredSeq },
+        // Mentions read are no longer waiting: the "@" goes once nothing unread mentions me.
+        $pull: { mentionSeqs: { $lte: target } },
       },
       { session },
     );

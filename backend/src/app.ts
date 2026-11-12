@@ -17,8 +17,11 @@ import { createMemoryMailer, isMemoryMailer } from './mail/memory-mailer.ts';
 import { adminRoutes } from './modules/admin/admin.routes.ts';
 import { authRoutes } from './modules/auth/auth.routes.ts';
 import { chatsRoutes } from './modules/chats/chats.routes.ts';
+import { draftsRoutes } from './modules/chats/drafts.routes.ts';
+import { foldersRoutes } from './modules/chats/folders.routes.ts';
 import { groupsRoutes } from './modules/chats/groups.routes.ts';
 import { messageActionsRoutes } from './modules/chats/message-actions.routes.ts';
+import { pinsRoutes } from './modules/chats/pins.routes.ts';
 import { configRoutes } from './modules/config/config.routes.ts';
 import { healthRoutes } from './modules/health/health.routes.ts';
 import { mediaRoutes } from './modules/media/media.routes.ts';
@@ -134,6 +137,9 @@ export async function buildApp(env: Env, deps: Partial<AppDeps> = {}) {
   await app.register(adminReportsRoutes, { prefix: '/v1' });
   await app.register(linkPreviewsRoutes, { prefix: '/v1' });
   await app.register(searchRoutes, { prefix: '/v1' });
+  await app.register(draftsRoutes, { prefix: '/v1' });
+  await app.register(foldersRoutes, { prefix: '/v1' });
+  await app.register(pinsRoutes, { prefix: '/v1' });
   if (env.NODE_ENV === 'test' && isMemoryMailer(app.mailer)) {
     await app.register(outboxRoutes(app.mailer), { prefix: '/v1' });
   }

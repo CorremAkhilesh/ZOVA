@@ -6,7 +6,7 @@ import {
 } from '@zuvo/protocol';
 import type { FastifyInstance } from 'fastify';
 import { type ClientSession, Types } from 'mongoose';
-import type { ChatDoc, ChatMemberDoc, LastMessageSnapshot, MessageDoc } from '../db/chat-models.ts';
+import type { ChatMemberDoc, LastMessageSnapshot, MessageDoc } from '../db/chat-models.ts';
 import { AppError } from '../lib/errors.ts';
 import { KeyedQueue } from '../lib/keyed-queue.ts';
 import { attachMedia, toMediaInfo } from '../media/media.service.ts';
@@ -14,10 +14,12 @@ import { assertNotBlocked } from '../moderation/blocks.service.ts';
 import { linkFields } from '../previews/link-previews.service.ts';
 import { usersModel } from '../users/user-record.ts';
 import { chatModels, isDuplicateKey, oid, requireMember } from './chats.service.ts';
+import { deliver } from './deliver.ts';
 import { noteGroupActivity } from './group-activity.ts';
 import { assertAllowed, groupRules } from './group-permissions.ts';
 import { refreshGroupMarks } from './group-receipts.service.ts';
-import { hideQuote, previewOf, toLastMessage, toMessage } from './message-format.ts';
+import { checkMentions, type MentionInput, mentionFields, recordMentions } from './mentions.ts';
+import { previewOf, toMessage } from './message-format.ts';
 import { quoteOf } from './message-updates.ts';
 import { readsVisibleBetween } from './receipts.service.ts';
 import { unarchiveForNewMessage } from './unarchive.ts';
@@ -39,6 +41,9 @@ export interface SendInput {
   forward?: { media: MediaInfo | null; type: MessageDoc['type']; count: number };
   /** A preview the sender looked up for a link in `text`. */
   linkPreviewId?: string | undefined;
+  /** Groups: who the text names, and "@everyone". */
+  mentions?: MentionInput['mentions'];
+  mentionsEveryone?: boolean | undefined;
 }
 
 export interface SendResult {
@@ -105,52 +110,6 @@ function extrasOf(replyTo: ReplyQuote | null, forward: SendInput['forward']) {
   };
 }
 
-interface DeliveredMember {
-  userId: string;
-  lastReadSeq: number;
-  lastDeliveredSeq: number;
-  sharedReadSeq: number;
-  joinSeq?: number | undefined;
-  clearedSeq?: number | undefined;
-  cursor: string;
-  /** This message brought the chat back from this member's archive. */
-  unarchived: boolean;
-}
-
-/** Tells every member's devices: the message, and the chat as that member now sees it. */
-function deliver(
-  app: FastifyInstance,
-  message: Message,
-  chat: Pick<ChatDoc, 'type'> & { lastMessage: LastMessageSnapshot },
-  members: DeliveredMember[],
-) {
-  for (const member of members) {
-    const { userId, lastReadSeq, cursor } = member;
-    const peer = chat.type === 'direct' ? members.find((m) => m.userId !== userId) : undefined;
-    app.realtime.emitToUser(userId, 'message:new', {
-      message: hideQuote(message, member),
-      cursor,
-    });
-    app.realtime.emitToUser(userId, 'chat:updated', {
-      chatId: message.chatId,
-      type: chat.type,
-      seq: message.seq,
-      lastMessage: toLastMessage(chat.lastMessage),
-      lastReadSeq,
-      unreadCount: Math.max(0, message.seq - lastReadSeq),
-      lastActivityAt: message.createdAt,
-      ...(member.unarchived ? { archived: false } : {}),
-      ...(peer
-        ? {
-            peerDeliveredSeq: peer.lastDeliveredSeq,
-            peerReadSeq: peer.sharedReadSeq,
-          }
-        : {}),
-      cursor,
-    });
-  }
-}
-
 /**
  * Stores a message. Position, chat snapshot, member activity and each member's update log all
  * change in one transaction: an aborted send leaves no gap, a committed one leaves no holes.
@@ -166,6 +125,7 @@ export async function sendMessage(app: FastifyInstance, input: SendInput): Promi
   // Read positions a reply reveals are decided before anything changes.
   const shareRead = peerId ? await readsVisibleBetween(app, [userId, peerId]) : false;
   const links = await linkFields(app, input.linkPreviewId, text);
+  const mentioned = await checkMentions(app, oid(chatId), sender, text, input);
 
   const models = chatModels(app);
   const chatOid = oid(chatId);
@@ -211,6 +171,7 @@ export async function sendMessage(app: FastifyInstance, input: SendInput): Promi
           albumId: albumId ?? null,
           ...extrasOf(replyTo, forward),
           ...links,
+          ...mentionFields(mentioned),
           replyToId: null,
           editedAt: null,
           deletedForEveryoneAt: null,
@@ -238,6 +199,7 @@ export async function sendMessage(app: FastifyInstance, input: SendInput): Promi
           },
           { session },
         );
+        if (mentioned) await recordMentions(app, session, chatOid, chat.seq, mentioned.recipients);
         const members = await models.ChatMember.find({ chatId: chatOid, leftAt: null })
           .select({
             userId: 1,
@@ -247,6 +209,7 @@ export async function sendMessage(app: FastifyInstance, input: SendInput): Promi
             joinSeq: 1,
             clearedSeq: 1,
             archivedAt: 1,
+            mentionSeqs: 1,
           })
           .session(session)
           .lean();
@@ -271,6 +234,9 @@ export async function sendMessage(app: FastifyInstance, input: SendInput): Promi
             clearedSeq: member.clearedSeq,
             cursor: cursors.get(member.userId.toString()) ?? '0',
             unarchived: unarchived.has(member.userId.toString()),
+            mentionSeqs: mentioned?.recipients.some((id) => id.equals(member.userId))
+              ? member.mentionSeqs
+              : undefined,
           })),
         };
       }),

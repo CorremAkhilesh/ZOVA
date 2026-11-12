@@ -3,14 +3,34 @@ import { describe, expect, it } from 'vitest';
 import { groupRules } from './group-permissions.ts';
 
 const ROLES: GroupRole[] = ['owner', 'admin', 'member'];
-const open = { editInfo: 'all', sendMessages: 'all', addMembers: 'all' } as const;
-const closed = { editInfo: 'admins', sendMessages: 'admins', addMembers: 'admins' } as const;
+const open = {
+  editInfo: 'all',
+  sendMessages: 'all',
+  addMembers: 'all',
+  pinMessages: 'all',
+  mentionEveryone: 'admins',
+} as const;
+const closed = {
+  editInfo: 'admins',
+  sendMessages: 'admins',
+  addMembers: 'admins',
+  pinMessages: 'admins',
+  mentionEveryone: 'off',
+} as const;
 const who = (rule: (role: GroupRole) => boolean) => ROLES.filter((role) => rule(role));
 
 describe('what each role may do', () => {
-  it.each(['editInfo', 'sendMessages', 'addMembers'] as const)('%s follows its setting', (key) => {
-    expect(who((role) => groupRules[key](role, open))).toEqual(ROLES);
-    expect(who((role) => groupRules[key](role, closed))).toEqual(['owner', 'admin']);
+  it.each(['editInfo', 'sendMessages', 'addMembers', 'pinMessages'] as const)(
+    '%s follows its setting',
+    (key) => {
+      expect(who((role) => groupRules[key](role, open))).toEqual(ROLES);
+      expect(who((role) => groupRules[key](role, closed))).toEqual(['owner', 'admin']);
+    },
+  );
+
+  it('lets only admins say @everyone, and nobody once it is off', () => {
+    expect(who((role) => groupRules.mentionEveryone(role, open))).toEqual(['owner', 'admin']);
+    expect(who((role) => groupRules.mentionEveryone(role, closed))).toEqual([]);
   });
 
   it('starts with members able to talk and edit, but only admins adding people', () => {

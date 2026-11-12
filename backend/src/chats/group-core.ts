@@ -7,6 +7,7 @@ import { AppError } from '../lib/errors.ts';
 import { type UserDoc, usersModel } from '../users/user-record.ts';
 import { chatModels, oid, requireMember } from './chats.service.ts';
 import { toLastMessage, toMessage } from './message-format.ts';
+import { visiblePins } from './pin-view.ts';
 import { logUpdates } from './updates.ts';
 
 export const photoUrls = (chat: Pick<ChatDoc, '_id' | 'group'>) => {
@@ -160,7 +161,9 @@ export function deliverSystemMessage(app: FastifyInstance, stored: StoredSystemM
       lastReadSeq: member.lastReadSeq,
       unreadCount: Math.max(0, message.seq - member.lastReadSeq),
       lastActivityAt: message.createdAt,
-      group: groupView(chat, member),
+      // System messages also announce pins in 1:1 chats, which have no group to show.
+      ...(chat.type === 'group' ? { group: groupView(chat, member) } : {}),
+      pins: visiblePins(chat.pins, member),
       cursor,
     });
   }

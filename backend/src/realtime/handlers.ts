@@ -129,6 +129,8 @@ export function registerHandlers(app: FastifyInstance, socket: ZuvoSocket): void
           albumId: input.albumId,
           replyTo: input.replyTo,
           linkPreviewId: input.linkPreviewId,
+          mentions: input.mentions,
+          mentionsEveryone: input.mentionsEveryone,
         });
         return { messageId: message.id, seq: message.seq, createdAt: message.createdAt, duplicate };
       },

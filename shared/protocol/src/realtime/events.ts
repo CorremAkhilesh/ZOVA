@@ -1,5 +1,10 @@
 import { z } from 'zod';
-import { blocksChangedEventSchema, settingsUpdatedEventSchema } from './account.ts';
+import {
+  blocksChangedEventSchema,
+  draftUpdatedEventSchema,
+  foldersUpdatedEventSchema,
+  settingsUpdatedEventSchema,
+} from './account.ts';
 import type { AckResponse } from './ack.ts';
 import {
   chatClearedEventSchema,
@@ -67,6 +72,8 @@ export const serverToClientEvents = {
   'reaction:preview': reactionPreviewEventSchema,
   'settings:updated': settingsUpdatedEventSchema,
   'blocks:changed': blocksChangedEventSchema,
+  'folders:updated': foldersUpdatedEventSchema,
+  'draft:updated': draftUpdatedEventSchema,
 } satisfies Record<string, z.ZodType>;
 
 type ClientEvents = typeof clientToServerEvents;

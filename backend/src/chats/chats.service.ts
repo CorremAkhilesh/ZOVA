@@ -5,8 +5,7 @@ import { type ChatDoc, type ChatMemberDoc, registerChatModels } from '../db/chat
 import { AppError } from '../lib/errors.ts';
 import { blockersAmong } from '../moderation/blocks.service.ts';
 import { privacyOf, toPublicProfile, type UserDoc, usersModel } from '../users/user-record.ts';
-import { groupView } from './group-core.ts';
-import { shownLast, toLastMessage } from './message-format.ts';
+import { NO_PEER, peerProgress, toSummary } from './chat-summary.ts';
 import { logUpdates } from './updates.ts';
 
 export const chatModels = (app: FastifyInstance) => registerChatModels(app.mongo);
@@ -82,49 +81,9 @@ export async function buildSummaries(
   });
 }
 
-type PeerProgress = Pick<ChatSummary, 'peerDeliveredSeq' | 'peerReadSeq'>;
-const NO_PEER: PeerProgress = { peerDeliveredSeq: 0, peerReadSeq: 0 };
-
 /** Reciprocal, like the rest of presence: with receipts off on either side, nobody sees reads. */
 export const readReceiptsVisible = (a: UserDoc | undefined, b: UserDoc | undefined) =>
   Boolean(a && b && privacyOf(a).readReceipts && privacyOf(b).readReceipts);
-
-function peerProgress(
-  other: Pick<ChatMemberDoc, 'lastDeliveredSeq' | 'lastReadSeq' | 'sharedReadSeq'>,
-): PeerProgress {
-  return {
-    peerDeliveredSeq: other.lastDeliveredSeq,
-    peerReadSeq: other.sharedReadSeq ?? other.lastReadSeq,
-  };
-}
-
-function toSummary(
-  chat: ChatDoc,
-  member: ChatMemberDoc,
-  otherUser: ChatSummary['otherUser'],
-  peer: PeerProgress,
-): ChatSummary {
-  const seq = member.leftSeq ?? chat.seq;
-  const last = shownLast(chat, member);
-  return {
-    id: chat._id.toString(),
-    type: chat.type,
-    seq,
-    otherUser,
-    group: chat.type === 'group' ? groupView(chat, member) : null,
-    lastMessage: last ? toLastMessage(last) : null,
-    lastReadSeq: member.lastReadSeq,
-    unreadCount: Math.max(0, seq - member.lastReadSeq),
-    pinned: Boolean(member.pinnedAt),
-    mutedUntil: member.mutedUntil?.toISOString() ?? null,
-    archived: Boolean(member.archivedAt),
-    markedUnread: member.markedUnread === true,
-    lastReaction: member.lastReaction ?? null,
-    ...peer,
-    lastActivityAt: member.lastActivityAt?.toISOString() ?? null,
-    createdAt: chat.createdAt.toISOString(),
-  };
-}
 
 async function summaryFor(app: FastifyInstance, chatId: string, userId: string) {
   const member = await chatModels(app)

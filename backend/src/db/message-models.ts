@@ -43,6 +43,9 @@ export interface MessageDoc {
   /** A copy of the sender's preview, kept after the cache forgets it. `hasLink`: the Links tab. */
   linkPreview?: LinkPreview | null;
   hasLink?: boolean;
+  /** Groups: members named in the text, and "@everyone". */
+  mentions?: Array<{ userId: Types.ObjectId; offset: number; length: number }>;
+  mentionsEveryone?: boolean;
   replyToId: Types.ObjectId | null;
   editedAt: Date | null;
   deletedForEveryoneAt: Date | null;
@@ -69,6 +72,8 @@ export const messageSchema = new Schema<MessageDoc>(
     entities: { type: [Schema.Types.Mixed], default: undefined },
     linkPreview: { type: Schema.Types.Mixed, default: undefined },
     hasLink: { type: Boolean, default: undefined },
+    mentions: { type: [Schema.Types.Mixed], default: undefined },
+    mentionsEveryone: { type: Boolean, default: undefined },
     replyToId: { type: ObjectId, default: null },
     editedAt: { type: Date, default: null },
     deletedForEveryoneAt: { type: Date, default: null },

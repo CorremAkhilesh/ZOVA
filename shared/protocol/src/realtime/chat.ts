@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { isoDateTimeSchema, objectIdSchema } from '../common/id.ts';
+import { mentionsInputSchema, pinnedMessageSchema } from '../rest/chat-extras.ts';
 import {
   chatTypeSchema,
   clientMsgIdSchema,
@@ -31,6 +32,9 @@ export const sendMessagePayloadSchema = z
     albumId: z.uuid().optional(),
     /** From POST /v1/link-previews, for a link in `text`. Dropped if it no longer matches. */
     linkPreviewId: objectIdSchema.optional(),
+    /** Groups only: members named in `text` (or the caption), and "@everyone" (admins). */
+    mentions: mentionsInputSchema.optional(),
+    mentionsEveryone: z.boolean().optional(),
   })
   .refine((message) => (message.text === undefined) !== (message.mediaIds === undefined), {
     message: 'Send either text or media',
@@ -75,6 +79,9 @@ export const chatUpdatedEventSchema = z.object({
   /** Sent with new messages in direct chats: replying also means having received and read. */
   peerDeliveredSeq: z.number().int().nonnegative().optional(),
   peerReadSeq: z.number().int().nonnegative().optional(),
+  /** Present when they changed: the chat's pins I may see, and my unread mentions. */
+  pins: z.array(pinnedMessageSchema).optional(),
+  mentionSeqs: z.array(z.number().int().positive()).optional(),
   cursor: syncCursorSchema,
 });
 

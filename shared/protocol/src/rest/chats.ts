@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { isoDateTimeSchema, objectIdSchema } from '../common/id.ts';
+import { mentionSchema, pinnedMessageSchema } from './chat-extras.ts';
 import { groupInfoSchema } from './groups.ts';
 import { linkPreviewSchema } from './link-previews.ts';
 import { mediaInfoSchema } from './media.ts';
@@ -37,6 +38,8 @@ export const systemEventSchema = z.object({
     'demoted',
     'settings_changed',
     'owner_changed',
+    /** Someone pinned a message; `value` is its position in the chat. */
+    'pinned',
   ]),
   /** Null when the system did it, such as passing on ownership from a deactivated account. */
   actor: z.object({ id: z.string(), name: z.string() }).nullable(),
@@ -68,6 +71,13 @@ export const replyQuoteSchema = z.object({
   deleted: z.boolean(),
   /** From before this person joined the group: they get to know only that it was a reply. */
   unavailable: z.boolean().optional(),
+});
+
+/** Unsent text and the reply being written, per chat and person. The newest `updatedAt` wins. */
+export const draftSchema = z.object({
+  text: z.string().max(MESSAGE_TEXT_MAX),
+  replyTo: replyQuoteSchema.nullable(),
+  updatedAt: isoDateTimeSchema,
 });
 
 export const messageReactionSchema = z.object({
@@ -108,6 +118,9 @@ export const messageSchema = z.object({
   deletedByAdmin: z.boolean().optional(),
   /** The sender attached a preview of a link in the text. Gone once deleted for everyone. */
   linkPreview: linkPreviewSchema.nullable().optional(),
+  /** Group members mentioned, and "@everyone". */
+  mentions: z.array(mentionSchema).optional(),
+  mentionsEveryone: z.boolean().optional(),
   replyToId: z.string().nullable(),
   editedAt: isoDateTimeSchema.nullable(),
   deletedForEveryoneAt: isoDateTimeSchema.nullable(),
@@ -162,6 +175,12 @@ export const chatSummarySchema = z.object({
   archived: z.boolean().optional(),
   markedUnread: z.boolean().optional(),
   lastReaction: lastReactionSchema.nullable().optional(),
+  /** Pinned messages I may see, newest pin first. */
+  pins: z.array(pinnedMessageSchema).optional(),
+  /** Positions of messages mentioning me that I have not read yet, oldest first. */
+  mentionSeqs: z.array(z.number().int().positive()).optional(),
+  /** My unsent text here, on every one of my devices. Never anyone else's. */
+  draft: draftSchema.nullable().optional(),
 });
 
 /** POST /v1/chats/direct */

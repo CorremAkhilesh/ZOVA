@@ -37,6 +37,7 @@ const STATUS_BY_CODE: Record<ErrorCode, number> = {
   BLOCKED: 403,
   CANNOT_MESSAGE: 403,
   PREVIEW_UNAVAILABLE: 422,
+  FOLDER_LIMIT_REACHED: 409,
 };
 
 /** An expected error whose message is safe to show to the client. */

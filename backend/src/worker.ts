@@ -1,6 +1,7 @@
 import { pino } from 'pino';
 import { EnvError, loadEnv } from './config/env.ts';
 import { createEmailWorker } from './jobs/email-worker.ts';
+import { startWorkerPinsCleanup } from './jobs/pins-cleanup.ts';
 import { startWorkerMediaCleanup } from './jobs/worker-media-cleanup.ts';
 import { connectionsLine, describeConnections } from './lib/connections.ts';
 import { loggerOptions } from './lib/logger.ts';
@@ -21,16 +22,18 @@ async function main() {
   const mailer = createMailer(env);
   const emailWorker = createEmailWorker(connection, mailer, logger);
   const mediaCleanup = await startWorkerMediaCleanup(env, connection, logger);
+  const pinsCleanup = await startWorkerPinsCleanup(env, connection, logger);
 
   handleShutdown(logger, async () => {
     await emailWorker.close();
     await mediaCleanup.close();
+    await pinsCleanup.close();
     mailer.close();
     await connection.quit();
   });
   await emailWorker.waitUntilReady();
   await checkEvictionPolicy(connection, logger);
-  logger.info('worker started: email queue, media cleanup');
+  logger.info('worker started: email queue, media cleanup, expired pins');
   logger.info(describeConnections(env), connectionsLine(env));
 }
 

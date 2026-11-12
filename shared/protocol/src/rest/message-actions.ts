@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { isoDateTimeSchema, objectIdSchema } from '../common/id.ts';
+import { mentionsInputSchema } from './chat-extras.ts';
 import { messageSchema, messageTextSchema } from './chats.ts';
 
 export const EDIT_WINDOW_MINUTES = 15;
@@ -11,7 +12,12 @@ export const PINNED_CHATS_MAX = 3;
 export const REACTIONS_QUICK = ['👍', '❤️', '😂', '😮', '😢', '🙏'] as const;
 
 /** PATCH /v1/chats/:id/messages/:messageId. Empty only for a caption, which it then removes. */
-export const editMessageBodySchema = z.object({ text: z.string().max(4096) });
+export const editMessageBodySchema = z.object({
+  text: z.string().max(4096),
+  /** Groups: the mentions in the new text. Leaving them out removes every mention. */
+  mentions: mentionsInputSchema.optional(),
+  mentionsEveryone: z.boolean().optional(),
+});
 
 /** DELETE /v1/chats/:id/messages/:messageId?scope=me|everyone */
 export const deleteMessageQuerySchema = z.object({ scope: z.enum(['me', 'everyone']) });

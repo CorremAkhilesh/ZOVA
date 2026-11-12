@@ -1,4 +1,10 @@
-import type { GroupSettings, LastReaction, MediaInfo, SystemEvent } from '@zuvo/protocol';
+import type {
+  GroupSettings,
+  LastReaction,
+  MediaInfo,
+  ReplyQuote,
+  SystemEvent,
+} from '@zuvo/protocol';
 import { type Connection, type Model, Schema, type Types } from 'mongoose';
 import { mediaSchema, receiptEventSchema } from './media-models.ts';
 import { messageSchema } from './message-models.ts';
@@ -28,6 +34,15 @@ export interface LastMessageSnapshot {
   createdAt: Date;
 }
 
+/** A pin as stored: dates, not strings. See PinnedMessage for how members get it. */
+export interface StoredPin {
+  messageId: Types.ObjectId;
+  seq: number;
+  pinnedBy: Types.ObjectId | null;
+  pinnedAt: Date;
+  expiresAt: Date;
+}
+
 export interface ChatDoc {
   _id: Types.ObjectId;
   type: 'direct' | 'group' | 'self';
@@ -39,6 +54,8 @@ export interface ChatDoc {
   seq: number;
   lastMessage: LastMessageSnapshot | null;
   lastActivityAt: Date | null;
+  /** Pinned messages, newest pin first; at most 3. Expired ones are ignored until the job removes them. */
+  pins?: StoredPin[];
   createdBy: Types.ObjectId;
   createdAt: Date;
   group?: {
@@ -63,6 +80,7 @@ const chatSchema = new Schema<ChatDoc>(
     seq: { type: Number, default: 0 },
     lastMessage: { type: Schema.Types.Mixed, default: null },
     lastActivityAt: { type: Date, default: null },
+    pins: { type: [Schema.Types.Mixed], default: undefined },
     createdBy: { type: ObjectId, required: true },
     createdAt: { type: Date, default: () => new Date() },
     group: Schema.Types.Mixed,
@@ -72,6 +90,8 @@ const chatSchema = new Schema<ChatDoc>(
 // Serves: get-or-create a 1:1 chat. Unique: decides the race when two people open it at once.
 // Partial: queries must include `type: 'direct'` for MongoDB to use it.
 chatSchema.index({ pairKey: 1 }, { unique: true, partialFilterExpression: { type: 'direct' } });
+// Serves: the job that removes expired pins. Sparse: most chats have none.
+chatSchema.index({ 'pins.expiresAt': 1 }, { sparse: true });
 // Serves: get-or-create Saved Messages. Unique: one per user.
 // Partial: queries must include `type: 'self'` for MongoDB to use it.
 chatSchema.index({ selfOwnerId: 1 }, { unique: true, partialFilterExpression: { type: 'self' } });
@@ -130,7 +150,10 @@ export interface ChatMemberDoc {
   mutedUntil?: Date | null;
   archivedAt?: Date | null;
   folderIds?: Types.ObjectId[];
-  draft?: string | null;
+  /** My unsent text here; an empty one still holds its time, so an older one cannot come back. */
+  draft?: { text: string; replyTo: ReplyQuote | null; updatedAt: Date } | null;
+  /** Positions of unread messages that mention me, oldest first. */
+  mentionSeqs?: number[];
 }
 
 const chatMemberSchema = new Schema<ChatMemberDoc>(
@@ -158,7 +181,8 @@ const chatMemberSchema = new Schema<ChatMemberDoc>(
     mutedUntil: Date,
     archivedAt: Date,
     folderIds: { type: [ObjectId], default: undefined },
-    draft: String,
+    draft: Schema.Types.Mixed,
+    mentionSeqs: { type: [Number], default: undefined },
   },
   { ...options, collection: 'chat_members' },
 );

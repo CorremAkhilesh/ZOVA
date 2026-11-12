@@ -41,6 +41,8 @@ export const errorCodeSchema = z.enum([
   'CANNOT_MESSAGE',
   /** No link preview for this address: not a web page, not reachable, or not allowed. */
   'PREVIEW_UNAVAILABLE',
+  /** Already 10 folders. */
+  'FOLDER_LIMIT_REACHED',
 ]);
 
 export type ErrorCode = z.infer<typeof errorCodeSchema>;

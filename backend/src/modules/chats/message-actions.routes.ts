@@ -43,7 +43,14 @@ export const messageActionsRoutes: FastifyPluginAsyncZod = async (app) => {
     },
     async (request) => {
       const { id, messageId } = request.params;
-      await editMessage(app, currentUserId(request), id, messageId, request.body.text);
+      await editMessage(
+        app,
+        currentUserId(request),
+        id,
+        messageId,
+        request.body.text,
+        request.body,
+      );
       return done;
     },
   );
