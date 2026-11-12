@@ -1,6 +1,8 @@
 import { type ColorTokens, darkColors, lightColors } from './colors.ts';
 import { darkShadows, lightShadows, type ShadowTokens } from './shadows.ts';
 
+export type { AccentKey, AccentName, AccentPreset, AccentTokens } from './accents.ts';
+export { ACCENT_KEYS, ACCENT_NAMES, accents, DEFAULT_ACCENT, isAccentName } from './accents.ts';
 export type { ColorName, ColorTokens } from './colors.ts';
 export { darkColors, lightColors } from './colors.ts';
 export { contrastRatio, relativeLuminance } from './contrast.ts';
