@@ -1,4 +1,4 @@
-import { EDIT_WINDOW_MINUTES } from '@zuvo/protocol';
+import { EDIT_WINDOW_MINUTES, type Mention } from '@zuvo/protocol';
 import Dexie from 'dexie';
 import { type KeyboardEvent, type RefObject, useEffect, useRef } from 'react';
 import { useSession } from '@/features/auth/session';
@@ -64,11 +64,11 @@ export function useComposerActions(
   return {
     editing,
     /** True when this send was an edit, which is then finished. */
-    finishEdit() {
+    finishEdit(mentions: { mentions?: Mention[]; mentionsEveryone?: boolean } = {}) {
       if (!editing) return false;
       const { client } = useSyncStore.getState();
       if (textRef.current !== editing.text) {
-        void client?.act({ type: 'edit', ...editing, text: textRef.current });
+        void client?.act({ type: 'edit', ...editing, text: textRef.current, ...mentions });
       }
       useMessageUi.getState().setEditing(null);
       return true;

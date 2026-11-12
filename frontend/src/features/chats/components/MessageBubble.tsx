@@ -9,6 +9,7 @@ import { systemText } from '@/features/groups/wording';
 import { LinkPreviewCard } from '@/features/link-previews/LinkPreviewCard';
 import { AlbumGrid, MessageMedia } from '@/features/media/components/MessageMedia';
 import { UploadNotice } from '@/features/media/components/UploadNotice';
+import { openMentionProfile, useMentionMarks } from '@/features/mentions/mention-marks';
 import {
   ForwardedLabel,
   HoverActions,
@@ -109,6 +110,7 @@ function BubbleContent(props: {
   const hasMedia = Boolean(album || message.media);
   const caption = album ? album.find((item) => item.text)?.text : message.text;
   const highlight = useInChatSearch((state) => (state.chatId === message.chatId ? state.term : ''));
+  const mentions = useMentionMarks(message.chatId, caption ?? '', message.mentions);
   // Reserve room so the time, and my tick, never overlap the last line.
   const room = (
     <span
@@ -132,6 +134,8 @@ function BubbleContent(props: {
         <FormattedText
           text={caption ?? ''}
           highlight={highlight}
+          mentions={mentions}
+          onMention={openMentionProfile}
           trailing={room}
           className={cn('break-words', hasMedia && 'mt-1')}
         />

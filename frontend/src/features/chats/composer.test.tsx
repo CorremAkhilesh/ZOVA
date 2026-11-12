@@ -135,11 +135,12 @@ describe('drafts', () => {
     await user.keyboard('half a thought');
     const db = getUserDb(ME_ID);
     await waitFor(async () =>
-      expect(await db.drafts.get('c1')).toMatchObject({ text: 'half a thought' }),
+      expect((await db.chats.get('c1'))?.draft).toMatchObject({ text: 'half a thought' }),
     );
   });
 
-  it('restores the draft on opening the chat, and deletes it on sending', async () => {
+  it('restores the draft on opening the chat, and empties it on sending', async () => {
+    // Saved by an older version, in the table drafts used to have: moved onto the chat's row.
     const db = await seedLocal([chatFixture()]);
     await db.drafts.put({ chatId: 'c1', text: 'come back to this' });
     const user = userEvent.setup();
@@ -149,7 +150,8 @@ describe('drafts', () => {
     await waitFor(() => expect(useSyncStore.getState().client).not.toBeNull());
     input.focus();
     await user.keyboard('{Enter}');
-    await waitFor(async () => expect(await db.drafts.get('c1')).toBeUndefined());
+    await waitFor(async () => expect((await db.chats.get('c1'))?.draft?.text).toBe(''));
+    expect(await db.drafts.get('c1')).toBeUndefined();
     expect(input).toHaveValue('');
   });
 });

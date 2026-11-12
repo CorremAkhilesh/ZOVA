@@ -36,6 +36,46 @@ function makeMarker(term: string | undefined): Marker {
   };
 }
 
+/** An "@Name" in the text: a button to the person's profile, or plain text once they left. */
+export interface MentionMark {
+  text: string;
+  userId: string;
+  active: boolean;
+}
+
+/** Turns the active mentions into buttons, and passes the rest of the text on to `inner`. */
+function withMentions(
+  inner: Marker,
+  mentions: MentionMark[] | undefined,
+  onMention: ((userId: string) => void) | undefined,
+): Marker {
+  const active = (mentions ?? []).filter((mention) => mention.active);
+  if (active.length === 0) return inner;
+  const byText = new Map(active.map((mention) => [mention.text, mention.userId]));
+  const longestFirst = [...byText.keys()].sort((a, b) => b.length - a.length);
+  const pattern = new RegExp(`(${longestFirst.map(escapeRegExp).join('|')})`, 'gu');
+  return (text, key) =>
+    text.split(pattern).map((part, index) => {
+      const userId = index % 2 === 1 ? byText.get(part) : undefined;
+      const partKey = `${key}@${index}`;
+      if (!userId) return <Fragment key={partKey}>{inner(part, partKey)}</Fragment>;
+      return (
+        <button
+          key={partKey}
+          type="button"
+          data-mention={userId}
+          onClick={(event) => {
+            event.stopPropagation();
+            onMention?.(userId);
+          }}
+          className="rounded px-0.5 font-semibold text-accent-text hover:underline"
+        >
+          {inner(part, partKey)}
+        </button>
+      );
+    });
+}
+
 function renderInline(nodes: InlineNode[], mark: Marker, prefix: string): ReactNode[] {
   return nodes.map((node, index) => {
     const key = `${prefix}${index}`;
@@ -127,6 +167,9 @@ interface FormattedTextProps {
   className?: string | undefined;
   /** Inline content kept at the end of the last line (the bubble's room for its time). */
   trailing?: ReactNode;
+  /** Group mentions in the text; tapping an active one calls onMention with who it is. */
+  mentions?: MentionMark[] | undefined;
+  onMention?: ((userId: string) => void) | undefined;
 }
 
 /**
@@ -134,9 +177,19 @@ interface FormattedTextProps {
  * auto-links. Output is built from React elements only: no HTML strings, and links are limited
  * to http(s), mailto and tel. The root is a <div> (it holds blocks), keeping line breaks.
  */
-export function FormattedText({ text, highlight, className, trailing }: FormattedTextProps) {
+export function FormattedText({
+  text,
+  highlight,
+  className,
+  trailing,
+  mentions,
+  onMention,
+}: FormattedTextProps) {
   const blocks = useMemo(() => parse(text), [text]);
-  const mark = useMemo(() => makeMarker(highlight), [highlight]);
+  const mark = useMemo(
+    () => withMentions(makeMarker(highlight), mentions, onMention),
+    [highlight, mentions, onMention],
+  );
   const last = blocks.length - 1;
   // A paragraph keeps `trailing` on its last line; anything else gets it on a line of its own.
   const inline = blocks[last]?.type === 'paragraph';

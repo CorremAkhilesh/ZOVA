@@ -6,6 +6,7 @@ import { SessionGate } from '@/features/auth/components/SessionGate';
 import { requireCompleteSession } from '@/features/auth/guards';
 import { rememberJoinPath } from '@/features/groups/rules';
 import { InstallBanner } from '@/features/install/InstallUi';
+import { MentionProfileHost } from '@/features/mentions/mention-marks';
 import { ModerationHost } from '@/features/moderation/components/ModerationHost';
 import { SearchHost } from '@/features/search/components/SearchHost';
 import { useSyncClient } from '@/features/sync/use-sync-client';
@@ -43,6 +44,7 @@ function AppShell() {
     <>
       <ModerationHost />
       <SearchHost />
+      <MentionProfileHost />
     </>
   );
 

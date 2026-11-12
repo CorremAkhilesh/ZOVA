@@ -179,7 +179,10 @@ export const chatSummarySchema = z.object({
   pins: z.array(pinnedMessageSchema).optional(),
   /** Positions of messages mentioning me that I have not read yet, oldest first. */
   mentionSeqs: z.array(z.number().int().positive()).optional(),
-  /** My unsent text here, on every one of my devices. Never anyone else's. */
+  /**
+   * My unsent text here, on every one of my devices; never anyone else's. Empty text with a time:
+   * cleared then. Null: never had one here.
+   */
   draft: draftSchema.nullable().optional(),
 });
 

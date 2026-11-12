@@ -12,9 +12,11 @@ import { DropZone } from '@/features/media/components/DropZone';
 import { MediaViewer, toViewerItem } from '@/features/media/components/MediaViewer';
 import { PreviewSheet } from '@/features/media/components/PreviewSheet';
 import { useSendMedia } from '@/features/media/use-send-media';
+import { MentionJump } from '@/features/mentions/MentionJump';
 import { MessageDialogs } from '@/features/messages/components/MessageDialogs';
 import { MessageMenu } from '@/features/messages/components/MessageMenu';
 import { ProfileCard } from '@/features/people/components/ProfileCard';
+import { PinnedBar } from '@/features/pins/PinnedBar';
 import { InChatSearchBar } from '@/features/search/components/InChatSearchBar';
 import type { ChatRow } from '@/features/sync/local-db';
 import { useSyncStore } from '@/features/sync/store';
@@ -222,6 +224,7 @@ export function Conversation({ chat }: { chat: ChatRow }) {
           onToggleInfo={() => setInfoOpen((open) => !open)}
           members={members}
         />
+        <PinnedBar chat={chat} />
         <InChatSearchBar chatId={chat.id} />
         <div className="chat-wallpaper relative min-h-0 flex-1">
           {showEmpty ? <EmptyChat saved={summary.kind === 'saved'} name={summary.name} /> : null}
@@ -240,6 +243,7 @@ export function Conversation({ chat }: { chat: ChatRow }) {
           ) : null}
           <OlderStatus loading={loadingOlder} failed={loadFailed} onRetry={loadOlder} />
           {atBottom ? null : <JumpToLatest count={newCount} onJump={jumpToLatest} />}
+          <MentionJump key={chat.id} chat={chat} />
         </div>
         <ChatFooter chat={summary} onSent={jumpToLatest} onFiles={media.addFiles} />
       </DropZone>

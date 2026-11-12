@@ -99,7 +99,7 @@ function EditableText(props: {
   );
 }
 
-const SETTING_KEYS: Array<keyof GroupSettings> = ['editInfo', 'sendMessages', 'addMembers'];
+const SETTING_KEYS = ['editInfo', 'sendMessages', 'addMembers', 'pinMessages'] as const;
 
 function GroupSettingsSection(props: { chatId: string; group: GroupInfo }) {
   const { t } = useTranslation();
@@ -125,6 +125,20 @@ function GroupSettingsSection(props: { chatId: string; group: GroupInfo }) {
           </select>
         </label>
       ))}
+      <label className="flex items-center justify-between gap-2 text-sm">
+        {t('groups.settings.mentionEveryone')}
+        <select
+          value={group.settings.mentionEveryone}
+          onChange={(event) => {
+            const value = event.target.value as GroupSettings['mentionEveryone'];
+            change.mutate(() => groupsApi.updateSettings(chatId, { mentionEveryone: value }));
+          }}
+          className="rounded-lg border bg-surface px-2 py-1 text-sm"
+        >
+          <option value="admins">{t('groups.settings.admins')}</option>
+          <option value="off">{t('groups.settings.nobody')}</option>
+        </select>
+      </label>
     </section>
   );
 }

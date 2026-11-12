@@ -45,8 +45,22 @@ type ChatChange = {
     | 'mutedUntil'
     | 'archived'
     | 'markedUnread'
-    | 'lastReaction']?: ChatSummary[Field] | undefined;
+    | 'lastReaction'
+    | 'pins'
+    | 'mentionSeqs'
+    | 'draft']?: ChatSummary[Field] | undefined;
 };
+
+/** The newer of two drafts by their time; the server's null means "never had one". */
+export function newerDraft(mine: ChatRow['draft'], theirs: ChatRow['draft']): ChatRow['draft'] {
+  if (!theirs) return mine;
+  if (!mine) return theirs;
+  return Date.parse(theirs.updatedAt) > Date.parse(mine.updatedAt) ? theirs : mine;
+}
+
+/** Unread mentions: the server's list when it sent one, never including what I have read. */
+const mentionsAfter = (seqs: number[] | undefined, lastReadSeq: number) =>
+  seqs?.filter((seq) => seq > lastReadSeq);
 
 const PERSONAL = ['pinned', 'mutedUntil', 'archived', 'markedUnread', 'lastReaction'] as const;
 
@@ -88,6 +102,9 @@ export function mergeChat(row: ChatRow, change: ChatChange): ChatRow {
     otherUser: change.otherUser === undefined ? row.otherUser : change.otherUser,
     group: change.group === undefined ? row.group : change.group,
     ...personalPart(change),
+    pins: change.pins === undefined ? row.pins : change.pins,
+    mentionSeqs: mentionsAfter(change.mentionSeqs ?? row.mentionSeqs, lastReadSeq),
+    draft: newerDraft(row.draft, change.draft),
   };
   return { ...merged, sortAt: Math.max(row.sortAt, sortAtOf(merged)) };
 }

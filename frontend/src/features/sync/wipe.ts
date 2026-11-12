@@ -1,4 +1,5 @@
 import { useAuthFlow } from '@/features/auth/flow-store';
+import { forgetDrafts } from '@/features/drafts/draft-sync';
 import { recentPeople } from '@/features/people/recent-people';
 import { resetLiveStatus } from './live-status';
 import { hasPendingWipe, type WipeResult, wipeLocalDatabases } from './local-db';
@@ -15,6 +16,7 @@ export async function clearLocalUserData(): Promise<WipeResult> {
   useSyncStore.setState(INITIAL_SYNC_STATE);
   resetLiveStatus();
   recentPeople.clear();
+  forgetDrafts();
   // Other tabs check with the server and sign out too.
   announceSessionEnded();
   return wipeAndReport();

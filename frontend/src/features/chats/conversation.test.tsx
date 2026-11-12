@@ -1,6 +1,6 @@
 import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { useSyncStore } from '@/features/sync/store';
 import { axe } from '@/test/axe';
 import { chatFixture, ME_ID, messageFixture, personFixture } from '@/test/chat-fixtures';
@@ -9,6 +9,8 @@ import { DESKTOP_WIDTH, MOBILE_WIDTH, renderApp } from '@/test/render-app';
 import { seedLocal } from '@/test/seed';
 import { lastSocket } from '@/test/socket-mock';
 
+// The first render of the whole app can pass 5 s on a loaded machine (coverage, CI).
+vi.setConfig({ testTimeout: 30_000 });
 const SEQ = 40;
 const chat = chatFixture({ seq: SEQ, lastReadSeq: SEQ });
 const history = Array.from({ length: SEQ }, (_, index) =>

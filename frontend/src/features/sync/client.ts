@@ -17,7 +17,7 @@ import { trackAway } from './away';
 import { loadOlderMessages, startReconciling } from './history';
 import { resetLiveStatus } from './live-status';
 import { getUserDb, type LocalDb, type MessageRow } from './local-db';
-import { type AttachedPreview, type EnqueueMedia, Outbox } from './outbox';
+import { type EnqueueMedia, Outbox, type SendExtras } from './outbox';
 import { messageAfter, socketPlayReports } from './played-reports';
 import { presenceSubscriber } from './presence-socket';
 import { currentWatchList } from './presence-watch';
@@ -49,12 +49,7 @@ export interface SyncClientOptions {
 export interface SyncClient {
   db: LocalDb;
   userId: string;
-  sendText(
-    chatId: string,
-    text: string,
-    quote?: Quote,
-    link?: AttachedPreview | null,
-  ): Promise<void>;
+  sendText(chatId: string, text: string, quote?: Quote, extras?: SendExtras): Promise<void>;
   /** Edit, delete, react, star and the rest: shown at once, and told to the server in order. */
   act(action: QueuedAction): Promise<void>;
   sendMedia(input: EnqueueMedia): Promise<void>;
@@ -233,8 +228,8 @@ export function startSyncClient(options: SyncClientOptions): SyncClient {
   return {
     db,
     userId,
-    async sendText(chatId, text, quote, link) {
-      await outbox.enqueue(chatId, text, quote, link);
+    async sendText(chatId, text, quote, extras) {
+      await outbox.enqueue(chatId, text, quote, extras);
       channel.post('outbox-changed');
     },
     async act(action) {

@@ -18,7 +18,15 @@ export function sendAction(action: QueuedAction): Promise<unknown> {
   const ok = okResponseSchema;
   switch (action.type) {
     case 'edit':
-      return apiPatch(onMessage(action), { text: action.text }, ok);
+      return apiPatch(
+        onMessage(action),
+        {
+          text: action.text,
+          ...(action.mentions?.length ? { mentions: action.mentions } : {}),
+          ...(action.mentionsEveryone ? { mentionsEveryone: true } : {}),
+        },
+        ok,
+      );
     case 'delete':
       return apiDelete(onMessage(action, `?scope=${action.scope}`), ok);
     case 'react':

@@ -1,4 +1,4 @@
-import type { ChatPrefs } from '@zuvo/protocol';
+import type { ChatPrefs, Mention } from '@zuvo/protocol';
 
 interface OnMessage {
   chatId: string;
@@ -8,7 +8,13 @@ interface OnMessage {
 
 /** Something done to a message or chat, kept until the server has heard it. */
 export type QueuedAction =
-  | ({ type: 'edit'; text: string } & OnMessage)
+  | ({
+      type: 'edit';
+      text: string;
+      /** Groups: who the new text names. */
+      mentions?: Mention[] | undefined;
+      mentionsEveryone?: boolean | undefined;
+    } & OnMessage)
   | ({ type: 'delete'; scope: 'me' | 'everyone'; asAdmin?: boolean } & OnMessage)
   | ({ type: 'react'; emoji: string | null } & OnMessage)
   | ({ type: 'star'; starred: boolean } & OnMessage)

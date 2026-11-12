@@ -1,5 +1,6 @@
 import type { ClientToServerEvents, ServerToClientEvents } from '@zuvo/protocol';
 import type { Socket } from 'socket.io-client';
+import { applyRemoteDraft, flushDrafts } from '@/features/drafts/draft-sync';
 import { applyLastReaction } from './apply-updates';
 import { startDeliveryAcks } from './delivery-acks';
 import { setPresence, setTyping } from './live-status';
@@ -37,6 +38,11 @@ export function wireSyncEvents(
   socket.on('read:update', ({ chatId, lastReadSeq, cursor }) => {
     void engine.onChatChange(chatId, { lastReadSeq }, cursor);
   });
+  // My drafts, from my other devices; kept only if newer. Back online: send what waited.
+  socket.on('draft:updated', ({ chatId, draft }) => {
+    void applyRemoteDraft(db, chatId, draft).catch(() => undefined);
+  });
+  socket.on('connect', () => flushDrafts(db));
 }
 
 /** Typing and online status: shown live, never stored. */

@@ -1,4 +1,10 @@
-import type { ChatSummary, CreateUploadBody, Message, PublicProfile } from '@zuvo/protocol';
+import type {
+  ChatSummary,
+  CreateUploadBody,
+  Mention,
+  Message,
+  PublicProfile,
+} from '@zuvo/protocol';
 import Dexie, { type Table } from 'dexie';
 import type { ActionRow } from './actions-types';
 import { releaseAllFiles } from './held-files';
@@ -54,6 +60,9 @@ export interface OutboxRow {
   replyTo?: { chatId: string; messageId: string } | undefined;
   /** A link preview the sender kept, by its id on the server. */
   linkPreviewId?: string | undefined;
+  /** Groups: who the text mentions. */
+  mentions?: Mention[] | undefined;
+  mentionsEveryone?: boolean | undefined;
 }
 
 /** A Blob, or its bytes where a browser cannot keep Blobs. See stored-bytes.ts. */

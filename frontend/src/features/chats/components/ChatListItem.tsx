@@ -32,6 +32,14 @@ function Preview({ chat, typing }: { chat: ChatSummary; typing: boolean }) {
       </p>
     );
   }
+  // My unsent text, from any of my devices, in place of the last message.
+  if (chat.draft) {
+    return (
+      <p className="min-w-0 flex-1 truncate text-sm text-text-muted">
+        <span className="font-medium text-accent-text">{t('drafts.label')}</span> {chat.draft}
+      </p>
+    );
+  }
   return (
     <>
       {lastMessage?.status && chat.kind !== 'saved' ? (
@@ -69,6 +77,12 @@ function Markers({ chat }: { chat: ChatSummary }) {
           role="img"
           aria-label={t('chats.pinned')}
         />
+      ) : null}
+      {chat.mentions ? (
+        // Never greyed out: a mention gets through even when the chat is muted.
+        <Badge variant="brand" aria-label={t('mentions.badge', { count: chat.mentions })}>
+          @
+        </Badge>
       ) : null}
       {chat.unread > 0 ? (
         <Badge

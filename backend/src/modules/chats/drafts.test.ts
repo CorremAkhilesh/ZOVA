@@ -54,10 +54,11 @@ describe('drafts', () => {
     const chatId = await direct(asha, bharat);
     await put(asha, chatId, 'typing…', at(-3000));
     const cleared = draftResponseSchema.parse((await put(asha, chatId, '', at(-1000))).json());
-    expect(cleared).toEqual({ applied: true, draft: null });
+    expect(cleared).toMatchObject({ applied: true, draft: { text: '', replyTo: null } });
     const late = draftResponseSchema.parse((await put(asha, chatId, 'typing…', at(-2000))).json());
-    expect(late).toEqual({ applied: false, draft: null });
-    expect((await summary(asha, chatId)).draft).toBeNull();
+    expect(late).toMatchObject({ applied: false, draft: { text: '' } });
+    // Empty, but with its time: an older draft elsewhere knows to go.
+    expect((await summary(asha, chatId)).draft).toMatchObject({ text: '', replyTo: null });
   });
 
   it('are mine alone, reach my other devices, and come with sync', async () => {

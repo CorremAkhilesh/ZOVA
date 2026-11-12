@@ -1,5 +1,5 @@
 import { useNavigate } from '@tanstack/react-router';
-import { type PublicProfile, REACTIONS_QUICK } from '@zuvo/protocol';
+import { REACTIONS_QUICK } from '@zuvo/protocol';
 import {
   CheckSquare,
   Copy,
@@ -9,6 +9,8 @@ import {
   type LucideIcon,
   MessageCircle,
   Pencil,
+  Pin,
+  PinOff,
   Plus,
   Star,
   Trash2,
@@ -22,9 +24,10 @@ import { chatsApi } from '@/features/chats/api';
 import { EMOJI_GROUPS } from '@/features/chats/emoji-data';
 import { useLocalDb } from '@/features/chats/queries';
 import { type ChatMessage, type ChatSummary, ME } from '@/features/chats/types';
-import { useModeration } from '@/features/moderation/store';
+
 import { applyChats } from '@/features/sync/apply';
 import { useSyncStore } from '@/features/sync/store';
+import { isPinned, mayPin, reportMessage, togglePin } from '../menu-actions';
 import { canEdit, targetOf, toQuote } from '../rules';
 import { type MenuRequest, useMessageUi } from '../store';
 
@@ -144,6 +147,7 @@ function Entries({ request, chat }: { request: MenuRequest; chat: ChatSummary })
   const set = useMessageUi((state) => state.set);
   const commands = useMessageCommands(message, items);
   const live = !message.deleted;
+  const pinned = isPinned(chat, message.serverId);
   return (
     <div className="pt-1.5">
       {live ? (
@@ -176,6 +180,13 @@ function Entries({ request, chat }: { request: MenuRequest; chat: ChatSummary })
           onSelect={commands.star}
         />
       ) : null}
+      {live && message.serverId && !message.system && mayPin(chat) ? (
+        <Entry
+          icon={pinned ? PinOff : Pin}
+          label={t(pinned ? 'pins.unpin' : 'pins.pin')}
+          onSelect={() => togglePin(chat, message.serverId ?? '', pinned)}
+        />
+      ) : null}
       <Entry
         icon={CheckSquare}
         label={t('messages.select')}
@@ -197,22 +208,6 @@ function Entries({ request, chat }: { request: MenuRequest; chat: ChatSummary })
       ) : null}
     </div>
   );
-}
-
-/** Report this message (and the sender's latest ones) about the person who sent it. */
-function reportMessage(chat: ChatSummary, message: ChatMessage) {
-  const person: PublicProfile = {
-    id: message.authorId,
-    displayName: message.authorName,
-    username: null,
-    about: null,
-    avatar: null,
-    deactivated: false,
-  };
-  useModeration.getState().openReport({
-    target: { kind: 'message', chatId: chat.id, messageIds: [message.serverId ?? ''] },
-    person,
-  });
 }
 
 /** One menu for the whole chat, opened where the pointer or finger was. */

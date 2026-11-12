@@ -4,6 +4,7 @@ import {
   type LastMessage,
   type LinkPreview,
   MESSAGE_PREVIEW_MAX,
+  type Mention,
   type ReplyQuote,
   type SendMessagePayload,
 } from '@zuvo/protocol';
@@ -43,12 +44,21 @@ export const toPayload = (row: OutboxRow): SendMessagePayload =>
         text: row.text,
         ...(row.replyTo ? { replyTo: row.replyTo } : {}),
         ...(row.linkPreviewId ? { linkPreviewId: row.linkPreviewId } : {}),
+        ...(row.mentions?.length ? { mentions: row.mentions } : {}),
+        ...(row.mentionsEveryone ? { mentionsEveryone: true } : {}),
       };
 
 /** A preview the sender looked up for a link in the text, sent along with it. */
 export interface AttachedPreview {
   id: string;
   preview: LinkPreview;
+}
+
+/** What else goes with a text message: a link preview, and in groups who it mentions. */
+export interface SendExtras {
+  link?: AttachedPreview | null | undefined;
+  mentions?: Mention[] | undefined;
+  mentionsEveryone?: boolean | undefined;
 }
 
 const refOf = (quote: ReplyQuote | null | undefined) =>

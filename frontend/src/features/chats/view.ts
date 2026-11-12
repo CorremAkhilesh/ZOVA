@@ -1,4 +1,5 @@
 import type { LastReaction, PublicProfile, SystemEvent } from '@zuvo/protocol';
+import { draftLine } from '@/features/drafts/draft-sync';
 import { toPlainText } from '@/features/formatting/parse';
 import type { ChatRow, MessageRow } from '@/features/sync/local-db';
 import { tickState } from './ticks';
@@ -98,6 +99,9 @@ export function toChatSummary(
     archived: row.archived === true,
     markedUnread: row.markedUnread === true,
     reactionLine: reactionLine(row, labels),
+    draft: draftLine(row.draft),
+    mentions: row.mentionSeqs?.length ?? 0,
+    pins: row.pins,
     unread: row.unreadCount,
     activityAt: new Date(row.sortAt),
     lastMessage: lastMessageView(row, me, name, labels, unsent, people),
@@ -139,6 +143,7 @@ export function toChatMessage(
     deleted: Boolean(row.deletedForEveryoneAt),
     deletedByAdmin: row.deletedByAdmin === true,
     linkPreview: row.deletedForEveryoneAt ? null : (row.linkPreview ?? null),
+    mentions: row.deletedForEveryoneAt ? undefined : row.mentions,
     played: row.played === true,
     uploadedBytes: row.uploadedBytes,
     heldInTab: row.heldInTab,

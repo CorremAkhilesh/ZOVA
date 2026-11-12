@@ -16,10 +16,13 @@ export function peerProgress(
   };
 }
 
-/** My draft, or null when it is empty (an empty one is still kept, for its time). */
+/**
+ * My draft, null only when I never had one here. A cleared draft comes back empty but with its time,
+ * so a device holding an older one knows to drop it (the app shows nothing for empty text).
+ */
 export function draftView(member: Pick<ChatMemberDoc, 'draft'>): Draft | null {
   const { draft } = member;
-  if (!draft || (!draft.text.trim() && !draft.replyTo)) return null;
+  if (!draft) return null;
   return {
     text: draft.text,
     replyTo: draft.replyTo,

@@ -16,11 +16,12 @@ import {
   outboxReply,
   pendingTextRow,
   removeQueued,
+  type SendExtras,
   storeMedia,
   toPayload,
 } from './outbox-media';
 
-export type { AttachedPreview, EnqueueMedia };
+export type { AttachedPreview, EnqueueMedia, SendExtras };
 export class DisconnectedError extends Error {}
 
 export interface OutboxTransport {
@@ -78,8 +79,9 @@ export class Outbox {
     chatId: string,
     text: string,
     quote?: ReplyQuote | null,
-    link?: AttachedPreview | null,
+    extras: SendExtras = {},
   ): Promise<string> {
+    const { link, mentions, mentionsEveryone } = extras;
     const { db, me } = this.options;
     const clientMsgId = uuidv7();
     const key = `${me}:${clientMsgId}`;
@@ -94,11 +96,15 @@ export class Outbox {
         queuedAt: Date.now(),
         ...outboxReply(quote),
         ...(link ? { linkPreviewId: link.id } : {}),
+        ...(mentions?.length ? { mentions } : {}),
+        ...(mentionsEveryone ? { mentionsEveryone } : {}),
       });
       const input = { key, n, chatId, clientMsgId, me, text };
       await db.messages.add({
         ...pendingTextRow(input, createdAt, quote),
         linkPreview: link?.preview ?? null,
+        ...(mentions?.length ? { mentions } : {}),
+        ...(mentionsEveryone ? { mentionsEveryone } : {}),
       });
       await this.previewInChat(chatId, key, {
         type: 'text',

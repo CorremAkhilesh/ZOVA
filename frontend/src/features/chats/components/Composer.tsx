@@ -16,6 +16,7 @@ import { FormattingHint } from '@/features/formatting/FormattingHint';
 import { ComposerLinkPreview } from '@/features/link-previews/LinkPreviewCard';
 import { useLinkPreviewDraft } from '@/features/link-previews/use-link-preview-draft';
 import { AttachMenu } from '@/features/media/components/AttachMenu';
+import { useMentionPicker } from '@/features/mentions/use-mention-picker';
 import { ComposerBanner } from '@/features/messages/components/ComposerBanner';
 import { useComposerActions } from '@/features/messages/use-composer-actions';
 import { useSyncStore } from '@/features/sync/store';
@@ -61,6 +62,7 @@ export function Composer({ chatId, onSent, onFiles }: ComposerProps) {
   const { recorder } = voice;
   const actions = useComposerActions(chatId, text, update, field);
   const link = useLinkPreviewDraft(text, !actions.editing);
+  const mention = useMentionPicker(chatId, text, field, update);
   const showHint = isDesktop && hasText && !recorder.active;
 
   // Grows with the text, up to the field's max height.
@@ -74,8 +76,9 @@ export function Composer({ chatId, onSent, onFiles }: ComposerProps) {
 
   function send() {
     if (!canSend) return;
-    if (actions.finishEdit()) return;
-    void client?.sendText(chatId, text, actions.takeReply(), link.take());
+    const mentions = mention.payload(text);
+    if (actions.finishEdit(mentions)) return;
+    void client?.sendText(chatId, text, actions.takeReply(), { link: link.take(), ...mentions });
     typing.stop();
     update('');
     onSent();
@@ -88,7 +91,8 @@ export function Composer({ chatId, onSent, onFiles }: ComposerProps) {
   }
 
   function onKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
-    if (actions.onKeyDown(event) || formatShortcut(event, update)) return;
+    if (mention.onKeyDown(event) || actions.onKeyDown(event) || formatShortcut(event, update))
+      return;
     // isComposing: Enter is confirming a word in a Hindi (or any other) input method.
     if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing) return;
     // Phones and tablets have no Shift key to hand: Enter makes a new line, the button sends.
@@ -120,6 +124,7 @@ export function Composer({ chatId, onSent, onFiles }: ComposerProps) {
         <MicBlockedDialog open={voice.blockedOpen} onClose={voice.closeBlocked} />
         <ComposerBanner chatId={chatId} />
         <ComposerLinkPreview preview={link.preview} loading={link.loading} onRemove={link.remove} />
+        {mention.picker}
         {recorder.problem && recorder.problem !== 'blocked' ? (
           <p role="status" className="mb-1 text-xs font-medium text-text-muted">
             {t(`voice.problems.${recorder.problem}`)}
@@ -163,7 +168,10 @@ export function Composer({ chatId, onSent, onFiles }: ComposerProps) {
                 ref={field}
                 rows={1}
                 value={text}
+                {...mention.inputProps}
+                onSelect={mention.onSelect}
                 onChange={(event: ChangeEvent<HTMLTextAreaElement>) => {
+                  mention.onChange();
                   update(event.target.value);
                   typing.input(event.target.value.trim().length > 0);
                 }}
