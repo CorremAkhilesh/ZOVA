@@ -2,7 +2,9 @@ import type {
   GroupInfo,
   LinkPreview,
   MediaInfo,
+  Mention,
   Message,
+  PinnedMessage,
   ReplyQuote,
   SystemEvent,
 } from '@zuvo/protocol';
@@ -10,7 +12,8 @@ import type { UploadFailReason } from '@/features/sync/local-db';
 
 export type DeliveryStatus = 'pending' | 'failed' | 'sent' | 'delivered' | 'read';
 export type ChatKind = 'personal' | 'group' | 'saved';
-export type ChatFolder = 'all' | 'unread' | 'personal' | 'groups';
+/** A built-in chip, or one of my own folders by id. */
+export type ChatFolder = 'all' | 'unread' | 'personal' | 'groups' | `folder:${string}`;
 
 /** The signed-in user's messages use this author id. */
 export const ME = 'me';
@@ -39,6 +42,12 @@ export interface ChatSummary {
   markedUnread?: boolean;
   /** "Riya reacted 👍 to 'hello'": shown instead of the last message, to its author. */
   reactionLine?: string | undefined;
+  /** My unsent text here (any of my devices): shown as "Draft: …" in place of the last message. */
+  draft?: string | null;
+  /** Unread messages that mention me: the "@" badge. */
+  mentions?: number;
+  /** Pinned messages, newest pin first (some may have run out: see `livePins`). */
+  pins?: PinnedMessage[] | undefined;
   unread: number;
   about?: string | null;
   activityAt: Date;
@@ -84,4 +93,6 @@ export interface ChatMessage extends MessageAuthor {
   deletedByAdmin?: boolean;
   /** Fetched by our server for the sender; nobody's app contacts the site. */
   linkPreview?: LinkPreview | null;
+  /** Groups: who the text mentions. */
+  mentions?: Mention[] | undefined;
 }

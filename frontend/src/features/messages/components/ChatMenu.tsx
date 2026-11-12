@@ -22,6 +22,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { useChats } from '@/features/chats/queries';
 import type { ChatSummary } from '@/features/chats/types';
+import { FolderMenuEntries } from '@/features/folders/components/FolderMenuEntries';
 import { ModerationEntries } from '@/features/moderation/components/ModerationEntries';
 import { useSyncStore } from '@/features/sync/store';
 import { type ChatMenuRequest, useMessageUi } from '../store';
@@ -145,6 +146,7 @@ function Entries(props: {
         label={t(isUnread ? 'messages.markRead' : 'messages.markUnread')}
         onSelect={() => commands.toggleUnread(chat)}
       />
+      <FolderMenuEntries chat={chat} />
       <DropdownMenu.Item asChild className={ITEM}>
         <Link to="/starred" search={{ chatId: chat.id }}>
           <Star className="size-4" aria-hidden />

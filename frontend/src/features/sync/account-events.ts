@@ -2,12 +2,13 @@ import type { ChatSettings, ClientToServerEvents, ServerToClientEvents } from '@
 import type { Socket } from 'socket.io-client';
 
 /**
- * Something about my account changed on another device (settings, blocks), or the socket came back
+ * Something about my account changed on another device (settings, blocks, folders), or the socket came back
  * and may have missed such a change. Not chats or messages: the sync log carries those.
  */
 export type AccountChange =
   | { kind: 'settings'; settings: ChatSettings }
   | { kind: 'blocks' }
+  | { kind: 'folders' }
   | { kind: 'reconnected' };
 
 export function wireAccountEvents(
@@ -17,4 +18,5 @@ export function wireAccountEvents(
   socket.on('connect', () => onChange({ kind: 'reconnected' }));
   socket.on('settings:updated', ({ settings }) => onChange({ kind: 'settings', settings }));
   socket.on('blocks:changed', () => onChange({ kind: 'blocks' }));
+  socket.on('folders:updated', () => onChange({ kind: 'folders' }));
 }

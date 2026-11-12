@@ -1,5 +1,6 @@
 import { type QueryClient, queryOptions } from '@tanstack/react-query';
 import { type ChatSettings, chatSettingsResponseSchema } from '@zuvo/protocol';
+import { FOLDERS_KEY } from '@/features/folders/api';
 import type { AccountChange } from '@/features/sync/account-events';
 import { apiGet, apiPatch } from '@/lib/api-client';
 
@@ -20,9 +21,14 @@ export function applyAccountChange(queryClient: QueryClient, change: AccountChan
     queryClient.setQueryData(chatSettingsQuery.queryKey, change.settings);
     return;
   }
+  if (change.kind === 'folders') {
+    void queryClient.invalidateQueries({ queryKey: FOLDERS_KEY });
+    return;
+  }
   if (change.kind === 'reconnected') {
     // Whatever changed while this device was away.
     void queryClient.invalidateQueries({ queryKey: chatSettingsQuery.queryKey });
+    void queryClient.invalidateQueries({ queryKey: FOLDERS_KEY });
   }
   void queryClient.invalidateQueries({ queryKey: ['me', 'blocks'] });
 }

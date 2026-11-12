@@ -1,3 +1,5 @@
+import type { ChatFolderDef } from '@zuvo/protocol';
+import { chatInFolder, customFolder, isUnread } from '@/features/folders/rules';
 import type { ChatFolder, ChatMessage, ChatSummary } from './types';
 
 const DAY_MS = 86_400_000;
@@ -82,28 +84,60 @@ export function buildTimeline(messages: ChatMessage[]): TimelineItem[] {
   return items;
 }
 
+/** Whether a chip shows a chat. Outside a search, archived chats only show in the archived list. */
+function inChip(
+  chat: ChatSummary,
+  folder: ChatFolder,
+  custom: ChatFolderDef | undefined,
+  archivedList: boolean,
+  searching: boolean,
+): boolean {
+  if (custom) {
+    // A folder of my own decides about archived chats itself, picked ones included.
+    if (!searching && archivedList && chat.archived !== true) return false;
+    return chatInFolder(chat, custom);
+  }
+  if (!searching && (chat.archived === true) !== archivedList) return false;
+  if (folder === 'unread') return isUnread(chat);
+  if (folder === 'groups') return chat.kind === 'group';
+  if (folder === 'personal') return chat.kind !== 'group';
+  return true;
+}
+
 /**
  * Folder + name search. Saved Messages first, then pinned chats, then the latest activity. Archived
- * chats have their own list, and a search finds them anywhere.
+ * chats have their own list, and a search finds them anywhere. A folder of my own decides for itself
+ * (`chatInFolder`): its picked archived chats show in it.
  */
 export function filterChats(
   chats: ChatSummary[],
   folder: ChatFolder,
   query: string,
   archivedList = false,
+  folders: readonly ChatFolderDef[] = [],
 ): ChatSummary[] {
   const needle = query.trim().toLocaleLowerCase();
+  const custom = customFolder(folder, folders);
   return chats
-    .filter((chat) => {
-      if (!needle && (chat.archived === true) !== archivedList) return false;
-      if (folder === 'unread' && chat.unread === 0 && !chat.markedUnread) return false;
-      if (folder === 'groups' && chat.kind !== 'group') return false;
-      if (folder === 'personal' && chat.kind === 'group') return false;
-      return !needle || chat.name.toLocaleLowerCase().includes(needle);
-    })
+    .filter(
+      (chat) =>
+        inChip(chat, folder, custom, archivedList, needle !== '') &&
+        (!needle || chat.name.toLocaleLowerCase().includes(needle)),
+    )
     .sort((a, b) => {
       if ((a.kind === 'saved') !== (b.kind === 'saved')) return a.kind === 'saved' ? -1 : 1;
       if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
       return b.activityAt.getTime() - a.activityAt.getTime();
     });
+}
+
+/** A chip's badge: its chats with something unread. Muted chats don't count. */
+export function folderUnreadCount(
+  chats: ChatSummary[],
+  folder: ChatFolder,
+  folders: readonly ChatFolderDef[] = [],
+): number {
+  return filterChats(chats, folder, '', false, folders).filter(
+    (chat) => isUnread(chat) && !chat.muted,
+  ).length;
 }

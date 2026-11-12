@@ -417,6 +417,31 @@
       "closeSearch": "Close search"
     }
   },
+  "drafts": {
+    "label": "Draft:"
+  },
+  "mentions": {
+    "badge_one": "{{count}} message mentions you",
+    "badge_other": "{{count}} messages mention you",
+    "pick": "Mention someone",
+    "everyone": "everyone — everyone in this group",
+    "jump": "Go to the message that mentions you",
+    "profile": "Profile",
+    "profileFailed": "Couldn’t load this profile."
+  },
+  "pins": {
+    "pin": "Pin",
+    "unpin": "Unpin",
+    "title": "Pinned message",
+    "counter": "Pinned message {{current}} of {{total}}",
+    "open": "Go to pinned message {{current}} of {{total}}",
+    "fallback": "Tap to see the message",
+    "dialogTitle": "Pin for everyone",
+    "howLong": "For how long?",
+    "replacesOldest": "Up to 3 messages can be pinned. This one replaces the oldest pin.",
+    "durations": { "24h": "24 hours", "7d": "7 days", "30d": "30 days" },
+    "failed": "Couldn’t change the pin. Try again."
+  },
   "linkPreview": {
     "open": "Open {{title}} on {{site}}",
     "attached": "Link preview",
@@ -723,8 +748,11 @@
       "editInfo": "Edit group info",
       "sendMessages": "Send messages",
       "addMembers": "Add members",
+      "pinMessages": "Pin messages",
+      "mentionEveryone": "Mention @everyone",
       "all": "All members",
-      "admins": "Only admins"
+      "admins": "Only admins",
+      "nobody": "Nobody"
     },
     "exit": "Exit group",
     "exitTitle": "Exit this group?",
@@ -763,6 +791,7 @@
       "announcementOn": "{{actor}} set the group so only admins can send messages",
       "announcementOff": "{{actor}} set the group so everyone can send messages",
       "owner_changed": "{{actor}} made {{targets}} the owner",
+      "pinned": "{{actor}} pinned a message",
       "owner_auto": "{{targets}} is now the owner"
     }
   },
@@ -853,5 +882,55 @@
     "strike": "strike",
     "codeSample": "code",
     "hint": "Formatting: *asterisks* for bold, _underscores_ for italic, ~tildes~ for strikethrough, `backticks` for code."
+  },
+  "folders": {
+    "newTitle": "New folder",
+    "editTitle": "Edit folder",
+    "newEllipsis": "New folder…",
+    "addTo": "Add to folder",
+    "unreadChats_one": "{{count}} chat with unread messages",
+    "unreadChats_other": "{{count}} chats with unread messages",
+    "folderEmpty": "No chats in this folder yet.",
+    "name": "Name",
+    "namePlaceholder": "e.g. Work",
+    "nameRequired": "Give the folder a name.",
+    "emoji": "Icon",
+    "noEmoji": "None",
+    "rulesTitle": "Include automatically",
+    "rules": {
+      "groups": "All groups",
+      "groupsHint": "Every group you are in.",
+      "direct": "All personal chats",
+      "directHint": "Every 1:1 chat (not Saved Messages).",
+      "unread": "Unread chats",
+      "unreadHint": "Chats with something unread.",
+      "excludeMuted": "Leave out muted chats",
+      "excludeMutedHint": "Unless you picked them below.",
+      "excludeArchived": "Leave out archived chats",
+      "excludeArchivedHint": "Unless you picked them below."
+    },
+    "chats": "Chats",
+    "chatsHint": "Chats you pick are always in the folder.",
+    "picked_one": "{{count}} picked.",
+    "picked_other": "{{count}} picked.",
+    "searchChats": "Search chats",
+    "noChats": "No chats match.",
+    "create": "Create folder",
+    "save": "Save",
+    "created": "Folder “{{name}}” created",
+    "delete": "Delete folder",
+    "deleteTitle": "Delete “{{name}}”?",
+    "deleteHint": "Only the folder goes. Its chats stay in your list.",
+    "limit": "You can have up to {{max}} folders.",
+    "chatLimit": "A folder can hold up to {{max}} picked chats.",
+    "settingsTitle": "Folders",
+    "settingsHint": "Folders show as tabs at the top of your chat list, on all your devices.",
+    "loading": "Loading folders",
+    "empty": "No folders yet.",
+    "loadFailed": "Couldn’t load your folders.",
+    "editName": "Edit {{name}}",
+    "deleteName": "Delete {{name}}",
+    "moveUp": "Move {{name}} up",
+    "moveDown": "Move {{name}} down"
   }
 }

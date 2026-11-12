@@ -96,6 +96,7 @@ export const server = setupServer(
   http.get('*/v1/me/username-suggestion', () => HttpResponse.json({ username: 'kiran' })),
   http.get('*/v1/me/privacy', () => HttpResponse.json({ privacy: privacyFixture })),
   http.get('*/v1/me/blocks', () => HttpResponse.json({ items: [] })),
+  http.get('*/v1/me/folders', () => HttpResponse.json({ folders: [] })),
   http.get('*/v1/me/chat-settings', () =>
     HttpResponse.json({ settings: { keepChatsArchived: true } }),
   ),
