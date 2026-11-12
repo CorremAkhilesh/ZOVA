@@ -214,6 +214,8 @@ again whenever a socket reconnects (they are not in the sync log):
 | ------------------ | ---------------------------------------------- | --------------------------------- |
 | `settings:updated` | My chat settings changed (Keep chats archived) | Stores the new settings           |
 | `blocks:changed`   | I blocked or unblocked someone                 | Fetches `GET /v1/me/blocks` again |
+| `folders:updated`  | A folder was made, changed, moved or deleted   | Fetches `GET /v1/me/folders`      |
+| `draft:updated`    | My draft of a chat changed on another device   | Keeps it if newer than its own    |
 
 **Keep chats archived** (`PATCH /v1/me/chat-settings`, on by default): on, an archived chat stays archived
 when new messages arrive. Off, a message from someone else clears `archivedAt` for that member in the same
@@ -255,3 +257,45 @@ which goes with a delete for everyone and when an edit removes every link.
 Formatting is not stored: the text keeps its markers (`*bold*`, `_italic_`, `~strike~`, `` `code` ``,
 ` ``` ` blocks, `> ` quotes, `- ` lists), and the app renders them as React elements, never HTML.
 Links are only ever `http(s)`, `mailto` or `tel`. The chat list and search show plain text.
+
+## Chat folders
+
+`GET/POST /v1/me/folders`, `PATCH/DELETE /v1/me/folders/:id`, `PUT /v1/me/folders/order` (collection
+`chat_folders`, mine alone). A folder has a name (≤ 24), an optional emoji, picked chats (≤ 200, only
+chats I am in) and rules: all groups, all 1:1 chats, unread, leave out muted, leave out archived. Picked
+chats are always in; the "leave out" rules only remove chats a rule brought in. At most 10 folders
+(`409 FOLDER_LIMIT_REACHED`, checked again after the insert so two devices cannot pass it together).
+The app works out each folder's chats and its unread count from its local chat list.
+
+## Pinned messages
+
+`PUT /v1/chats/:id/messages/:messageId/pin` with `{ duration: '24h' | '7d' | '30d' }`, and `DELETE` to
+unpin. Anyone in a 1:1 chat; in a group, as its **Pin messages** setting says (`all` or `admins`). At most
+3 per chat: a fourth replaces the oldest. Pinning adds a system message ("X pinned a message", kind
+`pinned`, value = the seq). Pins live on the chat (`pins`, with `expiresAt`). Every summary and
+`chat:updated` lists only the pins **this member** may see (history limits, clears) whose time is not
+up, so the app also hides expired ones. The `pins-cleanup` job (every 5 minutes) removes expired pins and
+logs a sync change; it cannot reach sockets, so open apps rely on `expiresAt`. A delete for everyone
+also removes the message's pin.
+
+## Mentions
+
+A message may carry `mentions: [{ userId, offset, length }]` (≤ 50, ranges inside the text, not
+overlapping) and `mentionsEveryone`. Groups only. Each `userId` must be a current member and not the
+sender. `@everyone` needs the group's **Mention everyone** setting (`admins`, the default, or `off`) and an
+admin. An edit sends the mentions again; the server replaces them and updates who is mentioned.
+
+Each member keeps `mentionSeqs` (the newest 50 unread mentions of them, `@everyone` included). Reading up
+to a seq removes the mentions at or before it, and clearing the chat removes them all. Summaries and
+`chat:updated` carry it, and the app shows "@" in the list and a jump button in the chat. Push (Step 18)
+will use it to reach me through a mute. The app shows a mention of someone no longer in the group as
+plain text.
+
+## Drafts
+
+`PUT /v1/chats/:id/draft` with `{ text, replyTo, updatedAt }`, mine alone and never shown to others. The
+newest `updatedAt` wins: an older write is ignored (`applied: false`), and a time more than 60 s ahead of
+the server is clamped. A draft change logs a `chat` change for my devices and emits `draft:updated`.
+Sending clears it with an empty text and a new time, so a clear also wins over older drafts. Summaries
+carry `draft`, where `null` means there never was one. The app saves 300 ms after typing stops and pushes 1 s
+later, retrying on reconnect. A newer draft from elsewhere replaces mine unless I am typing.

@@ -59,6 +59,15 @@ Known work that was decided on or deliberately left for later. Product scope liv
 - **Report evidence** names files but does not copy them, so an admin cannot open a reported picture.
 - **Reports** can be resolved but not reopened.
 
+## Folders, pins, mentions and drafts (Step 16)
+
+- **Mentions through a mute:** `mentionSeqs` is stored and kept up to date; push notifications use it in
+  Step 18.
+- **Expired pins** leave open apps when their time is up (the app checks every minute), not through a
+  socket event, because the cleanup job runs in the worker.
+- **Drafts** are text and the reply only; a file picked but not sent is not a draft.
+- **Folder chip counts** use the chats on this device, which can be behind until sync finishes.
+
 ## Operations
 
 - **Alert email at 80% disk use**, required by `CLAUDE.md`.
