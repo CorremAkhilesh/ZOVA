@@ -98,7 +98,10 @@ describe('mentioning in a group', () => {
     await user.keyboard('{ArrowDown}{Enter}');
     expect(input).toHaveValue('ask @Vikram ');
     expect(screen.queryByRole('listbox', { name: 'Mention someone' })).toBeNull();
-    await user.keyboard('please{Enter}');
+    await user.keyboard('please');
+    // Enter only once the text is in, so a slow runner sends the whole of it.
+    await waitFor(() => expect(input).toHaveValue('ask @Vikram please'));
+    await user.keyboard('{Enter}');
     await waitFor(() =>
       expect(sent().at(-1)).toMatchObject({
         text: 'ask @Vikram please',

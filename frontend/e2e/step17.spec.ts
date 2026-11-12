@@ -32,6 +32,15 @@ async function chatting(browser: Parameters<typeof newPerson>[0]): Promise<[Pers
   return [asha, bharat];
 }
 
+/** Escape until the composer shows: on a phone, chat info is a dialog over the chat. */
+async function closeOverlays(page: Page) {
+  for (let i = 0; i < 3 && !(await composer(page).isVisible()); i += 1) {
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(300);
+  }
+  await expect(composer(page)).toBeVisible(SLOW);
+}
+
 const chatIdOf = (page: Page) => new URL(page.url()).pathname.split('/').at(-1) ?? '';
 
 /** Chat info, on a phone a dialog of its own. */
@@ -113,7 +122,7 @@ test('disappearing messages: 24 hours, then gone for both when their time is up'
   await expect(
     thread(bharat.page, 'Asha').getByText(/turned on disappearing messages/),
   ).toBeVisible(SLOW);
-  await asha.page.keyboard.press('Escape');
+  await closeOverlays(asha.page);
   await send(asha.page, 'gone tomorrow');
   await expect(thread(bharat.page, 'Asha').getByText('gone tomorrow')).toBeVisible(SLOW);
   await expect(
@@ -196,7 +205,11 @@ test('a locked chat leaves the list and opens with the PIN', async ({ browser })
 test('changing the accent colour applies everywhere at once', async ({ browser }) => {
   const asha = await newPerson(browser, 'Asha');
   const page = asha.page;
-  await page.goto('/settings/appearance');
+  // Let the chat list finish loading first: Firefox aborts a navigation that overlaps another.
+  await expect(page.getByRole('button', { name: 'New chat' })).toBeVisible(SLOW);
+  await expect(async () => {
+    await page.goto('/settings/appearance');
+  }).toPass(SLOW);
   const teal = page.getByRole('radio', { name: 'Teal' });
   await teal.click();
   await expect(page.locator('html')).toHaveAttribute('data-accent', 'teal');
