@@ -210,12 +210,16 @@ room at once and sends both `presence:resubscribe`, and later subscriptions answ
 Things about my account that are not chats or messages reach my other devices directly, and are fetched
 again whenever a socket reconnects (they are not in the sync log):
 
-| Event              | When                                           | The app                           |
-| ------------------ | ---------------------------------------------- | --------------------------------- |
-| `settings:updated` | My chat settings changed (Keep chats archived) | Stores the new settings           |
-| `blocks:changed`   | I blocked or unblocked someone                 | Fetches `GET /v1/me/blocks` again |
-| `folders:updated`  | A folder was made, changed, moved or deleted   | Fetches `GET /v1/me/folders`      |
-| `draft:updated`    | My draft of a chat changed on another device   | Keeps it if newer than its own    |
+| Event                 | When                                            | The app                               |
+| --------------------- | ----------------------------------------------- | ------------------------------------- |
+| `settings:updated`    | My chat settings changed (Keep chats archived)  | Stores the new settings               |
+| `blocks:changed`      | I blocked or unblocked someone                  | Fetches `GET /v1/me/blocks` again     |
+| `folders:updated`     | A folder was made, changed, moved or deleted    | Fetches `GET /v1/me/folders`          |
+| `draft:updated`       | My draft of a chat changed on another device    | Keeps it if newer than its own        |
+| `scheduled:updated`   | My scheduled messages changed (or one failed)   | Fetches them again; a toast if failed |
+| `lock:updated`        | My PIN, app lock or biometric unlock changed    | Fetches `GET /v1/me/lock`             |
+| `quiet-hours:updated` | My Do Not Disturb settings changed              | Stores them                           |
+| `appearance:updated`  | My accent, default wallpaper or dimming changed | Applies them                          |
 
 **Keep chats archived** (`PATCH /v1/me/chat-settings`, on by default): on, an archived chat stays archived
 when new messages arrive. Off, a message from someone else clears `archivedAt` for that member in the same
@@ -299,3 +303,78 @@ the server is clamped. A draft change logs a `chat` change for my devices and em
 Sending clears it with an empty text and a new time, so a clear also wins over older drafts. Summaries
 carry `draft`, where `null` means there never was one. The app saves 300 ms after typing stops and pushes 1 s
 later, retrying on reconnect. A newer draft from elsewhere replaces mine unless I am typing.
+
+## Scheduled messages
+
+`POST/GET /v1/me/scheduled`, `PATCH/DELETE /v1/me/scheduled/:id`, `POST …/:id/send-now`, mine alone.
+At most 50 waiting per person (`409 SCHEDULED_LIMIT_REACHED`), up to a year ahead. Each item stores a
+`clientMsgId` when it is made, and the send goes through the normal `sendMessage`, so it can never be sent
+twice and every rule is checked again at the time (still a member, not blocked, announcement mode,
+accounts active). If one fails, the item is marked `failed` with a reason, and `scheduled:updated` tells
+my devices.
+
+Sending runs in the **API process**, because only it can reach sockets. With Redis, each item has a
+BullMQ delayed job (`sched-<id>-<sendAtMs>`; an edit replaces it). With or without Redis, a MongoDB sweep
+runs at startup and every 15 s. It claims due items atomically, and it is the only path in development,
+E2E and tests. A send stuck for 2 minutes is retried (safe through `clientMsgId`). Uploads waiting in a
+scheduled message are never removed as orphans.
+
+## Polls
+
+A message of type `poll` carries `poll: {question, options:[{id, text, voterIds}], multiple, closedAt}`.
+It is sent like text (`message:send` with `poll`), in groups and 1:1 chats, not in Saved Messages.
+`PUT /v1/chats/:id/messages/:messageId/vote {optionIds}` replaces my whole choice (`[]` removes it). The
+vote is open to members who may see the message (history limits apply), with at most one option unless
+`multiple`. `POST …/close-poll` is for its sender (`409 POLL_CLOSED` afterwards). Both log a sync update and
+send `message:updated`. Polls cannot be edited or forwarded. The chat list shows the question, and the
+app adds "📊 Poll:".
+
+## Disappearing messages and view once
+
+See [ADR 0007](adr/0007-disappearing-and-view-once.md). `PUT /v1/chats/:id/disappearing {timer}` (`off`,
+`24h`, `7d`, `90d`): either person in a 1:1 chat; in a group, as its **Disappearing messages** setting
+says (admins by default). It adds a `disappearing_changed` system message. A new chat starts with its
+creator's `privacy.defaultDisappearing` (a group says so in a notice; a 1:1 chat quietly). New messages
+carry `expiresAt`. A sweep in the API (every 30 s) deletes expired messages with their stars, pins and
+files (a file stays while a forwarded copy uses it), fixes the chat's last message, and sends
+`messages:expired {chatId, seqs}`. The app also removes its own copies by `expiresAt` every 30 s and on
+start, so a device that was offline forgets them too. E2E uses `POST /v1/test/expire-messages` (test
+only).
+
+**View once:** a photo or video sent with `viewOnce: true` never has a thumbnail or placeholder, and
+`/link` refuses it for everyone. `POST /v1/chats/:id/messages/:messageId/view-once` gives a recipient one
+short-lived link and records the open; a second try is `410 VIEW_ONCE_OPENED`. Once every recipient
+opened it, or after 14 days, the file is deleted. A browser cannot block screenshots; the app says so.
+
+## Chat lock and app lock
+
+`GET /v1/me/lock`, `PUT/DELETE /v1/me/lock/pin`, `POST /v1/me/lock/verify`, `PATCH /v1/me/lock/settings`,
+`PUT /v1/chats/:id/lock`. The PIN (4–6 digits) is stored only as an argon2id hash (19 MiB, t=2, p=1),
+mixed with a secret derived from `AUTH_SECRET`. Rotating that secret means everyone resets their PIN by
+email. After 5 wrong PINs it locks for 1 minute, then 2, 4… up to 1 hour (`429 PIN_LOCKED_OUT`). A correct
+PIN, a fingerprint or an email reset clears it. **Forgot PIN:** `POST /v1/me/lock/reset/request` emails a
+6-digit code (same limits as sign-in), and `…/reset/verify` removes the PIN. Chats stay, still flagged
+locked, until a new PIN is set. **Biometric unlock** (WebAuthn, platform authenticators only): `rpID` is
+`APP_URL`'s host, origins are `APP_URL` + `CORS_ORIGINS`. Browsers allow it only on https or
+`http://localhost`, never on `http://127.0.0.1`.
+
+Locked chats are flagged on my membership (`locked`). The app keeps them behind "Locked chats", opens
+them for 5 minutes after the PIN (in memory and sessionStorage), and never shows their text in the list,
+the palette or search. Server message search leaves them out. The lock keeps other people's eyes off a
+shared screen; it does not encrypt what this device stores.
+
+## Quiet hours
+
+`GET/PUT /v1/me/quiet-hours`: `mode` (off, on, scheduled), start/end (`HH:MM`, overnight allowed), days
+and an IANA time zone (India by default), plus exceptions (mentions, up to 50 chats of mine). The
+protocol's `isQuietAt()` decides when it is quiet; Step 18's push will use `quietHoursFor()` on the
+server. The app shows a moon while it is quiet. It has no in-app sounds or toasts for incoming messages
+yet, so `shouldAlert()` is ready for Step 18.
+
+## Appearance
+
+`GET/PATCH /v1/me/appearance`: one of six accents (each tested for AA contrast in light and dark, applied
+through `<html data-accent>`), a default wallpaper (pattern, colour or one of my pictures) and dimming
+for the dark theme. `PUT /v1/chats/:id/wallpaper` sets one chat's own wallpaper. Pictures:
+`POST /v1/me/wallpapers` (≤ 10 MB, magic bytes, re-encoded to WebP ≤ 2560 px, through the StorageDriver,
+10 per person), `GET` to list or fetch my own, `DELETE` (which also resets any wallpaper using it).
