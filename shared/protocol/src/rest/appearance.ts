@@ -1,5 +1,7 @@
 import { z } from 'zod';
-import { objectIdSchema } from '../common/id.ts';
+
+/** Lowercase ObjectId hex. No transform: these schemas are also used to serialize responses. */
+const idSchema = z.string().regex(/^[0-9a-f]{24}$/, 'Invalid id');
 
 /** Six accents, each checked for AA contrast in light and dark (see @zuvo/ui-tokens). */
 export const accentSchema = z.enum(['indigo', 'teal', 'violet', 'rose', 'amber', 'sky']);
@@ -14,7 +16,7 @@ export const wallpaperSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('pattern'), id: z.enum(WALLPAPER_PATTERNS) }),
   z.object({ kind: z.literal('color'), id: z.enum(WALLPAPER_COLORS) }),
   /** One of my uploaded pictures: GET /v1/me/wallpapers/:id. */
-  z.object({ kind: z.literal('image'), id: objectIdSchema }),
+  z.object({ kind: z.literal('image'), id: idSchema }),
 ]);
 
 export const appearanceSchema = z.object({

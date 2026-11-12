@@ -62,8 +62,20 @@ export const updateGroupBodySchema = z
     message: 'Nothing to change',
   });
 
-/** PUT /v1/chats/:id/group/settings */
-export const updateGroupSettingsBodySchema = groupSettingsSchema.partial();
+/**
+ * PUT /v1/chats/:id/group/settings: only what is sent changes. Spelled out without defaults, since a
+ * `.partial()` of the settings would fill in every default and reset settings nobody touched.
+ */
+export const updateGroupSettingsBodySchema = z
+  .object({
+    editInfo: groupAudienceSchema,
+    sendMessages: groupAudienceSchema,
+    addMembers: groupAudienceSchema,
+    pinMessages: groupAudienceSchema,
+    mentionEveryone: z.enum(['admins', 'off']),
+    disappearing: groupAudienceSchema,
+  })
+  .partial();
 
 /** GET /v1/chats/:id/members. A group is small enough to send whole. */
 export const groupMemberSchema = z.object({

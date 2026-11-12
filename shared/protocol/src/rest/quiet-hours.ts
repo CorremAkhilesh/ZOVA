@@ -1,5 +1,7 @@
 import { z } from 'zod';
-import { objectIdSchema } from '../common/id.ts';
+
+/** Lowercase ObjectId hex. No transform: these schemas are also used to serialize responses. */
+const idSchema = z.string().regex(/^[0-9a-f]{24}$/, 'Invalid id');
 
 export const QUIET_EXCEPTION_CHATS_MAX = 50;
 export const DEFAULT_TIMEZONE = 'Asia/Kolkata';
@@ -18,7 +20,7 @@ export const quietHoursSchema = z.object({
   timezone: z.string().min(1).max(64),
   /** Still let these through: messages that mention me, and these chats. */
   allowMentions: z.boolean(),
-  allowChatIds: z.array(objectIdSchema).max(QUIET_EXCEPTION_CHATS_MAX),
+  allowChatIds: z.array(idSchema).max(QUIET_EXCEPTION_CHATS_MAX),
 });
 export const DEFAULT_QUIET_HOURS: QuietHours = {
   mode: 'off',
