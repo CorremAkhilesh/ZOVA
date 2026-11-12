@@ -94,7 +94,13 @@ describe('what the app offers', () => {
     description: '',
     photo: null,
     memberCount: 3,
-    settings: { editInfo: 'all', sendMessages: 'all', addMembers: 'admins' },
+    settings: {
+      editInfo: 'all',
+      sendMessages: 'all',
+      addMembers: 'admins',
+      pinMessages: 'all',
+      mentionEveryone: 'admins',
+    },
     myRole: 'member',
     active: true,
     ...overrides,
@@ -129,7 +135,13 @@ describe('what the app offers', () => {
   });
 
   it('announcement mode stops members only', () => {
-    const settings = { editInfo: 'all', sendMessages: 'admins', addMembers: 'admins' } as const;
+    const settings = {
+      editInfo: 'all',
+      sendMessages: 'admins',
+      addMembers: 'admins',
+      pinMessages: 'all',
+      mentionEveryone: 'admins',
+    } as const;
     expect(groupAbilities(group({ settings })).send).toBe(false);
     expect(groupAbilities(group({ settings, myRole: 'admin' })).send).toBe(true);
   });

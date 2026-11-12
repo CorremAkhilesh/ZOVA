@@ -3,16 +3,22 @@ import { FileText, Image, Link2, MessagesSquare, Mic, Video } from 'lucide-react
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/ui/avatar';
+import type { Command } from '@/features/commands/registry';
 import type { ChatRow } from '@/features/sync/local-db';
 import { cn } from '@/lib/utils';
 import { snippetOf } from '../local-search';
 import type { MessageHit } from '../use-message-search';
+import { CommandBody } from './CommandBody';
 import { Highlighted } from './Highlighted';
 
 export type SearchOption =
   | { kind: 'chat'; id: string; chat: ChatRow }
   | { kind: 'person'; id: string; person: PublicProfile }
-  | { kind: 'message'; id: string; hit: MessageHit };
+  | { kind: 'message'; id: string; hit: MessageHit }
+  | { kind: 'command'; id: string; command: Command };
+
+/** A search result (not a command). */
+export type ResultOption = Exclude<SearchOption, { kind: 'command' }>;
 
 const TYPE_ICON: Record<string, typeof Image> = {
   image: Image,
@@ -51,7 +57,7 @@ function Row(props: {
   );
 }
 
-function OptionBody({ option, q }: { option: SearchOption; q: string }) {
+function OptionBody({ option, q }: { option: ResultOption; q: string }) {
   const { t, i18n } = useTranslation();
   if (option.kind === 'chat') {
     const { chat } = option;
@@ -116,7 +122,7 @@ function OptionBody({ option, q }: { option: SearchOption; q: string }) {
   );
 }
 
-/** One section (Chats, People, Messages) of the results listbox: a named group of options. */
+/** One section (Commands, Chats, People, Messages) of the results listbox: a named group of options. */
 export function ResultSection(props: {
   title: string;
   options: SearchOption[];
@@ -140,7 +146,11 @@ export function ResultSection(props: {
           onPick={() => props.onPick(option)}
           onHover={() => props.onHover(option)}
         >
-          <OptionBody option={option} q={props.q} />
+          {option.kind === 'command' ? (
+            <CommandBody command={option.command} />
+          ) : (
+            <OptionBody option={option} q={props.q} />
+          )}
         </Row>
       ))}
     </div>

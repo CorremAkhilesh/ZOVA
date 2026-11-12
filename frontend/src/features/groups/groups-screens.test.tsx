@@ -13,7 +13,13 @@ const group = (overrides: Partial<GroupInfo> = {}): GroupInfo => ({
   description: 'All about the launch',
   photo: null,
   memberCount: 3,
-  settings: { editInfo: 'all', sendMessages: 'all', addMembers: 'admins' },
+  settings: {
+    editInfo: 'all',
+    sendMessages: 'all',
+    addMembers: 'admins',
+    pinMessages: 'all',
+    mentionEveryone: 'admins',
+  },
   myRole: 'member',
   active: true,
   ...overrides,
@@ -59,7 +65,15 @@ describe('the composer in a group', () => {
 
   it('becomes a notice for a member in announcement mode', async () => {
     const { container } = await openGroup(
-      group({ settings: { editInfo: 'all', sendMessages: 'admins', addMembers: 'admins' } }),
+      group({
+        settings: {
+          editInfo: 'all',
+          sendMessages: 'admins',
+          addMembers: 'admins',
+          pinMessages: 'all',
+          mentionEveryone: 'admins',
+        },
+      }),
     );
     expect(await screen.findByText('Only admins can send messages')).toBeInTheDocument();
     expect(screen.queryByRole('textbox', { name: 'Write a message' })).not.toBeInTheDocument();
@@ -70,7 +84,13 @@ describe('the composer in a group', () => {
     await openGroup(
       group({
         myRole: 'admin',
-        settings: { editInfo: 'all', sendMessages: 'admins', addMembers: 'admins' },
+        settings: {
+          editInfo: 'all',
+          sendMessages: 'admins',
+          addMembers: 'admins',
+          pinMessages: 'all',
+          mentionEveryone: 'admins',
+        },
       }),
     );
     expect(await screen.findByRole('textbox', { name: 'Write a message' })).toBeInTheDocument();
@@ -210,7 +230,15 @@ describe('the info pane', () => {
   it('no editing when only admins may', async () => {
     const user = userEvent.setup();
     await openGroup(
-      group({ settings: { editInfo: 'admins', sendMessages: 'all', addMembers: 'admins' } }),
+      group({
+        settings: {
+          editInfo: 'admins',
+          sendMessages: 'all',
+          addMembers: 'admins',
+          pinMessages: 'all',
+          mentionEveryone: 'admins',
+        },
+      }),
     );
     const pane = await openInfo(user);
     expect(within(pane).queryByRole('button', { name: 'Edit Group name' })).not.toBeInTheDocument();

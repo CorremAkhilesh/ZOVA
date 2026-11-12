@@ -70,6 +70,8 @@ function groupInfo() {
       sendMessages: 'all' as const,
       editInfo: 'all' as const,
       addMembers: 'all' as const,
+      pinMessages: 'all' as const,
+      mentionEveryone: 'admins' as const,
     },
   };
 }

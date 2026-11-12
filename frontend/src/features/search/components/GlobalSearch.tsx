@@ -4,7 +4,6 @@ import { type SearchFilter, searchFilterSchema } from '@zuvo/protocol';
 import { Search } from 'lucide-react';
 import { type KeyboardEvent, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { chatsApi } from '@/features/chats/api';
 import { useChats, useLocalDb } from '@/features/chats/queries';
@@ -15,8 +14,10 @@ import { useDebouncedValue } from '@/lib/hooks';
 import { cn } from '@/lib/utils';
 import { searchLocalChats } from '../local-search';
 import { useGlobalSearch } from '../store';
+import { useCommandOptions } from '../use-command-options';
 import { useMessageSearch } from '../use-message-search';
-import { optionId, ResultSection, type SearchOption } from './SearchResults';
+import { optionId, type ResultOption, ResultSection, type SearchOption } from './SearchResults';
+import { MessageStatus, PaletteHint } from './SearchStatus';
 
 const FILTERS = searchFilterSchema.options;
 const LISTBOX_ID = 'global-search-results';
@@ -35,7 +36,7 @@ function useOpenResult(onDone: () => void) {
     },
     onSuccess: (chatId) => void navigate({ to: '/chats/$chatId', params: { chatId } }),
   });
-  return (option: SearchOption) => {
+  return (option: ResultOption) => {
     onDone();
     if (option.kind === 'chat') {
       void navigate({ to: '/chats/$chatId', params: { chatId: option.chat.id } });
@@ -58,42 +59,52 @@ export default function GlobalSearch() {
   const [filter, setFilter] = useState<SearchFilter | undefined>(undefined);
   const [activeId, setActiveId] = useState<string | null>(null);
   const chats = useChats();
-  const typed = useDebouncedValue(q.trim(), 250);
+  const commands = useCommandOptions(q, filter !== undefined, hide);
+  const { commandMode } = commands;
+  const typed = useDebouncedValue(commandMode ? '' : q.trim(), 250);
   const people = useQuery({
     queryKey: ['users', 'search', typed],
     queryFn: async () => (await usersApi.search(typed)).items,
-    enabled: typed.length > 0 && !filter,
+    enabled: typed.length > 0 && !filter && !commandMode,
     placeholderData: keepPreviousData,
   });
-  const messages = useMessageSearch({ q, filter }, chats);
+  const messages = useMessageSearch(commandMode ? { q: '' } : { q, filter }, chats);
   const open = useOpenResult(hide);
+  const pick = (option: SearchOption) =>
+    option.kind === 'command' ? commands.run(option.command) : open(option);
 
   const sections = useMemo(() => {
-    const chatOptions: SearchOption[] = filter
+    const onlyMessages = filter !== undefined || commandMode;
+    const chatOptions: SearchOption[] = onlyMessages
       ? []
       : searchLocalChats(chats ?? [], q, t('chats.saved'))
           .slice(0, 5)
           .map((chat) => ({ kind: 'chat', id: chat.id, chat }));
     const personOptions: SearchOption[] =
-      filter || !typed
+      onlyMessages || !typed
         ? []
         : (people.data ?? [])
             .slice(0, 5)
             .map((person) => ({ kind: 'person', id: person.id, person }));
-    const messageOptions: SearchOption[] = messages.hits.map((hit) => ({
+    const messageOptions: SearchOption[] = (commandMode ? [] : messages.hits).map((hit) => ({
       kind: 'message',
       id: hit.key,
       hit,
     }));
     return { chatOptions, personOptions, messageOptions };
-  }, [chats, filter, messages.hits, people.data, q, t, typed]);
-  const all = [...sections.chatOptions, ...sections.personOptions, ...sections.messageOptions];
+  }, [chats, commandMode, filter, messages.hits, people.data, q, t, typed]);
+  const all = [
+    ...commands.options,
+    ...sections.chatOptions,
+    ...sections.personOptions,
+    ...sections.messageOptions,
+  ];
   const active = all.find((option) => optionId(option) === activeId) ?? all[0] ?? null;
 
   function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
     if (event.key === 'Enter' && active) {
       event.preventDefault();
-      open(active);
+      pick(active);
       return;
     }
     if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
@@ -106,22 +117,7 @@ export default function GlobalSearch() {
     }
   }
 
-  const searching = q.trim().length > 0 || filter !== undefined;
-  const messageStatus = !searching ? null : messages.loading ? (
-    <p role="status" className="px-2.5 py-2 text-sm text-text-muted">
-      {t('search.searching')}
-    </p>
-  ) : messages.failed ? (
-    <p role="alert" className="px-2.5 py-2 text-sm text-text-muted">
-      {t('search.serverFailed')}
-    </p>
-  ) : messages.hits.length === 0 ? (
-    <p className="px-2.5 py-2 text-sm text-text-muted">{t('search.noMessages')}</p>
-  ) : messages.hasMore ? (
-    <Button variant="ghost" size="sm" onClick={messages.loadMore} disabled={messages.loadingMore}>
-      {t('search.more')}
-    </Button>
-  ) : null;
+  const searching = !commandMode && (q.trim().length > 0 || filter !== undefined);
 
   return (
     <Dialog open onOpenChange={(next) => (next ? undefined : hide())}>
@@ -146,7 +142,7 @@ export default function GlobalSearch() {
             className="h-11 flex-1 bg-transparent text-sm outline-none"
           />
         </div>
-        <fieldset className="flex flex-wrap gap-1.5">
+        <fieldset hidden={commandMode} className="flex flex-wrap gap-1.5">
           <legend className="sr-only">{t('search.filters')}</legend>
           {FILTERS.map((value) => (
             <button
@@ -169,6 +165,7 @@ export default function GlobalSearch() {
           <div id={LISTBOX_ID} role="listbox" aria-label={t('search.results')}>
             {(
               [
+                ['commands', commands.options],
                 ['chats', sections.chatOptions],
                 ['people', sections.personOptions],
                 ['messages', sections.messageOptions],
@@ -180,15 +177,15 @@ export default function GlobalSearch() {
                 options={options}
                 activeId={active ? optionId(active) : null}
                 q={q}
-                onPick={open}
+                onPick={pick}
                 onHover={(option) => setActiveId(optionId(option))}
               />
             ))}
           </div>
-          {messageStatus}
+          {searching ? <MessageStatus messages={messages} /> : null}
         </div>
-        {searching ? null : (
-          <p className="px-2.5 py-3 text-sm text-text-muted">{t('search.hint')}</p>
+        {searching || (commandMode && commands.options.length > 0) ? null : (
+          <PaletteHint commandMode={commandMode} />
         )}
       </DialogContent>
     </Dialog>
