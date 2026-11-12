@@ -193,7 +193,9 @@ test('the folder chips scroll sideways with no scrollbar, in a narrow window', a
   await page.setViewportSize({ width: 240, height: 700 });
   await signUp(page, 'Chips');
   const row = page.getByRole('tablist', { name: 'Chat folders' });
-  const measured = await row.evaluate((element: HTMLElement) => ({
+  // The row that scrolls holds the tabs and the "+" (New folder) button after them.
+  const scroller = row.locator('xpath=..');
+  const measured = await scroller.evaluate((element: HTMLElement) => ({
     scrollable: element.scrollWidth > element.clientWidth,
     scrollbar: element.offsetHeight - element.clientHeight,
     width: getComputedStyle(element).scrollbarWidth,
@@ -201,4 +203,6 @@ test('the folder chips scroll sideways with no scrollbar, in a narrow window', a
   expect(measured).toEqual({ scrollable: true, scrollbar: 0, width: 'none' });
   await row.getByRole('tab', { name: 'Groups' }).focus();
   await expect(row.getByRole('tab', { name: 'Groups' })).toBeInViewport();
+  await page.getByRole('button', { name: 'New folder' }).focus();
+  await expect(page.getByRole('button', { name: 'New folder' })).toBeInViewport();
 });
