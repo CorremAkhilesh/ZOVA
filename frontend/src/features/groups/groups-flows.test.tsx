@@ -21,6 +21,7 @@ const group = (overrides: Partial<GroupInfo> = {}): GroupInfo => ({
     addMembers: 'admins',
     pinMessages: 'all',
     mentionEveryone: 'admins',
+    disappearing: 'admins',
   },
   myRole: 'member',
   active: true,

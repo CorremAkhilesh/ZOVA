@@ -38,6 +38,12 @@ const STATUS_BY_CODE: Record<ErrorCode, number> = {
   CANNOT_MESSAGE: 403,
   PREVIEW_UNAVAILABLE: 422,
   FOLDER_LIMIT_REACHED: 409,
+  SCHEDULED_LIMIT_REACHED: 409,
+  POLL_CLOSED: 409,
+  VIEW_ONCE_OPENED: 410,
+  PIN_NOT_SET: 409,
+  PIN_INVALID: 403,
+  PIN_LOCKED_OUT: 429,
 };
 
 /** An expected error whose message is safe to show to the client. */

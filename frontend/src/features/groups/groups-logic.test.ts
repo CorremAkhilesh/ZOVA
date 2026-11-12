@@ -100,6 +100,7 @@ describe('what the app offers', () => {
       addMembers: 'admins',
       pinMessages: 'all',
       mentionEveryone: 'admins',
+      disappearing: 'admins',
     },
     myRole: 'member',
     active: true,
@@ -141,6 +142,7 @@ describe('what the app offers', () => {
       addMembers: 'admins',
       pinMessages: 'all',
       mentionEveryone: 'admins',
+      disappearing: 'admins',
     } as const;
     expect(groupAbilities(group({ settings })).send).toBe(false);
     expect(groupAbilities(group({ settings, myRole: 'admin' })).send).toBe(true);

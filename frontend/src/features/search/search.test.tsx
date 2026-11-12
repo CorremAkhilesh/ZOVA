@@ -72,6 +72,7 @@ function groupInfo() {
       addMembers: 'all' as const,
       pinMessages: 'all' as const,
       mentionEveryone: 'admins' as const,
+      disappearing: 'admins' as const,
     },
   };
 }

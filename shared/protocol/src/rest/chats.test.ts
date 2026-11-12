@@ -1,13 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { sendMessagePayloadSchema } from '../realtime/chat.ts';
 import { clientToServerEvents, serverToClientEvents } from '../realtime/events.ts';
-import {
-  MESSAGE_TEXT_MAX,
-  markReadBodySchema,
-  messageHistoryQuerySchema,
-  syncQuerySchema,
-} from './chats.ts';
+import { MESSAGE_TEXT_MAX, markReadBodySchema } from './chats.ts';
 import { renameSessionBodySchema } from './security.ts';
+import { messageHistoryQuerySchema, syncQuerySchema } from './sync.ts';
 
 const chatId = '6aea9e7492c525fa72210c66';
 const clientMsgId = '0197f5a4-7c3e-7b1a-8d2f-1a2b3c4d5e6f';

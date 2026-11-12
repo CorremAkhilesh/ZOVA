@@ -27,6 +27,7 @@ const group = (myRole: GroupInfo['myRole'] = 'member'): GroupInfo => ({
     addMembers: 'admins',
     pinMessages: 'all',
     mentionEveryone: 'admins',
+    disappearing: 'admins',
   },
   myRole,
   active: true,

@@ -18,6 +18,8 @@ export const groupSettingsSchema = z.object({
   pinMessages: groupAudienceSchema.default('all'),
   /** "@everyone": admins may use it, or nobody. */
   mentionEveryone: z.enum(['admins', 'off']).default('admins'),
+  /** Who may change the disappearing-messages timer. */
+  disappearing: groupAudienceSchema.default('admins'),
 });
 
 export const DEFAULT_GROUP_SETTINGS: z.infer<typeof groupSettingsSchema> = {
@@ -26,6 +28,7 @@ export const DEFAULT_GROUP_SETTINGS: z.infer<typeof groupSettingsSchema> = {
   addMembers: 'admins',
   pinMessages: 'all',
   mentionEveryone: 'admins',
+  disappearing: 'admins',
 };
 
 /** A group as one member sees it. */

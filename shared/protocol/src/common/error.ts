@@ -43,6 +43,16 @@ export const errorCodeSchema = z.enum([
   'PREVIEW_UNAVAILABLE',
   /** Already 10 folders. */
   'FOLDER_LIMIT_REACHED',
+  /** Already 50 scheduled messages waiting. */
+  'SCHEDULED_LIMIT_REACHED',
+  'POLL_CLOSED',
+  /** This view-once photo or video was already opened (410). */
+  'VIEW_ONCE_OPENED',
+  'PIN_NOT_SET',
+  /** Wrong PIN; `details.attemptsLeft` says how many tries remain. */
+  'PIN_INVALID',
+  /** Too many wrong PINs; `details.lockedUntil` says when to try again. */
+  'PIN_LOCKED_OUT',
 ]);
 
 export type ErrorCode = z.infer<typeof errorCodeSchema>;

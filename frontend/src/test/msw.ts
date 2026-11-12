@@ -76,6 +76,7 @@ export const privacyFixture: PrivacySettings = {
   profilePhoto: 'everyone',
   about: 'everyone',
   readReceipts: true,
+  defaultDisappearing: 'off',
 };
 
 /** Username availability: "taken" is taken; everything that passes the rules is free. */

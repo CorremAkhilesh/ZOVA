@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { isoDateTimeSchema, objectIdSchema } from '../common/id.ts';
+import { wallpaperSchema } from '../rest/appearance.ts';
 import { mentionsInputSchema, pinnedMessageSchema } from '../rest/chat-extras.ts';
 import {
   chatTypeSchema,
@@ -10,15 +11,17 @@ import {
   markReadResponseSchema,
   messageSchema,
   messageTextSchema,
-  syncCursorSchema,
 } from '../rest/chats.ts';
+import { disappearTimerSchema } from '../rest/disappearing.ts';
 import { groupInfoSchema } from '../rest/groups.ts';
 import { CAPTION_MAX } from '../rest/media.ts';
+import { pollInputSchema } from '../rest/polls.ts';
+import { syncCursorSchema } from '../rest/sync.ts';
 
 /** A caption on media, or a message's text. Must say something if present. */
 const captionSchema = z.string().max(CAPTION_MAX);
 
-/** message:send (client → server): either text, or one finished upload and maybe a caption. */
+/** message:send (client → server): text, one finished upload (maybe with a caption), or a poll. */
 export const sendMessagePayloadSchema = z
   .object({
     chatId: objectIdSchema,
@@ -35,9 +38,18 @@ export const sendMessagePayloadSchema = z
     /** Groups only: members named in `text` (or the caption), and "@everyone" (admins). */
     mentions: mentionsInputSchema.optional(),
     mentionsEveryone: z.boolean().optional(),
+    poll: pollInputSchema.optional(),
+    /** A photo or video the others can open once. */
+    viewOnce: z.boolean().optional(),
   })
-  .refine((message) => (message.text === undefined) !== (message.mediaIds === undefined), {
-    message: 'Send either text or media',
+  .refine(
+    (message) =>
+      [message.text, message.mediaIds, message.poll].filter((part) => part !== undefined).length ===
+      1,
+    { message: 'Send text, media or a poll' },
+  )
+  .refine((message) => !message.viewOnce || message.mediaIds !== undefined, {
+    message: 'Only a photo or video can be view once',
   })
   .refine((message) => message.mediaIds !== undefined || message.caption === undefined, {
     message: 'A caption needs media',
@@ -82,6 +94,10 @@ export const chatUpdatedEventSchema = z.object({
   /** Present when they changed: the chat's pins I may see, and my unread mentions. */
   pins: z.array(pinnedMessageSchema).optional(),
   mentionSeqs: z.array(z.number().int().positive()).optional(),
+  /** Present when they changed. */
+  disappearing: disappearTimerSchema.optional(),
+  locked: z.boolean().optional(),
+  wallpaper: wallpaperSchema.nullable().optional(),
   cursor: syncCursorSchema,
 });
 

@@ -9,6 +9,7 @@ const open = {
   addMembers: 'all',
   pinMessages: 'all',
   mentionEveryone: 'admins',
+  disappearing: 'admins',
 } as const;
 const closed = {
   editInfo: 'admins',
@@ -16,6 +17,7 @@ const closed = {
   addMembers: 'admins',
   pinMessages: 'admins',
   mentionEveryone: 'off',
+  disappearing: 'admins',
 } as const;
 const who = (rule: (role: GroupRole) => boolean) => ROLES.filter((role) => rule(role));
 

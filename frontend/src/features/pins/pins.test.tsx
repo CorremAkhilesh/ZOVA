@@ -89,6 +89,7 @@ describe('pinned messages', () => {
         addMembers: 'all' as const,
         pinMessages: 'admins' as const,
         mentionEveryone: 'admins' as const,
+        disappearing: 'admins' as const,
       },
       myRole: 'member' as const,
       active: true,

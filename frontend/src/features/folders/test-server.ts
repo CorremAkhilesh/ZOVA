@@ -100,6 +100,7 @@ export const folderChats = () => [
         addMembers: 'all',
         pinMessages: 'all',
         mentionEveryone: 'admins',
+        disappearing: 'admins',
       },
       myRole: 'member',
       active: true,

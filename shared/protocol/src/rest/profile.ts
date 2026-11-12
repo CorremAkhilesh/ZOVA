@@ -3,6 +3,7 @@ import { isoDateTimeSchema } from '../common/id.ts';
 import { cursorPageQuerySchema, cursorPageSchema } from '../common/pagination.ts';
 import { usernameSchema } from '../common/username.ts';
 import { displayNameSchema, userRoleSchema, userStatusSchema } from './auth.ts';
+import { disappearTimerSchema } from './disappearing.ts';
 
 export const ABOUT_MAX = 140;
 export const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
@@ -19,12 +20,15 @@ export const privacySettingsSchema = z.object({
   profilePhoto: visibilitySchema,
   about: visibilitySchema,
   readReceipts: z.boolean(),
+  /** The disappearing timer of chats I start. Older copies have none: off. */
+  defaultDisappearing: disappearTimerSchema.default('off'),
 });
 export const DEFAULT_PRIVACY: z.infer<typeof privacySettingsSchema> = {
   lastSeen: 'everyone',
   profilePhoto: 'everyone',
   about: 'everyone',
   readReceipts: true,
+  defaultDisappearing: 'off',
 };
 
 /** PATCH /v1/me/profile — at least one field. */

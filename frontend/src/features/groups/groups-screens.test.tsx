@@ -19,6 +19,7 @@ const group = (overrides: Partial<GroupInfo> = {}): GroupInfo => ({
     addMembers: 'admins',
     pinMessages: 'all',
     mentionEveryone: 'admins',
+    disappearing: 'admins',
   },
   myRole: 'member',
   active: true,
@@ -72,6 +73,7 @@ describe('the composer in a group', () => {
           addMembers: 'admins',
           pinMessages: 'all',
           mentionEveryone: 'admins',
+          disappearing: 'admins',
         },
       }),
     );
@@ -90,6 +92,7 @@ describe('the composer in a group', () => {
           addMembers: 'admins',
           pinMessages: 'all',
           mentionEveryone: 'admins',
+          disappearing: 'admins',
         },
       }),
     );
@@ -237,6 +240,7 @@ describe('the info pane', () => {
           addMembers: 'admins',
           pinMessages: 'all',
           mentionEveryone: 'admins',
+          disappearing: 'admins',
         },
       }),
     );

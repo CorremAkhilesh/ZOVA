@@ -1,9 +1,12 @@
 import { z } from 'zod';
 import { isoDateTimeSchema, objectIdSchema } from '../common/id.ts';
+import { wallpaperSchema } from './appearance.ts';
 import { mentionSchema, pinnedMessageSchema } from './chat-extras.ts';
+import { disappearTimerSchema } from './disappearing.ts';
 import { groupInfoSchema } from './groups.ts';
 import { linkPreviewSchema } from './link-previews.ts';
 import { mediaInfoSchema } from './media.ts';
+import { pollSchema } from './polls.ts';
 import { publicProfileSchema } from './profile.ts';
 
 export const MESSAGE_TEXT_MAX = 4096;
@@ -21,6 +24,7 @@ export const messageTypeSchema = z.enum([
   'document',
   'voice',
   'audio',
+  'poll',
 ]);
 
 /** What a system message says happened. Names are kept with it, so it reads the same later. */
@@ -40,6 +44,8 @@ export const systemEventSchema = z.object({
     'owner_changed',
     /** Someone pinned a message; `value` is its position in the chat. */
     'pinned',
+    /** The disappearing-messages timer changed; `value` is the new one (`off`, `24h`…). */
+    'disappearing_changed',
   ]),
   /** Null when the system did it, such as passing on ownership from a deactivated account. */
   actor: z.object({ id: z.string(), name: z.string() }).nullable(),
@@ -121,6 +127,14 @@ export const messageSchema = z.object({
   /** Group members mentioned, and "@everyone". */
   mentions: z.array(mentionSchema).optional(),
   mentionsEveryone: z.boolean().optional(),
+  /** Type `poll`: the question, options and votes. */
+  poll: pollSchema.nullable().optional(),
+  /** Sent while the chat's disappearing timer was on: it is deleted everywhere at this time. */
+  expiresAt: isoDateTimeSchema.nullable().optional(),
+  /** A photo or video that can be opened once. No thumbnail or placeholder is ever sent. */
+  viewOnce: z.boolean().optional(),
+  /** View once, as I see it: I opened it (or, as its sender, everyone has). */
+  viewOnceOpened: z.boolean().optional(),
   replyToId: z.string().nullable(),
   editedAt: isoDateTimeSchema.nullable(),
   deletedForEveryoneAt: isoDateTimeSchema.nullable(),
@@ -184,6 +198,12 @@ export const chatSummarySchema = z.object({
    * cleared then. Null: never had one here.
    */
   draft: draftSchema.nullable().optional(),
+  /** The chat's disappearing-messages timer, the same for every member. */
+  disappearing: disappearTimerSchema.optional(),
+  /** Mine alone: behind the PIN, with no previews anywhere. */
+  locked: z.boolean().optional(),
+  /** Mine alone: this chat's own wallpaper; null or absent uses my default. */
+  wallpaper: wallpaperSchema.nullable().optional(),
 });
 
 /** POST /v1/chats/direct */
@@ -203,69 +223,12 @@ export const chatListResponseSchema = z.object({
   nextCursor: z.string().min(1).nullable(),
 });
 
-/** GET /v1/chats/:id/messages: newest page by default; `before`/`after` are chat positions. */
-export const messageHistoryQuerySchema = z.object({
-  before: z.coerce.number().int().positive().optional(),
-  after: z.coerce.number().int().nonnegative().optional(),
-  limit: z.coerce.number().int().min(1).max(MESSAGE_PAGE_MAX).default(50),
-});
-export const messageHistoryResponseSchema = z.object({
-  /** Always oldest first. */
-  items: z.array(messageSchema),
-  /** More messages exist in the direction being read. */
-  hasMore: z.boolean(),
-});
-
 /** POST /v1/chats/:id/read */
 export const markReadBodySchema = z.object({ seq: z.number().int().nonnegative() });
 export const markReadResponseSchema = z.object({
   chatId: z.string(),
   lastReadSeq: z.number().int().nonnegative(),
   unreadCount: z.number().int().nonnegative(),
-});
-
-/** The sync cursor is opaque to clients; see docs/protocol.md. */
-export const syncCursorSchema = z.string().regex(/^\d{1,15}$/, 'Invalid cursor');
-
-/** GET /v1/sync */
-export const syncQuerySchema = z.object({
-  since: syncCursorSchema.optional(),
-  limit: z.coerce.number().int().min(1).max(500).default(200),
-});
-export const syncResponseSchema = z.object({
-  /** Pass this as `since` next time. */
-  cursor: syncCursorSchema,
-  /** The cursor is missing, unknown or too old: reload the chat list, then continue from `cursor`. */
-  reset: z.boolean(),
-  /** More changes are waiting: call again straight away with `cursor`. */
-  hasMore: z.boolean(),
-  /** Current state of every chat that changed. */
-  chats: z.array(chatSummarySchema),
-  /** The missing messages, oldest change first. */
-  messages: z.array(messageSchema),
-  /**
-   * Messages that changed: apply them only if this device has them. Storing an old one it never
-   * loaded would leave a hole in its history that paging back could not see.
-   */
-  updated: z.array(messageSchema).default([]),
-  /** Messages I deleted for me on another device. */
-  removed: z.array(z.object({ chatId: z.string(), seq: z.number().int() })).default([]),
-  /** Chats I cleared or deleted on another device: everything up to `seq` goes. */
-  cleared: z
-    .array(z.object({ chatId: z.string(), seq: z.number().int(), removeChat: z.boolean() }))
-    .default([]),
-});
-
-/** GET /v1/chats/:id/media */
-export const galleryQuerySchema = z.object({
-  tab: z.enum(['media', 'docs', 'links']),
-  before: z.coerce.number().int().positive().optional(),
-  limit: z.coerce.number().int().min(1).max(MESSAGE_PAGE_MAX).default(60),
-});
-export const galleryResponseSchema = z.object({
-  /** Newest first. */
-  items: z.array(messageSchema),
-  hasMore: z.boolean(),
 });
 
 /** "0:12", rounded down, as media players show it. */
@@ -283,4 +246,3 @@ export type LastReaction = z.infer<typeof lastReactionSchema>;
 export type SystemEvent = z.infer<typeof systemEventSchema>;
 export type LastMessage = z.infer<typeof lastMessageSchema>;
 export type ChatSummary = z.infer<typeof chatSummarySchema>;
-export type SyncResponse = z.infer<typeof syncResponseSchema>;

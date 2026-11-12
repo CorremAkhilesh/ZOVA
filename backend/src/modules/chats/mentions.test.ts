@@ -71,7 +71,10 @@ describe('mentions', () => {
     }
     expect((await summary(owner, chatId)).mentionSeqs).toEqual([]);
     await setRole(owner, chatId, member, 'admin');
-    await call(owner, 'PUT', `/v1/chats/${chatId}/group/settings`, { mentionEveryone: 'off' });
+    await call(owner, 'PUT', `/v1/chats/${chatId}/group/settings`, {
+      mentionEveryone: 'off',
+      disappearing: 'admins',
+    });
     expect(await code(send(owner, chatId, everyone))).toBe('FORBIDDEN');
     expect(await code(send(owner, chatId, { text: 'no tag', mentionsEveryone: true }))).not.toBe(
       'sent',

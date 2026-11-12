@@ -1,8 +1,13 @@
 import { z } from 'zod';
+import { messagesExpiredEventSchema } from '../rest/disappearing.ts';
+import { lockUpdatedEventSchema } from '../rest/lock.ts';
+import { scheduledUpdatedEventSchema } from '../rest/scheduled.ts';
 import {
+  appearanceUpdatedEventSchema,
   blocksChangedEventSchema,
   draftUpdatedEventSchema,
   foldersUpdatedEventSchema,
+  quietHoursUpdatedEventSchema,
   settingsUpdatedEventSchema,
 } from './account.ts';
 import type { AckResponse } from './ack.ts';
@@ -74,6 +79,11 @@ export const serverToClientEvents = {
   'blocks:changed': blocksChangedEventSchema,
   'folders:updated': foldersUpdatedEventSchema,
   'draft:updated': draftUpdatedEventSchema,
+  'scheduled:updated': scheduledUpdatedEventSchema,
+  'messages:expired': messagesExpiredEventSchema,
+  'lock:updated': lockUpdatedEventSchema,
+  'quiet-hours:updated': quietHoursUpdatedEventSchema,
+  'appearance:updated': appearanceUpdatedEventSchema,
 } satisfies Record<string, z.ZodType>;
 
 type ClientEvents = typeof clientToServerEvents;
