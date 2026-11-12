@@ -168,6 +168,13 @@ describe('search in a chat', () => {
     await user.click(screen.getByRole('button', { name: 'Older match' }));
     expect(screen.getByText('2 of 2')).toBeInTheDocument();
     await waitFor(() => expect(at(1)).toHaveClass(/bg-brand/), SLOW);
+    // Enter goes on to the next (older) match, Shift+Enter back; it used to start the wrong way.
+    await user.click(screen.getByRole('button', { name: 'Newer match' }));
+    field.focus();
+    await user.keyboard('{Enter}');
+    expect(screen.getByText('2 of 2')).toBeInTheDocument();
+    await user.keyboard('{Shift>}{Enter}{/Shift}');
+    expect(screen.getByText('1 of 2')).toBeInTheDocument();
     await user.keyboard('{Escape}');
     await waitFor(() =>
       expect(screen.queryByRole('searchbox', { name: 'Search in this chat' })).toBeNull(),

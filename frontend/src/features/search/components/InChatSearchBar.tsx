@@ -39,15 +39,17 @@ export function InChatSearchBar({ chatId }: { chatId: string }) {
   if (openFor !== chatId) return null;
   const older = () => setIndex((value) => Math.min(value + 1, Math.max(0, hits.length - 1)));
   const newer = () => setIndex((value) => Math.max(0, value - 1));
+  /** Results start at the newest match, so "next" (Enter, ↑) goes further back in the chat. */
   function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
     if (event.key === 'Escape') close();
-    else if (event.key === 'Enter' || event.key === 'ArrowUp') {
+    else if (event.key === 'Enter') {
       event.preventDefault();
-      if (event.shiftKey || event.key === 'ArrowUp') older();
+      if (event.shiftKey) newer();
+      else older();
+    } else if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+      event.preventDefault();
+      if (event.key === 'ArrowUp') older();
       else newer();
-    } else if (event.key === 'ArrowDown') {
-      event.preventDefault();
-      newer();
     }
   }
 

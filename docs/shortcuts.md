@@ -40,8 +40,8 @@ The in-app list (Mod+/) comes from `frontend/src/features/commands/shortcuts.ts`
 | ↑ / ↓             | Move through results and commands            |
 | Enter             | Open the result, or run the command          |
 | `>` (typed first) | Command mode: only commands, matched fuzzily |
-| Enter / ↓         | Search in a chat: newer match                |
-| Shift+Enter / ↑   | Search in a chat: older match                |
+| Enter / ↑         | Search in a chat: next match (older)         |
+| Shift+Enter / ↓   | Search in a chat: previous match (newer)     |
 | Esc               | Close search                                 |
 
 Commands in the palette: New chat, New group, Open Saved Messages, Go to Starred, Go to Archived,
