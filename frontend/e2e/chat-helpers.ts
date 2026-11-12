@@ -75,3 +75,20 @@ export const heldLocks = (page: Page) =>
   page.evaluate(async () =>
     ((await navigator.locks.query()).held ?? []).flatMap(({ name }) => (name ? [name] : [])),
   );
+
+/** New chat → New group → pick people → name it. The group opens. */
+export async function createGroup(page: Page, name: string, members: Person[]) {
+  await page.getByRole('button', { name: 'New chat' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'New group' }).click();
+  const dialog = page.getByRole('dialog', { name: 'New group' });
+  for (const member of members) {
+    await dialog.getByRole('searchbox').fill(member.username);
+    await dialog.getByRole('button', { name: new RegExp(`@${member.username}`) }).click();
+    await expect(dialog.getByRole('list', { name: 'Selected people' })).toContainText(member.name);
+  }
+  await dialog.getByRole('button', { name: 'Next' }).click();
+  const details = page.getByRole('dialog', { name: 'Name your group' });
+  await details.getByRole('textbox', { name: 'Group name' }).fill(name);
+  await details.getByRole('button', { name: 'Create group' }).click();
+  await expect(page.getByRole('heading', { name })).toBeAttached(SLOW);
+}

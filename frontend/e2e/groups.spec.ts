@@ -1,5 +1,5 @@
 import { expect, type Page, test } from '@playwright/test';
-import { expectBubbles, newPerson, type Person, send } from './chat-helpers';
+import { createGroup, expectBubbles, newPerson, send } from './chat-helpers';
 import { SLOW } from './helpers';
 
 test.describe.configure({ timeout: 300_000 });
@@ -10,22 +10,6 @@ const thread = (page: Page, name: string) => page.getByRole('list', { name, exac
 async function openGroupFromList(page: Page, name: string) {
   await page.goto('/chats');
   await page.getByRole('link', { name: new RegExp(name) }).click();
-  await expect(page.getByRole('heading', { name })).toBeAttached(SLOW);
-}
-
-async function createGroup(page: Page, name: string, members: Person[]) {
-  await page.getByRole('button', { name: 'New chat' }).click();
-  await page.getByRole('dialog').getByRole('button', { name: 'New group' }).click();
-  const dialog = page.getByRole('dialog', { name: 'New group' });
-  for (const member of members) {
-    await dialog.getByRole('searchbox').fill(member.username);
-    await dialog.getByRole('button', { name: new RegExp(`@${member.username}`) }).click();
-    await expect(dialog.getByRole('list', { name: 'Selected people' })).toContainText(member.name);
-  }
-  await dialog.getByRole('button', { name: 'Next' }).click();
-  const details = page.getByRole('dialog', { name: 'Name your group' });
-  await details.getByRole('textbox', { name: 'Group name' }).fill(name);
-  await details.getByRole('button', { name: 'Create group' }).click();
   await expect(page.getByRole('heading', { name })).toBeAttached(SLOW);
 }
 
