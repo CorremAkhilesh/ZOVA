@@ -13,6 +13,9 @@ export const groupRules = {
     allowedBy(settings.sendMessages, role),
   addMembers: (role: GroupRole, settings: GroupSettings) => allowedBy(settings.addMembers, role),
   pinMessages: (role: GroupRole, settings: GroupSettings) => allowedBy(settings.pinMessages, role),
+  /** The disappearing-messages timer: as the group's setting says (admins by default). */
+  disappearing: (role: GroupRole, settings: GroupSettings) =>
+    allowedBy(settings.disappearing, role),
   /** "@everyone": admins only, and nobody once the group turns it off. */
   mentionEveryone: (role: GroupRole, settings: GroupSettings) =>
     settings.mentionEveryone !== 'off' && isAdminRole(role),

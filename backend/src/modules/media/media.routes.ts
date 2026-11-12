@@ -1,4 +1,3 @@
-import { createHmac, timingSafeEqual } from 'node:crypto';
 import type { Readable } from 'node:stream';
 import {
   chatParamsSchema,
@@ -6,7 +5,6 @@ import {
   createUploadBodySchema,
   galleryQuerySchema,
   galleryResponseSchema,
-  MEDIA_LINK_TTL_SECONDS,
   mediaLinkQuerySchema,
   mediaLinkResponseSchema,
   POSTER_MAX_BYTES,
@@ -31,7 +29,8 @@ import {
   setPoster,
   uploadState,
 } from '../../media/media.service.ts';
-import { requireReadable } from '../../media/media-access.ts';
+import { isViewOnceMedia, requireReadable } from '../../media/media-access.ts';
+import { assertSignedLink, mediaLink } from '../../media/media-links.ts';
 import { StorageError } from '../../storage/driver.ts';
 
 /** A gallery can ask for many thumbnails at once; each is one small read. */
@@ -44,6 +43,8 @@ const contentQuerySchema = z.object({
   download: z.enum(['1']).optional(),
   exp: z.coerce.number().int().optional(),
   sig: z.string().optional(),
+  /** Minted by opening a view-once message: the only link that serves a view-once file. */
+  once: z.enum(['1']).optional(),
 });
 
 export const mediaRoutes: FastifyPluginAsyncZod = async (app) => {
@@ -78,10 +79,6 @@ export const mediaRoutes: FastifyPluginAsyncZod = async (app) => {
   }
 
   const secret = app.env.AUTH_SECRET;
-  const sign = (id: string, variant: string, download: boolean, expires: number) =>
-    createHmac('sha256', `media-link:${secret}`)
-      .update(`${id}.${variant}.${download ? 1 : 0}.${expires}`)
-      .digest('base64url');
 
   // Chunks arrive as a stream, written to disk as they come instead of held in memory.
   app.addContentTypeParser('application/offset+octet-stream', (_request, payload, done) =>
@@ -196,17 +193,7 @@ export const mediaRoutes: FastifyPluginAsyncZod = async (app) => {
       async (request) => {
         const { id } = request.params;
         await requireReadable(app, id, currentUserId(request));
-        const download = request.query.download === true;
-        const expires = Math.floor(Date.now() / 1000) + MEDIA_LINK_TTL_SECONDS;
-        const search = new URLSearchParams({
-          exp: String(expires),
-          sig: sign(id, 'full', download, expires),
-          ...(download ? { download: '1' } : {}),
-        });
-        return {
-          url: `/v1/media/${id}/content?${search}`,
-          expiresAt: new Date(expires * 1000).toISOString(),
-        };
+        return mediaLink(secret, id, { download: request.query.download === true });
       },
     );
 
@@ -235,16 +222,13 @@ export const mediaRoutes: FastifyPluginAsyncZod = async (app) => {
       await requireSession(request);
       return requireReadable(app, id, currentUserId(request));
     }
-    const expected = Buffer.from(sign(id, query.variant, query.download === '1', query.exp ?? 0));
-    const given = Buffer.from(query.sig);
-    if (expected.length !== given.length || !timingSafeEqual(expected, given)) {
-      throw new AppError('MEDIA_LINK_INVALID', 'This link is not valid.');
-    }
-    if ((query.exp ?? 0) * 1000 < Date.now()) {
-      throw new AppError('MEDIA_LINK_INVALID', 'This link has expired.');
-    }
+    const { once } = assertSignedLink(secret, id, { ...query, sig: query.sig });
     const doc = await chatModels(app).Media.findById(id).lean();
     if (!doc) throw new AppError('NOT_FOUND', 'Media not found.');
+    // View once: only the opener's link, never one made (say, by the sender) before it was sent.
+    if (!once && (await isViewOnceMedia(app, id))) {
+      throw new AppError('FORBIDDEN', 'View-once media opens only from its message.');
+    }
     return doc;
   }
 

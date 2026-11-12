@@ -17,13 +17,21 @@ export interface VoicePlay {
   shared: boolean;
 }
 
+/** A poll on a message of type `poll`. Option ids are "0", "1"…, in the order written. */
+export interface StoredPoll {
+  question: string;
+  options: Array<{ id: string; text: string; voterIds: Types.ObjectId[] }>;
+  multiple: boolean;
+  closedAt: Date | null;
+}
+
 export interface MessageDoc {
   _id: Types.ObjectId;
   chatId: Types.ObjectId;
   seq: number;
   clientMsgId: string | null;
   senderId: Types.ObjectId | null;
-  type: 'text' | 'system' | MediaInfo['kind'];
+  type: 'text' | 'system' | 'poll' | MediaInfo['kind'];
   text: string | null;
   /** What readers need to know about the file, copied here so history needs no second query. */
   media?: MediaInfo | null;
@@ -46,6 +54,15 @@ export interface MessageDoc {
   /** Groups: members named in the text, and "@everyone". */
   mentions?: Array<{ userId: Types.ObjectId; offset: number; length: number }>;
   mentionsEveryone?: boolean;
+  poll?: StoredPoll;
+  /** Sent while the chat's disappearing timer was on: deleted everywhere at this time. */
+  expiresAt?: Date | null;
+  /** A photo or video the others may open once. */
+  viewOnce?: boolean;
+  /** Who has opened it (never the sender). */
+  viewOnceOpenedBy?: Types.ObjectId[];
+  /** Everyone opened it, or its time ran out: the file is gone. */
+  viewOnceDoneAt?: Date | null;
   replyToId: Types.ObjectId | null;
   editedAt: Date | null;
   deletedForEveryoneAt: Date | null;
@@ -74,6 +91,11 @@ export const messageSchema = new Schema<MessageDoc>(
     hasLink: { type: Boolean, default: undefined },
     mentions: { type: [Schema.Types.Mixed], default: undefined },
     mentionsEveryone: { type: Boolean, default: undefined },
+    poll: { type: Schema.Types.Mixed, default: undefined },
+    expiresAt: { type: Date, default: undefined },
+    viewOnce: { type: Boolean, default: undefined },
+    viewOnceOpenedBy: { type: [ObjectId], default: undefined },
+    viewOnceDoneAt: { type: Date, default: undefined },
     replyToId: { type: ObjectId, default: null },
     editedAt: { type: Date, default: null },
     deletedForEveryoneAt: { type: Date, default: null },
@@ -93,6 +115,17 @@ messageSchema.index({ chatId: 1, type: 1, seq: -1 });
 messageSchema.index(
   { chatId: 1, hasLink: 1, seq: -1 },
   { partialFilterExpression: { hasLink: true } },
+);
+// Serves: the job that deletes disappearing messages, soonest first. Partial: most never expire.
+messageSchema.index(
+  { expiresAt: 1 },
+  { partialFilterExpression: { expiresAt: { $type: 'date' } } },
+);
+// Serves: the job that deletes view-once files nobody opened in time. Partial: view once is rare,
+// and only ones not done yet are waiting.
+messageSchema.index(
+  { createdAt: 1 },
+  { name: 'view_once_waiting', partialFilterExpression: { viewOnce: true, viewOnceDoneAt: null } },
 );
 // Serves: message search (whole words; English stemmed, Hindi and others kept as typed).
 // `language_override` names a field no message has, so no text can switch its own language.

@@ -15,27 +15,36 @@ import type { EmailDispatcher } from './mail/dispatcher.ts';
 import { createMailer, type Mailer } from './mail/mailer.ts';
 import { createMemoryMailer, isMemoryMailer } from './mail/memory-mailer.ts';
 import { adminRoutes } from './modules/admin/admin.routes.ts';
+import { appearanceRoutes } from './modules/appearance/appearance.routes.ts';
 import { authRoutes } from './modules/auth/auth.routes.ts';
 import { chatsRoutes } from './modules/chats/chats.routes.ts';
+import { disappearingRoutes } from './modules/chats/disappearing.routes.ts';
 import { draftsRoutes } from './modules/chats/drafts.routes.ts';
 import { foldersRoutes } from './modules/chats/folders.routes.ts';
 import { groupsRoutes } from './modules/chats/groups.routes.ts';
 import { messageActionsRoutes } from './modules/chats/message-actions.routes.ts';
 import { pinsRoutes } from './modules/chats/pins.routes.ts';
+import { pollsRoutes } from './modules/chats/polls.routes.ts';
+import { scheduledRoutes } from './modules/chats/scheduled.routes.ts';
+import { viewOnceRoutes } from './modules/chats/view-once.routes.ts';
 import { configRoutes } from './modules/config/config.routes.ts';
 import { healthRoutes } from './modules/health/health.routes.ts';
+import { lockRoutes } from './modules/lock/lock.routes.ts';
 import { mediaRoutes } from './modules/media/media.routes.ts';
 import { blocksRoutes } from './modules/moderation/blocks.routes.ts';
 import { adminReportsRoutes, reportsRoutes } from './modules/moderation/reports.routes.ts';
 import { linkPreviewsRoutes } from './modules/previews/link-previews.routes.ts';
 import { searchRoutes } from './modules/search/search.routes.ts';
 import { sessionsRoutes } from './modules/security/sessions.routes.ts';
+import { quietHoursRoutes } from './modules/settings/quiet-hours.routes.ts';
+import { expireTestRoutes } from './modules/test-support/expire.routes.ts';
 import { outboxRoutes } from './modules/test-support/outbox.routes.ts';
 import { meRoutes } from './modules/users/me.routes.ts';
 import { usersRoutes } from './modules/users/users.routes.ts';
 import { authPlugin } from './plugins/auth.ts';
 import { docsPlugin } from './plugins/docs.ts';
 import { errorHandlerPlugin } from './plugins/error-handler.ts';
+import { expirySweepPlugin, SWEEP_EVERY_MS } from './plugins/expiry-sweep.ts';
 import { mongoPlugin } from './plugins/mongo.ts';
 import { rateLimitPlugin } from './plugins/rate-limit.ts';
 import { redisPlugin } from './plugins/redis.ts';
@@ -140,8 +149,18 @@ export async function buildApp(env: Env, deps: Partial<AppDeps> = {}) {
   await app.register(draftsRoutes, { prefix: '/v1' });
   await app.register(foldersRoutes, { prefix: '/v1' });
   await app.register(pinsRoutes, { prefix: '/v1' });
+  await app.register(lockRoutes, { prefix: '/v1' });
+  await app.register(quietHoursRoutes, { prefix: '/v1' });
+  await app.register(appearanceRoutes, { prefix: '/v1' });
+  await app.register(pollsRoutes, { prefix: '/v1' });
+  await app.register(scheduledRoutes, { prefix: '/v1' });
+  await app.register(disappearingRoutes, { prefix: '/v1' });
+  await app.register(viewOnceRoutes, { prefix: '/v1' });
+  // Tests run passes themselves (POST /v1/test/expire-messages, or app.expirySweep.run()).
+  await app.register(expirySweepPlugin, { every: env.NODE_ENV === 'test' ? null : SWEEP_EVERY_MS });
   if (env.NODE_ENV === 'test' && isMemoryMailer(app.mailer)) {
     await app.register(outboxRoutes(app.mailer), { prefix: '/v1' });
+    await app.register(expireTestRoutes, { prefix: '/v1' });
   }
   return app;
 }

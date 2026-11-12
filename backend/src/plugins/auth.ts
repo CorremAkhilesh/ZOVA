@@ -22,6 +22,8 @@ declare module 'fastify' {
     otpThrottle: OtpThrottle;
     /** Expiring counters/locks (Redis when available). */
     counterStore: CounterStore;
+    /** How emails leave the API (the BullMQ queue with Redis). */
+    emailDispatcher: EmailDispatcher;
   }
 }
 
@@ -113,6 +115,7 @@ async function setupAuth(app: FastifyInstance, options: AuthPluginOptions) {
   app.decorate('auth', auth);
   app.decorate('otpThrottle', throttle);
   app.decorate('counterStore', counterStore);
+  app.decorate('emailDispatcher', dispatcher);
   app.decorateRequest('auth', null);
 
   // Better Auth's own endpoints (get-session, sign-out, …). Our typed routes under the same

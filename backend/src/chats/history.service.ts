@@ -79,6 +79,8 @@ export async function chatGallery(
       chatId: oid(chatId),
       ...galleryFilter(query.tab),
       deletedForEveryoneAt: null,
+      // View once is never kept in the gallery: it can be seen once, from its message only.
+      viewOnce: { $ne: true },
       _id: { $nin: await hiddenIds(app, userId, chatId) },
       ...(Object.keys(seq).length ? { seq } : {}),
     })

@@ -1,9 +1,11 @@
 import type {
+  DisappearTimer,
   GroupSettings,
   LastReaction,
   MediaInfo,
   ReplyQuote,
   SystemEvent,
+  Wallpaper,
 } from '@zuvo/protocol';
 import { type Connection, type Model, Schema, type Types } from 'mongoose';
 import { mediaSchema, receiptEventSchema } from './media-models.ts';
@@ -16,7 +18,7 @@ import {
 } from './per-user-models.ts';
 
 export type { MediaDoc, ReceiptEventDoc } from './media-models.ts';
-export type { MessageDoc, MessageReaction, VoicePlay } from './message-models.ts';
+export type { MessageDoc, MessageReaction, StoredPoll, VoicePlay } from './message-models.ts';
 export type { MessageHiddenDoc, StarDoc, UserSyncDoc, UserUpdateDoc } from './per-user-models.ts';
 export { UPDATE_LOG_TTL_DAYS } from './per-user-models.ts';
 
@@ -27,7 +29,7 @@ export interface LastMessageSnapshot {
   id: Types.ObjectId;
   seq: number;
   senderId: Types.ObjectId | null;
-  type: 'text' | 'system' | MediaInfo['kind'];
+  type: 'text' | 'system' | 'poll' | MediaInfo['kind'];
   preview: string;
   system?: SystemEvent | null;
   deleted?: boolean;
@@ -56,6 +58,8 @@ export interface ChatDoc {
   lastActivityAt: Date | null;
   /** Pinned messages, newest pin first; at most 3. Expired ones are ignored until the job removes them. */
   pins?: StoredPin[];
+  /** How long new messages last. Absent: off. */
+  disappearing?: DisappearTimer;
   createdBy: Types.ObjectId;
   createdAt: Date;
   group?: {
@@ -81,6 +85,7 @@ const chatSchema = new Schema<ChatDoc>(
     lastMessage: { type: Schema.Types.Mixed, default: null },
     lastActivityAt: { type: Date, default: null },
     pins: { type: [Schema.Types.Mixed], default: undefined },
+    disappearing: String,
     createdBy: { type: ObjectId, required: true },
     createdAt: { type: Date, default: () => new Date() },
     group: Schema.Types.Mixed,
@@ -154,6 +159,10 @@ export interface ChatMemberDoc {
   draft?: { text: string; replyTo: ReplyQuote | null; updatedAt: Date } | null;
   /** Positions of unread messages that mention me, oldest first. */
   mentionSeqs?: number[];
+  /** Mine alone: behind the PIN, with no previews. */
+  locked?: boolean;
+  /** Mine alone: this chat's own wallpaper. */
+  wallpaper?: Wallpaper | null;
 }
 
 const chatMemberSchema = new Schema<ChatMemberDoc>(
@@ -183,6 +192,8 @@ const chatMemberSchema = new Schema<ChatMemberDoc>(
     folderIds: { type: [ObjectId], default: undefined },
     draft: Schema.Types.Mixed,
     mentionSeqs: { type: [Number], default: undefined },
+    locked: Boolean,
+    wallpaper: Schema.Types.Mixed,
   },
   { ...options, collection: 'chat_members' },
 );

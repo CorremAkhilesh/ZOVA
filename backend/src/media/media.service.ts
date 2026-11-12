@@ -6,6 +6,7 @@ import type { FastifyInstance } from 'fastify';
 import type { ClientSession } from 'mongoose';
 import { chatModels, oid } from '../chats/chats.service.ts';
 import type { MediaDoc } from '../db/chat-models.ts';
+import { registerScheduledModels } from '../db/scheduled-models.ts';
 import { AppError } from '../lib/errors.ts';
 import { assertRoomFor, assertWithinLimits } from './limits.ts';
 import { processImage, processPoster } from './process-image.ts';
@@ -256,7 +257,10 @@ export async function attachMedia(
   return attached;
 }
 
-/** Uploads never attached to a message within a day: their files and their records go. */
+/**
+ * Uploads never attached to a message within a day, and not waiting in a scheduled message: their
+ * files and their records go.
+ */
 export async function cleanupOrphans(
   app: FastifyInstance,
   now: Date = new Date(),
@@ -266,8 +270,20 @@ export async function cleanupOrphans(
     .Media.find({ messageId: null, createdAt: { $lt: new Date(now.getTime() - ORPHAN_AGE_MS) } })
     .limit(batch)
     .lean();
+  // A scheduled message still waiting to send it keeps it, however long that is.
+  const waiting = orphans.length
+    ? await registerScheduledModels(app.mongo)
+        .Scheduled.find({
+          mediaId: { $in: orphans.map((doc) => doc._id) },
+          status: { $in: ['pending', 'sending'] },
+        })
+        .select({ mediaId: 1 })
+        .lean()
+    : [];
+  const kept = new Set(waiting.map((item) => String(item.mediaId)));
   let removed = 0;
   for (const doc of orphans) {
+    if (kept.has(doc._id.toString())) continue;
     const lastWrite =
       doc.status === 'pending' ? await area(app).lastWrite(doc._id.toString()) : null;
     if (lastWrite && now.getTime() - lastWrite.getTime() < ACTIVE_UPLOAD_MS) continue;

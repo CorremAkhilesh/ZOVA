@@ -61,9 +61,10 @@ export async function quoteOf(
     senderId,
     senderName: senderId ? (await namesOf(app, [senderId]))(senderId).name : '',
     type: doc.type,
-    text: previewOf(doc.media, doc.text),
-    mediaId: doc.media?.hasThumbnail ? doc.media.id : null,
-    hasThumbnail: doc.media?.hasThumbnail === true,
+    text: previewOf(doc.media, doc.text, doc.poll),
+    // A view-once file is never shown before it is opened, not even as a quote's thumbnail.
+    mediaId: doc.media?.hasThumbnail && !doc.viewOnce ? doc.media.id : null,
+    hasThumbnail: doc.media?.hasThumbnail === true && !doc.viewOnce,
     deleted: false,
   };
 }

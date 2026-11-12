@@ -14,10 +14,23 @@ export async function requireReadable(
   id: string,
   userId: string,
 ): Promise<MediaDoc> {
-  const { Media, Message, ChatMember } = chatModels(app);
-  const doc = await Media.findById(id).lean();
+  const doc = await chatModels(app).Media.findById(id).lean();
   if (!doc) throw new AppError('NOT_FOUND', 'Media not found.');
-  if (doc.ownerId.toString() === userId) return doc;
+  if (doc.ownerId.toString() !== userId) await requireUsedWhereVisible(app, id, userId);
+  // Not even the sender: their own device keeps its copy, and nobody else gets a lasting link.
+  if (await isViewOnceMedia(app, id)) {
+    throw new AppError('FORBIDDEN', 'View-once media opens only from its message.');
+  }
+  return doc;
+}
+
+/** Whether a view-once message uses this file. Index: media.id. */
+export async function isViewOnceMedia(app: FastifyInstance, id: string): Promise<boolean> {
+  return Boolean(await chatModels(app).Message.exists({ 'media.id': id, viewOnce: true }));
+}
+
+async function requireUsedWhereVisible(app: FastifyInstance, id: string, userId: string) {
+  const { Message, ChatMember } = chatModels(app);
   const uses = await Message.find({ 'media.id': id }).select({ chatId: 1, seq: 1 }).lean();
   const members = await ChatMember.find({
     userId: oid(userId),
@@ -29,21 +42,29 @@ export async function requireReadable(
     return member && canSeeSeq(member, use.seq);
   });
   if (!allowed) throw new AppError('NOT_FOUND', 'Media not found.');
-  return doc;
 }
 
 /**
- * Files whose message was deleted for everyone. A forwarded copy elsewhere keeps the file, until that
- * one goes too, which asks again.
+ * Files whose message was deleted for everyone, or expired. A forwarded copy elsewhere keeps the
+ * file, until that one goes too, which asks again. A view-once file is asked for a little ahead (its
+ * opener's link must still work): `deleteRequestedAt` is then in the future, and it waits until then.
  */
-export async function cleanupDeletedMedia(app: FastifyInstance, batch = 200): Promise<number> {
+export async function cleanupDeletedMedia(
+  app: FastifyInstance,
+  batch = 200,
+  now: Date = new Date(),
+): Promise<number> {
   const { Media, Message } = chatModels(app);
-  const candidates = await Media.find({ deleteRequestedAt: { $type: 'date' } })
+  const candidates = await Media.find({ deleteRequestedAt: { $type: 'date', $lte: now } })
     .limit(batch)
     .lean();
   let removed = 0;
   for (const doc of candidates) {
-    const stillUsed = await Message.exists({ 'media.id': doc._id.toString() });
+    // A view-once message that everyone opened (or that ran out of time) no longer needs its file.
+    const stillUsed = await Message.exists({
+      'media.id': doc._id.toString(),
+      viewOnceDoneAt: { $not: { $type: 'date' } },
+    });
     if (stillUsed) {
       await Media.updateOne({ _id: doc._id }, { $unset: { deleteRequestedAt: 1 } });
     } else {

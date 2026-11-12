@@ -53,7 +53,8 @@ export async function forwardMessages(
   const sources: MessageDoc[] = [];
   for (const { chatId, messageId } of input.messages) {
     const { doc } = await requireVisibleMessage(app, userId, chatId, messageId, 'participant');
-    if (doc.deletedForEveryoneAt || doc.type === 'system') {
+    // A poll's votes and a view-once file belong to where they were sent.
+    if (doc.deletedForEveryoneAt || doc.type === 'system' || doc.type === 'poll' || doc.viewOnce) {
       throw new AppError('BAD_REQUEST', 'This message cannot be forwarded.');
     }
     sources.push(doc);

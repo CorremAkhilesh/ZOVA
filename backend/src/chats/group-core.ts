@@ -164,6 +164,7 @@ export function deliverSystemMessage(app: FastifyInstance, stored: StoredSystemM
       // System messages also announce pins in 1:1 chats, which have no group to show.
       ...(chat.type === 'group' ? { group: groupView(chat, member) } : {}),
       pins: visiblePins(chat.pins, member),
+      disappearing: chat.disappearing ?? 'off',
       cursor,
     });
   }

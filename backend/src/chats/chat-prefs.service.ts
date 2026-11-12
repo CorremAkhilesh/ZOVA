@@ -59,6 +59,9 @@ export async function announceOwnChat(
     markedUnread: summary.markedUnread ?? false,
     pins: summary.pins ?? [],
     mentionSeqs: summary.mentionSeqs ?? [],
+    disappearing: summary.disappearing ?? 'off',
+    locked: summary.locked ?? false,
+    wallpaper: summary.wallpaper ?? null,
     cursor,
   });
   return summary;

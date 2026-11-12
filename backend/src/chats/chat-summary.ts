@@ -59,5 +59,8 @@ export function toSummary(
     pins: visiblePins(chat.pins, member),
     mentionSeqs: member.mentionSeqs ?? [],
     draft: draftView(member),
+    disappearing: chat.disappearing ?? 'off',
+    locked: member.locked === true,
+    wallpaper: member.wallpaper ?? null,
   };
 }

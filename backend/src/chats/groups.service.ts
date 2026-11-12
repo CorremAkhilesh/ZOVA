@@ -11,6 +11,8 @@ import { AppError } from '../lib/errors.ts';
 import { processAvatar } from '../users/avatar.ts';
 import { type UserDoc, usersModel } from '../users/user-record.ts';
 import { chatModels, getChat, oid } from './chats.service.ts';
+import { defaultTimerOf } from './default-timer.ts';
+import { appendTimerNotice } from './disappearing.service.ts';
 import {
   appendSystemMessage,
   deliverSystemMessage,
@@ -48,6 +50,7 @@ export async function createGroup(
   }
   await requireActiveUsers(app, others);
   const name = await namesOf(app, [userId, ...others]);
+  const timer = await defaultTimerOf(app, userId);
   const models = chatModels(app);
   const chatId = new Types.ObjectId();
   const now = new Date();
@@ -82,14 +85,19 @@ export async function createGroup(
       })),
       { session },
     );
-    return appendSystemMessage(app, session, chatId, {
+    const created = await appendSystemMessage(app, session, chatId, {
       kind: 'created',
       actor: name(userId),
       targets: others.map(name),
       value: input.name,
     });
+    // The members did not choose the creator's default timer, so the group says it is on.
+    const notice =
+      timer === 'off' ? null : await appendTimerNotice(app, session, chatId, name(userId), timer);
+    return { created, notice };
   });
-  deliverSystemMessage(app, stored);
+  deliverSystemMessage(app, stored.created);
+  if (stored.notice) deliverSystemMessage(app, stored.notice);
   return getChat(app, chatId.toString(), userId);
 }
 

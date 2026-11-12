@@ -3,7 +3,7 @@ import type { EmailJobData } from '../jobs/email-queue.ts';
 import type { Mailer, MailMessage } from './mailer.ts';
 
 /** Jobs carrying one-time codes or links must not linger in Redis. */
-const SENSITIVE_JOBS = new Set(['otp', 'login-alert']);
+const SENSITIVE_JOBS = new Set(['otp', 'login-alert', 'lock-reset']);
 const SENSITIVE_JOB_OPTIONS = { removeOnComplete: true, removeOnFail: { age: 3600 } } as const;
 
 type Logger = { error: (object: object, message: string) => void };

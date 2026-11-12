@@ -75,9 +75,12 @@ export async function buildSearchQuery(app: FastifyInstance, userId: string, inp
   const me = new Types.ObjectId(userId);
   const members: Member[] = input.chatId
     ? [await requireParticipant(app, input.chatId, userId)]
-    : await ChatMember.find({ userId: me })
-        .select({ chatId: 1, joinSeq: 1, leftSeq: 1, leftAt: 1, clearedSeq: 1 })
-        .lean();
+    : // Chats I locked never show up in global search: not their messages, not a snippet.
+      (
+        await ChatMember.find({ userId: me })
+          .select({ chatId: 1, joinSeq: 1, leftSeq: 1, leftAt: 1, clearedSeq: 1, locked: 1 })
+          .lean()
+      ).filter((member) => member.locked !== true);
   const kind = input.filter ? KIND[input.filter] : { type: { $ne: 'system' } };
   // Each clause carries the kind of message too, so each can use its own index.
   const clauses = scopeClauses(members).map((clause) => ({ ...clause, ...kind }));

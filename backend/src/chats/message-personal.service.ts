@@ -34,7 +34,7 @@ async function previewBefore(
     seq: earlier.seq,
     senderId: earlier.senderId,
     type: earlier.type,
-    preview: previewOf(earlier.media, earlier.text),
+    preview: previewOf(earlier.media, earlier.text, earlier.poll),
     system: earlier.system ?? null,
     deleted: earlier.deletedForEveryoneAt !== null,
     createdAt: earlier.createdAt,

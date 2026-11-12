@@ -54,6 +54,7 @@ export async function editMessage(
     throw new AppError('EDIT_WINDOW_PASSED', 'This message is too old to edit.');
   }
   if (doc.type === 'voice') throw new AppError('BAD_REQUEST', 'A voice note cannot be edited.');
+  if (doc.type === 'poll') throw new AppError('BAD_REQUEST', 'A poll cannot be edited.');
   const trimmed = input.trim();
   if (!trimmed && doc.type === 'text') {
     throw new AppError('BAD_REQUEST', 'A message cannot be empty.');
@@ -192,7 +193,7 @@ export async function setReaction(
     byId: userId,
     byName: name,
     emoji,
-    text: previewOf(doc.media, doc.text),
+    text: previewOf(doc.media, doc.text, doc.poll),
     seq: doc.seq,
     at: at.toISOString(),
   };

@@ -6,6 +6,7 @@ import { AppError } from '../lib/errors.ts';
 import { blockersAmong } from '../moderation/blocks.service.ts';
 import { privacyOf, toPublicProfile, type UserDoc, usersModel } from '../users/user-record.ts';
 import { NO_PEER, peerProgress, toSummary } from './chat-summary.ts';
+import { defaultTimerOf, timerFields } from './default-timer.ts';
 import { logUpdates } from './updates.ts';
 
 export const chatModels = (app: FastifyInstance) => registerChatModels(app.mongo);
@@ -115,7 +116,7 @@ function announceChat(app: FastifyInstance, summary: ChatSummary, userId: string
 async function createChat(
   app: FastifyInstance,
   creatorId: string,
-  fields: Pick<ChatDoc, 'type' | 'pairKey' | 'selfOwnerId'>,
+  fields: Pick<ChatDoc, 'type' | 'pairKey' | 'selfOwnerId' | 'disappearing'>,
   members: Array<Pick<ChatMemberDoc, 'userId' | 'role' | 'lastActivityAt'>>,
 ): Promise<string | null> {
   const models = chatModels(app);
@@ -176,7 +177,9 @@ export async function getOrCreateDirectChat(
 
   let chat = await find();
   if (!chat) {
-    await createChat(app, userId, { type: 'direct', pairKey }, [
+    // Starts with the creator's default timer, quietly: the header and each message show it.
+    const timer = timerFields(await defaultTimerOf(app, userId));
+    await createChat(app, userId, { type: 'direct', pairKey, ...timer }, [
       { userId: oid(userId), role: 'member', lastActivityAt: new Date() },
       // Stays out of the other person's list until the first message.
       { userId: oid(otherId), role: 'member', lastActivityAt: null },

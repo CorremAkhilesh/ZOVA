@@ -5,13 +5,52 @@ import {
   type MediaInfo,
   type Message,
 } from '@zuvo/protocol';
-import type { ChatDoc, ChatMemberDoc, LastMessageSnapshot, MessageDoc } from '../db/chat-models.ts';
+import type {
+  ChatDoc,
+  ChatMemberDoc,
+  LastMessageSnapshot,
+  MessageDoc,
+  StoredPoll,
+} from '../db/chat-models.ts';
 
 /** Whether this person may know a voice note was played. See `played` in the protocol. */
 function playedFor(doc: MessageDoc, viewerId: string): boolean {
   const plays = doc.plays ?? [];
   if (doc.senderId?.toString() === viewerId) return plays.some((play) => play.shared);
   return plays.some((play) => play.userId.toString() === viewerId);
+}
+
+function toPoll(poll: StoredPoll): NonNullable<Message['poll']> {
+  return {
+    question: poll.question,
+    options: poll.options.map((option) => ({
+      id: option.id,
+      text: option.text,
+      voterIds: option.voterIds.map((id) => id.toString()),
+    })),
+    multiple: poll.multiple,
+    closedAt: poll.closedAt ? new Date(poll.closedAt).toISOString() : null,
+  };
+}
+
+/** View once never sends a thumbnail or a blurred placeholder: there is nothing to see before opening. */
+function mediaFor(doc: MessageDoc): MediaInfo | null {
+  const media = doc.media ?? null;
+  return media && doc.viewOnce ? { ...media, placeholder: null, hasThumbnail: false } : media;
+}
+
+/** Disappearing and view-once fields; absent on ordinary messages. */
+function timedFields(doc: MessageDoc, viewerId: string, deleted: boolean): Partial<Message> {
+  const opened =
+    doc.senderId?.toString() === viewerId
+      ? Boolean(doc.viewOnceDoneAt)
+      : (doc.viewOnceOpenedBy ?? []).some((id) => id.toString() === viewerId) ||
+        Boolean(doc.viewOnceDoneAt);
+  return {
+    ...(doc.expiresAt ? { expiresAt: new Date(doc.expiresAt).toISOString() } : {}),
+    ...(doc.viewOnce && !deleted ? { viewOnce: true, viewOnceOpened: opened } : {}),
+    ...(doc.poll && !deleted ? { poll: toPoll(doc.poll) } : {}),
+  };
 }
 
 /** A message as this person sees it. */
@@ -25,7 +64,7 @@ export function toMessage(doc: MessageDoc, viewerId: string): Message {
     senderId: doc.senderId?.toString() ?? null,
     type: doc.type,
     text: deleted ? null : doc.text,
-    media: deleted ? null : (doc.media ?? null),
+    media: deleted ? null : mediaFor(doc),
     albumId: doc.albumId ?? null,
     played: playedFor(doc, viewerId),
     system: doc.system ?? null,
@@ -51,6 +90,7 @@ export function toMessage(doc: MessageDoc, viewerId: string): Message {
         }
       : {}),
     ...(doc.mentionsEveryone && !deleted ? { mentionsEveryone: true } : {}),
+    ...timedFields(doc, viewerId, deleted),
     replyToId: doc.replyToId?.toString() ?? null,
     editedAt: doc.editedAt?.toISOString() ?? null,
     deletedForEveryoneAt: doc.deletedForEveryoneAt?.toISOString() ?? null,
@@ -125,5 +165,14 @@ export function toMediaPreview(media: MediaInfo, caption: string | undefined): s
   return toPreview(caption ?? '');
 }
 
-export const previewOf = (media: MediaInfo | null | undefined, text: string | null | undefined) =>
-  media ? toMediaPreview(media, text ?? undefined) : toPreview(text ?? '');
+/** Polls show their question; clients add "📊 Poll:" in their language. */
+export const previewOf = (
+  media: MediaInfo | null | undefined,
+  text: string | null | undefined,
+  poll?: Pick<StoredPoll, 'question'> | null,
+) =>
+  poll
+    ? toPreview(poll.question)
+    : media
+      ? toMediaPreview(media, text ?? undefined)
+      : toPreview(text ?? '');
