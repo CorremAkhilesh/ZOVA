@@ -1,4 +1,5 @@
 import type { MyProfile, PrivacySettings, SessionResponse } from '@zuvo/protocol';
+import { DEFAULT_APPEARANCE, DEFAULT_QUIET_HOURS } from '@zuvo/protocol';
 import { HttpResponse, http } from 'msw';
 import { setupServer } from 'msw/node';
 
@@ -98,6 +99,21 @@ export const server = setupServer(
   http.get('*/v1/me/privacy', () => HttpResponse.json({ privacy: privacyFixture })),
   http.get('*/v1/me/blocks', () => HttpResponse.json({ items: [] })),
   http.get('*/v1/me/folders', () => HttpResponse.json({ folders: [] })),
+  http.get('*/v1/me/scheduled', () => HttpResponse.json({ items: [] })),
+  http.get('*/v1/me/lock', () =>
+    HttpResponse.json({
+      lock: {
+        pinSet: false,
+        appLock: { enabled: false, idleMinutes: 5 },
+        lockedUntil: null,
+        attemptsLeft: 5,
+        biometricCount: 0,
+      },
+    }),
+  ),
+  http.get('*/v1/me/appearance', () => HttpResponse.json({ appearance: DEFAULT_APPEARANCE })),
+  http.get('*/v1/me/wallpapers', () => HttpResponse.json({ images: [] })),
+  http.get('*/v1/me/quiet-hours', () => HttpResponse.json({ quietHours: DEFAULT_QUIET_HOURS })),
   http.get('*/v1/me/chat-settings', () =>
     HttpResponse.json({ settings: { keepChatsArchived: true } }),
   ),

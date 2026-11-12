@@ -1,4 +1,4 @@
-import { Camera, FileText, Image as ImageIcon, Paperclip } from 'lucide-react';
+import { BarChart3, Camera, FileText, Image as ImageIcon, Paperclip } from 'lucide-react';
 import { Popover } from 'radix-ui';
 import { type ChangeEvent, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -8,7 +8,12 @@ import { useIsDesktop } from '@/lib/hooks';
 const CHOICE =
   'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm hover:bg-background';
 
-export function AttachMenu({ onFiles }: { onFiles: (files: File[]) => void }) {
+/** `onPoll`: offered only where a poll can go (see features/polls/use-poll-composer.tsx). */
+export function AttachMenu(props: {
+  onFiles: (files: File[]) => void;
+  onPoll?: (() => void) | undefined;
+}) {
+  const { onFiles, onPoll } = props;
   const { t } = useTranslation();
   const isDesktop = useIsDesktop();
   const [open, setOpen] = useState(false);
@@ -79,6 +84,19 @@ export function AttachMenu({ onFiles }: { onFiles: (files: File[]) => void }) {
                 {t('media.camera')}
               </button>
             )}
+            {onPoll ? (
+              <button
+                type="button"
+                className={CHOICE}
+                onClick={() => {
+                  setOpen(false);
+                  onPoll();
+                }}
+              >
+                <BarChart3 className="size-5 text-brand-text" aria-hidden />
+                {t('polls.attach')}
+              </button>
+            ) : null}
           </Popover.Content>
         </Popover.Portal>
       </Popover.Root>

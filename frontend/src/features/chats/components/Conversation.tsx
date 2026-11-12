@@ -4,7 +4,10 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { ChatWallpaper } from '@/features/appearance/components/ChatWallpaper';
 import { useSession } from '@/features/auth/session';
+import { DisappearingRow } from '@/features/disappearing/DisappearingRow';
+import { useWithoutExpired } from '@/features/disappearing/use-without-expired';
 import { GroupInfoBody } from '@/features/groups/components/GroupInfoPane';
 import { useGroupMembers, useKnownPeople } from '@/features/groups/queries';
 import { ChatGallery } from '@/features/media/components/ChatGallery';
@@ -85,6 +88,7 @@ function JumpToLatest({ count, onJump }: { count: number; onJump: () => void }) 
 }
 
 function MobileProfile(props: {
+  row: ChatRow;
   chatId: string;
   onOpenMedia: (mediaId: string) => void;
   person: PublicProfile;
@@ -96,6 +100,7 @@ function MobileProfile(props: {
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
       <DialogContent title={t('conversation.info')} className="max-w-lg">
         <ProfileCard person={props.person} />
+        <DisappearingRow chat={props.row} />
         <div className="flex h-80 flex-col">
           <ChatGallery chatId={props.chatId} onOpen={props.onOpenMedia} />
         </div>
@@ -128,6 +133,7 @@ function MobileInfo(props: {
   if (!row.otherUser) return null;
   return (
     <MobileProfile
+      row={row}
       chatId={row.id}
       onOpenMedia={onOpenMedia}
       person={row.otherUser}
@@ -143,7 +149,9 @@ function useConversationView(chat: ChatRow) {
   const me = useSession()?.user.id ?? '';
   const saved = t('chats.saved');
   const unknown = t('chats.unknownPerson');
-  const { rows, ...older } = useConversationMessages(chat);
+  const { rows: stored, ...older } = useConversationMessages(chat);
+  // Disappearing messages leave the moment they expire, before the purge removes them.
+  const rows = useWithoutExpired(stored, (row) => row.expiresAt);
   const members = useGroupMembers(chat);
   const people = useKnownPeople();
   const summary = useMemo(
@@ -198,6 +206,7 @@ export function Conversation({ chat }: { chat: ChatRow }) {
           picked={media.picked}
           maxBytes={media.maxBytes}
           onChange={media.setPicked}
+          allowViewOnce={summary.kind !== 'saved'}
           onClose={media.clear}
           onSend={media.send}
         />
@@ -226,7 +235,7 @@ export function Conversation({ chat }: { chat: ChatRow }) {
         />
         <PinnedBar chat={chat} />
         <InChatSearchBar chatId={chat.id} />
-        <div className="chat-wallpaper relative min-h-0 flex-1">
+        <ChatWallpaper wallpaper={chat.wallpaper} className="relative min-h-0 flex-1">
           {showEmpty ? <EmptyChat saved={summary.kind === 'saved'} name={summary.name} /> : null}
           {messages && !showEmpty ? (
             <MessageList
@@ -244,7 +253,7 @@ export function Conversation({ chat }: { chat: ChatRow }) {
           <OlderStatus loading={loadingOlder} failed={loadFailed} onRetry={loadOlder} />
           {atBottom ? null : <JumpToLatest count={newCount} onJump={jumpToLatest} />}
           <MentionJump key={chat.id} chat={chat} />
-        </div>
+        </ChatWallpaper>
         <ChatFooter chat={summary} onSent={jumpToLatest} onFiles={media.addFiles} />
       </DropZone>
       {infoOpen && isDesktop ? (

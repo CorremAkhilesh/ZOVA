@@ -147,6 +147,8 @@ function Entries({ request, chat }: { request: MenuRequest; chat: ChatSummary })
   const set = useMessageUi((state) => state.set);
   const commands = useMessageCommands(message, items);
   const live = !message.deleted;
+  // View once is never forwarded or starred.
+  const shareable = live && !message.viewOnce;
   const pinned = isPinned(chat, message.serverId);
   return (
     <div className="pt-1.5">
@@ -160,7 +162,7 @@ function Entries({ request, chat }: { request: MenuRequest; chat: ChatSummary })
           onSelect={() => void commands.replyPrivately()}
         />
       ) : null}
-      {live ? (
+      {shareable && !message.poll ? (
         <Entry
           icon={CornerUpRight}
           label={t('messages.forward')}
@@ -173,7 +175,7 @@ function Entries({ request, chat }: { request: MenuRequest; chat: ChatSummary })
       {canEdit(message) ? (
         <Entry icon={Pencil} label={t('messages.edit')} onSelect={commands.edit} />
       ) : null}
-      {live ? (
+      {shareable ? (
         <Entry
           icon={Star}
           label={t(message.starred ? 'messages.unstar' : 'messages.star')}

@@ -37,16 +37,19 @@ export const toPayload = (row: OutboxRow): SendMessagePayload =>
         ...(row.replyTo ? { replyTo: row.replyTo } : {}),
         ...(row.text ? { caption: row.text } : {}),
         ...(row.albumId ? { albumId: row.albumId } : {}),
+        ...(row.viewOnce ? { viewOnce: true } : {}),
       }
-    : {
-        chatId: row.chatId,
-        clientMsgId: row.clientMsgId,
-        text: row.text,
-        ...(row.replyTo ? { replyTo: row.replyTo } : {}),
-        ...(row.linkPreviewId ? { linkPreviewId: row.linkPreviewId } : {}),
-        ...(row.mentions?.length ? { mentions: row.mentions } : {}),
-        ...(row.mentionsEveryone ? { mentionsEveryone: true } : {}),
-      };
+    : row.poll
+      ? { chatId: row.chatId, clientMsgId: row.clientMsgId, poll: row.poll }
+      : {
+          chatId: row.chatId,
+          clientMsgId: row.clientMsgId,
+          text: row.text,
+          ...(row.replyTo ? { replyTo: row.replyTo } : {}),
+          ...(row.linkPreviewId ? { linkPreviewId: row.linkPreviewId } : {}),
+          ...(row.mentions?.length ? { mentions: row.mentions } : {}),
+          ...(row.mentionsEveryone ? { mentionsEveryone: true } : {}),
+        };
 
 /** A preview the sender looked up for a link in the text, sent along with it. */
 export interface AttachedPreview {
@@ -100,6 +103,8 @@ export interface EnqueueMedia {
   poster?: Blob | undefined;
   albumId?: string | undefined;
   replyTo?: ReplyQuote | null | undefined;
+  /** A photo or video the others can open once. */
+  viewOnce?: boolean | undefined;
 }
 
 type Preview = (
@@ -150,6 +155,7 @@ async function writeRows(
   keep: FileRow | null,
 ) {
   const { chatId, caption, info, albumId, replyTo } = input;
+  const once = input.viewOnce ? { viewOnce: true } : {};
   const key = `${me}:${clientMsgId}`;
   const createdAt = new Date().toISOString();
   const held = keep ? {} : { heldInTab: true };
@@ -166,6 +172,7 @@ async function writeRows(
       media: info,
       albumId,
       ...refOf(replyTo),
+      ...once,
     });
     await db.messages.add({
       ...held,
@@ -200,6 +207,7 @@ async function writeRows(
       createdAt,
       status: 'pending',
       uploadedBytes: 0,
+      ...once,
     });
     const text = previewOf(info, caption);
     await preview(chatId, key, {

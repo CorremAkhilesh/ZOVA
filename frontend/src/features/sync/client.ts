@@ -7,6 +7,7 @@ import type {
 import { io, type Socket } from 'socket.io-client';
 import { toast } from 'sonner';
 import { chatsApi } from '@/features/chats/api';
+import { startExpiryPurge } from '@/features/disappearing/purge';
 import { mediaApi } from '@/features/media/api';
 import { MediaUploader } from '@/features/media/uploader';
 import { type AccountChange, wireAccountEvents } from './account-events';
@@ -203,6 +204,7 @@ export function startSyncClient(options: SyncClientOptions): SyncClient {
   });
   wireSyncEvents(socket, engine, db);
   wireLiveStatus(socket, presence);
+  const expiry = startExpiryPurge(db);
 
   const onOnline = () => {
     if (ended) return;
@@ -275,6 +277,7 @@ export function startSyncClient(options: SyncClientOptions): SyncClient {
       ended = true;
       clearInterval(stateCheck);
       awayTracker.stop();
+      expiry.stop();
       deliveryAcks.stop();
       uploader.stop();
       reconciling.stop();

@@ -8,7 +8,7 @@ const isGroupAdmin = (chat: Pick<ChatSummary, 'group'>) =>
 /** What to offer. The server decides again on every request: this only keeps the screen honest. */
 export function canEdit(message: ChatMessage, now = Date.now()): boolean {
   if (message.authorId !== ME || !message.serverId || message.deleted) return false;
-  if (message.media?.kind === 'voice' || message.system) return false;
+  if (message.media?.kind === 'voice' || message.system || message.poll) return false;
   return now - message.at.getTime() <= EDIT_WINDOW_MINUTES * 60_000;
 }
 
@@ -40,10 +40,12 @@ export function toQuote(message: ChatMessage, me: string, myName: string): Reply
     seq: message.seq,
     senderId: mine ? me : message.authorId,
     senderName: mine ? myName : message.authorName,
-    type: message.media?.kind ?? 'text',
-    text: message.media ? message.text || message.media.name : message.text,
-    mediaId: message.media?.hasThumbnail ? message.media.id : null,
-    hasThumbnail: message.media?.hasThumbnail === true,
+    type: message.poll ? 'poll' : (message.media?.kind ?? 'text'),
+    text:
+      message.poll?.question ?? (message.media ? message.text || message.media.name : message.text),
+    // A view-once quote never shows the picture.
+    mediaId: message.media?.hasThumbnail && !message.viewOnce ? message.media.id : null,
+    hasThumbnail: message.media?.hasThumbnail === true && !message.viewOnce,
     deleted: false,
   };
 }

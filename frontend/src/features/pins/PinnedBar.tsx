@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { authErrorMessage } from '@/features/auth/errors';
 import { useLocalDb } from '@/features/chats/queries';
+import { useUnexpiredPins } from '@/features/disappearing/use-unexpired-pins';
 import { toPlainText } from '@/features/formatting/parse';
 import { useMessageUi } from '@/features/messages/store';
 import type { ChatRow } from '@/features/sync/local-db';
@@ -31,7 +32,7 @@ export function PinnedBar({ chat }: { chat: ChatRow }) {
   const { t } = useTranslation();
   const db = useLocalDb();
   const now = useNow();
-  const pins = livePins(chat.pins, now);
+  const pins = useUnexpiredPins(chat.id, livePins(chat.pins, now));
   const [index, setIndex] = useState(0);
   const shown = pins[Math.min(index, Math.max(0, pins.length - 1))];
   const text = useLive(async () => {

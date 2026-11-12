@@ -2,10 +2,12 @@ import { createFileRoute, Outlet, useMatchRoute } from '@tanstack/react-router';
 import { AppRail } from '@/components/common/AppRail';
 import { BottomTabs } from '@/components/common/BottomTabs';
 import { ErrorScreen, NotFound } from '@/components/common/StatusScreens';
+import { AppearanceHost } from '@/features/appearance/components/AppearanceHost';
 import { SessionGate } from '@/features/auth/components/SessionGate';
 import { requireCompleteSession } from '@/features/auth/guards';
 import { rememberJoinPath } from '@/features/groups/rules';
 import { InstallBanner } from '@/features/install/InstallUi';
+import { LockHost } from '@/features/lock/components/LockHost';
 import { MentionProfileHost } from '@/features/mentions/mention-marks';
 import { ModerationHost } from '@/features/moderation/components/ModerationHost';
 import { SearchHost } from '@/features/search/components/SearchHost';
@@ -45,6 +47,8 @@ function AppShell() {
       <ModerationHost />
       <SearchHost />
       <MentionProfileHost />
+      <LockHost />
+      <AppearanceHost />
     </>
   );
 

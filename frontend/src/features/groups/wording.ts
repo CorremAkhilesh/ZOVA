@@ -1,5 +1,6 @@
 import type { SystemEvent } from '@zuvo/protocol';
 import type { TFunction } from 'i18next';
+import { disappearingSystemText } from '@/features/disappearing/wording';
 
 type Person = { id: string; name: string };
 
@@ -27,6 +28,7 @@ export function systemText(event: SystemEvent, me: string, t: TFunction): string
   };
   if (kind === 'owner_changed' && !actor) return t('groups.system.owner_auto', params);
   if (kind === 'settings_changed') return t(settingsKey(value), params);
+  if (kind === 'disappearing_changed') return disappearingSystemText(params.actor, value, t);
   return t(`groups.system.${kind}`, params);
 }
 

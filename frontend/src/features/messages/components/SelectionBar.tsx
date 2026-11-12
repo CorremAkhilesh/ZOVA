@@ -12,7 +12,10 @@ export function SelectionBar() {
   const selected = useMessageUi((state) => state.selected);
   const stop = useMessageUi((state) => state.stopSelecting);
   const set = useMessageUi((state) => state.set);
-  const usable = selected.filter((message) => !message.deleted);
+  // View once is never forwarded or starred.
+  const usable = selected.filter((message) => !message.deleted && !message.viewOnce);
+  // Nor is a poll.
+  const forwardable = usable.filter((message) => !message.poll);
 
   const copy = () => {
     void navigator.clipboard
@@ -41,8 +44,8 @@ export function SelectionBar() {
         variant="ghost"
         size="icon"
         aria-label={t('messages.forward')}
-        disabled={usable.length === 0}
-        onClick={() => set({ forwarding: usable })}
+        disabled={forwardable.length === 0}
+        onClick={() => set({ forwarding: forwardable })}
       >
         <CornerUpRight className="size-5" aria-hidden />
       </Button>

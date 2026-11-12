@@ -1,5 +1,4 @@
 import { MESSAGE_TEXT_MAX } from '@zuvo/protocol';
-import { SendHorizontal } from 'lucide-react';
 import {
   type ChangeEvent,
   type FormEvent,
@@ -10,7 +9,6 @@ import {
   useState,
 } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button } from '@/components/ui/button';
 import { formatShortcut } from '@/features/formatting/composer-shortcut';
 import { FormattingHint } from '@/features/formatting/FormattingHint';
 import { ComposerLinkPreview } from '@/features/link-previews/LinkPreviewCard';
@@ -19,6 +17,8 @@ import { AttachMenu } from '@/features/media/components/AttachMenu';
 import { useMentionPicker } from '@/features/mentions/use-mention-picker';
 import { ComposerBanner } from '@/features/messages/components/ComposerBanner';
 import { useComposerActions } from '@/features/messages/use-composer-actions';
+import { usePollComposer } from '@/features/polls/use-poll-composer';
+import { SendButton } from '@/features/scheduled/components/SendButton';
 import { useSyncStore } from '@/features/sync/store';
 import { MicButton } from '@/features/voice/components/MicButton';
 import { MicBlockedDialog, MicExplainDialog } from '@/features/voice/components/MicDialogs';
@@ -63,6 +63,7 @@ export function Composer({ chatId, onSent, onFiles }: ComposerProps) {
   const actions = useComposerActions(chatId, text, update, field);
   const link = useLinkPreviewDraft(text, !actions.editing);
   const mention = useMentionPicker(chatId, text, field, update);
+  const poll = usePollComposer(chatId, onSent);
   const showHint = isDesktop && hasText && !recorder.active;
 
   // Grows with the text, up to the field's max height.
@@ -123,6 +124,7 @@ export function Composer({ chatId, onSent, onFiles }: ComposerProps) {
         />
         <MicBlockedDialog open={voice.blockedOpen} onClose={voice.closeBlocked} />
         <ComposerBanner chatId={chatId} />
+        {poll.dialog}
         <ComposerLinkPreview preview={link.preview} loading={link.loading} onRemove={link.remove} />
         {mention.picker}
         {recorder.problem && recorder.problem !== 'blocked' ? (
@@ -159,7 +161,7 @@ export function Composer({ chatId, onSent, onFiles }: ComposerProps) {
           ) : (
             <>
               <EmojiPicker onPick={insertEmoji} />
-              <AttachMenu onFiles={onFiles} />
+              <AttachMenu onFiles={onFiles} onPoll={poll.open} />
               <label className="sr-only" htmlFor="composer-input">
                 {t('conversation.composerPlaceholder')}
               </label>
@@ -190,15 +192,12 @@ export function Composer({ chatId, onSent, onFiles }: ComposerProps) {
             </>
           )}
           {hasText || actions.editing ? (
-            <Button
-              type="submit"
-              size="icon"
-              className="rounded-full"
+            <SendButton
+              chatId={chatId}
               disabled={!canSend}
-              aria-label={t('conversation.send')}
-            >
-              <SendHorizontal className="size-5" />
-            </Button>
+              takeDraft={() => (actions.editing ? null : { text, ...mention.payload(text) })}
+              onScheduled={() => update('')}
+            />
           ) : recorder.active && recorder.locked ? null : (
             <MicButton
               disabled={client === null}

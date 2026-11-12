@@ -21,7 +21,10 @@ export interface ViewerItem {
 
 export function toViewerItem(message: Message): ViewerItem | null {
   const { media } = message;
-  if (!media?.id || (media.kind !== 'image' && media.kind !== 'video')) return null;
+  // View once opens only in its own viewer, by its own link.
+  if (message.viewOnce || !media?.id || (media.kind !== 'image' && media.kind !== 'video')) {
+    return null;
+  }
   return {
     mediaId: media.id,
     kind: media.kind,

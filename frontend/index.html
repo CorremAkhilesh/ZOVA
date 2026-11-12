@@ -29,6 +29,13 @@
           // Storage blocked: fall back to light.
         }
         document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+        // The accent this device used last (features/appearance/accent.ts).
+        try {
+          const accent = localStorage.getItem('zuvo-accent');
+          if (accent && /^[a-z]+$/.test(accent)) document.documentElement.dataset.accent = accent;
+        } catch {
+          // Storage blocked: the default accent.
+        }
       })();
     </script>
   </head>

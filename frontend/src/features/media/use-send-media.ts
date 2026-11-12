@@ -30,12 +30,15 @@ export function useSendMedia(chatId: string) {
   );
 
   const send = useCallback(
-    async ({ items, asDocument }: { items: PickedFile[]; asDocument: boolean }) => {
+    async (input: { items: PickedFile[]; asDocument: boolean; viewOnce?: boolean }) => {
+      const { items, asDocument } = input;
       const client = useSyncStore.getState().client;
       if (!client) return;
       const prepared = await Promise.all(items.map((item) => prepareFile(item.file, asDocument)));
       const visual = prepared.filter((file) => isVisual(file.kind));
       const albumId = visual.length > 1 ? uuidv7() : undefined;
+      // Still one photo or video once prepared (a huge picture goes as a document instead).
+      const viewOnce = input.viewOnce === true && prepared.length === 1 && visual.length === 1;
       // An album answers once, with its first item.
       let replyTo = useMessageUi.getState().replies[chatId];
       useMessageUi.getState().setReply(chatId, undefined);
@@ -48,6 +51,7 @@ export function useSendMedia(chatId: string) {
           poster: file.poster,
           albumId: isVisual(file.kind) ? albumId : undefined,
           info: toUploadInfo(file),
+          ...(viewOnce ? { viewOnce } : {}),
         });
         replyTo = undefined;
       }

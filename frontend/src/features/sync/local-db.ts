@@ -3,6 +3,7 @@ import type {
   CreateUploadBody,
   Mention,
   Message,
+  PollInput,
   PublicProfile,
 } from '@zuvo/protocol';
 import Dexie, { type Table } from 'dexie';
@@ -63,6 +64,10 @@ export interface OutboxRow {
   /** Groups: who the text mentions. */
   mentions?: Mention[] | undefined;
   mentionsEveryone?: boolean | undefined;
+  /** A photo or video the others can open once. */
+  viewOnce?: boolean | undefined;
+  /** A poll instead of text (see features/polls/send-poll.ts). */
+  poll?: PollInput | undefined;
 }
 
 /** A Blob, or its bytes where a browser cannot keep Blobs. See stored-bytes.ts. */
@@ -115,6 +120,8 @@ export class LocalDb extends Dexie {
     });
     this.version(2).stores({ files: 'clientMsgId', thumbs: 'mediaId' });
     this.version(3).stores({ actions: '++n' });
+    // Disappearing messages: found by when they go, so expired ones can be removed quickly.
+    this.version(4).stores({ messages: 'key, [chatId+order], expiresAt' });
   }
 }
 

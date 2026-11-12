@@ -1,6 +1,7 @@
 import { Pencil, Reply, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useSession } from '@/features/auth/session';
+import { quoteText } from '@/features/polls/preview';
 import { useMessageUi } from '../store';
 
 /** "Replying to…" or "Editing", above the composer, with a way out. */
@@ -21,7 +22,9 @@ export function ComposerBanner({ chatId }: { chatId: string }) {
         <p className="truncate text-xs font-semibold text-brand-text">
           {editing ? t('messages.editing') : t('messages.replyingTo', { name: who })}
         </p>
-        <p className="truncate text-text-muted">{editing ? editing.text : quote?.text}</p>
+        <p className="truncate text-text-muted">
+          {editing ? editing.text : quote && quoteText(quote)}
+        </p>
       </div>
       <button
         type="button"

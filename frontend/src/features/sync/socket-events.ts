@@ -1,5 +1,6 @@
 import type { ClientToServerEvents, ServerToClientEvents } from '@zuvo/protocol';
 import type { Socket } from 'socket.io-client';
+import { applyExpired } from '@/features/disappearing/purge';
 import { applyRemoteDraft, flushDrafts } from '@/features/drafts/draft-sync';
 import { applyLastReaction } from './apply-updates';
 import { startDeliveryAcks } from './delivery-acks';
@@ -18,6 +19,9 @@ export function wireSyncEvents(
   socket.on('message:new', ({ message, cursor }) => void engine.onMessage(message, cursor));
   socket.on('message:played', ({ message, cursor }) => void engine.onMessage(message, cursor));
   socket.on('message:updated', ({ message, cursor }) => void engine.onUpdate(message, cursor));
+  socket.on('messages:expired', ({ chatId, seqs }) => {
+    void applyExpired(db, chatId, seqs).catch(() => undefined);
+  });
   socket.on('message:removed', ({ chatId, seq, cursor }) => {
     void engine.onRemoved(chatId, seq, cursor);
   });

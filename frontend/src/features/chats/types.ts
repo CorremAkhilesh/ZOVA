@@ -1,10 +1,12 @@
 import type {
+  DisappearTimer,
   GroupInfo,
   LinkPreview,
   MediaInfo,
   Mention,
   Message,
   PinnedMessage,
+  Poll,
   ReplyQuote,
   SystemEvent,
 } from '@zuvo/protocol';
@@ -48,6 +50,8 @@ export interface ChatSummary {
   mentions?: number;
   /** Pinned messages, newest pin first (some may have run out: see `livePins`). */
   pins?: PinnedMessage[] | undefined;
+  /** The disappearing-messages timer, the same for everyone in the chat. */
+  disappearing?: DisappearTimer | undefined;
   unread: number;
   about?: string | null;
   activityAt: Date;
@@ -95,4 +99,11 @@ export interface ChatMessage extends MessageAuthor {
   linkPreview?: LinkPreview | null;
   /** Groups: who the text mentions. */
   mentions?: Mention[] | undefined;
+  /** Type `poll`. */
+  poll?: Poll | null | undefined;
+  /** A disappearing message: when it goes. */
+  expiresAt?: string | null | undefined;
+  /** A photo or video that can be opened once; `viewOnceOpened` once it was (by me, or by all). */
+  viewOnce?: boolean | undefined;
+  viewOnceOpened?: boolean | undefined;
 }

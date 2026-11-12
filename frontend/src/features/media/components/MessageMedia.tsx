@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { ChatMessage } from '@/features/chats/types';
 import { useSyncStore } from '@/features/sync/store';
+import { ViewOnceBubble } from '@/features/view-once/ViewOnceBubble';
 import { AudioBubble } from '@/features/voice/components/AudioBubble';
 import { VoiceBubble } from '@/features/voice/components/VoiceBubble';
 import { cn } from '@/lib/utils';
@@ -214,6 +215,8 @@ export function MessageMedia({
   message: ChatMessage;
   onOpen: ((mediaId: string) => void) | undefined;
 }) {
+  // Never a thumbnail or a preview: see view-once/.
+  if (message.viewOnce) return <ViewOnceBubble message={message} />;
   if (message.media?.kind === 'document') return <DocumentCard message={message} />;
   if (message.media?.kind === 'voice') return <VoiceBubble message={message} />;
   if (message.media?.kind === 'audio') return <AudioBubble message={message} />;

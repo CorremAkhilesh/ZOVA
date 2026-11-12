@@ -71,7 +71,7 @@ describe('command palette', () => {
     const box = await openPalette();
     const options = within(await commandsGroup()).getAllByRole('option');
     expect(options.length).toBeGreaterThan(10);
-    expect(options[0]).toHaveAccessibleName(/Lock app.*Coming soon/);
+    expect(options[0]).toHaveAccessibleName(/Lock app/);
     expect(options[1]).toHaveAccessibleName(/Go to Starred/);
     expect(screen.getByText(/start with > to run a command/)).toBeInTheDocument();
     // The keyboard moves through them like through results.
@@ -143,12 +143,13 @@ describe('command palette', () => {
     await waitFor(() => expect(i18n.language).toBe('en'));
   });
 
-  it('Lock app says it is coming soon', async () => {
-    await renderApp('/chats', { width: DESKTOP_WIDTH });
+  it('Lock app without a PIN opens Settings → Privacy to set one', async () => {
+    const { router } = await renderApp('/chats', { width: DESKTOP_WIDTH });
     await run('lock', /Lock app/);
     expect(
-      await screen.findByText('App lock arrives in a later update.', {}, SLOW),
+      await screen.findByText('Set a PIN first to lock the app.', {}, SLOW),
     ).toBeInTheDocument();
+    await waitFor(() => expect(router.state.location.pathname).toBe('/settings/privacy'));
   });
 
   it('Mark all as read reads every unread chat and clears "marked unread"', async () => {

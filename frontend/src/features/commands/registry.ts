@@ -16,12 +16,18 @@ import {
 import { toast } from 'sonner';
 import { useNewChat } from '@/features/chats/new-chat-store';
 import { useNewGroup } from '@/features/groups/rules';
+import { lockAppNow } from '@/features/lock/lock-app';
 import type { LocalDb } from '@/features/sync/local-db';
 import { markAllRead, savedMessagesChatId, switchLanguage, toggleTheme } from './actions';
 import { useChatListView } from './chat-list-view';
 import { useShortcutsHelp } from './shortcuts-store';
 
-export type AppPath = '/chats' | '/starred' | '/settings' | '/settings/devices';
+export type AppPath =
+  | '/chats'
+  | '/starred'
+  | '/settings'
+  | '/settings/devices'
+  | '/settings/privacy';
 
 export interface CommandContext {
   go: (to: AppPath) => void;
@@ -127,10 +133,7 @@ export const COMMANDS: readonly Command[] = [
     label: 'commands.lockApp',
     keywords: ['lock', 'pin', 'privacy'],
     icon: Lock,
-    soon: true,
-    run: ({ t }) => {
-      toast(t('commands.lockSoon'));
-    },
+    run: lockAppNow,
   },
   {
     id: 'shortcuts',

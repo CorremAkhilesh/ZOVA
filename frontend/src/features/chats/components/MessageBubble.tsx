@@ -3,6 +3,7 @@ import { Check, Mic } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/ui/avatar';
 import { useSession } from '@/features/auth/session';
+import { ExpiryMark, expiryRoom } from '@/features/disappearing/ExpiryMark';
 import { FormattedText } from '@/features/formatting/FormattedText';
 import { MessageInfoButton } from '@/features/groups/components/MessageInfoButton';
 import { systemText } from '@/features/groups/wording';
@@ -21,6 +22,7 @@ import {
 import { canAct } from '@/features/messages/rules';
 import { useMessageUi } from '@/features/messages/store';
 import { useBubbleGestures } from '@/features/messages/use-bubble-gestures';
+import { PollCard } from '@/features/polls/components/PollCard';
 import { useInChatSearch } from '@/features/search/in-chat-store';
 import { cn } from '@/lib/utils';
 import { formatClock } from '../chat-utils';
@@ -80,6 +82,7 @@ function MessageMeta({ message, mine }: { message: ChatMessage; mine: boolean })
     >
       <StarMark message={message} />
       {message.edited && !message.deleted ? <span>{t('messages.edited')}</span> : null}
+      <ExpiryMark expiresAt={message.expiresAt} />
       <time dateTime={message.at.toISOString()}>{formatClock(message.at, i18n.language)}</time>
       {mine && message.media?.kind === 'voice' ? (
         <Mic
@@ -119,6 +122,7 @@ function BubbleContent(props: {
         mine ? 'w-[5.25rem]' : 'w-16',
         message.edited && 'ml-10',
         message.starred && 'ml-4',
+        expiryRoom(message.expiresAt),
       )}
       aria-hidden
     />
@@ -215,7 +219,11 @@ function BubbleBody(props: MessageBubbleProps & { mine: boolean }) {
         <>
           <ForwardedLabel message={message} />
           <QuoteBlock message={message} mine={mine} />
-          <BubbleContent message={message} mine={mine} album={album} onOpenMedia={onOpenMedia} />
+          {message.poll ? (
+            <PollCard message={message} />
+          ) : (
+            <BubbleContent message={message} mine={mine} album={album} onOpenMedia={onOpenMedia} />
+          )}
         </>
       )}
       <MessageMeta message={message} mine={mine} />

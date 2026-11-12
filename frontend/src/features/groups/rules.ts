@@ -12,6 +12,7 @@ export function groupAbilities(group: GroupInfo) {
     send: allows(settings.sendMessages),
     addMembers: allows(settings.addMembers),
     pin: allows(settings.pinMessages ?? 'all'),
+    disappearing: allows(settings.disappearing ?? 'admins'),
     mentionEveryone: active && isAdmin(myRole) && settings.mentionEveryone !== 'off',
     manage: active && isAdmin(myRole),
     changeRoles: active && myRole === 'owner',

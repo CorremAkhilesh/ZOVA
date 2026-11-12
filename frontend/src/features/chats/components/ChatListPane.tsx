@@ -18,7 +18,10 @@ import { readSelectedFolder, saveSelectedFolder } from '@/features/folders/store
 import { useKnownPeople } from '@/features/groups/queries';
 import { useNewGroup } from '@/features/groups/rules';
 import { systemText } from '@/features/groups/wording';
+import { useWithoutLocked } from '@/features/lock/chat-lock';
+import { LockedChatsEntry } from '@/features/lock/components/LockedChatsEntry';
 import { ChatMenu } from '@/features/messages/components/ChatMenu';
+import { QuietIndicator } from '@/features/quiet-hours/components/QuietIndicator';
 import { useGlobalSearch } from '@/features/search/store';
 import { useSyncStore } from '@/features/sync/store';
 import { filterChats } from '../chat-utils';
@@ -125,7 +128,9 @@ export function ChatListPane() {
   };
   const [query, setQuery] = useState('');
   const openPicker = useNewChat((state) => state.open);
-  const rows = useChats();
+  // Locked chats leave the list and folders: they show behind the "Locked chats" entry.
+  const allRows = useChats();
+  const rows = useWithoutLocked(allRows);
   const unsent = useUnsentByChat();
   const people = useKnownPeople();
   const labels = useMemo(
@@ -166,6 +171,7 @@ export function ChatListPane() {
           </h1>
           <div className="flex items-center gap-1">
             <ConnectionStatus />
+            <QuietIndicator />
             <Button asChild variant="ghost" size="icon-sm">
               <Link to="/starred" aria-label={t('messages.starredTitle')}>
                 <Star className="size-5" aria-hidden />
@@ -216,6 +222,7 @@ export function ChatListPane() {
             {t('messages.archivedBack')}
           </button>
         ) : null}
+        <LockedChatsEntry rows={allRows} hidden={archivedList || Boolean(query.trim())} />
         {showArchivedRow ? (
           <button
             type="button"

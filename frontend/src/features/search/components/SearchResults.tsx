@@ -1,9 +1,10 @@
 import type { PublicProfile } from '@zuvo/protocol';
-import { FileText, Image, Link2, MessagesSquare, Mic, Video } from 'lucide-react';
+import { BarChart3, FileText, Image, Link2, MessagesSquare, Mic, Video } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/ui/avatar';
 import type { Command } from '@/features/commands/registry';
+import { pollPreview } from '@/features/polls/preview';
 import type { ChatRow } from '@/features/sync/local-db';
 import { cn } from '@/lib/utils';
 import { snippetOf } from '../local-search';
@@ -26,6 +27,7 @@ const TYPE_ICON: Record<string, typeof Image> = {
   document: FileText,
   audio: FileText,
   voice: Mic,
+  poll: BarChart3,
 };
 
 export const optionId = (option: SearchOption) => `search-${option.kind}-${option.id}`;
@@ -55,6 +57,12 @@ function Row(props: {
       {props.children}
     </div>
   );
+}
+
+/** The words around the match, or what kind of message it is; a poll says so, like the chat list. */
+function hitLine(hit: MessageHit, q: string, kind: string) {
+  const snippet = snippetOf(hit.text, q);
+  return hit.type === 'poll' ? pollPreview(snippet) : snippet || kind;
 }
 
 function OptionBody({ option, q }: { option: ResultOption; q: string }) {
@@ -115,7 +123,7 @@ function OptionBody({ option, q }: { option: ResultOption; q: string }) {
           </time>
         </span>
         <span className="block truncate text-sm">
-          <Highlighted text={snippetOf(hit.text, q) || t(`search.kinds.${hit.type}`)} q={q} />
+          <Highlighted text={hitLine(hit, q, t(`search.kinds.${hit.type}`))} q={q} />
         </span>
       </span>
     </>

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useSession } from '@/features/auth/session';
 import { type ChatMessage, ME } from '@/features/chats/types';
 import { useThumbnail } from '@/features/media/use-thumbnail';
+import { quoteText } from '@/features/polls/preview';
 import { cn } from '@/lib/utils';
 import { groupReactions } from '../rules';
 import { useMessageUi } from '../store';
@@ -49,7 +50,7 @@ export function QuoteBlock({ message, mine }: { message: ChatMessage; mine: bool
     ? t('messages.deleted')
     : quote.unavailable
       ? t('messages.quoteUnavailable')
-      : quote.text;
+      : quoteText(quote);
   const content = (
     <>
       <span className="min-w-0 flex-1">

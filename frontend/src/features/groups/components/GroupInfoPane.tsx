@@ -17,6 +17,7 @@ import { useSession } from '@/features/auth/session';
 import { ChatAvatar } from '@/features/chats/components/ChatAvatar';
 import { useLocalDb } from '@/features/chats/queries';
 import type { ChatSummary } from '@/features/chats/types';
+import { DisappearingRow } from '@/features/disappearing/DisappearingRow';
 import { ChatGallery } from '@/features/media/components/ChatGallery';
 import { applyChats } from '@/features/sync/apply';
 import type { ChatRow } from '@/features/sync/local-db';
@@ -99,7 +100,13 @@ function EditableText(props: {
   );
 }
 
-const SETTING_KEYS = ['editInfo', 'sendMessages', 'addMembers', 'pinMessages'] as const;
+const SETTING_KEYS = [
+  'editInfo',
+  'sendMessages',
+  'addMembers',
+  'pinMessages',
+  'disappearing',
+] as const;
 
 function GroupSettingsSection(props: { chatId: string; group: GroupInfo }) {
   const { t } = useTranslation();
@@ -110,7 +117,7 @@ function GroupSettingsSection(props: { chatId: string; group: GroupInfo }) {
       <h3 className="text-sm font-semibold">{t('groups.settingsTitle')}</h3>
       {SETTING_KEYS.map((key) => (
         <label key={key} className="flex items-center justify-between gap-2 text-sm">
-          {t(`groups.settings.${key}`)}
+          {key === 'disappearing' ? t('disappearing.title') : t(`groups.settings.${key}`)}
           <select
             value={group.settings[key]}
             onChange={(event) => {
@@ -226,6 +233,7 @@ export function GroupInfoBody(props: {
       {group.active ? (
         <GroupMembersSection chatId={row.id} group={group} members={members} me={me} />
       ) : null}
+      {group.active ? <DisappearingRow chat={row} /> : null}
       {abilities.manage ? <GroupInviteSection chatId={row.id} /> : null}
       {abilities.manage ? <GroupSettingsSection chatId={row.id} group={group} /> : null}
       <div className="flex h-72 flex-col">

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import { authErrorMessage } from '@/features/auth/errors';
+import { TIMERS, timerLabel } from '@/features/disappearing/rules';
 import { SettingsSection } from '@/features/settings/SettingsPage';
 import { cn } from '@/lib/utils';
 import { profileApi } from '../api';
@@ -131,6 +132,13 @@ export function PrivacySettings() {
           { value: false, label: t('privacy.off') },
         ]}
         onChange={(readReceipts) => set({ readReceipts })}
+      />
+      <ChoiceGroup
+        label={t('disappearing.defaultTitle')}
+        hint={t('disappearing.defaultHint')}
+        value={data.defaultDisappearing}
+        choices={TIMERS.map((value) => ({ value, label: timerLabel(value, t) }))}
+        onChange={(defaultDisappearing) => set({ defaultDisappearing })}
       />
     </SettingsSection>
   );

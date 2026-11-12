@@ -120,8 +120,11 @@ describe('starred messages', () => {
     );
     await seedLocal([]);
     await renderApp('/starred', { width: DESKTOP_WIDTH });
-    const alert = await screen.findByRole('alert', undefined, SLOW);
-    expect(within(alert).getByRole('button', { name: 'Try again' })).toBeInTheDocument();
+    // Looked up afresh: the screen asks again whenever the action queue moves, re-rendering it.
+    const retry = await screen.findByRole('button', { name: 'Try again' }, SLOW);
+    expect(retry.closest('[role="alert"]')).toHaveTextContent(
+      'Could not load your starred messages.',
+    );
   });
 
   it('opening one goes to the chat and asks to jump there', async () => {

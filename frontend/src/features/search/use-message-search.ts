@@ -2,6 +2,7 @@ import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import type { SearchFilter } from '@zuvo/protocol';
 import { useMemo } from 'react';
 import { useLocalDb } from '@/features/chats/queries';
+import { useWithoutExpired } from '@/features/disappearing/use-without-expired';
 import type { ChatRow } from '@/features/sync/local-db';
 import { useDebouncedValue } from '@/lib/hooks';
 import { searchApi } from './api';
@@ -18,6 +19,8 @@ export interface MessageHit {
   /** Null: the app names it (Saved Messages, or a chat this device does not have yet). */
   chatTitle: string | null;
   chatType: ChatRow['type'];
+  /** A disappearing message: when it goes. */
+  expiresAt?: string | null | undefined;
 }
 
 export interface SearchParams {
@@ -28,6 +31,16 @@ export interface SearchParams {
 
 const titleOf = (row: ChatRow | undefined) =>
   row?.type === 'self' ? null : (row?.group?.name ?? row?.otherUser?.displayName ?? null);
+
+/** Locked chats' messages stay out of search, except inside the (unlocked) chat itself. */
+function withoutLockedChats(
+  hits: MessageHit[],
+  byChat: Map<string, ChatRow>,
+  chatId: string | undefined,
+): MessageHit[] {
+  if (chatId) return hits;
+  return hits.filter((hit) => byChat.get(hit.chatId)?.locked !== true);
+}
 
 /**
  * Messages matching what was typed: this device's copies at once, then the server's, which also
@@ -63,12 +76,13 @@ export function useMessageSearch(params: SearchParams, chats: ChatRow[] | undefi
         key: `${row.chatId}:${row.seq}`,
         chatId: row.chatId,
         seq: row.seq,
-        text: row.text ?? '',
+        text: row.text ?? row.poll?.question ?? '',
         at: row.createdAt,
         type: row.type,
         senderName: null,
         chatTitle: titleOf(chat),
         chatType: chat?.type ?? 'direct',
+        expiresAt: row.expiresAt,
       });
     }
     for (const page of enabled ? (server.data?.pages ?? []) : []) {
@@ -78,21 +92,24 @@ export function useMessageSearch(params: SearchParams, chats: ChatRow[] | undefi
           key,
           chatId: message.chatId,
           seq: message.seq,
-          text: message.text ?? '',
+          text: message.text ?? message.poll?.question ?? '',
           at: message.createdAt,
           type: message.type,
           senderName,
           chatTitle: chat.title,
           chatType: chat.type,
+          expiresAt: message.expiresAt,
         });
       }
     }
-    return [...merged.values()].sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
-  }, [chats, enabled, local.data, server.data]);
+    const sorted = [...merged.values()].sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
+    return withoutLockedChats(sorted, byChat, chatId);
+  }, [chatId, chats, enabled, local.data, server.data]);
 
+  const live = useWithoutExpired(hits, (hit) => hit.expiresAt) ?? hits;
   return {
     q,
-    hits,
+    hits: live,
     /** The server is still answering the first page. */
     loading: enabled && server.isPending,
     failed: server.isError,

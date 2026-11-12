@@ -48,7 +48,7 @@ export async function searchLocalMessages(
         !row.system &&
         (!input.chatId || row.chatId === input.chatId) &&
         (!kind || kind(row)) &&
-        (words.length === 0 || matchesAll(row.text, words)),
+        (words.length === 0 || matchesAll(row.text ?? row.poll?.question, words)),
     )
     .toArray();
   return rows
@@ -56,11 +56,12 @@ export async function searchLocalMessages(
     .slice(0, input.limit ?? 30);
 }
 
-/** Chats whose name has every word. */
+/** Chats whose name has every word. Locked chats never show up. */
 export function searchLocalChats(chats: ChatRow[], q: string, savedName: string): ChatRow[] {
   const words = wordsOf(q);
   if (words.length === 0) return [];
   return chats.filter((chat) => {
+    if (chat.locked === true) return false;
     const name =
       chat.type === 'self' ? savedName : (chat.group?.name ?? chat.otherUser?.displayName ?? '');
     const handle = chat.otherUser?.username ?? '';

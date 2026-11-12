@@ -20,9 +20,11 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { WallpaperMenuEntry } from '@/features/appearance/components/WallpaperMenuEntry';
 import { useChats } from '@/features/chats/queries';
 import type { ChatSummary } from '@/features/chats/types';
 import { FolderMenuEntries } from '@/features/folders/components/FolderMenuEntries';
+import { LockMenuEntry } from '@/features/lock/components/LockMenuEntry';
 import { ModerationEntries } from '@/features/moderation/components/ModerationEntries';
 import { useSyncStore } from '@/features/sync/store';
 import { type ChatMenuRequest, useMessageUi } from '../store';
@@ -147,6 +149,8 @@ function Entries(props: {
         onSelect={() => commands.toggleUnread(chat)}
       />
       <FolderMenuEntries chat={chat} />
+      <LockMenuEntry chat={chat} />
+      <WallpaperMenuEntry chat={chat} />
       <DropdownMenu.Item asChild className={ITEM}>
         <Link to="/starred" search={{ chatId: chat.id }}>
           <Star className="size-4" aria-hidden />

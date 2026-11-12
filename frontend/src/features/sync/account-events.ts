@@ -1,4 +1,11 @@
-import type { ChatSettings, ClientToServerEvents, ServerToClientEvents } from '@zuvo/protocol';
+import type {
+  Appearance,
+  ChatSettings,
+  ClientToServerEvents,
+  QuietHours,
+  ScheduledFailure,
+  ServerToClientEvents,
+} from '@zuvo/protocol';
 import type { Socket } from 'socket.io-client';
 
 /**
@@ -9,6 +16,10 @@ export type AccountChange =
   | { kind: 'settings'; settings: ChatSettings }
   | { kind: 'blocks' }
   | { kind: 'folders' }
+  | { kind: 'lock' }
+  | { kind: 'appearance'; appearance: Appearance }
+  | { kind: 'quietHours'; quietHours: QuietHours }
+  | { kind: 'scheduled'; chatId: string; failed: { id: string; reason: ScheduledFailure } | null }
   | { kind: 'reconnected' };
 
 export function wireAccountEvents(
@@ -19,4 +30,12 @@ export function wireAccountEvents(
   socket.on('settings:updated', ({ settings }) => onChange({ kind: 'settings', settings }));
   socket.on('blocks:changed', () => onChange({ kind: 'blocks' }));
   socket.on('folders:updated', () => onChange({ kind: 'folders' }));
+  socket.on('scheduled:updated', ({ chatId, failed }) =>
+    onChange({ kind: 'scheduled', chatId, failed }),
+  );
+  socket.on('lock:updated', () => onChange({ kind: 'lock' }));
+  socket.on('appearance:updated', ({ appearance }) => onChange({ kind: 'appearance', appearance }));
+  socket.on('quiet-hours:updated', ({ quietHours }) =>
+    onChange({ kind: 'quietHours', quietHours }),
+  );
 }

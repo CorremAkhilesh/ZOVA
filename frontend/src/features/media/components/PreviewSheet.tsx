@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { offersViewOnce } from '@/features/view-once/rules';
+import { ViewOnceToggle } from '@/features/view-once/ViewOnceToggle';
 import { uuidv7 } from '@/lib/uuid';
 import { formatBytes, kindOf } from '../process';
 
@@ -19,6 +21,8 @@ export const toPicked = (files: File[]): PickedFile[] =>
 interface SendInput {
   items: PickedFile[];
   asDocument: boolean;
+  /** Only ever true for a single photo or video. */
+  viewOnce?: boolean;
 }
 
 interface PreviewSheetProps {
@@ -28,6 +32,8 @@ interface PreviewSheetProps {
   onChange: (picked: PickedFile[]) => void;
   onClose: () => void;
   onSend: (input: SendInput) => Promise<void>;
+  /** Offer "View once" (not in Saved Messages). */
+  allowViewOnce?: boolean;
 }
 
 /** A picture's preview, in the sheet only; it goes when the sheet does. */
@@ -101,9 +107,11 @@ function PickedItem(props: {
 }
 
 /** Check before sending: remove things, add captions, or send without compressing. */
-export function PreviewSheet({ picked, maxBytes, onChange, onClose, onSend }: PreviewSheetProps) {
+export function PreviewSheet(props: PreviewSheetProps) {
+  const { picked, maxBytes, onChange, onClose, onSend, allowViewOnce = false } = props;
   const { t, i18n } = useTranslation();
   const [asDocument, setAsDocument] = useState(false);
+  const [viewOnce, setViewOnce] = useState(false);
   const [sending, setSending] = useState(false);
   const [failed, setFailed] = useState(false);
   const items = picked.slice(0, ALBUM_MAX_ITEMS);
@@ -111,12 +119,14 @@ export function PreviewSheet({ picked, maxBytes, onChange, onClose, onSend }: Pr
   const sendable = items.filter((item) => !isTooBig(item.file, maxBytes));
   const nothing = sendable.length === 0;
   const total = sendable.reduce((sum, item) => sum + item.file.size, 0);
+  const files = sendable.map((item) => item.file);
+  const once = offersViewOnce({ files, asDocument, allowed: allowViewOnce });
 
   async function send() {
     setSending(true);
     setFailed(false);
     try {
-      await onSend({ items: sendable, asDocument });
+      await onSend({ items: sendable, asDocument, ...(once && viewOnce ? { viewOnce } : {}) });
       onClose();
     } catch (error) {
       console.error(`[media] could not queue: ${error instanceof Error ? error.name : 'unknown'}`);
@@ -167,6 +177,7 @@ export function PreviewSheet({ picked, maxBytes, onChange, onClose, onSend }: Pr
           />
           {t('media.sendAsDocument')}
         </label>
+        {once ? <ViewOnceToggle pressed={viewOnce} onPressedChange={setViewOnce} /> : null}
         <div className="flex items-center justify-between gap-3">
           {nothing ? null : (
             <p className="text-sm text-text-muted">

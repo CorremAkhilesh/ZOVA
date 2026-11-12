@@ -48,7 +48,10 @@ type ChatChange = {
     | 'lastReaction'
     | 'pins'
     | 'mentionSeqs'
-    | 'draft']?: ChatSummary[Field] | undefined;
+    | 'draft'
+    | 'disappearing'
+    | 'locked'
+    | 'wallpaper']?: ChatSummary[Field] | undefined;
 };
 
 /** The newer of two drafts by their time; the server's null means "never had one". */
@@ -62,9 +65,19 @@ export function newerDraft(mine: ChatRow['draft'], theirs: ChatRow['draft']): Ch
 const mentionsAfter = (seqs: number[] | undefined, lastReadSeq: number) =>
   seqs?.filter((seq) => seq > lastReadSeq);
 
-const PERSONAL = ['pinned', 'mutedUntil', 'archived', 'markedUnread', 'lastReaction'] as const;
+const PERSONAL = [
+  'pinned',
+  'mutedUntil',
+  'archived',
+  'markedUnread',
+  'lastReaction',
+  'locked',
+  'wallpaper',
+  // The chat's timer, not mine, but sent the same way: only when it is known.
+  'disappearing',
+] as const;
 
-/** Mine alone, and only what this change says: an event about a message leaves them be. */
+/** Only what this change says: an event about a message leaves these be. */
 function personalPart(change: ChatChange): Partial<ChatRow> {
   const part: Record<string, unknown> = {};
   for (const field of PERSONAL) {

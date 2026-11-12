@@ -7,7 +7,9 @@ import { ComingSoonButton } from '@/components/common/ComingSoonButton';
 import { Button } from '@/components/ui/button';
 import { useSession } from '@/features/auth/session';
 import { ConnectionStatus } from '@/features/connection/ConnectionStatus';
+import { DisappearingBadge } from '@/features/disappearing/DisappearingBadge';
 import { memberNames, typingLine } from '@/features/groups/wording';
+import { ScheduledButton } from '@/features/scheduled/components/ScheduledButton';
 import { useInChatSearch } from '@/features/search/in-chat-store';
 import { useLiveStatus } from '@/features/sync/live-status';
 import { usePresenceWatch, usePresenceWatchMany } from '@/features/sync/presence-watch';
@@ -116,6 +118,7 @@ export function ConversationHeader({
         </span>
       </button>
       <div className="flex items-center">
+        <DisappearingBadge timer={chat.disappearing} />
         {/* On phones the chat list, which also shows it, is hidden while a chat is open. */}
         {showBack ? <ConnectionStatus /> : null}
         <ComingSoonButton
@@ -124,6 +127,7 @@ export function ConversationHeader({
           className="hidden sm:inline-flex"
         />
         <ComingSoonButton label={t('nav.calls')} icon={Phone} className="hidden sm:inline-flex" />
+        <ScheduledButton chatId={chat.id} />
         <Button
           variant="ghost"
           size="icon"

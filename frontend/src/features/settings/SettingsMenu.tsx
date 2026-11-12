@@ -4,6 +4,8 @@ import {
   Flag,
   MessagesSquare,
   MonitorSmartphone,
+  Moon,
+  Palette,
   ScrollText,
   Shield,
   Users,
@@ -17,6 +19,8 @@ type Entry = {
   to:
     | '/settings/privacy'
     | '/settings/chats'
+    | '/settings/appearance'
+    | '/settings/notifications'
     | '/settings/devices'
     | '/settings/admin/users'
     | '/settings/admin/reports'
@@ -85,6 +89,18 @@ export function SettingsMenu() {
             label: t('chatSettings.title'),
             hint: t('chatSettings.subtitle'),
             icon: MessagesSquare,
+          },
+          {
+            to: '/settings/appearance',
+            label: t('appearance.title'),
+            hint: t('appearance.menuHint'),
+            icon: Palette,
+          },
+          {
+            to: '/settings/notifications',
+            label: t('quietHours.screenTitle'),
+            hint: t('quietHours.menuHint'),
+            icon: Moon,
           },
           {
             to: '/settings/devices',

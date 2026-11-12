@@ -2,7 +2,7 @@ import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { type StarredItem, starsResponseSchema } from '@zuvo/protocol';
 import { ArrowLeft, Star } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -11,6 +11,7 @@ import { useSession } from '@/features/auth/session';
 import { formatClock } from '@/features/chats/chat-utils';
 import { useChats, useLocalDb } from '@/features/chats/queries';
 import { toChatSummary } from '@/features/chats/view';
+import { useWithoutExpired } from '@/features/disappearing/use-without-expired';
 import { useKnownPeople } from '@/features/groups/queries';
 import { useSyncStore } from '@/features/sync/store';
 import { useLive } from '@/features/sync/use-live';
@@ -96,7 +97,8 @@ export function StarredScreen({ chatId }: { chatId?: string | undefined }) {
   const names = new Map(
     (rows ?? []).map((row) => [row.id, toChatSummary(row, me, labels).name] as const),
   );
-  const items = stars.data?.pages.flatMap((page) => page.items) ?? [];
+  const pages = useMemo(() => stars.data?.pages.flatMap((page) => page.items), [stars.data]);
+  const items = useWithoutExpired(pages, (item) => item.message.expiresAt) ?? [];
   // A star is told to the server a moment after it shows. When the queue moves, ask again.
   const db = useLocalDb();
   const waiting = useLive(() => db?.actions.count() ?? 0, [db]);

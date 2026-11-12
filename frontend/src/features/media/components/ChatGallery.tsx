@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { type ChatMessage, ME } from '@/features/chats/types';
+import { useWithoutExpired } from '@/features/disappearing/use-without-expired';
 import { LinkRow } from '@/features/link-previews/LinkRow';
 import { cn } from '@/lib/utils';
 import { mediaApi } from '../api';
@@ -40,6 +41,7 @@ function toItem(message: Message): ChatMessage {
     media: message.media,
     albumId: message.albumId,
     linkPreview: message.linkPreview ?? null,
+    expiresAt: message.expiresAt ?? null,
   };
 }
 
@@ -60,10 +62,14 @@ function GalleryList({
     initialPageParam: undefined as number | undefined,
     getNextPageParam: (page) => (page.hasMore ? page.items.at(-1)?.seq : undefined),
   });
-  const items = useMemo(
-    () => query.data?.pages.flatMap((page) => page.items.map(toItem)) ?? [],
+  const all = useMemo(
+    () =>
+      query.data?.pages.flatMap((page) =>
+        page.items.filter((message) => !message.viewOnce).map(toItem),
+      ) ?? [],
     [query.data],
   );
+  const items = useWithoutExpired(all, (item) => item.expiresAt) ?? [];
   const perRow = tab === 'media' ? COLUMNS : 1;
   const rowCount = Math.ceil(items.length / perRow);
   const virtualizer = useVirtualizer({

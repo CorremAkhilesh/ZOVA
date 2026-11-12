@@ -1,6 +1,7 @@
 import type { LastReaction, PublicProfile, SystemEvent } from '@zuvo/protocol';
 import { draftLine } from '@/features/drafts/draft-sync';
 import { toPlainText } from '@/features/formatting/parse';
+import { pollPreview } from '@/features/polls/preview';
 import type { ChatRow, MessageRow } from '@/features/sync/local-db';
 import { tickState } from './ticks';
 import { type ChatMessage, type ChatSummary, ME } from './types';
@@ -29,6 +30,7 @@ export function previewText(
   if (last.type === 'document') return `📄 ${last.preview}`;
   if (last.type === 'voice') return `🎤 ${labels.voice} (${last.preview})`;
   if (last.type === 'audio') return `🎵 ${last.preview}`;
+  if (last.type === 'poll') return pollPreview(last.preview);
   return caption;
 }
 
@@ -102,6 +104,7 @@ export function toChatSummary(
     draft: draftLine(row.draft),
     mentions: row.mentionSeqs?.length ?? 0,
     pins: row.pins,
+    disappearing: row.disappearing,
     unread: row.unreadCount,
     activityAt: new Date(row.sortAt),
     lastMessage: lastMessageView(row, me, name, labels, unsent, people),
@@ -144,6 +147,10 @@ export function toChatMessage(
     deletedByAdmin: row.deletedByAdmin === true,
     linkPreview: row.deletedForEveryoneAt ? null : (row.linkPreview ?? null),
     mentions: row.deletedForEveryoneAt ? undefined : row.mentions,
+    poll: row.deletedForEveryoneAt ? null : (row.poll ?? null),
+    expiresAt: row.expiresAt ?? null,
+    viewOnce: row.viewOnce === true,
+    viewOnceOpened: row.viewOnceOpened === true,
     played: row.played === true,
     uploadedBytes: row.uploadedBytes,
     heldInTab: row.heldInTab,
