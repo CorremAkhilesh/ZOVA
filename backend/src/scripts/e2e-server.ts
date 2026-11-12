@@ -70,5 +70,28 @@ handleShutdown(app.log, async () => {
   await site.close();
   await mongo?.stop();
 });
+await warmUp(app);
 await app.listen({ host: '127.0.0.1', port: PORT });
 process.stdout.write(`E2E API ready on http://127.0.0.1:${PORT}\n`);
+
+/**
+ * Signs in once before accepting connections. The first sign-in compiles the email templates and
+ * the auth paths on the fly (tsx), which can take 20 s on a busy machine: longer than a test waits.
+ */
+async function warmUp(server: typeof app) {
+  const email = 'e2e.warmup@corremadvisory.com';
+  const headers = { origin: APP_ORIGIN };
+  await server.inject({ method: 'POST', url: '/v1/auth/otp/request', headers, payload: { email } });
+  const sent = await server.inject({
+    method: 'GET',
+    url: `/v1/test/outbox/latest?to=${encodeURIComponent(email)}`,
+  });
+  const code = /^(\d{6}) /.exec(sent.json<{ subject?: string }>().subject ?? '')?.[1];
+  if (!code) return;
+  await server.inject({
+    method: 'POST',
+    url: '/v1/auth/otp/verify',
+    headers,
+    payload: { email, code },
+  });
+}
