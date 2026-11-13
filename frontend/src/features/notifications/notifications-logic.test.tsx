@@ -9,7 +9,7 @@ import { type AlertContext, inAppAlert } from './alert-rules';
 import { unreadChatCount, useAppBadge } from './badge';
 import { PUSH_CARD_DISMISSED_KEY, PUSH_ENABLED_KEY, usePushPrefs } from './prefs';
 import { pushStatus } from './status';
-import { subscribeThisDevice, unsubscribeThisDevice } from './subscription';
+import { subscribeThisDevice, UNSUBSCRIBE_WAIT_MS, unsubscribeThisDevice } from './subscription';
 import { browserFamily, pushSupport } from './support';
 import {
   ENDPOINT,
@@ -281,9 +281,41 @@ describe('subscription lifecycle', () => {
     expect(browser.subscription.unsubscribe).toHaveBeenCalled();
   });
 
+  it('never holds up signing out when the browser does not answer', async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal('Notification', { permission: 'granted' });
+    try {
+      Object.defineProperty(navigator, 'serviceWorker', {
+        configurable: true,
+        value: { getRegistration: () => new Promise(() => {}) },
+      });
+      let done = false;
+      const stopping = unsubscribeThisDevice({ tellServer: true }).then(() => {
+        done = true;
+      });
+      await vi.advanceTimersByTimeAsync(UNSUBSCRIBE_WAIT_MS - 1);
+      expect(done).toBe(false);
+      await vi.advanceTimersByTimeAsync(1);
+      await stopping;
+      expect(done).toBe(true);
+    } finally {
+      delete (navigator as unknown as Record<string, unknown>).serviceWorker;
+      vi.unstubAllGlobals();
+      vi.useRealTimers();
+    }
+  });
+
+  it('does not even look without the permission, so signing out never waits', async () => {
+    const api = servePush();
+    const browser = installPushBrowser({ permission: 'default', subscribed: true });
+    await unsubscribeThisDevice({ tellServer: true });
+    expect(api.calls).toEqual([]);
+    expect(browser.subscription.unsubscribe).not.toHaveBeenCalled();
+  });
+
   it('an ended session only drops the browser copy; no worker means nothing to do', async () => {
     const api = servePush();
-    const browser = installPushBrowser({ subscribed: true });
+    const browser = installPushBrowser({ permission: 'granted', subscribed: true });
     await unsubscribeThisDevice({ tellServer: false });
     expect(api.calls).toEqual([]);
     expect(browser.subscription.unsubscribe).toHaveBeenCalled();

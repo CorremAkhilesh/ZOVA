@@ -63,7 +63,26 @@ export function subscribeThisDevice(publicKey: string): Promise<PushDevice> {
  * Stops push on this browser: tells the server first (while still signed in), then drops the
  * browser's subscription. Best effort, never throws: sign-out must go on regardless.
  */
+/** Signing out never waits longer than this on the browser's push service. */
+export const UNSUBSCRIBE_WAIT_MS = 3_000;
+
 export async function unsubscribeThisDevice(options: { tellServer: boolean }): Promise<void> {
+  // A browser subscription needs the permission: without it there is nothing to stop, so signing
+  // out does not wait at all. (The server drops the session's subscription with the session.)
+  if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  // Some browsers never answer getRegistration/getSubscription (WebKit without a worker): give up.
+  const gaveUp = new Promise<void>((resolve) => {
+    timer = setTimeout(resolve, UNSUBSCRIBE_WAIT_MS);
+  });
+  try {
+    await Promise.race([stopPush(options), gaveUp]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function stopPush(options: { tellServer: boolean }): Promise<void> {
   try {
     const registration = await navigator.serviceWorker?.getRegistration();
     const subscription = await registration?.pushManager?.getSubscription();
