@@ -314,7 +314,8 @@
 | production | `app.zuvo.corremadvisory.com`, `api.zuvo.corremadvisory.com`         | `zuvo_prod` |
 
 - **No separate landing website** (decided in Step 19; the old Step 21 is skipped). Install guides, FAQ,
-  privacy note and contact live in the app under Settings → Help & About (`/help/...`).
+  privacy note and contact live in the app under Settings → Help & About (`/help/...`). These pages
+  are public (no sign-in) and never load user data.
   `zuvo.corremadvisory.com` may later simply redirect to the app.
 
 ### Git & CI/CD

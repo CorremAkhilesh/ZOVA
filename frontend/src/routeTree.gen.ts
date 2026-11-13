@@ -11,21 +11,22 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppRouteImport } from './routes/_app'
+import { Route as HelpRouteImport } from './routes/help'
 import { Route as VerifyRouteImport } from './routes/verify'
 import { Route as AppCallsRouteImport } from './routes/_app/calls'
 import { Route as AppChatsRouteImport } from './routes/_app/chats'
 import { Route as AppStarredRouteImport } from './routes/_app/starred'
 import { Route as AppUpdatesRouteImport } from './routes/_app/updates'
+import { Route as HelpIndexRouteImport } from './routes/help.index'
+import { Route as HelpAboutRouteImport } from './routes/help.about'
+import { Route as HelpContactRouteImport } from './routes/help.contact'
+import { Route as HelpFaqRouteImport } from './routes/help.faq'
+import { Route as HelpInstallRouteImport } from './routes/help.install'
+import { Route as HelpPrivacyRouteImport } from './routes/help.privacy'
 import { Route as SecurityNotMeRouteImport } from './routes/security.not-me'
 import { Route as WelcomeNameRouteImport } from './routes/welcome.name'
 import { Route as AppChatsIndexRouteImport } from './routes/_app/chats.index'
 import { Route as AppChatsChatIdRouteImport } from './routes/_app/chats.$chatId'
-import { Route as AppHelpIndexRouteImport } from './routes/_app/help.index'
-import { Route as AppHelpAboutRouteImport } from './routes/_app/help.about'
-import { Route as AppHelpContactRouteImport } from './routes/_app/help.contact'
-import { Route as AppHelpFaqRouteImport } from './routes/_app/help.faq'
-import { Route as AppHelpInstallRouteImport } from './routes/_app/help.install'
-import { Route as AppHelpPrivacyRouteImport } from './routes/_app/help.privacy'
 import { Route as AppJoinCodeRouteImport } from './routes/_app/join.$code'
 import { Route as AppSettingsIndexRouteImport } from './routes/_app/settings.index'
 import { Route as AppSettingsAppearanceRouteImport } from './routes/_app/settings.appearance'
@@ -45,6 +46,11 @@ const IndexRoute = IndexRouteImport.update({
 } as any)
 const AppRoute = AppRouteImport.update({
   id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HelpRoute = HelpRouteImport.update({
+  id: '/help',
+  path: '/help',
   getParentRoute: () => rootRouteImport,
 } as any)
 const VerifyRoute = VerifyRouteImport.update({
@@ -72,6 +78,36 @@ const AppUpdatesRoute = AppUpdatesRouteImport.update({
   path: '/updates',
   getParentRoute: () => AppRoute,
 } as any)
+const HelpIndexRoute = HelpIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => HelpRoute,
+} as any)
+const HelpAboutRoute = HelpAboutRouteImport.update({
+  id: '/about',
+  path: '/about',
+  getParentRoute: () => HelpRoute,
+} as any)
+const HelpContactRoute = HelpContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
+  getParentRoute: () => HelpRoute,
+} as any)
+const HelpFaqRoute = HelpFaqRouteImport.update({
+  id: '/faq',
+  path: '/faq',
+  getParentRoute: () => HelpRoute,
+} as any)
+const HelpInstallRoute = HelpInstallRouteImport.update({
+  id: '/install',
+  path: '/install',
+  getParentRoute: () => HelpRoute,
+} as any)
+const HelpPrivacyRoute = HelpPrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => HelpRoute,
+} as any)
 const SecurityNotMeRoute = SecurityNotMeRouteImport.update({
   id: '/security/not-me',
   path: '/security/not-me',
@@ -91,36 +127,6 @@ const AppChatsChatIdRoute = AppChatsChatIdRouteImport.update({
   id: '/$chatId',
   path: '/$chatId',
   getParentRoute: () => AppChatsRoute,
-} as any)
-const AppHelpIndexRoute = AppHelpIndexRouteImport.update({
-  id: '/help/',
-  path: '/help/',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppHelpAboutRoute = AppHelpAboutRouteImport.update({
-  id: '/help/about',
-  path: '/help/about',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppHelpContactRoute = AppHelpContactRouteImport.update({
-  id: '/help/contact',
-  path: '/help/contact',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppHelpFaqRoute = AppHelpFaqRouteImport.update({
-  id: '/help/faq',
-  path: '/help/faq',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppHelpInstallRoute = AppHelpInstallRouteImport.update({
-  id: '/help/install',
-  path: '/help/install',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppHelpPrivacyRoute = AppHelpPrivacyRouteImport.update({
-  id: '/help/privacy',
-  path: '/help/privacy',
-  getParentRoute: () => AppRoute,
 } as any)
 const AppJoinCodeRoute = AppJoinCodeRouteImport.update({
   id: '/join/$code',
@@ -181,19 +187,21 @@ const AppSettingsAdminUsersRoute = AppSettingsAdminUsersRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/help': typeof HelpRouteWithChildren
   '/verify': typeof VerifyRoute
   '/calls': typeof AppCallsRoute
   '/chats': typeof AppChatsRouteWithChildren
   '/starred': typeof AppStarredRoute
   '/updates': typeof AppUpdatesRoute
+  '/help/about': typeof HelpAboutRoute
+  '/help/contact': typeof HelpContactRoute
+  '/help/faq': typeof HelpFaqRoute
+  '/help/install': typeof HelpInstallRoute
+  '/help/privacy': typeof HelpPrivacyRoute
   '/security/not-me': typeof SecurityNotMeRoute
   '/welcome/name': typeof WelcomeNameRoute
+  '/help/': typeof HelpIndexRoute
   '/chats/$chatId': typeof AppChatsChatIdRoute
-  '/help/about': typeof AppHelpAboutRoute
-  '/help/contact': typeof AppHelpContactRoute
-  '/help/faq': typeof AppHelpFaqRoute
-  '/help/install': typeof AppHelpInstallRoute
-  '/help/privacy': typeof AppHelpPrivacyRoute
   '/join/$code': typeof AppJoinCodeRoute
   '/settings/appearance': typeof AppSettingsAppearanceRoute
   '/settings/chats': typeof AppSettingsChatsRoute
@@ -202,7 +210,6 @@ export interface FileRoutesByFullPath {
   '/settings/privacy': typeof AppSettingsPrivacyRoute
   '/settings/profile': typeof AppSettingsProfileRoute
   '/chats/': typeof AppChatsIndexRoute
-  '/help/': typeof AppHelpIndexRoute
   '/settings/': typeof AppSettingsIndexRoute
   '/settings/admin/audit': typeof AppSettingsAdminAuditRoute
   '/settings/admin/reports': typeof AppSettingsAdminReportsRoute
@@ -214,14 +221,15 @@ export interface FileRoutesByTo {
   '/calls': typeof AppCallsRoute
   '/starred': typeof AppStarredRoute
   '/updates': typeof AppUpdatesRoute
+  '/help/about': typeof HelpAboutRoute
+  '/help/contact': typeof HelpContactRoute
+  '/help/faq': typeof HelpFaqRoute
+  '/help/install': typeof HelpInstallRoute
+  '/help/privacy': typeof HelpPrivacyRoute
   '/security/not-me': typeof SecurityNotMeRoute
   '/welcome/name': typeof WelcomeNameRoute
+  '/help': typeof HelpIndexRoute
   '/chats/$chatId': typeof AppChatsChatIdRoute
-  '/help/about': typeof AppHelpAboutRoute
-  '/help/contact': typeof AppHelpContactRoute
-  '/help/faq': typeof AppHelpFaqRoute
-  '/help/install': typeof AppHelpInstallRoute
-  '/help/privacy': typeof AppHelpPrivacyRoute
   '/join/$code': typeof AppJoinCodeRoute
   '/settings/appearance': typeof AppSettingsAppearanceRoute
   '/settings/chats': typeof AppSettingsChatsRoute
@@ -230,7 +238,6 @@ export interface FileRoutesByTo {
   '/settings/privacy': typeof AppSettingsPrivacyRoute
   '/settings/profile': typeof AppSettingsProfileRoute
   '/chats': typeof AppChatsIndexRoute
-  '/help': typeof AppHelpIndexRoute
   '/settings': typeof AppSettingsIndexRoute
   '/settings/admin/audit': typeof AppSettingsAdminAuditRoute
   '/settings/admin/reports': typeof AppSettingsAdminReportsRoute
@@ -240,19 +247,21 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
+  '/help': typeof HelpRouteWithChildren
   '/verify': typeof VerifyRoute
   '/_app/calls': typeof AppCallsRoute
   '/_app/chats': typeof AppChatsRouteWithChildren
   '/_app/starred': typeof AppStarredRoute
   '/_app/updates': typeof AppUpdatesRoute
+  '/help/about': typeof HelpAboutRoute
+  '/help/contact': typeof HelpContactRoute
+  '/help/faq': typeof HelpFaqRoute
+  '/help/install': typeof HelpInstallRoute
+  '/help/privacy': typeof HelpPrivacyRoute
   '/security/not-me': typeof SecurityNotMeRoute
   '/welcome/name': typeof WelcomeNameRoute
+  '/help/': typeof HelpIndexRoute
   '/_app/chats/$chatId': typeof AppChatsChatIdRoute
-  '/_app/help/about': typeof AppHelpAboutRoute
-  '/_app/help/contact': typeof AppHelpContactRoute
-  '/_app/help/faq': typeof AppHelpFaqRoute
-  '/_app/help/install': typeof AppHelpInstallRoute
-  '/_app/help/privacy': typeof AppHelpPrivacyRoute
   '/_app/join/$code': typeof AppJoinCodeRoute
   '/_app/settings/appearance': typeof AppSettingsAppearanceRoute
   '/_app/settings/chats': typeof AppSettingsChatsRoute
@@ -261,7 +270,6 @@ export interface FileRoutesById {
   '/_app/settings/privacy': typeof AppSettingsPrivacyRoute
   '/_app/settings/profile': typeof AppSettingsProfileRoute
   '/_app/chats/': typeof AppChatsIndexRoute
-  '/_app/help/': typeof AppHelpIndexRoute
   '/_app/settings/': typeof AppSettingsIndexRoute
   '/_app/settings/admin/audit': typeof AppSettingsAdminAuditRoute
   '/_app/settings/admin/reports': typeof AppSettingsAdminReportsRoute
@@ -271,19 +279,21 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/help'
     | '/verify'
     | '/calls'
     | '/chats'
     | '/starred'
     | '/updates'
-    | '/security/not-me'
-    | '/welcome/name'
-    | '/chats/$chatId'
     | '/help/about'
     | '/help/contact'
     | '/help/faq'
     | '/help/install'
     | '/help/privacy'
+    | '/security/not-me'
+    | '/welcome/name'
+    | '/help/'
+    | '/chats/$chatId'
     | '/join/$code'
     | '/settings/appearance'
     | '/settings/chats'
@@ -292,7 +302,6 @@ export interface FileRouteTypes {
     | '/settings/privacy'
     | '/settings/profile'
     | '/chats/'
-    | '/help/'
     | '/settings/'
     | '/settings/admin/audit'
     | '/settings/admin/reports'
@@ -304,14 +313,15 @@ export interface FileRouteTypes {
     | '/calls'
     | '/starred'
     | '/updates'
-    | '/security/not-me'
-    | '/welcome/name'
-    | '/chats/$chatId'
     | '/help/about'
     | '/help/contact'
     | '/help/faq'
     | '/help/install'
     | '/help/privacy'
+    | '/security/not-me'
+    | '/welcome/name'
+    | '/help'
+    | '/chats/$chatId'
     | '/join/$code'
     | '/settings/appearance'
     | '/settings/chats'
@@ -320,7 +330,6 @@ export interface FileRouteTypes {
     | '/settings/privacy'
     | '/settings/profile'
     | '/chats'
-    | '/help'
     | '/settings'
     | '/settings/admin/audit'
     | '/settings/admin/reports'
@@ -329,19 +338,21 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_app'
+    | '/help'
     | '/verify'
     | '/_app/calls'
     | '/_app/chats'
     | '/_app/starred'
     | '/_app/updates'
+    | '/help/about'
+    | '/help/contact'
+    | '/help/faq'
+    | '/help/install'
+    | '/help/privacy'
     | '/security/not-me'
     | '/welcome/name'
+    | '/help/'
     | '/_app/chats/$chatId'
-    | '/_app/help/about'
-    | '/_app/help/contact'
-    | '/_app/help/faq'
-    | '/_app/help/install'
-    | '/_app/help/privacy'
     | '/_app/join/$code'
     | '/_app/settings/appearance'
     | '/_app/settings/chats'
@@ -350,7 +361,6 @@ export interface FileRouteTypes {
     | '/_app/settings/privacy'
     | '/_app/settings/profile'
     | '/_app/chats/'
-    | '/_app/help/'
     | '/_app/settings/'
     | '/_app/settings/admin/audit'
     | '/_app/settings/admin/reports'
@@ -360,6 +370,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
+  HelpRoute: typeof HelpRouteWithChildren
   VerifyRoute: typeof VerifyRoute
   SecurityNotMeRoute: typeof SecurityNotMeRoute
   WelcomeNameRoute: typeof WelcomeNameRoute
@@ -379,6 +390,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/help': {
+      id: '/help'
+      path: '/help'
+      fullPath: '/help'
+      preLoaderRoute: typeof HelpRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/verify': {
@@ -416,6 +434,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppUpdatesRouteImport
       parentRoute: typeof AppRoute
     }
+    '/help/': {
+      id: '/help/'
+      path: '/'
+      fullPath: '/help/'
+      preLoaderRoute: typeof HelpIndexRouteImport
+      parentRoute: typeof HelpRoute
+    }
+    '/help/about': {
+      id: '/help/about'
+      path: '/about'
+      fullPath: '/help/about'
+      preLoaderRoute: typeof HelpAboutRouteImport
+      parentRoute: typeof HelpRoute
+    }
+    '/help/contact': {
+      id: '/help/contact'
+      path: '/contact'
+      fullPath: '/help/contact'
+      preLoaderRoute: typeof HelpContactRouteImport
+      parentRoute: typeof HelpRoute
+    }
+    '/help/faq': {
+      id: '/help/faq'
+      path: '/faq'
+      fullPath: '/help/faq'
+      preLoaderRoute: typeof HelpFaqRouteImport
+      parentRoute: typeof HelpRoute
+    }
+    '/help/install': {
+      id: '/help/install'
+      path: '/install'
+      fullPath: '/help/install'
+      preLoaderRoute: typeof HelpInstallRouteImport
+      parentRoute: typeof HelpRoute
+    }
+    '/help/privacy': {
+      id: '/help/privacy'
+      path: '/privacy'
+      fullPath: '/help/privacy'
+      preLoaderRoute: typeof HelpPrivacyRouteImport
+      parentRoute: typeof HelpRoute
+    }
     '/security/not-me': {
       id: '/security/not-me'
       path: '/security/not-me'
@@ -443,48 +503,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/chats/$chatId'
       preLoaderRoute: typeof AppChatsChatIdRouteImport
       parentRoute: typeof AppChatsRoute
-    }
-    '/_app/help/': {
-      id: '/_app/help/'
-      path: '/help'
-      fullPath: '/help/'
-      preLoaderRoute: typeof AppHelpIndexRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/help/about': {
-      id: '/_app/help/about'
-      path: '/help/about'
-      fullPath: '/help/about'
-      preLoaderRoute: typeof AppHelpAboutRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/help/contact': {
-      id: '/_app/help/contact'
-      path: '/help/contact'
-      fullPath: '/help/contact'
-      preLoaderRoute: typeof AppHelpContactRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/help/faq': {
-      id: '/_app/help/faq'
-      path: '/help/faq'
-      fullPath: '/help/faq'
-      preLoaderRoute: typeof AppHelpFaqRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/help/install': {
-      id: '/_app/help/install'
-      path: '/help/install'
-      fullPath: '/help/install'
-      preLoaderRoute: typeof AppHelpInstallRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/help/privacy': {
-      id: '/_app/help/privacy'
-      path: '/help/privacy'
-      fullPath: '/help/privacy'
-      preLoaderRoute: typeof AppHelpPrivacyRouteImport
-      parentRoute: typeof AppRoute
     }
     '/_app/join/$code': {
       id: '/_app/join/$code'
@@ -585,11 +603,6 @@ interface AppRouteChildren {
   AppChatsRoute: typeof AppChatsRouteWithChildren
   AppStarredRoute: typeof AppStarredRoute
   AppUpdatesRoute: typeof AppUpdatesRoute
-  AppHelpAboutRoute: typeof AppHelpAboutRoute
-  AppHelpContactRoute: typeof AppHelpContactRoute
-  AppHelpFaqRoute: typeof AppHelpFaqRoute
-  AppHelpInstallRoute: typeof AppHelpInstallRoute
-  AppHelpPrivacyRoute: typeof AppHelpPrivacyRoute
   AppJoinCodeRoute: typeof AppJoinCodeRoute
   AppSettingsAppearanceRoute: typeof AppSettingsAppearanceRoute
   AppSettingsChatsRoute: typeof AppSettingsChatsRoute
@@ -597,7 +610,6 @@ interface AppRouteChildren {
   AppSettingsNotificationsRoute: typeof AppSettingsNotificationsRoute
   AppSettingsPrivacyRoute: typeof AppSettingsPrivacyRoute
   AppSettingsProfileRoute: typeof AppSettingsProfileRoute
-  AppHelpIndexRoute: typeof AppHelpIndexRoute
   AppSettingsIndexRoute: typeof AppSettingsIndexRoute
   AppSettingsAdminAuditRoute: typeof AppSettingsAdminAuditRoute
   AppSettingsAdminReportsRoute: typeof AppSettingsAdminReportsRoute
@@ -609,11 +621,6 @@ const AppRouteChildren: AppRouteChildren = {
   AppChatsRoute: AppChatsRouteWithChildren,
   AppStarredRoute: AppStarredRoute,
   AppUpdatesRoute: AppUpdatesRoute,
-  AppHelpAboutRoute: AppHelpAboutRoute,
-  AppHelpContactRoute: AppHelpContactRoute,
-  AppHelpFaqRoute: AppHelpFaqRoute,
-  AppHelpInstallRoute: AppHelpInstallRoute,
-  AppHelpPrivacyRoute: AppHelpPrivacyRoute,
   AppJoinCodeRoute: AppJoinCodeRoute,
   AppSettingsAppearanceRoute: AppSettingsAppearanceRoute,
   AppSettingsChatsRoute: AppSettingsChatsRoute,
@@ -621,7 +628,6 @@ const AppRouteChildren: AppRouteChildren = {
   AppSettingsNotificationsRoute: AppSettingsNotificationsRoute,
   AppSettingsPrivacyRoute: AppSettingsPrivacyRoute,
   AppSettingsProfileRoute: AppSettingsProfileRoute,
-  AppHelpIndexRoute: AppHelpIndexRoute,
   AppSettingsIndexRoute: AppSettingsIndexRoute,
   AppSettingsAdminAuditRoute: AppSettingsAdminAuditRoute,
   AppSettingsAdminReportsRoute: AppSettingsAdminReportsRoute,
@@ -630,9 +636,30 @@ const AppRouteChildren: AppRouteChildren = {
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
+interface HelpRouteChildren {
+  HelpAboutRoute: typeof HelpAboutRoute
+  HelpContactRoute: typeof HelpContactRoute
+  HelpFaqRoute: typeof HelpFaqRoute
+  HelpInstallRoute: typeof HelpInstallRoute
+  HelpPrivacyRoute: typeof HelpPrivacyRoute
+  HelpIndexRoute: typeof HelpIndexRoute
+}
+
+const HelpRouteChildren: HelpRouteChildren = {
+  HelpAboutRoute: HelpAboutRoute,
+  HelpContactRoute: HelpContactRoute,
+  HelpFaqRoute: HelpFaqRoute,
+  HelpInstallRoute: HelpInstallRoute,
+  HelpPrivacyRoute: HelpPrivacyRoute,
+  HelpIndexRoute: HelpIndexRoute,
+}
+
+const HelpRouteWithChildren = HelpRoute._addFileChildren(HelpRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
+  HelpRoute: HelpRouteWithChildren,
   VerifyRoute: VerifyRoute,
   SecurityNotMeRoute: SecurityNotMeRoute,
   WelcomeNameRoute: WelcomeNameRoute,

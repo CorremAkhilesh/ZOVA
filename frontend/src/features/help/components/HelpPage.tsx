@@ -3,6 +3,7 @@ import { ArrowLeft } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
+import { useKnownSignedIn } from '../signed-in';
 
 /** A Help screen: back (to Settings from /help, else to /help), one h1, then the content. */
 export function HelpPage({
@@ -17,16 +18,21 @@ export function HelpPage({
   children: ReactNode;
 }) {
   const { t } = useTranslation();
+  // Signed out there is no Settings to go back to: the header offers "Sign in" instead.
+  const signedIn = useKnownSignedIn();
+  const showBack = back === 'help' || signedIn;
   return (
     <div className="h-full overflow-y-auto">
       <div className="mx-auto max-w-3xl space-y-4 p-4 pb-10 md:p-8">
-        <Link
-          to={back === 'settings' ? '/settings' : '/help'}
-          className="inline-flex items-center gap-1.5 rounded-md text-sm font-medium text-text-muted hover:text-text"
-        >
-          <ArrowLeft className="size-4" aria-hidden />
-          {back === 'settings' ? t('settings.title') : t('help.menuTitle')}
-        </Link>
+        {showBack ? (
+          <Link
+            to={back === 'settings' ? '/settings' : '/help'}
+            className="inline-flex items-center gap-1.5 rounded-md text-sm font-medium text-text-muted hover:text-text"
+          >
+            <ArrowLeft className="size-4" aria-hidden />
+            {back === 'settings' ? t('settings.title') : t('help.menuTitle')}
+          </Link>
+        ) : null}
         <div className="space-y-1">
           <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
           {description ? <p className="text-sm text-text-muted">{description}</p> : null}

@@ -1312,6 +1312,8 @@
   },
   "help": {
     "menuTitle": "Help & About",
-    "menuHint": "Install guide, common questions, privacy and contact"
+    "menuHint": "Install guide, common questions, privacy and contact",
+    "signIn": "Sign in",
+    "backToApp": "Back to the app"
   }
 }

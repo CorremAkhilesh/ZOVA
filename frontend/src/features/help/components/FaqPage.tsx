@@ -5,6 +5,7 @@ import { formatBytes } from '@/features/media/process';
 import { useAppConfig } from '@/features/media/use-app-config';
 import { type BrowserFamily, browserFamily } from '@/features/notifications/support';
 import { useHelpText } from '../content';
+import { useKnownSignedIn } from '../signed-in';
 import { Accordion, type AccordionItem } from './Accordion';
 import { HelpPage, Points } from './HelpPage';
 
@@ -43,7 +44,9 @@ function Microphone() {
 
 function Storage() {
   const { text, list, language } = useHelpText();
-  const maxBytes = useAppConfig()?.media.maxFileBytes;
+  // Only asked for when signed in: the server answers signed-in people only, and Help is public.
+  const signedIn = useKnownSignedIn();
+  const maxBytes = useAppConfig({ enabled: signedIn })?.media.maxFileBytes;
   const points = list('faq.storage.points', {
     size: maxBytes ? formatBytes(maxBytes, language) : '',
   });

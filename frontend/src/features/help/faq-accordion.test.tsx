@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { act, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { brand } from '@zuvo/config';
 import { describe, expect, it } from 'vitest';
@@ -54,7 +54,9 @@ describe('FAQ accordion', () => {
 
   it('answers link to the right screens, shows the server’s file limit, and passes axe open', async () => {
     const user = userEvent.setup();
-    const { container, router } = await renderApp('/help/faq', { width: DESKTOP_WIDTH });
+    // Signed in first (the app knows the session), then Help: only then is the limit asked for.
+    const { container, router } = await renderApp('/settings', { width: DESKTOP_WIDTH });
+    await act(() => router.navigate({ to: '/help/faq' }));
     await screen.findByRole('heading', { level: 1, name: 'Common questions' });
     for (const button of screen.getAllByRole('button', { expanded: false })) {
       await user.click(button);
