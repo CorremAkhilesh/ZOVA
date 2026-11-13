@@ -5,8 +5,8 @@ import { swStrings } from './strings';
 
 /** Test fixtures for the service worker's push modules. */
 export const CHAT = '64b7f0c2a1b2c3d4e5f60001';
-export const KEY =
-  'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U';
+/** A VAPID public key of the right shape (65 bytes, 0x04 first), not a real one. */
+export const KEY = `B${'A'.repeat(86)}`;
 
 export const message = (overrides: Partial<Extract<PushPayload, { kind: 'message' }>> = {}) =>
   ({

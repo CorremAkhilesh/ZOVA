@@ -4,9 +4,8 @@ import { vapidKeyBytes } from '@/sw/push/vapid';
 import { HttpResponse, http, server } from '@/test/msw';
 import { usePushPrefs } from './prefs';
 
-/** A real-looking VAPID public key (65 bytes, base64url). */
-export const VAPID_KEY =
-  'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U';
+/** A VAPID public key of the right shape (65 bytes, 0x04 first), not a real one. */
+export const VAPID_KEY = `B${'A'.repeat(86)}`;
 export const ENDPOINT = 'https://push.example/sub-1';
 
 interface BrowserOptions {

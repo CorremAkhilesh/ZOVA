@@ -1,0 +1,7 @@
+# Gitleaks: the default rules, plus the few exceptions below. Keep this list short and explain each.
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "The public example VAPID public key from the web-push documentation. Commit a305760 used it in two frontend test helpers; they now build a placeholder instead. It is a public key, not a secret."
+regexes = ['''BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U''']
