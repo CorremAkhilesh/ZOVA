@@ -129,8 +129,12 @@ test('"Toggle theme" runs from the command palette', async ({ browser }) => {
   const page = asha.page;
   const html = page.locator('html');
   const before = (await html.getAttribute('data-theme')) ?? 'light';
-  await page.keyboard.press('Control+k');
   const box = page.getByRole('combobox', { name: /Search chats/ });
+  // The dev server may still be loading the palette on the first press: press again until it opens.
+  await expect(async () => {
+    await page.keyboard.press('Control+k');
+    await expect(box).toBeVisible({ timeout: 3_000 });
+  }).toPass(SLOW);
   await box.fill('>togl thm');
   await expect(page.getByRole('option', { name: /Toggle theme/ })).toBeVisible();
   await box.press('Enter');

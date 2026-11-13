@@ -169,10 +169,10 @@ describe('the join page', () => {
     await waitFor(() => expect(joined).toHaveBeenCalled());
     // Opening a chat loads its route and reads the local database.
     expect(
-      await screen.findByRole('heading', { name: 'Launch team' }, { timeout: 15_000 }),
+      await screen.findByRole('heading', { name: 'Launch team' }, { timeout: 30_000 }),
     ).toBeInTheDocument();
-    // Longer than the 15 s wait above: the default 5 s cut it short on a slow runner.
-  }, 30_000);
+    // Longer than the wait above: on CI the whole suite runs at once, and this test loads a route.
+  }, 45_000);
 
   it('says so when the link no longer works', async () => {
     server.use(

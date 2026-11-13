@@ -115,7 +115,8 @@ jobs:
   e2e:
     name: E2E (Chromium, Firefox, WebKit, mobile)
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    # 4 browsers, then the dev-proxy run of the critical flows: about 45 minutes with retries.
+    timeout-minutes: 60
     env:
       CI: true
       # The E2E API (backend e2e:server) runs on an in-memory MongoDB.
