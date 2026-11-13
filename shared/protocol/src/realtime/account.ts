@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { appearanceSchema } from '../rest/appearance.ts';
 import { draftSchema } from '../rest/chats.ts';
+import { pushSettingsSchema } from '../rest/push.ts';
 import { quietHoursSchema } from '../rest/quiet-hours.ts';
 import { chatSettingsSchema } from '../rest/settings.ts';
 
@@ -24,3 +25,6 @@ export const appearanceUpdatedEventSchema = z.object({ appearance: appearanceSch
 
 /** quiet-hours:updated (server → my devices) */
 export const quietHoursUpdatedEventSchema = z.object({ quietHours: quietHoursSchema });
+
+/** push:updated (server → my devices): notification settings or my push devices changed. */
+export const pushUpdatedEventSchema = z.object({ settings: pushSettingsSchema });

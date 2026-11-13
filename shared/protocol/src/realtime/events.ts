@@ -7,6 +7,7 @@ import {
   blocksChangedEventSchema,
   draftUpdatedEventSchema,
   foldersUpdatedEventSchema,
+  pushUpdatedEventSchema,
   quietHoursUpdatedEventSchema,
   settingsUpdatedEventSchema,
 } from './account.ts';
@@ -37,6 +38,7 @@ import {
   typingPayloadSchema,
   voicePlayedAckSchema,
   voicePlayedPayloadSchema,
+  windowStatePayloadSchema,
 } from './chat.ts';
 
 /** A client → server event: its payload schema and the schema of the ack data it returns. */
@@ -58,6 +60,7 @@ export const clientToServerEvents = {
     ack: presenceSubscribeAckSchema,
   },
   'presence:active': { payload: presenceActivePayloadSchema, ack: z.object({}) },
+  'window:state': { payload: windowStatePayloadSchema, ack: z.object({}) },
 } satisfies Record<string, ClientEventDefinition>;
 
 /** Events the server emits. */
@@ -84,6 +87,7 @@ export const serverToClientEvents = {
   'lock:updated': lockUpdatedEventSchema,
   'quiet-hours:updated': quietHoursUpdatedEventSchema,
   'appearance:updated': appearanceUpdatedEventSchema,
+  'push:updated': pushUpdatedEventSchema,
 } satisfies Record<string, z.ZodType>;
 
 type ClientEvents = typeof clientToServerEvents;

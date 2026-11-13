@@ -137,6 +137,12 @@ export const PRESENCE_WATCH_MAX = 100;
 export const presenceSubscribePayloadSchema = z.object({
   userIds: z.array(objectIdSchema).max(PRESENCE_WATCH_MAX),
 });
+/**
+ * window:state (client → server): this tab is visible and focused, or not. Sent at once on every
+ * change and after (re)connecting. A device with no visible + focused tab gets Web Push.
+ */
+export const windowStatePayloadSchema = z.object({ visible: z.boolean(), focused: z.boolean() });
+
 /** presence:active (client → server): false once the tab has been hidden for a while. */
 export const presenceActivePayloadSchema = z.object({ active: z.boolean() });
 
