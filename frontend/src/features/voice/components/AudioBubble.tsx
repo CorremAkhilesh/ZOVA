@@ -7,7 +7,7 @@ import { formatBytes, formatDuration } from '@/features/media/process';
 import { cn } from '@/lib/utils';
 import { playTrack, seekTo, togglePlaying } from '../player';
 import { toTrack } from '../track';
-import { useTrackState } from '../use-track';
+import { trackLabels, useTrackState } from '../use-track';
 import { PlayIcon } from './PlayIcon';
 import { SpeedButton } from './SpeedButton';
 
@@ -20,7 +20,7 @@ function DownloadButton(props: { name: string; download: ReturnType<typeof useDo
       aria-label={t('media.downloadNamed', { name })}
       disabled={download.state === 'working'}
       onClick={() => void download.start()}
-      className="flex size-8 shrink-0 items-center justify-center rounded-full bg-black/15"
+      className="tap-target flex size-8 shrink-0 items-center justify-center rounded-full bg-black/15"
     >
       {download.state === 'working' ? (
         <Loader2 className="size-4 animate-spin motion-reduce:animate-none" aria-hidden />
@@ -67,7 +67,7 @@ export function AudioBubble({ message }: { message: ChatMessage }) {
   const uploading = message.status === 'pending' && !media.id;
   const duration = known ?? media.duration ?? 0;
   const start = () => {
-    const track = toTrack(message, { voice: t('voice.preview') });
+    const track = toTrack(message, trackLabels(t));
     if (track) playTrack(track);
   };
   const controls = {

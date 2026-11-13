@@ -1,9 +1,25 @@
 import { mediaSessionControls, type Speed, type Track } from './player';
 
 const SEEK_STEP_SECONDS = 10;
+/** The app icon, when the sender has no photo (frontend/pwa/assets.ts). */
+const FALLBACK_ARTWORK = { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' };
+const ACTIONS: MediaSessionAction[] = ['play', 'pause', 'seekbackward', 'seekforward', 'seekto'];
 
 let shown: string | null = null;
 let connected = false;
+
+/** Nothing playing: the lock screen's buttons must not keep driving a closed player. */
+function disconnectControls(session: MediaSession) {
+  if (!connected) return;
+  connected = false;
+  for (const action of ACTIONS) {
+    try {
+      session.setActionHandler(action, null);
+    } catch {
+      // This browser has no such control.
+    }
+  }
+}
 
 function connectControls(session: MediaSession) {
   if (connected) return;
@@ -43,6 +59,7 @@ export function updateMediaSession(now: Now | null): void {
     session.metadata = null;
     session.playbackState = 'none';
     shown = null;
+    disconnectControls(session);
     return;
   }
   connectControls(session);
@@ -50,7 +67,11 @@ export function updateMediaSession(now: Now | null): void {
   if (shown !== track.key) {
     shown = track.key;
     if (typeof MediaMetadata !== 'undefined') {
-      session.metadata = new MediaMetadata({ title: track.title, artist: track.subtitle });
+      session.metadata = new MediaMetadata({
+        title: track.title,
+        artist: track.subtitle,
+        artwork: track.artwork ? [{ src: track.artwork }] : [FALLBACK_ARTWORK],
+      });
     }
   }
   session.playbackState = playing ? 'playing' : 'paused';

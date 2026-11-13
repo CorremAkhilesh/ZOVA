@@ -1,4 +1,13 @@
+import type { TFunction } from 'i18next';
 import { usePlayer } from './player';
+import type { TrackLabels } from './track';
+
+/** The words a track is named with: a note's sender, or "You". */
+export const trackLabels = (t: TFunction): TrackLabels => ({
+  voice: t('voice.preview'),
+  you: t('chats.you'),
+  unknown: t('chats.unknownPerson'),
+});
 
 /** What the player is doing, as far as this message is concerned. */
 export function useTrackState(key: string, mediaId: string | undefined) {
