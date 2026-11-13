@@ -2,6 +2,7 @@ import type {
   Appearance,
   ChatSettings,
   ClientToServerEvents,
+  PushSettings,
   QuietHours,
   ScheduledFailure,
   ServerToClientEvents,
@@ -19,6 +20,7 @@ export type AccountChange =
   | { kind: 'lock' }
   | { kind: 'appearance'; appearance: Appearance }
   | { kind: 'quietHours'; quietHours: QuietHours }
+  | { kind: 'push'; settings: PushSettings }
   | { kind: 'scheduled'; chatId: string; failed: { id: string; reason: ScheduledFailure } | null }
   | { kind: 'reconnected' };
 
@@ -38,4 +40,5 @@ export function wireAccountEvents(
   socket.on('quiet-hours:updated', ({ quietHours }) =>
     onChange({ kind: 'quietHours', quietHours }),
   );
+  socket.on('push:updated', ({ settings }) => onChange({ kind: 'push', settings }));
 }

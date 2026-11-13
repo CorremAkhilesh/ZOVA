@@ -6,9 +6,15 @@ export function Switch(props: {
   hint: string;
   checked: boolean;
   onChange: (checked: boolean) => void;
+  disabled?: boolean;
 }) {
   return (
-    <label className="flex cursor-pointer items-start gap-4">
+    <label
+      className={cn(
+        'flex items-start gap-4',
+        props.disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer',
+      )}
+    >
       <span className="min-w-0 flex-1">
         <span className="block font-medium">{props.label}</span>
         <span className="block text-sm text-text-muted">{props.hint}</span>
@@ -18,6 +24,7 @@ export function Switch(props: {
         role="switch"
         aria-checked={props.checked}
         checked={props.checked}
+        disabled={props.disabled}
         onChange={(event) => props.onChange(event.target.checked)}
         className="peer sr-only"
       />

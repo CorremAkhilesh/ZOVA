@@ -1,7 +1,7 @@
 import { Link } from '@tanstack/react-router';
 import type { LastReaction, SystemEvent } from '@zuvo/protocol';
 import { Archive, ArrowLeft, MessageSquarePlus, Search, Star } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChatListSkeleton } from '@/components/common/ChatListSkeleton';
 import { Button } from '@/components/ui/button';
@@ -21,6 +21,7 @@ import { systemText } from '@/features/groups/wording';
 import { useWithoutLocked } from '@/features/lock/chat-lock';
 import { LockedChatsEntry } from '@/features/lock/components/LockedChatsEntry';
 import { ChatMenu } from '@/features/messages/components/ChatMenu';
+import { usePushPrefs } from '@/features/notifications/prefs';
 import { QuietIndicator } from '@/features/quiet-hours/components/QuietIndicator';
 import { useGlobalSearch } from '@/features/search/store';
 import { useSyncStore } from '@/features/sync/store';
@@ -31,6 +32,8 @@ import type { ChatFolder, ChatSummary } from '../types';
 import { toChatSummary } from '../view';
 import { ChatListItem } from './ChatListItem';
 import { NoChatsYet } from './NoChatsYet';
+
+const PushCard = lazy(() => import('@/features/notifications/components/PushCard'));
 
 function EmptyFolder({ folder, searching }: { folder: ChatFolder; searching: boolean }) {
   const { t } = useTranslation();
@@ -161,6 +164,13 @@ export function ChatListPane() {
   );
   const archivedCount = all?.filter((chat) => chat.archived).length ?? 0;
   const showArchivedRow = !archivedList && !query.trim() && folder === 'all' && archivedCount > 0;
+  // "Get notified": once there is a real chat, and never while searching or in Archived.
+  const pushCardDismissed = usePushPrefs((state) => state.cardDismissed);
+  const offerPush =
+    !pushCardDismissed &&
+    !archivedList &&
+    !query.trim() &&
+    Boolean(rows?.some((r) => r.type !== 'self'));
 
   return (
     <section aria-labelledby="chat-list-title" className="flex h-full min-h-0 flex-col">
@@ -211,6 +221,11 @@ export function ChatListPane() {
 
       <ChatMenu />
       <FolderEditorHost />
+      {offerPush ? (
+        <Suspense fallback={null}>
+          <PushCard />
+        </Suspense>
+      ) : null}
       <ScrollArea className="min-h-0 flex-1 px-2 pb-3">
         {archivedList ? (
           <button

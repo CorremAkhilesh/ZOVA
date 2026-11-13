@@ -997,8 +997,6 @@
   },
   "quietHours": {
     "screenTitle": "Notifications",
-    "screenSubtitle": "Quiet hours and who can still reach you.",
-    "menuHint": "Quiet hours (Do Not Disturb)",
     "title": "Quiet hours",
     "hint": "While quiet, new messages arrive without sounds or alerts, on all your devices.",
     "mode": "Quiet hours",
@@ -1032,6 +1030,73 @@
     "saveFailed": "Couldn’t save quiet hours. Try again.",
     "loadFailed": "Couldn’t load your quiet hours.",
     "indicator": "Quiet hours are on"
+  },
+  "notifications": {
+    "newMessage": "New message",
+    "enabling": "Turning on…",
+    "enabled": "Notifications are on for this device.",
+    "failed": "Couldn’t turn on notifications. Try again.",
+    "card": {
+      "title": "Get notified about new messages",
+      "text": "Turn on notifications to hear about new messages even when {{brand}} is closed.",
+      "enable": "Enable",
+      "dismiss": "Dismiss"
+    },
+    "denied": {
+      "title": "Notifications are blocked",
+      "text": "Your browser is blocking notifications from {{brand}}. To allow them:"
+    },
+    "help": {
+      "chromium": "Click the lock icon next to the web address, open Site settings, and set Notifications to Allow. Then reload the page.",
+      "firefox": "Click the lock icon next to the web address and clear the blocked Notifications permission. Then reload the page and turn notifications on again.",
+      "safari-mac": "Open Safari → Settings → Websites → Notifications, and set {{brand}} to Allow.",
+      "ios": "Open your iPhone’s Settings → Notifications → {{brand}}, and turn on Allow Notifications."
+    },
+    "ios": {
+      "title": "Add {{brand}} to your Home Screen first",
+      "text": "On iPhone and iPad, notifications only work in the installed app: tap Share, then “Add to Home Screen”, and open {{brand}} from its icon."
+    },
+    "unsupported": {
+      "title": "Notifications aren’t available here",
+      "text": "This browser can’t show notifications from {{brand}}. Try a recent Chrome, Edge, Firefox or Safari."
+    },
+    "settings": {
+      "screenSubtitle": "Push notifications, sounds and quiet hours.",
+      "menuHint": "Push, sounds and quiet hours",
+      "loadFailed": "Couldn’t load your notification settings.",
+      "saveFailed": "Couldn’t save that change. Try again.",
+      "deviceTitle": "This device",
+      "push": "Push notifications",
+      "pushHint": "Show new messages on this device, even when {{brand}} is closed.",
+      "serverOff": "Push notifications aren’t set up on this server yet.",
+      "permission": {
+        "default": "Your browser will ask for permission when you turn this on.",
+        "granted": "Allowed by your browser.",
+        "denied": "Blocked by your browser.",
+        "unsupported": "Not available in this browser."
+      },
+      "allTitle": "All your devices",
+      "preview": "Show message preview",
+      "previewHint": "Show the sender and text. Off: just “New message”. Locked chats never show them.",
+      "sound": "Sound",
+      "soundHint": "Play a sound for new messages. Quiet hours keep it silent.",
+      "testHint": "Check that notifications reach your devices.",
+      "test": "Send test notification",
+      "testSending": "Sending…",
+      "testSent_one": "Test notification sent to {{count}} device.",
+      "testSent_other": "Test notification sent to {{count}} devices.",
+      "testNone": "No device received it. Turn on push notifications on a device first.",
+      "testFailed": "Couldn’t send a test notification. Try again.",
+      "devicesTitle": "My devices with notifications",
+      "devicesEmpty": "None of your devices gets notifications yet.",
+      "thisDevice": "This device",
+      "added": "Turned on {{when}}",
+      "lastUsed": "Last notified {{when}}",
+      "remove": "Remove",
+      "removeLabel": "Stop notifications on {{name}}",
+      "removed": "That device won’t get notifications any more.",
+      "removeFailed": "Couldn’t remove that device. Try again."
+    }
   },
   "lock": {
     "settingsTitle": "Chat lock",

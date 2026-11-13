@@ -99,7 +99,7 @@ export function SettingsMenu() {
           {
             to: '/settings/notifications',
             label: t('quietHours.screenTitle'),
-            hint: t('quietHours.menuHint'),
+            hint: t('notifications.settings.menuHint'),
             icon: Moon,
           },
           {

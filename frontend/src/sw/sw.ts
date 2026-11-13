@@ -6,12 +6,25 @@
  *   then to offline.html.
  * - Never touches the API, sockets or media: nothing under /v1, /socket.io or /media is cached,
  *   and there is no runtime caching of API data.
+ * - Web Push (Step 18): shows notifications, handles their actions and keeps the subscription. The
+ *   logic lives in ./push (tested there); this file only connects it to the worker's events.
  */
 import { clientsClaim, setCacheNameDetails } from 'workbox-core';
 import { enable as enableNavigationPreload } from 'workbox-navigation-preload';
 import { cleanupOutdatedCaches, matchPrecache, precacheAndRoute } from 'workbox-precaching';
 import { NavigationRoute, registerRoute } from 'workbox-routing';
 import { NEVER_CACHE } from './never-cache';
+import type { BadgeNavigator } from './push/badge';
+import {
+  handleNotificationClick,
+  handlePush,
+  handleSubscriptionChange,
+  type SubscriptionLike,
+  type WorkerDeps,
+} from './push/handlers';
+import { workerLanguage } from './push/language';
+import { readPushJson } from './push/payload';
+import { swStrings } from './push/strings';
 
 declare const self: ServiceWorkerGlobalScope & {
   __WB_MANIFEST: Array<{ url: string; revision: string | null }>;
@@ -79,6 +92,55 @@ self.addEventListener('message', (event) => {
   if ((event.data as { type?: string } | null)?.type === 'SKIP_WAITING') {
     void self.skipWaiting();
   }
+});
+
+/** Inline text replies: Chromium browsers that show action buttons at all (Chrome, Edge, Android). */
+function capabilities() {
+  const maxActions =
+    (globalThis as { Notification?: { maxActions?: number } }).Notification?.maxActions ?? 0;
+  const chromium = /Chrom(e|ium)\//.test(self.navigator.userAgent);
+  return { maxActions, canReply: maxActions > 0 && chromium };
+}
+
+const push: WorkerDeps = {
+  fetch: (url, init) => fetch(url, init),
+  showNotification: (title, options) => self.registration.showNotification(title, options),
+  notificationsWithTag: (tag) => self.registration.getNotifications({ tag }),
+  badge: self.navigator as BadgeNavigator,
+  windows: () => self.clients.matchAll({ type: 'window', includeUncontrolled: true }),
+  openWindow: (url) => self.clients.openWindow(url),
+  strings: () => workerLanguage(self.navigator.language).then(swStrings),
+  capabilities,
+  randomUUID: () => crypto.randomUUID(),
+  subscribe: (options) => self.registration.pushManager.subscribe(options),
+};
+
+self.addEventListener('push', (event) => {
+  event.waitUntil(handlePush(push, readPushJson(event.data)));
+});
+
+self.addEventListener('notificationclick', (event) => {
+  const { reply } = event as NotificationEvent & { reply?: string | null };
+  event.waitUntil(
+    handleNotificationClick(push, {
+      action: event.action,
+      reply: reply ?? null,
+      notification: event.notification,
+    }),
+  );
+});
+
+self.addEventListener('pushsubscriptionchange', (event: Event) => {
+  const change = event as ExtendableEvent & {
+    oldSubscription?: SubscriptionLike | null;
+    newSubscription?: SubscriptionLike | null;
+  };
+  change.waitUntil(
+    handleSubscriptionChange(push, {
+      oldSubscription: change.oldSubscription ?? null,
+      newSubscription: change.newSubscription ?? null,
+    }).catch(() => undefined),
+  );
 });
 
 clientsClaim();

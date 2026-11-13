@@ -10,6 +10,7 @@ import { InstallBanner } from '@/features/install/InstallUi';
 import { LockHost } from '@/features/lock/components/LockHost';
 import { MentionProfileHost } from '@/features/mentions/mention-marks';
 import { ModerationHost } from '@/features/moderation/components/ModerationHost';
+import { NotificationsHost } from '@/features/notifications/NotificationsHost';
 import { SearchHost } from '@/features/search/components/SearchHost';
 import { useSyncClient } from '@/features/sync/use-sync-client';
 import { MiniPlayer } from '@/features/voice/components/MiniPlayer';
@@ -49,6 +50,7 @@ function AppShell() {
       <MentionProfileHost />
       <LockHost />
       <AppearanceHost />
+      <NotificationsHost />
     </>
   );
 
