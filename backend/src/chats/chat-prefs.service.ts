@@ -149,11 +149,19 @@ function decodeCursor(cursor: string | undefined) {
   return { at: new Date(Number(time)), id: oid(id) };
 }
 
-/** My starred messages, newest first, across all chats or in one. */
+/**
+ * My starred messages, newest first, across all chats or in one. Stars in chats I locked stay out
+ * unless asked for (the app does so only while its PIN unlock lasts).
+ */
 export async function listStars(
   app: FastifyInstance,
   userId: string,
-  query: { chatId?: string | undefined; cursor?: string | undefined; limit: number },
+  query: {
+    chatId?: string | undefined;
+    cursor?: string | undefined;
+    limit: number;
+    includeLocked?: 'true' | 'false' | undefined;
+  },
 ) {
   const { Star, Message, ChatMember } = chatModels(app);
   const after = decodeCursor(query.cursor);
@@ -175,10 +183,16 @@ export async function listStars(
     chatId: { $in: page.map((star) => star.chatId) },
   }).lean();
   const memberOf = new Map(members.map((member) => [member.chatId.toString(), member]));
+  const withLocked = query.includeLocked === 'true';
+  let lockedHidden = false;
   const items: StarredItem[] = page.flatMap((star) => {
     const doc = byId.get(star.messageId.toString());
     const member = memberOf.get(star.chatId.toString());
     if (!doc || !member || !canSeeSeq(member, doc.seq)) return [];
+    if (member.locked === true && !withLocked) {
+      lockedHidden = true;
+      return [];
+    }
     return [
       {
         message: { ...hideQuote(toMessage(doc, userId), member), starred: true },
@@ -191,5 +205,6 @@ export async function listStars(
     items,
     nextCursor:
       stars.length > query.limit && last ? `${last.at.getTime()}_${last._id.toString()}` : null,
+    ...(lockedHidden ? { lockedHidden } : {}),
   };
 }

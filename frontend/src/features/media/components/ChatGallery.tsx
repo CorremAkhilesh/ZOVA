@@ -4,9 +4,12 @@ import type { Message } from '@zuvo/protocol';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useChat } from '@/features/chats/queries';
 import { type ChatMessage, ME } from '@/features/chats/types';
 import { useWithoutExpired } from '@/features/disappearing/use-without-expired';
 import { LinkRow } from '@/features/link-previews/LinkRow';
+import { LockedHiddenNotice } from '@/features/lock/components/LockedHiddenNotice';
+import { useChatsUnlocked } from '@/features/lock/store';
 import { cn } from '@/lib/utils';
 import { mediaApi } from '../api';
 import { DocumentCard } from './DocumentCard';
@@ -49,10 +52,13 @@ function GalleryList({
   chatId,
   tab,
   onOpen,
+  enabled,
 }: {
   chatId: string;
   tab: Tab;
   onOpen: (mediaId: string) => void;
+  /** False until the chat is known not to be locked. */
+  enabled: boolean;
 }) {
   const { t } = useTranslation();
   const viewport = useRef<HTMLDivElement>(null);
@@ -61,6 +67,7 @@ function GalleryList({
     queryFn: ({ pageParam }) => mediaApi.gallery(chatId, tab, pageParam),
     initialPageParam: undefined as number | undefined,
     getNextPageParam: (page) => (page.hasMore ? page.items.at(-1)?.seq : undefined),
+    enabled,
   });
   const all = useMemo(
     () =>
@@ -129,10 +136,15 @@ function GalleryList({
   );
 }
 
-/** "Media", "Docs" and "Links" in chat info. Newest first. */
+/** "Media", "Docs" and "Links" in chat info. Newest first. Nothing of a locked chat until the PIN. */
 export function ChatGallery(props: { chatId: string; onOpen: (mediaId: string) => void }) {
   const { t } = useTranslation();
   const [tab, setTab] = useState<Tab>('media');
+  const chat = useChat(props.chatId);
+  const unlocked = useChatsUnlocked();
+  if (chat?.locked === true && !unlocked) {
+    return <LockedHiddenNotice text={t('lock.hiddenMedia')} className="mx-3" />;
+  }
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div role="tablist" aria-label={t('info.media')} className="flex gap-1 px-3 pb-2">
@@ -154,7 +166,13 @@ export function ChatGallery(props: { chatId: string; onOpen: (mediaId: string) =
           </button>
         ))}
       </div>
-      <GalleryList key={tab} chatId={props.chatId} tab={tab} onOpen={props.onOpen} />
+      <GalleryList
+        key={tab}
+        chatId={props.chatId}
+        tab={tab}
+        onOpen={props.onOpen}
+        enabled={chat !== undefined}
+      />
     </div>
   );
 }

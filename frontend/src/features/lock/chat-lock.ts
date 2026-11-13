@@ -8,11 +8,28 @@ import type { ChatSummary } from '@/features/chats/types';
 import type { ChatRow } from '@/features/sync/local-db';
 import { LOCK_KEY, lockApi, lockQuery } from './api';
 import { lockErrorMessage } from './errors';
-import { useLockStore } from './store';
+import { useChatsUnlocked, useLockStore } from './store';
 
 /** The normal list and folders: everything but locked chats. */
 export function useWithoutLocked(rows: ChatRow[] | undefined): ChatRow[] | undefined {
   return useMemo(() => rows?.filter((row) => row.locked !== true), [rows]);
+}
+
+const NONE: ReadonlySet<string> = new Set();
+
+/**
+ * Chats whose content must not show right now: the ones I locked, unless the PIN opened them in
+ * this tab (5 minutes). Starred messages, forward targets and galleries leave these out.
+ */
+export function useHiddenLockedIds(rows: ChatRow[] | undefined): ReadonlySet<string> {
+  const unlocked = useChatsUnlocked();
+  return useMemo(
+    () =>
+      unlocked
+        ? NONE
+        : new Set((rows ?? []).filter((row) => row.locked === true).map((row) => row.id)),
+    [rows, unlocked],
+  );
 }
 
 /**

@@ -52,11 +52,16 @@ export const chatPrefsBodySchema = z.object({
   unread: z.boolean().optional(),
 });
 
-/** GET /v1/stars?chatId=&cursor= */
+/** GET /v1/stars?chatId=&cursor=&includeLocked= */
 export const starsQuerySchema = z.object({
   chatId: objectIdSchema.optional(),
   cursor: z.string().min(1).max(100).optional(),
   limit: z.coerce.number().int().min(1).max(100).default(50),
+  /**
+   * Chats I locked are left out unless this is 'true'. The app asks for them only while its PIN
+   * unlock lasts (5 min, this tab), so an app that does not know about it never shows them.
+   */
+  includeLocked: z.enum(['true', 'false']).optional(),
 });
 export const starredItemSchema = z.object({
   message: messageSchema,
@@ -65,9 +70,12 @@ export const starredItemSchema = z.object({
 export const starsResponseSchema = z.object({
   items: z.array(starredItemSchema),
   nextCursor: z.string().min(1).nullable(),
+  /** This page left out stars in chats I locked (without `includeLocked`). */
+  lockedHidden: z.boolean().optional(),
 });
 
 export const okResponseSchema = z.object({ ok: z.literal(true) });
 
 export type ChatPrefs = z.infer<typeof chatPrefsBodySchema>;
 export type StarredItem = z.infer<typeof starredItemSchema>;
+export type StarsResponse = z.infer<typeof starsResponseSchema>;
