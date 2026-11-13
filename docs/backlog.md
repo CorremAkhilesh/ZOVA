@@ -16,8 +16,8 @@ Known work that was decided on or deliberately left for later. Product scope liv
 
 ## Voice notes
 
-- **Group chats:** auto-next uses the previous note's sender name, and played status has only been
-  designed for direct chats. Both need revisiting when groups are built.
+- **Group chats:** played status has only been designed for direct chats. (Auto-next now names each
+  note's own sender.)
 - **Seeking in long WebM notes** has only been proven on short ones. MediaRecorder writes no seek index.
 
 ## Groups
@@ -70,10 +70,6 @@ Known work that was decided on or deliberately left for later. Product scope liv
 
 ## Step 17 follow-ups
 
-- **Scheduling a photo or file from the composer:** the server accepts a finished upload, but the
-  composer uploads only when sending, so the app schedules text (with mentions) for now.
-- **Locked chats** still appear in Starred messages and in the forward picker (their text shows in
-  Starred). Push notifications (Step 18) must hide their text.
 - **Poll labels:** the pinned bar and the Starred list show a poll's question without "📊 Poll:".
 - **The disappearing badge** in the chat header is a label only: tapping it does not open the timer.
 - **Scheduled list** returns up to 200 items without pagination (the limit is 50 waiting, so failed

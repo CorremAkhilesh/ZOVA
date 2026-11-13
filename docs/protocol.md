@@ -179,7 +179,9 @@ Clearing a chat stores one position (`clearedSeq`), not a row per message. Seein
 
 `typing:start` and `typing:stop` reach only the other members' sockets, and are never stored. The server
 ends "typing" 6 s after the last `typing:start`, and when the socket goes away. Clients send at most one
-per 3 s, and the server allows 20 per 10 s per socket.
+per 3 s, and the server allows 20 per 10 s per socket. The members are read again on every `typing:start`
+(no cache), so someone removed from a group hears nothing more at once, on every instance, and someone
+added hears it at once. "Stopped" goes only to those told "typing" who are still members.
 
 ## Presence
 
@@ -319,6 +321,14 @@ runs at startup and every 15 s. It claims due items atomically, and it is the on
 E2E and tests. A send stuck for 2 minutes is retried (safe through `clientMsgId`). Uploads waiting in a
 scheduled message are never removed as orphans.
 
+**Files and voice notes.** An item is text, or one finished upload (`mediaId`) with an optional caption in
+`text` (photo, video, document, audio or voice note). The upload must be mine, complete, not in a message
+yet and not waiting in another scheduled item (`409 MEDIA_NOT_ATTACHABLE`); `sendMessage` checks it again
+at the time, and a file gone by then fails the item with `media_unavailable`. Scheduled files are never
+view once. The app uploads first, in the foreground ("Uploading… n%"), when the time is picked from the
+Send button's menu in the preview sheet or the voice recorder (right click or long press), then schedules
+one item per file, all at that time: an album arrives as separate messages.
+
 ## Polls
 
 A message of type `poll` carries `poll: {question, options:[{id, text, voterIds}], multiple, closedAt}`.
@@ -360,8 +370,12 @@ locked, until a new PIN is set. **Biometric unlock** (WebAuthn, platform authent
 
 Locked chats are flagged on my membership (`locked`). The app keeps them behind "Locked chats", opens
 them for 5 minutes after the PIN (in memory and sessionStorage), and never shows their text in the list,
-the palette or search. Server message search leaves them out. The lock keeps other people's eyes off a
-shared screen; it does not encrypt what this device stores.
+the palette or search. Server message search leaves them out. Until the PIN, Starred messages, the
+forward picker and the chat's media gallery show one "hidden — unlock" line instead of locked chats.
+`GET /v1/stars` leaves locked chats out (`lockedHidden: true`) unless `includeLocked=true`, which the
+app sends only while its unlock lasts; the server does not know about that 5-minute unlock, so this
+is a default, not a proof. The lock keeps other people's eyes off a shared screen; it does not
+encrypt what this device stores.
 
 ## Quiet hours
 
@@ -370,6 +384,16 @@ and an IANA time zone (India by default), plus exceptions (mentions, up to 50 ch
 protocol's `isQuietAt()` decides when it is quiet; Step 18's push will use `quietHoursFor()` on the
 server. The app shows a moon while it is quiet. It has no in-app sounds or toasts for incoming messages
 yet, so `shouldAlert()` is ready for Step 18.
+
+## Language
+
+`language` (`en` | `hi`, English until chosen) is part of the profile: `PATCH /v1/me/profile { language }`,
+returned by `GET /v1/me/profile` and in the session user (`GET /v1/auth/me`). The server writes in it:
+push notifications, and the OTP, new-login and PIN-reset emails. An OTP for an address with no account
+(or none chosen yet) follows the request's `Accept-Language` (the app sends its own language), else
+English. In the app, the server's value wins at start-up, sign-in and every session refresh; a choice
+made on the device is applied at once and kept as pending until saved, so an offline change is not undone.
+A brand-new account (still naming itself) takes the device's language.
 
 ## Appearance
 
