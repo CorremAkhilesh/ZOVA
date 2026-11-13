@@ -2,6 +2,7 @@ import { Link } from '@tanstack/react-router';
 import {
   ChevronRight,
   Flag,
+  LifeBuoy,
   MessagesSquare,
   MonitorSmartphone,
   Moon,
@@ -24,7 +25,8 @@ type Entry = {
     | '/settings/devices'
     | '/settings/admin/users'
     | '/settings/admin/reports'
-    | '/settings/admin/audit';
+    | '/settings/admin/audit'
+    | '/help';
   label: string;
   hint: string;
   icon: ComponentType<{ className?: string }>;
@@ -62,8 +64,7 @@ export function SettingsMenu() {
     <>
       <Link
         to="/settings/profile"
-        aria-label={t('settings.openProfile', { name })}
-        className="flex items-center gap-4 rounded-2xl border bg-surface p-5 shadow-sm hover:bg-background"
+        className="flex items-center gap-4 rounded-2xl border bg-surface p-5 shadow-sm transition-colors hover:bg-background"
       >
         <Avatar name={name} src={user.avatar?.small} className="size-14" />
         <span className="min-w-0 flex-1">
@@ -108,6 +109,7 @@ export function SettingsMenu() {
             hint: t('devices.subtitle'),
             icon: MonitorSmartphone,
           },
+          { to: '/help', label: t('help.menuTitle'), hint: t('help.menuHint'), icon: LifeBuoy },
         ]}
       />
       {user.role === 'admin' ? (

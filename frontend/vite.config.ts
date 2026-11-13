@@ -106,6 +106,10 @@ export default defineConfig({
       devOptions: { enabled: false },
     }),
   ],
+  // Shown on Help → About.
+  define: {
+    'import.meta.env.VITE_BUILD_DATE': JSON.stringify(new Date().toISOString().slice(0, 10)),
+  },
   resolve: {
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
   },

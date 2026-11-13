@@ -1,0 +1,187 @@
+{
+  "home": {
+    "subtitle": "Quick answers about installing and using {{brand}}.",
+    "topics": "Help topics"
+  },
+  "cards": {
+    "install": {
+      "title": "Install the app",
+      "hint": "Add {{brand}} to your computer, Android phone or iPhone"
+    },
+    "faq": {
+      "title": "Common questions",
+      "hint": "Sign-in codes, notifications, microphone, storage"
+    },
+    "privacy": {
+      "title": "Your privacy",
+      "hint": "What we store and who can see it"
+    },
+    "contact": {
+      "title": "Contact us",
+      "hint": "Get help or report a problem"
+    },
+    "about": {
+      "title": "About {{brand}}",
+      "hint": "Version and what’s new"
+    }
+  },
+  "install": {
+    "subtitle": "Install {{brand}} to open it like any other app, with its own icon and window.",
+    "installNow": "Install now",
+    "installNowHint": "Your browser can install {{brand}} right away.",
+    "installed": "You’re already using the installed app.",
+    "yourDevice": "Your device",
+    "desktop": {
+      "title": "Windows, Mac or Linux computer",
+      "chrome": "Google Chrome",
+      "chromeSteps": [
+        "Open {{brand}} in Chrome and sign in.",
+        "Click the install icon at the right end of the address bar (a small screen with a down arrow).",
+        "No icon? Open the ⋮ menu → Cast, save and share → Install page as app.",
+        "Click Install. {{brand}} opens in its own window and appears in your Start menu, Dock or app list."
+      ],
+      "edge": "Microsoft Edge",
+      "edgeSteps": [
+        "Open {{brand}} in Edge and sign in.",
+        "Click the App available icon in the address bar.",
+        "No icon? Open the … menu → Apps → Install this site as an app.",
+        "Click Install. You can pin it to the taskbar or Dock."
+      ],
+      "safariNote": "Safari on a Mac (macOS Sonoma or later): choose File → Add to Dock.",
+      "firefoxNote": "Firefox can’t install web apps. Open {{brand}} in Chrome or Edge to install it."
+    },
+    "android": {
+      "title": "Android phone or tablet",
+      "steps": [
+        "Open {{brand}} in Chrome.",
+        "Tap the ⋮ menu at the top right.",
+        "Tap Install app (on some phones it says Add to Home screen).",
+        "Tap Install. The {{brand}} icon appears on your home screen."
+      ]
+    },
+    "ios": {
+      "title": "iPhone or iPad",
+      "steps": [
+        "Open {{brand}} in Safari.",
+        "Tap the Share button (a square with an arrow pointing up).",
+        "Scroll down and tap Add to Home Screen.",
+        "Tap Add. Then always open {{brand}} from the new icon."
+      ],
+      "version": "Needs iOS or iPadOS 16.4 or later.",
+      "whyTitle": "Why notifications need the Home Screen icon",
+      "why": "Apple only lets web apps send notifications after they are added to the Home Screen. In a normal Safari tab, {{brand}} can’t notify you. Open it from the Home Screen icon, then turn on notifications in Settings → Notifications."
+    }
+  },
+  "faq": {
+    "subtitle": "Tap a question to see the answer.",
+    "otp": {
+      "q": "I didn’t get my sign-in code",
+      "points": [
+        "Check your Spam or Junk folder. The code comes from {{email}}.",
+        "Wait 60 seconds before asking for a new code. You can ask for up to 5 codes an hour.",
+        "Only @{{domain}} email addresses can sign in.",
+        "A code works for 10 minutes. If it has expired, ask for a new one."
+      ]
+    },
+    "session": {
+      "q": "Why do I sign in again every 7 days?",
+      "a": "For your security, each sign-in lasts 7 days, even if you use {{brand}} every day. After that, sign in again with a new code. You’ll see a reminder in the app 24 hours before."
+    },
+    "notifications": {
+      "q": "How do I turn on notifications?",
+      "points": [
+        "Go to Settings → Notifications and turn them on. When your browser asks, choose Allow.",
+        "On iPhone and iPad, notifications only work after you add {{brand}} to the Home Screen and open it from that icon.",
+        "Blocked them by mistake? Click the icon next to the web address and allow notifications for this site."
+      ],
+      "open": "Open notification settings",
+      "install": "How to add to the Home Screen"
+    },
+    "microphone": {
+      "q": "My microphone is blocked",
+      "intro": "Voice notes need your microphone. To allow it:",
+      "chromium": "Chrome or Edge: click the icon to the left of the web address → Site settings (or Permissions for this site) → Microphone → Allow. Then reload the page.",
+      "firefox": "Firefox: click the microphone or lock icon in the address bar, clear the Blocked permission, and try again.",
+      "safari-mac": "Safari on Mac: Safari → Settings → Websites → Microphone, and set {{brand}} to Allow.",
+      "ios": "iPhone or iPad: open the Settings app → Safari → Microphone (on iOS 18: Settings → Apps → Safari), and choose Ask or Allow.",
+      "system": "Still blocked? Your computer may block it too. Windows: Settings → Privacy & security → Microphone. Mac: System Settings → Privacy & Security → Microphone, and allow your browser."
+    },
+    "storage": {
+      "q": "What does {{brand}} keep on my device?",
+      "points": [
+        "{{brand}} keeps a copy of your chats in this browser, so you can read them offline and the app opens faster.",
+        "Clearing this site’s data signs you out on this browser. Your messages stay safe on our server and come back when you sign in again.",
+        "Photos, videos and documents can be up to {{size}} each."
+      ],
+      "sizeUnknown": "Photos, videos and documents have a size limit. The app tells you if a file is too big."
+    },
+    "lost": {
+      "q": "I lost my phone or laptop",
+      "points": [
+        "On another device, go to Settings → Devices.",
+        "Sign out the lost device, or choose Sign out all other devices.",
+        "Got a new sign-in email you don’t recognise? Click “This wasn’t me” in it: that signs you out everywhere."
+      ],
+      "open": "Open Devices"
+    },
+    "account": {
+      "q": "Can I delete my account?",
+      "a": "Your account belongs to your organization, so you can’t delete it yourself. If you’re leaving, an admin will turn it off."
+    }
+  },
+  "privacy": {
+    "subtitle": "In plain words: what we keep, and who can see it.",
+    "storeTitle": "What we store",
+    "store": [
+      "Your account: work email, name, @username, profile photo and “about”.",
+      "Your messages and files, on our server, so all your devices show the same chats.",
+      "The devices you sign in on (browser, device type, IP address, last active), so you can see them in Settings → Devices."
+    ],
+    "protectTitle": "How it’s protected",
+    "protect": [
+      "Everything is encrypted on the way between your device and our server.",
+      "Files are private: only members of the chat can open them, through links that expire after 15 minutes.",
+      "Messages are not end-to-end encrypted yet. They are stored on our server in a form the server can read."
+    ],
+    "whoTitle": "Who can see what",
+    "who": [
+      "Only the members of a chat can see its messages and files.",
+      "You choose who sees your last seen, profile photo and read ticks in Settings → Privacy.",
+      "Admins can turn accounts off and review reports. There is no screen in the app that lets them open your chats.",
+      "When someone reports a person, group or message, a copy of the reported messages (and a few recent ones from that chat) is attached so an admin can check it. Opening a report is recorded in the audit log.",
+      "Because messages aren’t end-to-end encrypted, the people who run the server could technically get to stored data."
+    ],
+    "limitsTitle": "Disappearing and view once messages",
+    "limits": [
+      "Disappearing messages are removed after the time you pick. View once photos and videos can be opened only once.",
+      "A browser can’t block screenshots or screen recording. Someone could copy the text or photograph the screen before it disappears.",
+      "Only send what you’d be fine with the other person keeping."
+    ],
+    "lockTitle": "Chat lock",
+    "lock": [
+      "Chat lock hides chats behind your PIN, so someone using your unlocked device can’t read them. Your PIN works on all your devices.",
+      "It isn’t encryption: locked chats are stored on our server like any other chat."
+    ]
+  },
+  "contact": {
+    "subtitle": "We’re happy to help.",
+    "helpTitle": "Get help",
+    "helpText": "Write to us and we’ll get back to you:",
+    "problemTitle": "Report a problem",
+    "problemText": "Something not working? Email us and tell us:",
+    "problemPoints": [
+      "what you did, and what happened",
+      "your device and browser (for example, “Windows laptop, Chrome”)",
+      "a screenshot, if you can"
+    ],
+    "abuseText": "To report a person, group or message, open the chat, use its menu and choose Report.",
+    "subject": "Help with {{brand}}"
+  },
+  "about": {
+    "subtitle": "{{brand}} by {{company}}.",
+    "versionTitle": "Version",
+    "version": "Version {{version}}",
+    "built": "Built on {{date}}",
+    "whatsNew": "What’s new"
+  }
+}
