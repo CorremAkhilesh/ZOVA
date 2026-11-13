@@ -102,9 +102,14 @@ test('200 chats render quickly, and 10,000 messages scroll smoothly', async ({
     chatId: LONG_CHAT,
   });
   await page.reload();
-  await expect(page.locator('.chat-row')).toHaveCount(CHATS + 1, { timeout: 30_000 });
+  // The list is virtualized: only the visible rows exist, each knowing the full count.
+  await expect(page.locator('.chat-row').first()).toHaveAttribute(
+    'aria-setsize',
+    String(CHATS + 1),
+    { timeout: 30_000 },
+  );
 
-  // Chat list: leave for Settings and come back. Reads from Dexie and renders every row.
+  // Chat list: leave for Settings and come back. Reads from Dexie and renders the visible rows.
   const listTimes: number[] = [];
   for (let run = 0; run < 7; run++) {
     await page.getByRole('link', { name: 'Settings', exact: true }).click();
@@ -113,7 +118,9 @@ test('200 chats render quickly, and 10,000 messages scroll smoothly', async ({
       await page.evaluate(async (count) => {
         const started = performance.now();
         (document.querySelector('a[href="/chats"]') as HTMLElement).click();
-        while (document.querySelectorAll('.chat-row').length < count) {
+        const ready = () =>
+          document.querySelector('.chat-row')?.getAttribute('aria-setsize') === String(count);
+        while (!ready()) {
           await new Promise((resolve) => requestAnimationFrame(resolve));
         }
         return performance.now() - started;
