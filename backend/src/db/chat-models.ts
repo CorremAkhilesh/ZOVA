@@ -163,6 +163,8 @@ export interface ChatMemberDoc {
   locked?: boolean;
   /** Mine alone: this chat's own wallpaper. */
   wallpaper?: Wallpaper | null;
+  /** Web Push: the newest position already notified to me, so a message is never notified twice. */
+  pushedSeq?: number;
 }
 
 const chatMemberSchema = new Schema<ChatMemberDoc>(
@@ -194,6 +196,7 @@ const chatMemberSchema = new Schema<ChatMemberDoc>(
     mentionSeqs: { type: [Number], default: undefined },
     locked: Boolean,
     wallpaper: Schema.Types.Mixed,
+    pushedSeq: Number,
   },
   { ...options, collection: 'chat_members' },
 );

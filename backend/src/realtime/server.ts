@@ -148,6 +148,9 @@ async function setupRealtime(app: FastifyInstance, options: RealtimeOptions) {
     socket.on('disconnect', (reason) => {
       app.log.info({ userId, socketId: socket.id, reason }, 'socket disconnected');
       presence.disconnected(socket).catch(logPresenceFailure);
+      app.push
+        .socketGone(socket.id, session.id)
+        .catch((error: unknown) => app.log.warn({ err: error }, 'attendance update failed'));
     });
     void socket.join([userRoom(userId), sessionRoom(session.id)]);
     armSessionExpiry(socket, session.expiresAt);
@@ -190,5 +193,5 @@ async function setupRealtime(app: FastifyInstance, options: RealtimeOptions) {
 export const realtimePlugin = fp(setupRealtime, {
   name: 'realtime',
   fastify: '5.x',
-  dependencies: ['auth', 'redis'],
+  dependencies: ['auth', 'redis', 'push'],
 });

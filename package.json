@@ -18,6 +18,7 @@
     "redis:start": "pnpm --filter @zuvo/backend redis:start",
     "redis:stop": "pnpm --filter @zuvo/backend redis:stop",
     "redis:status": "pnpm --filter @zuvo/backend redis:status",
+    "vapid:gen": "node infra/scripts/gen-vapid.mjs",
     "prepare": "lefthook install"
   },
   "devDependencies": {

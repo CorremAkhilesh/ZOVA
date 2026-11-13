@@ -6,6 +6,7 @@ import { registerFolderModels } from './folder-models.ts';
 import { registerLinkPreviewModels } from './link-preview-models.ts';
 import { registerLockModels } from './lock-models.ts';
 import { registerModerationModels } from './moderation-models.ts';
+import { registerPushModels } from './push-models.ts';
 import { registerScheduledModels } from './scheduled-models.ts';
 import { registerSecurityModels } from './security-models.ts';
 import type { IndexedModel } from './sync-indexes.ts';
@@ -24,6 +25,7 @@ export const modelRegistrations: Array<(connection: Connection) => IndexedModel[
   (connection) => Object.values(registerLockModels(connection)) as unknown as IndexedModel[],
   (connection) => Object.values(registerAppearanceModels(connection)) as unknown as IndexedModel[],
   (connection) => Object.values(registerScheduledModels(connection)) as unknown as IndexedModel[],
+  (connection) => Object.values(registerPushModels(connection)) as unknown as IndexedModel[],
 ];
 
 export function registerModels(connection: Connection): IndexedModel[] {

@@ -1,6 +1,7 @@
 import { resolve } from 'node:path';
 import { parseAllowedDomains } from '@zuvo/protocol';
 import { z } from 'zod';
+import { isVapidPrivateKey, isVapidPublicKey, vapidKeysMatch } from '../push/vapid.ts';
 
 const emptyToUndefined = (value: unknown) => (value === '' ? undefined : value);
 
@@ -9,6 +10,38 @@ const commaList = (value: string) =>
     .split(',')
     .map((item) => item.trim())
     .filter((item) => item.length > 0);
+
+/** Both VAPID keys or neither (push off); a matching pair; and always set in production. */
+function checkVapid(
+  env: {
+    NODE_ENV: string;
+    VAPID_PUBLIC_KEY?: string | undefined;
+    VAPID_PRIVATE_KEY?: string | undefined;
+  },
+  ctx: z.RefinementCtx,
+) {
+  const { VAPID_PUBLIC_KEY: publicKey, VAPID_PRIVATE_KEY: privateKey } = env;
+  if (env.NODE_ENV === 'production') {
+    for (const name of ['VAPID_PUBLIC_KEY', 'VAPID_PRIVATE_KEY'] as const) {
+      if (!env[name])
+        ctx.addIssue({ code: 'custom', path: [name], message: 'is required in production' });
+    }
+  }
+  if (Boolean(publicKey) !== Boolean(privateKey)) {
+    const missing = publicKey ? 'VAPID_PRIVATE_KEY' : 'VAPID_PUBLIC_KEY';
+    ctx.addIssue({
+      code: 'custom',
+      path: [missing],
+      message: 'must be set with the other VAPID key',
+    });
+  } else if (publicKey && privateKey && !vapidKeysMatch({ publicKey, privateKey })) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['VAPID_PUBLIC_KEY'],
+      message: 'does not belong to VAPID_PRIVATE_KEY',
+    });
+  }
+}
 
 const envSchema = z
   .object({
@@ -72,6 +105,29 @@ const envSchema = z
       emptyToUndefined,
       z.coerce.number().int().min(10).max(7200).default(900),
     ),
+    /** Web Push (VAPID) key pair, base64url; `pnpm vapid:gen` makes one. Required in production. */
+    VAPID_PUBLIC_KEY: z.preprocess(
+      emptyToUndefined,
+      z
+        .string()
+        .refine(isVapidPublicKey, 'must be a base64url P-256 public key (65 bytes)')
+        .optional(),
+    ),
+    VAPID_PRIVATE_KEY: z.preprocess(
+      emptyToUndefined,
+      z
+        .string()
+        .refine(isVapidPrivateKey, 'must be a base64url P-256 private key (32 bytes)')
+        .optional(),
+    ),
+    /** Who push services may contact about our pushes: a mailto: or https: URL. */
+    VAPID_SUBJECT: z.preprocess(
+      emptyToUndefined,
+      z
+        .string()
+        .regex(/^(mailto:[^\s@]+@[^\s@]+|https:\/\/\S+)$/, 'must be a mailto: or https: URL')
+        .default('mailto:nova@corremadvisory.com'),
+    ),
     LOG_LEVEL: z
       .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
       .default('info'),
@@ -95,6 +151,7 @@ const envSchema = z
         message: 'is required in production',
       });
     }
+    checkVapid(env, ctx);
     if (env.NODE_ENV === 'test' && !env.MONGODB_DB.startsWith('zuvo_test_')) {
       ctx.addIssue({
         code: 'custom',

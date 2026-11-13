@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { onUserDeactivated, onUserReactivated } from '../chats/group-ownership.service.ts';
+import { deleteUserSubscriptions } from '../push/subscriptions.service.ts';
 import { usersModel } from '../users/user-record.ts';
 import {
   type Actor,
@@ -41,6 +42,8 @@ export async function setUserStatus(
     app.realtime.revokeUser(id, 'deactivated');
     revokedSessions = (await context.internalAdapter.listSessions(id)).length;
     await context.internalAdapter.deleteUserSessions(id);
+    // Each deleted session takes its pushes with it; this also catches any left over.
+    await deleteUserSubscriptions(app.mongo, id);
     await onUserDeactivated(app, id);
   } else {
     await onUserReactivated(app, id);

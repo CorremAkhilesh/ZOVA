@@ -8,6 +8,7 @@ import {
   sendMessagePayloadSchema,
   typingPayloadSchema,
   voicePlayedPayloadSchema,
+  windowStatePayloadSchema,
 } from '@zuvo/protocol';
 import type { FastifyInstance } from 'fastify';
 import type { z } from 'zod';
@@ -42,7 +43,7 @@ async function assertSessionAlive(app: FastifyInstance, socket: ZuvoSocket) {
   throw new AppError('SESSION_EXPIRED', 'Your session has ended. Please sign in again.');
 }
 
-async function assertSendLimit(app: FastifyInstance, userId: string) {
+export async function assertSendLimit(app: FastifyInstance, userId: string) {
   const key = `zuvo:rate:send:${userId}`;
   const count = await app.counterStore.increment(key, SEND_LIMIT.windowSeconds);
   if (count > SEND_LIMIT.max) {
@@ -197,6 +198,22 @@ export function registerHandlers(app: FastifyInstance, socket: ZuvoSocket): void
       },
     );
   });
+  // Web Push skips a device while one of its tabs is visible and focused.
+  socket.on('window:state', (payload, ack) => {
+    void respond(
+      app,
+      socket,
+      'window:state',
+      windowStatePayloadSchema,
+      payload,
+      ack,
+      async (input) => {
+        await app.push.windowState(socket.id, session.id, input.visible && input.focused);
+        return {};
+      },
+    );
+  });
+
   socket.on('presence:active', (payload, ack) => {
     void respond(
       app,

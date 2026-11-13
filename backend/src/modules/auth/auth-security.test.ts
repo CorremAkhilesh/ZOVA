@@ -2,6 +2,7 @@ import { adminUserStatusResponseSchema, apiErrorSchema } from '@zuvo/protocol';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { headers, me, outbox, requestOtp, signIn, verifyOtp } from '../../../test/auth-helpers.ts';
 import { buildTestApp } from '../../../test/helpers.ts';
+import { generateVapidKeys } from '../../push/vapid.ts';
 
 type TestApp = Awaited<ReturnType<typeof buildTestApp>>;
 let current: TestApp | undefined;
@@ -183,6 +184,12 @@ describe('admin deactivate / reactivate', () => {
   });
 });
 
+/** Production requires a VAPID pair. */
+function vapidEnv() {
+  const keys = generateVapidKeys();
+  return { VAPID_PUBLIC_KEY: keys.publicKey, VAPID_PRIVATE_KEY: keys.privateKey };
+}
+
 describe('production cookies', () => {
   it('marks the session cookie Secure', async () => {
     const sent: unknown[] = [];
@@ -191,6 +198,7 @@ describe('production cookies', () => {
         NODE_ENV: 'production',
         REDIS_URL: 'redis://127.0.0.1:1',
         MONGODB_DB: 'zuvo_e2e_prod_like',
+        ...vapidEnv(),
       },
       { emailDispatcher: { dispatch: async (message: unknown) => void sent.push(message) } },
     );

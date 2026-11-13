@@ -13,6 +13,7 @@ import { Types } from 'mongoose';
 import { currentUserId, requireSession } from '../../auth/session.ts';
 import { registerAuthModels } from '../../db/auth-models.ts';
 import { AppError } from '../../lib/errors.ts';
+import { deleteUserSubscriptions } from '../../push/subscriptions.service.ts';
 import { describeDevice, maskIp } from '../../security/devices.ts';
 import { consumeRevokeToken } from '../../security/security-tokens.ts';
 
@@ -146,6 +147,7 @@ export const sessionsRoutes: FastifyPluginAsyncZod = async (app) => {
       const userId = await consumeRevokeToken(app, request.body.token);
       const revokedSessions = (await mySessions(userId)).length;
       await (await context()).internalAdapter.deleteUserSessions(userId);
+      await deleteUserSubscriptions(app.mongo, userId);
       request.log.warn(
         { userId, revokedSessions },
         'all sessions revoked via "This wasn\'t me" link',

@@ -3,6 +3,7 @@ import { EnvError, loadEnv } from './config/env.ts';
 import { createEmailWorker } from './jobs/email-worker.ts';
 import { startWorkerPinsCleanup } from './jobs/pins-cleanup.ts';
 import { startWorkerMediaCleanup } from './jobs/worker-media-cleanup.ts';
+import { startWorkerPush } from './jobs/worker-push.ts';
 import { connectionsLine, describeConnections } from './lib/connections.ts';
 import { loggerOptions } from './lib/logger.ts';
 import { checkEvictionPolicy, createBullConnection } from './lib/redis.ts';
@@ -23,17 +24,21 @@ async function main() {
   const emailWorker = createEmailWorker(connection, mailer, logger);
   const mediaCleanup = await startWorkerMediaCleanup(env, connection, logger);
   const pinsCleanup = await startWorkerPinsCleanup(env, connection, logger);
+  const push = await startWorkerPush(env, connection, logger);
 
   handleShutdown(logger, async () => {
     await emailWorker.close();
     await mediaCleanup.close();
     await pinsCleanup.close();
+    await push?.close();
     mailer.close();
     await connection.quit();
   });
   await emailWorker.waitUntilReady();
   await checkEvictionPolicy(connection, logger);
-  logger.info('worker started: email queue, media cleanup, expired pins');
+  logger.info(
+    `worker started: email queue, media cleanup, expired pins${push ? ', web push' : ''}`,
+  );
   logger.info(describeConnections(env), connectionsLine(env));
 }
 

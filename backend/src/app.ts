@@ -34,11 +34,14 @@ import { mediaRoutes } from './modules/media/media.routes.ts';
 import { blocksRoutes } from './modules/moderation/blocks.routes.ts';
 import { adminReportsRoutes, reportsRoutes } from './modules/moderation/reports.routes.ts';
 import { linkPreviewsRoutes } from './modules/previews/link-previews.routes.ts';
+import { notificationActionRoutes } from './modules/push/notification-actions.routes.ts';
+import { pushRoutes } from './modules/push/push.routes.ts';
 import { searchRoutes } from './modules/search/search.routes.ts';
 import { sessionsRoutes } from './modules/security/sessions.routes.ts';
 import { quietHoursRoutes } from './modules/settings/quiet-hours.routes.ts';
 import { expireTestRoutes } from './modules/test-support/expire.routes.ts';
 import { outboxRoutes } from './modules/test-support/outbox.routes.ts';
+import { pushOutboxRoutes } from './modules/test-support/push-outbox.routes.ts';
 import { meRoutes } from './modules/users/me.routes.ts';
 import { usersRoutes } from './modules/users/users.routes.ts';
 import { authPlugin } from './plugins/auth.ts';
@@ -46,10 +49,12 @@ import { docsPlugin } from './plugins/docs.ts';
 import { errorHandlerPlugin } from './plugins/error-handler.ts';
 import { expirySweepPlugin, SWEEP_EVERY_MS } from './plugins/expiry-sweep.ts';
 import { mongoPlugin } from './plugins/mongo.ts';
+import { pushPlugin } from './plugins/push.ts';
 import { rateLimitPlugin } from './plugins/rate-limit.ts';
 import { redisPlugin } from './plugins/redis.ts';
 import { securityPlugin } from './plugins/security.ts';
 import { servicesPlugin } from './plugins/services.ts';
+import { isMemoryPushSender, type PushSender } from './push/sender.ts';
 import { realtimePlugin } from './realtime/server.ts';
 import type { StorageDriver } from './storage/driver.ts';
 import { LocalDiskDriver } from './storage/local-disk-driver.ts';
@@ -74,6 +79,10 @@ export interface AppDeps {
   realtimeKey: string;
   /** How link previews are fetched. Default: the real internet, private addresses blocked. */
   linkPreviewOptions: SafeFetchOptions;
+  /** How Web Push leaves (default: in-memory in NODE_ENV=test, web-push with VAPID keys). */
+  pushSender: PushSender;
+  /** How long a burst of messages is collected into one push (E2E shortens it). */
+  pushCoalesceMs: number;
 }
 
 export async function buildApp(env: Env, deps: Partial<AppDeps> = {}) {
@@ -121,6 +130,12 @@ export async function buildApp(env: Env, deps: Partial<AppDeps> = {}) {
     ...(deps.emailDispatcher ? { dispatcher: deps.emailDispatcher } : {}),
   });
 
+  await app.register(pushPlugin, {
+    env,
+    sender: deps.pushSender,
+    coalesceMs: deps.pushCoalesceMs,
+  });
+
   await app.register(realtimePlugin, {
     env,
     ...(deps.realtimeRedis !== undefined ? { adapterRedis: deps.realtimeRedis } : {}),
@@ -156,11 +171,16 @@ export async function buildApp(env: Env, deps: Partial<AppDeps> = {}) {
   await app.register(scheduledRoutes, { prefix: '/v1' });
   await app.register(disappearingRoutes, { prefix: '/v1' });
   await app.register(viewOnceRoutes, { prefix: '/v1' });
+  await app.register(pushRoutes, { prefix: '/v1' });
+  await app.register(notificationActionRoutes, { prefix: '/v1' });
   // Tests run passes themselves (POST /v1/test/expire-messages, or app.expirySweep.run()).
   await app.register(expirySweepPlugin, { every: env.NODE_ENV === 'test' ? null : SWEEP_EVERY_MS });
   if (env.NODE_ENV === 'test' && isMemoryMailer(app.mailer)) {
     await app.register(outboxRoutes(app.mailer), { prefix: '/v1' });
     await app.register(expireTestRoutes, { prefix: '/v1' });
+  }
+  if (env.NODE_ENV === 'test' && app.push.sender && isMemoryPushSender(app.push.sender)) {
+    await app.register(pushOutboxRoutes(app.push.sender), { prefix: '/v1' });
   }
   return app;
 }

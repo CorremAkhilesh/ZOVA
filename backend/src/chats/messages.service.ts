@@ -191,6 +191,13 @@ export async function sendMessage(app: FastifyInstance, input: SendInput): Promi
       }),
     );
     deliver(app, stored.message, stored.chat, stored.members);
+    // Web Push for the others, later and coalesced: every send path (socket, scheduled, forward,
+    // polls, notification reply) comes through here.
+    app.push.messageStored(
+      chatId,
+      userId,
+      stored.members.map((member) => member.userId),
+    );
     if (stored.chat.type === 'group') {
       noteGroupActivity(app, chatId, new Date(stored.message.createdAt));
       // The sender may have been the last one behind.
