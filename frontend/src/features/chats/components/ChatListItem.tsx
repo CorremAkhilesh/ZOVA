@@ -1,6 +1,6 @@
 import { Link } from '@tanstack/react-router';
 import { BellOff, ChevronDown, Pin } from 'lucide-react';
-import { useRef } from 'react';
+import { memo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
 import { useMessageUi } from '@/features/messages/store';
@@ -18,7 +18,9 @@ function previewPrefix(chat: ChatSummary, you: string): string {
   const { lastMessage, kind } = chat;
   if (!lastMessage || kind === 'saved' || lastMessage.isSystem) return '';
   if (lastMessage.authorId === ME) return `${you}: `;
-  return kind === 'group' ? `${lastMessage.authorName.split(' ')[0]}: ` : '';
+  return kind === 'group' && lastMessage.authorName
+    ? `${lastMessage.authorName.split(' ')[0]}: `
+    : '';
 }
 
 /** The second line: "typing…", or the last message with its tick and prefix. */
@@ -104,7 +106,14 @@ function Markers({ chat }: { chat: ChatSummary }) {
 
 const LONG_PRESS_MS = 500;
 
-export function ChatListItem({ chat, now }: { chat: ChatSummary; now: Date }) {
+/** Memoized: a new message re-renders its own row, not all of them (see ChatRows). */
+export const ChatListItem = memo(function ChatListItem({
+  chat,
+  now,
+}: {
+  chat: ChatSummary;
+  now: Date;
+}) {
   const { t, i18n } = useTranslation();
   const { lastMessage } = chat;
   const time = lastMessage
@@ -195,4 +204,4 @@ export function ChatListItem({ chat, now }: { chat: ChatSummary; now: Date }) {
       </button>
     </div>
   );
-}
+});

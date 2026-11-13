@@ -1,5 +1,6 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { type KeyboardEvent, type MouseEvent, type TouchEvent, useRef, useState } from 'react';
-import { useSession } from '@/features/auth/session';
+import { sessionQuery } from '@/features/auth/session';
 import type { ChatMessage } from '@/features/chats/types';
 import { canAct, toQuote } from './rules';
 import { useMessageUi } from './store';
@@ -11,7 +12,8 @@ const SWIPE_MAX_PX = 72;
 
 /** Right click, long press, swipe to reply, R to reply, and picking while selecting. */
 export function useBubbleGestures(message: ChatMessage, items: ChatMessage[]) {
-  const session = useSession();
+  // Read when replying, not watched: one session observer per bubble meant one poll timer each.
+  const queryClient = useQueryClient();
   const [swipe, setSwipe] = useState(0);
   const press = useRef<{ x: number; y: number; timer: ReturnType<typeof setTimeout> } | null>(null);
   const usable = canAct(message);
@@ -20,7 +22,9 @@ export function useBubbleGestures(message: ChatMessage, items: ChatMessage[]) {
     useMessageUi.getState().set({ menu: { message, items, x, y } });
   };
   const reply = () => {
-    const quote = toQuote(message, session?.user.id ?? '', session?.user.displayName ?? '');
+    const state = queryClient.getQueryData(sessionQuery.queryKey);
+    const user = state?.status === 'signed-in' ? state.data.user : null;
+    const quote = toQuote(message, user?.id ?? '', user?.displayName ?? '');
     if (quote) useMessageUi.getState().setReply(message.chatId, quote);
   };
   const endPress = () => {

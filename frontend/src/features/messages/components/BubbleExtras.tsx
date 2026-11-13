@@ -1,8 +1,8 @@
 import { FORWARDED_MANY_TIMES } from '@zuvo/protocol';
 import { Ban, CornerUpLeft, CornerUpRight, MoreHorizontal, Smile, Star } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useSession } from '@/features/auth/session';
 import { type ChatMessage, ME } from '@/features/chats/types';
+import { useMyId } from '@/features/chats/use-my-id';
 import { useThumbnail } from '@/features/media/use-thumbnail';
 import { quoteText } from '@/features/polls/preview';
 import { cn } from '@/lib/utils';
@@ -41,7 +41,7 @@ function QuoteThumb({ mediaId }: { mediaId: string }) {
 /** The quoted message. Takes you to the original when it is in this chat and still there. */
 export function QuoteBlock({ message, mine }: { message: ChatMessage; mine: boolean }) {
   const { t } = useTranslation();
-  const me = useSession()?.user.id;
+  const me = useMyId();
   const quote = message.replyTo;
   if (!quote) return null;
   const jumpable = quote.chatId === message.chatId && !quote.deleted && !quote.unavailable;
@@ -84,7 +84,7 @@ export function QuoteBlock({ message, mine }: { message: ChatMessage; mine: bool
 
 export function ReactionPills({ message }: { message: ChatMessage }) {
   const { t } = useTranslation();
-  const me = useSession()?.user.id;
+  const me = useMyId();
   const groups = groupReactions(message.reactions ?? []);
   if (groups.length === 0) return null;
   return (

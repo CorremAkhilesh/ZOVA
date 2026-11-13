@@ -1,5 +1,5 @@
 import { WifiOff } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence, m } from 'motion/react';
 import { useTranslation } from 'react-i18next';
 import { useOnlineStatus } from '@/lib/hooks';
 
@@ -10,7 +10,7 @@ export function OfflineBanner() {
   return (
     <AnimatePresence>
       {online ? null : (
-        <motion.div
+        <m.div
           role="alert"
           initial={{ height: 0 }}
           animate={{ height: 'auto' }}
@@ -21,7 +21,7 @@ export function OfflineBanner() {
             <WifiOff className="size-4" aria-hidden />
             {t('status.offline')}
           </p>
-        </motion.div>
+        </m.div>
       )}
     </AnimatePresence>
   );

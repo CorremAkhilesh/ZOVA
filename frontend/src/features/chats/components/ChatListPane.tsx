@@ -1,7 +1,7 @@
 import { Link } from '@tanstack/react-router';
 import type { LastReaction, SystemEvent } from '@zuvo/protocol';
 import { Archive, ArrowLeft, MessageSquarePlus, Search, Star } from 'lucide-react';
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, type RefObject, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChatListSkeleton } from '@/components/common/ChatListSkeleton';
 import { Button } from '@/components/ui/button';
@@ -30,7 +30,7 @@ import { useNewChat } from '../new-chat-store';
 import { useChats, useUnsentByChat } from '../queries';
 import type { ChatFolder, ChatSummary } from '../types';
 import { toChatSummary } from '../view';
-import { ChatListItem } from './ChatListItem';
+import { ChatRows } from './ChatRows';
 import { NoChatsYet } from './NoChatsYet';
 
 const PushCard = lazy(() => import('@/features/notifications/components/PushCard'));
@@ -63,15 +63,15 @@ interface ListBodyProps {
   nothingStored: boolean;
   onlySaved: boolean;
   onStart: () => void;
+  scroller: RefObject<HTMLDivElement | null>;
 }
 
 /** Stored chats always show. Loading and failure only matter while there is nothing to show. */
 function ListBody(props: ListBodyProps) {
   const { t } = useTranslation();
-  const { chats, folder, searching, nothingStored, onlySaved, onStart } = props;
+  const { chats, folder, searching, nothingStored, onlySaved, onStart, scroller } = props;
   const syncStatus = useSyncStore((state) => state.sync);
   const client = useSyncStore((state) => state.client);
-  const now = new Date();
 
   if (nothingStored && syncStatus === 'syncing') return <ChatListSkeleton />;
   if (nothingStored && syncStatus === 'error') {
@@ -88,13 +88,7 @@ function ListBody(props: ListBodyProps) {
   return (
     <>
       {chats.length > 0 ? (
-        <ul className="space-y-0.5" data-testid="chat-rows">
-          {chats.map((chat) => (
-            <li key={chat.id} className="chat-row">
-              <ChatListItem chat={chat} now={now} />
-            </li>
-          ))}
-        </ul>
+        <ChatRows chats={chats} scroller={scroller} />
       ) : welcome ? null : (
         <EmptyFolder folder={folder} searching={searching} />
       )}
@@ -130,6 +124,7 @@ export function ChatListPane() {
     showAll();
   };
   const [query, setQuery] = useState('');
+  const scroller = useRef<HTMLDivElement>(null);
   const openPicker = useNewChat((state) => state.open);
   // Locked chats leave the list and folders: they show behind the "Locked chats" entry.
   const allRows = useChats();
@@ -226,7 +221,7 @@ export function ChatListPane() {
           <PushCard />
         </Suspense>
       ) : null}
-      <ScrollArea className="min-h-0 flex-1 px-2 pb-3">
+      <ScrollArea viewportRef={scroller} className="min-h-0 flex-1 px-2 pb-3">
         {archivedList ? (
           <button
             type="button"
@@ -256,6 +251,7 @@ export function ChatListPane() {
           nothingStored={all === undefined || all.length === 0}
           onlySaved={all?.every((chat) => chat.kind === 'saved') ?? false}
           onStart={openPicker}
+          scroller={scroller}
         />
         {query.trim() ? (
           <button

@@ -15,6 +15,12 @@ export const Route = createFileRoute('/_app/chats')({
   pendingComponent: () => <ChatListSkeleton />,
 });
 
+/**
+ * The first frame, before the panels measure the window. Without it both panels start at half
+ * the width and then jump to 32/68: a layout shift Lighthouse scored at 0.27 on desktop.
+ */
+const FIRST_LAYOUT = { 'chat-list': 32, conversation: 68 };
+
 /** Desktop: resizable chat list + conversation. Mobile: one pane at a time. */
 function ChatsLayout() {
   const isDesktop = useIsDesktop();
@@ -36,7 +42,12 @@ function ChatsLayout() {
       <PeoplePicker open={pickerOpen} onOpenChange={setPickerOpen} />
       <NewGroupDialog />
       {isDesktop ? (
-        <Group orientation="horizontal" id="zuvo-chats-layout" className="h-full">
+        <Group
+          orientation="horizontal"
+          id="zuvo-chats-layout"
+          className="h-full"
+          defaultLayout={FIRST_LAYOUT}
+        >
           <Panel
             id="chat-list"
             defaultSize="32"
