@@ -16,42 +16,55 @@ async function newPage(browser: Browser): Promise<Page> {
 test.describe.configure({ timeout: 120_000 });
 
 test('profile photo and username, and finding a colleague', async ({ browser }) => {
+  // CI Firefox sometimes needs more than 2 minutes for this flow; the steps say where it waits.
+  test.setTimeout(180_000);
   const a = await newPage(browser);
   const b = await newPage(browser);
 
   // A chooses a username on the first-login screen, then adds a profile photo.
   const username = `asha${Date.now().toString(36).slice(-5)}${Math.random().toString(36).slice(2, 6)}`;
-  await signUp(a, 'Asha Verma', username);
-  await signUp(b, 'Bharat Rao');
-
-  await open(a, '/settings/profile');
-  await expect(a.getByText(`@${username}`)).toBeVisible(SLOW);
-  // Just chosen, so it can't change again for 30 days.
-  await expect(a.getByRole('button', { name: 'Edit Username' })).toBeDisabled();
-
-  await a.locator('input[type=file]').setInputFiles({
-    name: 'me.png',
-    mimeType: 'image/png',
-    buffer: PHOTO,
+  await test.step('both sign up', async () => {
+    await signUp(a, 'Asha Verma', username);
+    await signUp(b, 'Bharat Rao');
   });
-  const crop = a.getByRole('dialog', { name: 'Adjust your photo' });
-  await expect(crop.getByRole('button', { name: 'Use photo' })).toBeEnabled(SLOW);
-  await crop.getByRole('button', { name: 'Use photo' }).click();
-  await expect(a.getByRole('button', { name: 'Remove photo' })).toBeVisible(SLOW);
+
+  await test.step('A sees the username, locked for 30 days', async () => {
+    await open(a, '/settings/profile');
+    await expect(a.getByText(`@${username}`)).toBeVisible(SLOW);
+    // Just chosen, so it can't change again for 30 days.
+    await expect(a.getByRole('button', { name: 'Edit Username' })).toBeDisabled();
+  });
+
+  await test.step('A adds a profile photo', async () => {
+    await a.locator('input[type=file]').setInputFiles({
+      name: 'me.png',
+      mimeType: 'image/png',
+      buffer: PHOTO,
+    });
+    const crop = a.getByRole('dialog', { name: 'Adjust your photo' });
+    await expect(crop.getByRole('button', { name: 'Use photo' })).toBeEnabled(SLOW);
+    await crop.getByRole('button', { name: 'Use photo' }).click();
+    await expect(a.getByRole('button', { name: 'Remove photo' })).toBeVisible(SLOW);
+  });
 
   // B: finds A in the people picker, the chat opens, and its info shows A's @username.
-  await open(b, '/chats');
-  await b.getByRole('button', { name: 'New chat' }).click();
-  const picker = b.getByRole('dialog', { name: 'New chat' });
-  await picker.getByRole('combobox').fill(username);
-  // Search results (not the suggestions shown before typing) contain exactly A.
-  await expect(picker.getByRole('listbox', { name: 'People' })).toBeVisible(SLOW);
-  await expect(picker.getByRole('option')).toHaveCount(1, SLOW);
-  await expect(picker.getByRole('option', { name: /Asha Verma/ })).toBeVisible();
-  await picker.getByRole('combobox').press('Enter');
-  await expect(b.getByRole('heading', { name: 'Asha Verma' })).toBeAttached(SLOW);
-  await b.getByRole('button', { name: 'Chat info' }).first().click();
-  await expect(b.getByText(`@${username}`).first()).toBeVisible(SLOW);
+  await test.step('B finds A in the people picker', async () => {
+    await open(b, '/chats');
+    await b.getByRole('button', { name: 'New chat' }).click();
+    const picker = b.getByRole('dialog', { name: 'New chat' });
+    await picker.getByRole('combobox').fill(username);
+    // Search results (not the suggestions shown before typing) contain exactly A.
+    await expect(picker.getByRole('listbox', { name: 'People' })).toBeVisible(SLOW);
+    await expect(picker.getByRole('option')).toHaveCount(1, SLOW);
+    await expect(picker.getByRole('option', { name: /Asha Verma/ })).toBeVisible();
+    await picker.getByRole('combobox').press('Enter');
+    await expect(b.getByRole('heading', { name: 'Asha Verma' })).toBeAttached(SLOW);
+  });
+
+  await test.step('chat info shows the username', async () => {
+    await b.getByRole('button', { name: 'Chat info' }).first().click();
+    await expect(b.getByText(`@${username}`).first()).toBeVisible(SLOW);
+  });
 });
 
 test('signing out another device from Devices', async ({ browser }) => {
