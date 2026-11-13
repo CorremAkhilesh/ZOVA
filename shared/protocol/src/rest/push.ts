@@ -68,11 +68,28 @@ export type PushState = z.infer<typeof pushStateResponseSchema>;
 /** PUT /v1/me/push/subscription */
 export const pushSubscribeResponseSchema = z.object({ device: pushDeviceSchema });
 
+/** PUT /v1/me/push/settings */
+export const pushSettingsResponseSchema = z.object({ settings: pushSettingsSchema });
+
+/** DELETE /v1/me/push/subscription and DELETE /v1/me/push/devices/:id */
+export const pushRemovedResponseSchema = z.object({ removed: z.number().int().min(0) });
+
 /** POST /v1/me/push/test: a test notification to this device. */
 export const pushTestResponseSchema = z.object({ sent: z.number().int().min(0) });
 
 /** POST /v1/chats/:chatId/read (the notification's "Mark as read"). */
 export const markChatReadBodySchema = z.object({ seq: z.number().int().positive() });
+
+/**
+ * POST /v1/chats/:chatId/read answers with my read position and, for the app badge, how many of my
+ * chats are still unread (or marked unread) afterwards.
+ */
+export const markChatReadResponseSchema = z.object({
+  chatId: z.string(),
+  lastReadSeq: z.number().int().nonnegative(),
+  unreadCount: z.number().int().nonnegative(),
+  badge: z.number().int().min(0),
+});
 
 /** POST /v1/chats/:chatId/reply (the notification's inline "Reply"). */
 export const notificationReplyBodySchema = z.object({
