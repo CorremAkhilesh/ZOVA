@@ -11,14 +11,13 @@ import { windowLimit } from './socket-limit.ts';
 export const TYPING_TTL_MS = 6000;
 /** Clients send at most one every 3 s per chat; this leaves room for a few chats, not for abuse. */
 const TYPING_LIMIT = { max: 20, windowMs: 10_000 };
-/** Short: someone removed from a group must stop hearing about it almost at once. */
-const MEMBERS_CACHE_MS = 10_000;
 
 /** Never stored: timers on the instance holding the socket, gone with it. */
 export function createTyping(app: FastifyInstance, socket: ZuvoSocket) {
   const { userId } = socket.data;
   const timers = new Map<string, ReturnType<typeof setTimeout>>();
-  const others = new Map<string, { ids: string[]; at: number }>();
+  /** Who was last told "typing" per chat, so "stopped" goes to them and no one else. */
+  const told = new Map<string, string[]>();
   const allowed = windowLimit(TYPING_LIMIT.max, TYPING_LIMIT.windowMs);
 
   async function assertMayType(chatId: string) {
@@ -30,23 +29,24 @@ export function createTyping(app: FastifyInstance, socket: ZuvoSocket) {
     return chat.type;
   }
 
+  /**
+   * The current other members, read each time (one indexed query, at most every few seconds per
+   * chat): no cache, so someone removed from a group hears nothing more at once, on every
+   * instance, and someone added hears it at once.
+   */
+  async function currentOthers(chatId: string): Promise<string[]> {
+    const members = await chatModels(app)
+      .ChatMember.find({ chatId: oid(chatId), leftAt: null })
+      .select({ userId: 1 })
+      .lean();
+    return members.map((member) => member.userId.toString()).filter((id) => id !== userId);
+  }
+
   /** The other members, so an event can never reach anyone outside the chat. */
   async function otherMembers(chatId: string): Promise<string[]> {
     // Each time: someone removed from a group, or told only admins may speak there, says nothing.
     const type = await assertMayType(chatId);
-    const cached = others.get(chatId);
-    const ids =
-      cached && Date.now() - cached.at < MEMBERS_CACHE_MS
-        ? cached.ids
-        : (
-            await chatModels(app)
-              .ChatMember.find({ chatId: oid(chatId), leftAt: null })
-              .select({ userId: 1 })
-              .lean()
-          )
-            .map((member) => member.userId.toString())
-            .filter((id) => id !== userId);
-    others.set(chatId, { ids, at: cached?.at ?? Date.now() });
+    const ids = await currentOthers(chatId);
     // A direct chat with a block either way: typing goes nowhere, and the typist is not told why.
     if (type === 'direct' && (await blockedEitherWay(app, userId, ids)).size > 0) return [];
     return ids;
@@ -58,28 +58,42 @@ export function createTyping(app: FastifyInstance, socket: ZuvoSocket) {
     }
   }
 
-  function finish(chatId: string) {
+  /** "Stopped" goes to those told "typing" who are still members: never to someone removed since. */
+  async function finish(chatId: string) {
     const timer = timers.get(chatId);
     if (!timer) return;
     clearTimeout(timer);
     timers.delete(chatId);
-    tell(others.get(chatId)?.ids ?? [], chatId, false);
+    const before = told.get(chatId) ?? [];
+    told.delete(chatId);
+    if (before.length === 0) return;
+    const now = new Set(await currentOthers(chatId));
+    tell(
+      before.filter((id) => now.has(id)),
+      chatId,
+      false,
+    );
   }
+
+  const finishQuietly = (chatId: string) => {
+    finish(chatId).catch((error: unknown) => app.log.warn({ err: error }, 'typing stop failed'));
+  };
 
   return {
     async start(chatId: string) {
       if (!allowed()) throw new AppError('RATE_LIMITED', 'Too many typing updates.');
       const ids = await otherMembers(chatId);
       clearTimeout(timers.get(chatId));
-      const timer = setTimeout(() => finish(chatId), TYPING_TTL_MS);
+      const timer = setTimeout(() => finishQuietly(chatId), TYPING_TTL_MS);
       timer.unref();
       timers.set(chatId, timer);
+      told.set(chatId, ids);
       tell(ids, chatId, true);
     },
     stop: finish,
     /** The socket went away: whatever it was typing has stopped. */
     stopAll() {
-      for (const chatId of [...timers.keys()]) finish(chatId);
+      for (const chatId of [...timers.keys()]) finishQuietly(chatId);
     },
   };
 }

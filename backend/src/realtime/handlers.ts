@@ -174,7 +174,7 @@ export function registerHandlers(app: FastifyInstance, socket: ZuvoSocket): void
   });
   socket.on('typing:stop', (payload, ack) => {
     void respond(app, socket, 'typing:stop', typingPayloadSchema, payload, ack, async (input) => {
-      typing.stop(input.chatId);
+      await typing.stop(input.chatId);
       return {};
     });
   });
