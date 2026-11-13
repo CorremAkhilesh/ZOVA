@@ -57,7 +57,7 @@ describe('notificationFor', () => {
     expect(options).toMatchObject({
       body: 'See you at 5',
       icon: '/icons/icon-192.png',
-      badge: '/icons/icon-192.png',
+      badge: '/icons/badge-96.png',
       tag: `chat:${CHAT}`,
       timestamp: Date.parse('2026-11-13T10:00:00.000Z'),
       silent: false,

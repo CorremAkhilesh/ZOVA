@@ -1,9 +1,10 @@
 import type { PushPayload } from '@zuvo/protocol';
 import type { SwStrings } from './strings';
 
-/** The existing PWA icons (frontend/pwa/assets.ts). */
+/** The colour app icon (frontend/pwa/assets.ts MANIFEST_ICONS). */
 export const NOTIFICATION_ICON = '/icons/icon-192.png';
-export const NOTIFICATION_BADGE = '/icons/icon-192.png';
+/** Android shows the badge as a white silhouette: the monochrome glyph (BADGE_ICONS). */
+export const NOTIFICATION_BADGE = '/icons/badge-96.png';
 
 export const ACTION_READ = 'read';
 export const ACTION_REPLY = 'reply';
