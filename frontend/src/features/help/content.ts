@@ -21,6 +21,7 @@ const BRAND_VALUES = {
   email: brand.supportEmail,
   domain: brand.domains.organization,
   company: brand.company,
+  companyShort: brand.companyShort,
 };
 
 /** `t` for Help: brand values filled in, plus `list()` for the step and point arrays. */

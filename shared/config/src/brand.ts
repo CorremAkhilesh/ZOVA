@@ -12,6 +12,8 @@ export const brand = {
   description:
     'Zuvo is fast, private chat for the Correm Advisory team on every device, right in the browser.',
   company: 'Correm Advisory India Pvt. Ltd.',
+  /** The company as people say it ("Correm's IT/server team"). */
+  companyShort: 'Correm',
   /** Default profile “about” text for new users. */
   defaultAbout: `Hey there! I'm using ${NAME}`,
   domains: {

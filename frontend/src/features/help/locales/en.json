@@ -149,7 +149,7 @@
       "You choose who sees your last seen, profile photo and read ticks in Settings → Privacy.",
       "Admins can turn accounts off and review reports. There is no screen in the app that lets them open your chats.",
       "When someone reports a person, group or message, a copy of the reported messages (and a few recent ones from that chat) is attached so an admin can check it. Opening a report is recorded in the audit log.",
-      "Because messages aren’t end-to-end encrypted, the people who run the server could technically get to stored data."
+      "Because messages aren’t end-to-end encrypted, {{companyShort}}’s IT/server team could technically get to stored data."
     ],
     "limitsTitle": "Disappearing and view once messages",
     "limits": [
