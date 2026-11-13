@@ -44,3 +44,9 @@ desktop.ini
 .idea/
 *.swp
 *~
+
+# Local media storage (MEDIA_STORAGE_PATH)
+backend/storage/
+
+# CI-only caches (e.g. MONGOMS_DOWNLOAD_DIR)
+.cache/

@@ -1,0 +1,138 @@
+import type { MyProfile, PrivacySettings, SessionResponse } from '@zuvo/protocol';
+import { DEFAULT_APPEARANCE, DEFAULT_QUIET_HOURS } from '@zuvo/protocol';
+import { HttpResponse, http } from 'msw';
+import { setupServer } from 'msw/node';
+
+const SAVED_CHAT = {
+  id: 'c-saved',
+  type: 'self',
+  seq: 0,
+  otherUser: null,
+  lastMessage: null,
+  lastReadSeq: 0,
+  unreadCount: 0,
+  peerDeliveredSeq: 0,
+  peerReadSeq: 0,
+  lastActivityAt: '2026-11-01T10:00:00.000Z',
+  createdAt: '2026-11-01T10:00:00.000Z',
+};
+
+export const healthyResponse = () =>
+  HttpResponse.json({
+    status: 'ok',
+    version: '0.0.0',
+    uptime: 1,
+    timestamp: new Date().toISOString(),
+  });
+
+/** A signed-in user with a display name; `overrides` adjust it per test. */
+export function sessionFixture(overrides: Partial<SessionResponse> = {}): SessionResponse {
+  const now = Date.now();
+  return {
+    user: {
+      id: 'u-test',
+      email: 'kiran@corremadvisory.com',
+      displayName: 'Kiran Rao',
+      username: 'kiran',
+      about: "Hey there! I'm using Zuvo",
+      avatar: null,
+      role: 'user',
+      status: 'active',
+      createdAt: new Date(now - 86_400_000).toISOString(),
+    },
+    session: {
+      id: 's-test',
+      createdAt: new Date(now).toISOString(),
+      expiresAt: new Date(now + 7 * 86_400_000).toISOString(),
+    },
+    needsProfile: false,
+    ...overrides,
+  };
+}
+
+export const signedOut = (code = 'UNAUTHENTICATED') =>
+  http.get('*/v1/auth/me', () =>
+    HttpResponse.json({ code, message: 'Please sign in.', requestId: 'r' }, { status: 401 }),
+  );
+
+/** The signed-in user's own profile (matches sessionFixture). */
+export function profileFixture(overrides: Partial<MyProfile> = {}): MyProfile {
+  const { user } = sessionFixture();
+  return {
+    id: user.id,
+    email: user.email,
+    displayName: user.displayName,
+    username: user.username,
+    usernameChangedAt: null,
+    about: user.about,
+    avatar: null,
+    role: user.role,
+    status: user.status,
+    ...overrides,
+  };
+}
+
+export const privacyFixture: PrivacySettings = {
+  lastSeen: 'everyone',
+  profilePhoto: 'everyone',
+  about: 'everyone',
+  readReceipts: true,
+  defaultDisappearing: 'off',
+};
+
+/** Username availability: "taken" is taken; everything that passes the rules is free. */
+const availability = http.get('*/v1/users/username-availability', ({ request }) => {
+  const username = new URL(request.url).searchParams.get('username') ?? '';
+  const taken = username === 'taken';
+  return HttpResponse.json({ username, available: !taken, reason: taken ? 'taken' : null });
+});
+
+/** Default handlers: the API is healthy and the user is signed in. Tests override with `server.use(...)`. */
+export const server = setupServer(
+  http.get('*/v1/health', healthyResponse),
+  http.get('*/v1/config', () =>
+    HttpResponse.json({ media: { maxFileBytes: 1024 ** 3, voiceMaxSeconds: 900 } }),
+  ),
+  http.get('*/v1/auth/me', () => HttpResponse.json(sessionFixture())),
+  http.get('*/v1/me/profile', () => HttpResponse.json({ profile: profileFixture() })),
+  http.get('*/v1/me/username-suggestion', () => HttpResponse.json({ username: 'kiran' })),
+  http.get('*/v1/me/privacy', () => HttpResponse.json({ privacy: privacyFixture })),
+  http.get('*/v1/me/blocks', () => HttpResponse.json({ items: [] })),
+  http.get('*/v1/me/folders', () => HttpResponse.json({ folders: [] })),
+  http.get('*/v1/me/scheduled', () => HttpResponse.json({ items: [] })),
+  http.get('*/v1/me/lock', () =>
+    HttpResponse.json({
+      lock: {
+        pinSet: false,
+        appLock: { enabled: false, idleMinutes: 5 },
+        lockedUntil: null,
+        attemptsLeft: 5,
+        biometricCount: 0,
+      },
+    }),
+  ),
+  http.get('*/v1/me/appearance', () => HttpResponse.json({ appearance: DEFAULT_APPEARANCE })),
+  http.get('*/v1/me/wallpapers', () => HttpResponse.json({ images: [] })),
+  http.get('*/v1/me/quiet-hours', () => HttpResponse.json({ quietHours: DEFAULT_QUIET_HOURS })),
+  http.get('*/v1/me/chat-settings', () =>
+    HttpResponse.json({ settings: { keepChatsArchived: true } }),
+  ),
+  http.get('*/v1/search/messages', () => HttpResponse.json({ items: [], nextCursor: null })),
+  http.get('*/v1/users/search', () => HttpResponse.json({ items: [], nextCursor: null })),
+  availability,
+  // A new device with no chats yet; only Saved Messages exists.
+  http.get('*/v1/sync', ({ request }) => {
+    const since = new URL(request.url).searchParams.get('since');
+    return HttpResponse.json({
+      cursor: since ?? '0',
+      reset: since === null,
+      hasMore: false,
+      chats: [],
+      messages: [],
+    });
+  }),
+  http.get('*/v1/chats', () => HttpResponse.json({ items: [SAVED_CHAT], nextCursor: null })),
+  http.get('*/v1/chats/self', () => HttpResponse.json({ chat: SAVED_CHAT })),
+);
+
+export { HttpResponse, http };

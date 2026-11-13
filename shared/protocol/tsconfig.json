@@ -1,0 +1,4 @@
+{
+  "extends": "@zuvo/config/tsconfig.base.json",
+  "include": ["src"]
+}

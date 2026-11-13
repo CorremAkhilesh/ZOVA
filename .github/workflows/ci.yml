@@ -1,0 +1,200 @@
+name: CI
+
+on:
+  push:
+    branches: [dev]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# One run per branch: a newer push cancels the outdated run.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+# CI never touches Atlas, real SMTP or any secret: everything below is fake and local to the runner.
+env:
+  NODE_ENV: test
+  TURBO_TELEMETRY_DISABLED: 1
+  LEFTHOOK: 0
+
+jobs:
+  quality:
+    name: Quality (Biome + typecheck)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+      - name: Biome (lint + format)
+        run: pnpm lint
+      - name: Typecheck
+        run: pnpm typecheck
+
+  test-backend:
+    name: Backend + shared tests (coverage ≥ 80%)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      # Fake, runner-local values only.
+      REDIS_PASSWORD: ci-redis-password
+      REDIS_TEST_URL: redis://:ci-redis-password@127.0.0.1:6379/15
+      MONGOMS_DOWNLOAD_DIR: ${{ github.workspace }}/.cache/mongodb-binaries
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+
+      # A plain `services:` container cannot take redis-server arguments, so Redis is started
+      # here with a password and noeviction, then health-checked before the tests run.
+      - name: Start Redis (password-protected, noeviction)
+        run: |
+          docker run -d --name redis -p 127.0.0.1:6379:6379 redis:8-alpine \
+            redis-server --requirepass "$REDIS_PASSWORD" --maxmemory 256mb \
+            --maxmemory-policy noeviction --appendonly no
+          for attempt in $(seq 1 30); do
+            if docker exec redis redis-cli -a "$REDIS_PASSWORD" --no-auth-warning ping | grep -q PONG; then
+              echo "Redis is healthy"; exit 0
+            fi
+            sleep 1
+          done
+          docker logs redis
+          exit 1
+
+      - name: Cache MongoDB binary (mongodb-memory-server)
+        uses: actions/cache@v6
+        with:
+          path: ${{ env.MONGOMS_DOWNLOAD_DIR }}
+          key: mongodb-binaries-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            mongodb-binaries-${{ runner.os }}-
+
+      - name: Shared package tests
+        run: pnpm --filter "./shared/*" test
+
+      - name: Backend tests with coverage (Redis integration tests run here)
+        run: pnpm --filter @zuvo/backend test:coverage
+
+      - name: Upload backend coverage
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-backend
+          path: backend/coverage
+          retention-days: 7
+
+  test-frontend:
+    name: Frontend tests (coverage ≥ 70%)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+      - name: Frontend unit, component and accessibility tests with coverage
+        shell: bash
+        run: pnpm --filter @zuvo/frontend test:coverage 2>&1 | tee frontend-tests.log
+      # Vitest only annotates failed tests. An unhandled error or a missed threshold also fails the run.
+      - name: Show why the frontend tests failed
+        if: failure()
+        shell: bash
+        run: |
+          sed 's/\x1b\[[0-9;]*m//g' frontend-tests.log \
+            | grep -E -A6 'Unhandled|ERROR: Coverage|does not meet|Vitest caught' \
+            | head -20 | cut -c1-300 | tr -d '\r' \
+            | while IFS= read -r line; do echo "::error::$line"; done
+      - name: Upload frontend coverage
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-frontend
+          path: frontend/coverage
+          retention-days: 7
+
+  e2e:
+    name: E2E (Chromium, Firefox, WebKit, mobile)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      CI: true
+      # The E2E API (backend e2e:server) runs on an in-memory MongoDB.
+      MONGOMS_DOWNLOAD_DIR: ${{ github.workspace }}/.cache/mongodb-binaries
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            playwright-${{ runner.os }}-
+
+      - name: Cache MongoDB binary (mongodb-memory-server)
+        uses: actions/cache@v6
+        with:
+          path: ${{ env.MONGOMS_DOWNLOAD_DIR }}
+          key: mongodb-binaries-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            mongodb-binaries-${{ runner.os }}-
+
+      - name: Install Playwright browsers and system dependencies
+        run: pnpm --filter @zuvo/frontend exec playwright install --with-deps chromium firefox webkit
+
+      # NODE_ENV=test would give a development build of React, not what users get.
+      - name: Build the frontend
+        env:
+          NODE_ENV: production
+        run: pnpm --filter @zuvo/frontend build
+
+      - name: Run Playwright (vite preview + in-memory test API)
+        run: pnpm --filter @zuvo/frontend test:e2e:ci
+
+      - name: Run the chat flows through the Vite dev server, like pnpm dev
+        run: pnpm --filter @zuvo/frontend exec playwright test -c playwright.dev.config.ts
+
+      - name: Upload Playwright report and traces
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: |
+            frontend/playwright-report
+            frontend/test-results
+          retention-days: 7
+
+  build:
+    name: Build + bundle budget
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+      - name: Build all packages
+        env:
+          NODE_ENV: production
+        run: pnpm build
+      - name: Check main bundle size (gzip ≤ 200 KB)
+        run: pnpm --filter @zuvo/frontend size
+
+  security:
+    name: Security (audit + secret scan)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # Full history so the secret scan covers every commit.
+          fetch-depth: 0
+      - uses: ./.github/actions/setup
+      - name: pnpm audit (fail on high/critical)
+        run: pnpm audit --audit-level high
+      - name: Gitleaks secret scan
+        env:
+          GITLEAKS_VERSION: 8.30.1
+        run: |
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
+            | tar -xz gitleaks
+          ./gitleaks git --redact --verbose --exit-code 1 .

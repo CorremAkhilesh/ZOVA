@@ -1,0 +1,238 @@
+/* biome-ignore-all lint/complexity/noImportantStyles: the reduced-motion block must override every animation */
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "./fonts.css";
+/* Design tokens: light on :root, dark on [data-theme="dark"]. Generated from @zuvo/ui-tokens. */
+@import "@zuvo/ui-tokens/tokens.css";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/*
+ * Map Tailwind utilities onto the token variables. `reference` registers the utilities without
+ * emitting values, so `bg-surface` compiles to `var(--color-surface)` and follows the active theme.
+ * Only design-token colors exist: no stray palette colors (and never a WhatsApp green).
+ */
+@theme reference {
+  --color-*: initial;
+  --color-white: #ffffff;
+  --color-black: #000000;
+
+  --color-brand: var(--color-brand);
+  --color-brand-hover: var(--color-brand-hover);
+  --color-brand-foreground: var(--color-brand-foreground);
+  --color-brand-subtle: var(--color-brand-subtle);
+  --color-brand-text: var(--color-brand-text);
+  --color-accent: var(--color-accent);
+  --color-accent-hover: var(--color-accent-hover);
+  --color-accent-foreground: var(--color-accent-foreground);
+  --color-accent-subtle: var(--color-accent-subtle);
+  --color-accent-text: var(--color-accent-text);
+  --color-background: var(--color-background);
+  --color-surface: var(--color-surface);
+  --color-elevated: var(--color-elevated);
+  --color-border: var(--color-border);
+  --color-border-strong: var(--color-border-strong);
+  --color-text: var(--color-text);
+  --color-text-muted: var(--color-text-muted);
+  --color-text-inverse: var(--color-text-inverse);
+  --color-success: var(--color-success);
+  --color-warning: var(--color-warning);
+  --color-danger: var(--color-danger);
+  --color-info: var(--color-info);
+  --color-bubble-outgoing: var(--color-bubble-outgoing);
+  --color-bubble-outgoing-text: var(--color-bubble-outgoing-text);
+  --color-bubble-outgoing-meta: var(--color-bubble-outgoing-meta);
+  --color-bubble-outgoing-read: var(--color-bubble-outgoing-read);
+  --color-bubble-incoming: var(--color-bubble-incoming);
+  --color-bubble-incoming-text: var(--color-bubble-incoming-text);
+  --color-bubble-incoming-meta: var(--color-bubble-incoming-meta);
+  --color-sender1: var(--color-sender1);
+  --color-sender2: var(--color-sender2);
+  --color-sender3: var(--color-sender3);
+  --color-sender4: var(--color-sender4);
+  --color-sender5: var(--color-sender5);
+  --color-sender6: var(--color-sender6);
+  --color-sender7: var(--color-sender7);
+  --color-sender8: var(--color-sender8);
+
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --ease-standard: var(--ease-standard);
+  --ease-emphasized: var(--ease-emphasized);
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--color-background);
+    color: var(--color-text);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  :lang(hi) body,
+  body:lang(hi) {
+    font-family: var(--font-devanagari);
+  }
+
+  * {
+    border-color: var(--color-border);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background-color: color-mix(in srgb, var(--color-brand) 25%, transparent);
+  }
+}
+
+/* Soft brand glow behind the glassy panels. */
+.app-backdrop {
+  background:
+    radial-gradient(
+      60rem 40rem at 0% 0%,
+      color-mix(in srgb, var(--color-brand) 14%, transparent),
+      transparent 60%
+    ),
+    radial-gradient(
+      50rem 36rem at 100% 100%,
+      color-mix(in srgb, var(--color-accent) 12%, transparent),
+      transparent 60%
+    ),
+    var(--color-background);
+}
+
+.glass {
+  background-color: color-mix(in srgb, var(--color-surface) 82%, transparent);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+}
+
+/* Thin overlay-style scrollbar (see components/ui/scroll-area.tsx). */
+.scroll-area {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  scrollbar-gutter: stable;
+}
+
+.scroll-area:hover,
+.scroll-area:focus-visible,
+.scroll-area:focus-within,
+.scroll-area[data-scrolling] {
+  scrollbar-color: color-mix(in srgb, var(--color-text) 30%, transparent) transparent;
+}
+
+/* Safari without scrollbar-color support. */
+.scroll-area::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.scroll-area::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scroll-area::-webkit-scrollbar-thumb {
+  border-radius: 9999px;
+  background-color: transparent;
+}
+
+.scroll-area:hover::-webkit-scrollbar-thumb,
+.scroll-area[data-scrolling]::-webkit-scrollbar-thumb {
+  background-color: color-mix(in srgb, var(--color-text) 30%, transparent);
+}
+
+/* Window Controls Overlay (installed desktop app): keep content clear of the window buttons. */
+.titlebar-area {
+  height: env(titlebar-area-height, 0px);
+  flex-shrink: 0;
+  app-region: drag;
+  -webkit-app-region: drag;
+}
+
+/* Wrong-code feedback (disabled by the reduced-motion rule below). */
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20%,
+  60% {
+    transform: translateX(-6px);
+  }
+  40%,
+  80% {
+    transform: translateX(6px);
+  }
+}
+
+.animate-shake {
+  animation: shake 0.4s var(--ease-standard);
+}
+
+/* Folder chips: sideways scrolling with no scrollbar, fading only where there is more to see. */
+.chip-row {
+  scrollbar-width: none;
+  --fade-start: 16px;
+  --fade-end: 16px;
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    black var(--fade-start),
+    black calc(100% - var(--fade-end)),
+    transparent
+  );
+}
+.chip-row::-webkit-scrollbar {
+  display: none;
+}
+.chip-row[data-at-start="true"] {
+  --fade-start: 0px;
+}
+.chip-row[data-at-end="true"] {
+  --fade-end: 0px;
+}
+
+/* Rows off screen skip layout and paint, so a long chat list stays quick. */
+.chat-row {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 68px;
+}
+
+.chat-wallpaper {
+  background-color: var(--color-background);
+  background-image: radial-gradient(
+    color-mix(in srgb, var(--color-text) 7%, transparent) 1px,
+    transparent 1px
+  );
+  background-size: 22px 22px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

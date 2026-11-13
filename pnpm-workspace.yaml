@@ -1,0 +1,17 @@
+packages:
+  - frontend
+  - backend
+  - shared/*
+
+# Dependencies allowed to run install scripts.
+onlyBuiltDependencies:
+  - esbuild
+
+# Install scripts we deliberately skip:
+# - lefthook: the root "prepare" script installs the git hooks
+# - mongodb-memory-server: downloads the MongoDB binary on first test run instead
+# - msgpackr-extract: optional native speed-up for BullMQ; the JS fallback is used
+ignoredBuiltDependencies:
+  - lefthook
+  - mongodb-memory-server
+  - msgpackr-extract
