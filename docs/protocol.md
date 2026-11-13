@@ -378,3 +378,71 @@ through `<html data-accent>`), a default wallpaper (pattern, colour or one of my
 for the dark theme. `PUT /v1/chats/:id/wallpaper` sets one chat's own wallpaper. Pictures:
 `POST /v1/me/wallpapers` (≤ 10 MB, magic bytes, re-encoded to WebP ≤ 2560 px, through the StorageDriver,
 10 per person), `GET` to list or fetch my own, `DELETE` (which also resets any wallpaper using it).
+
+## Notifications
+
+Web Push (Step 18, `docs/adr/0008-web-push.md`). Schemas: `shared/protocol/src/rest/push.ts`.
+
+| Endpoint                          | Purpose                                                                 |
+| --------------------------------- | ----------------------------------------------------------------------- |
+| `GET /v1/me/push`                 | `{ publicKey, settings, devices }`; `publicKey` null: push is off here  |
+| `PUT /v1/me/push/subscription`    | This device's `PushSubscription.toJSON()` (https only) → `{ device }`   |
+| `DELETE /v1/me/push/subscription` | `{ endpoint }`, mine only → `{ removed }`                               |
+| `DELETE /v1/me/push/devices/:id`  | One of my devices (someone else's is 404) → `{ removed }`               |
+| `PUT /v1/me/push/settings`        | `{ showPreview?, sound? }`, only what is sent → `{ settings }`          |
+| `POST /v1/me/push/test`           | A `test` push to this device's subscriptions → `{ sent }`               |
+| `POST /v1/chats/:id/read`         | The notification's "Mark as read" (same as `read:update`), plus `badge` |
+| `POST /v1/chats/:id/reply`        | Inline "Reply": `{ clientMsgId, text }`, every send rule → the send ack |
+
+A subscription belongs to the **session** that registered it (one per device; a new endpoint replaces
+the old one, and an endpoint signed in by someone else moves to them). It is deleted when the session
+ends: sign-out, a revoke (one or all others), "This wasn't me", deactivation, expiry (a TTL index on the
+session's absolute expiry, plus a check at send time), and when the push service answers 404/410. Keys
+are checked: `p256dh` a P-256 point (65 bytes), `auth` 16 bytes, both base64url.
+
+**Events.** `window:state` (client → server, `{ visible, focused }`): sent on every change and after
+(re)connecting. A device is _attended_ while any of its sockets is visible and focused. It is kept in
+Redis per session with a 45 s expiry refreshed every 15 s, so a crashed instance cannot silence anyone
+(in memory without Redis); a disconnect clears it. `push:updated` (server → my devices, `{ settings }`):
+settings or devices changed, fetch `GET /v1/me/push` again.
+
+**When.** Every stored message (socket, scheduled, forward, polls, reply) schedules a job per other
+member who has a device: one delayed job per person and chat (BullMQ `push` queue, deduplicated for
+`PUSH_COALESCE_SECONDS`, processed by the worker; in-process timers without Redis, in tests and E2E).
+The job re-reads everything at send time and runs `decidePush()` for each new message, then per device:
+
+| Skip reason   | When                                                                              |
+| ------------- | --------------------------------------------------------------------------------- |
+| `own_message` | I sent it (another device of mine)                                                |
+| `system`      | A system line (member added, …)                                                   |
+| `deleted`     | Deleted for everyone                                                              |
+| `expired`     | A disappearing message already due                                                |
+| `not_visible` | Before I joined or cleared the chat, or after I left or was removed               |
+| `hidden`      | Deleted for me                                                                    |
+| `read`        | I have read up to it meanwhile (on any device)                                    |
+| `blocked`     | 1:1, blocked either way                                                           |
+| `muted`       | Chat muted, unless the message mentions me (`@everyone` counts)                   |
+| `quiet_hours` | Quiet now, unless an exception: a mention (`allowMentions`) or an allowed chat    |
+| `attended`    | Per device: one of its tabs is visible and focused; my other devices still get it |
+
+The job also skips `not_member`, `deactivated`, `no_devices`, `already_notified` (each message is
+notified at most once: `pushedSeq` on my membership, claimed atomically) and `rate_limited`
+(`PUSH_USER_PER_MINUTE` per person; the rest join the next notification). If every device failed for a
+passing reason, the claim is given back and the queue retries (3 attempts, exponential backoff).
+
+**Payload** (`pushPayloadSchema`, well under 3 KB, no ids but `chatId`): 1:1 shows the sender's name and
+the text; a group its name and "Riya: text"; media as "📷 Photo", "🎤 Voice message (0:12)", "📊 Poll: …"
+(view once: its label only); cut at `PUSH_BODY_MAX` with "…", plus "(+N more)" for a coalesced burst.
+With the preview off, a locked chat or app lock: title "New message", empty body, `hidden: true`.
+`tag` is `chat:<id>` (one notification per chat), `seq` is what "Mark as read" reads up to, `badge` counts
+chats with something unread or marked unread (as the app does), `silent` means sound off. A quiet-hours
+exception sounds: that is why it was let through. The text is in the recipient's profile language when
+one is set (English, Hindi). Logs say sent, skipped (reason) or failed (status, push service host), never
+text or endpoints.
+
+**Tests and E2E** (`NODE_ENV=test`): an in-memory sender records every push.
+`GET /v1/test/push/outbox?email=…` returns
+`{ pushes: [{ sessionId, endpoint, payload, urgency, ttlSeconds, at }] }` (oldest first);
+`DELETE /v1/test/push/outbox` clears it. Any https endpoint can be registered with keys of the right
+shape, e.g. `p256dh` = "B" followed by 86 "A", `auth` = 22 "A". The E2E server collects bursts for
+`E2E_PUSH_COALESCE_MS` (default 500 ms).
