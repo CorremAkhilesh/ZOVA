@@ -124,7 +124,8 @@ describe('account settings', () => {
     server.use(signedOut());
     await user.click(screen.getByRole('button', { name: 'Sign out' }));
     await waitFor(() => expect(router.state.location.pathname).toBe('/'));
-    expect(loggedOut).toBe(true);
+    // A session refetch may reach the welcome screen first: the logout call still goes out.
+    await waitFor(() => expect(loggedOut).toBe(true));
     expect(
       screen.queryByText('Your session ended. Sign in again to continue.'),
     ).not.toBeInTheDocument();

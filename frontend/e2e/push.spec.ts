@@ -156,7 +156,10 @@ test('an @mention reaches B in a muted group', async ({ browser }) => {
 test('"Send test notification" reaches this device', async ({ browser }) => {
   const asha = await newPerson(browser, 'Asha');
   await stubPush(asha.page);
-  await asha.page.goto('/settings/notifications');
+  // Firefox aborts a navigation that overlaps the chat list still loading: try again.
+  await expect(async () => {
+    await asha.page.goto('/settings/notifications');
+  }).toPass(SLOW);
   await asha.page.getByRole('button', { name: 'Send test notification' }).click();
   // The stub, and the browser's own subscription where its push service answers.
   await expect(asha.page.getByText(/^Test notification sent to \d+ devices?\.$/)).toBeVisible(SLOW);

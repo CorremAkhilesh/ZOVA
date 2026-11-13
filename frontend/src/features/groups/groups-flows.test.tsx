@@ -171,7 +171,8 @@ describe('the join page', () => {
     expect(
       await screen.findByRole('heading', { name: 'Launch team' }, { timeout: 15_000 }),
     ).toBeInTheDocument();
-  });
+    // Longer than the 15 s wait above: the default 5 s cut it short on a slow runner.
+  }, 30_000);
 
   it('says so when the link no longer works', async () => {
     server.use(

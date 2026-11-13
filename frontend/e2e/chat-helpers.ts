@@ -10,8 +10,25 @@ export interface Person {
 }
 
 /** A new account in its own browser context: its own cookies and its own IndexedDB. */
-export async function newPerson(browser: Browser, name: string): Promise<Person> {
+/**
+ * A browser for one person, as a returning user: the "Get notified" card stays away, so the chat
+ * list does not move under a click while it loads. The card has its own component tests, and
+ * push.spec.ts covers pushes.
+ */
+async function newContext(browser: Browser): Promise<BrowserContext> {
   const context = await browser.newContext();
+  await context.addInitScript(() => {
+    try {
+      localStorage.setItem('zuvo.push.card-dismissed', '1');
+    } catch {
+      // No storage: the card may show, nothing more.
+    }
+  });
+  return context;
+}
+
+export async function newPerson(browser: Browser, name: string): Promise<Person> {
+  const context = await newContext(browser);
   const page = await context.newPage();
   // Random: tests in parallel workers start within the same millisecond.
   const username = `${name.toLowerCase()}${Math.random().toString(36).slice(2, 12)}`;
@@ -21,7 +38,7 @@ export async function newPerson(browser: Browser, name: string): Promise<Person>
 
 /** The same account on another device. */
 export async function secondDevice(browser: Browser, person: Person): Promise<Page> {
-  const context = await browser.newContext();
+  const context = await newContext(browser);
   const page = await context.newPage();
   await signIn(page, person.email);
   return page;
