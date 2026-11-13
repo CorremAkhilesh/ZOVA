@@ -43,33 +43,65 @@ cd ZUVO
 git switch dev
 pnpm install
 Copy-Item backend\.env.example backend\.env
+Copy-Item frontend\.env.example frontend\.env.local
 notepad backend\.env    # fill in MONGODB_URI, REDIS_URL, SMTP_PASS, AUTH_SECRET and ADMIN_EMAILS
 pnpm dev
 ```
 
 Then open **<http://127.0.0.1:5191>** and sign in with your `@corremadvisory.com` email. `pnpm dev` starts
-Redis, the API on port 4000, the email worker and the frontend on port 5191. To test two people on one
+Redis, the API on port 4000, the email worker and the frontend on port 5191 (on the shared server, use your
+own ports: see [Running on the shared server](#running-on-the-shared-server)). To test two people on one
 machine, use a normal window and an Incognito window.
 
 This is a shared machine: never touch the `Memurai` service on port 6379, and never commit `.env` or
 `backend/storage/`.
 
-### Sharing a machine
+### Running on the shared server
 
-We all work on one remote Windows server, as `dev1`, `dev2`, and so on. **Each developer needs their own
-copy of these in `backend\.env`:**
+We all work on one remote Windows server, as `dev1`, `dev2`, and so on. Two people can't listen on the
+same port, and two people sharing a database or a Redis mix their test data and steal each other's jobs.
+**So each developer picks their own ports and their own database.**
 
-| Setting      | Example (for `dev7`)                      | What goes wrong if shared                               |
-| ------------ | ----------------------------------------- | ------------------------------------------------------- |
-| `MONGODB_DB` | `zuvo_dev7`                               | Test accounts and messages mix with someone else's      |
-| `REDIS_URL`  | `redis://:<your password>@127.0.0.1:6397` | Workers steal each other's jobs, such as sign-in emails |
+1. **Pick free ports.** Choose an API port, a Vite dev port and a Vite preview port, for example by adding
+   your user number to the defaults. Check that nobody is using them:
 
-Check it at startup: the API and the worker both log a line like
-`Using MONGODB_DB=zuvo_dev7 and Redis 127.0.0.1:6397`. Other people's processes can be seen on this machine,
-and they can connect to your Redis port if they know its password, so use a password of your own.
+   ```powershell
+   foreach ($p in 4007, 5197, 5198, 6397) {
+     if (Get-NetTCPConnection -LocalPort $p -State Listen -ErrorAction SilentlyContinue) { "$p is taken" }
+     else { "$p is free" }
+   }
+   ```
 
-Playwright never reuses a running server. It uses ports 4197 and 5194, and refuses to run if they are taken.
-To use others on a shared machine, set `E2E_API_PORT` and `E2E_WEB_PORT`.
+2. **Put them in your env files**, both gitignored:
+
+   | File                  | Setting                          | Example (for `dev7`)                          | Default |
+   | --------------------- | -------------------------------- | --------------------------------------------- | ------- |
+   | `backend\.env`        | `PORT`                           | `4007`                                        | 4000    |
+   | `backend\.env`        | `APP_URL`                        | `http://127.0.0.1:5197`                       |         |
+   | `backend\.env`        | `API_URL`                        | `http://localhost:4007`                       |         |
+   | `backend\.env`        | `CORS_ORIGINS`                   | `http://127.0.0.1:5197,http://localhost:5197` |         |
+   | `backend\.env`        | `MONGODB_DB`                     | `zuvo_dev7`                                   |         |
+   | `backend\.env`        | `REDIS_URL`                      | `redis://:<your password>@127.0.0.1:6397`     |         |
+   | `frontend\.env.local` | `ZUVO_DEV_PORT`                  | `5197`                                        | 5191    |
+   | `frontend\.env.local` | `ZUVO_PREVIEW_PORT`              | `5198`                                        | 5192    |
+   | `frontend\.env.local` | `ZUVO_API_PORT` (same as `PORT`) | `4007`                                        | 4000    |
+
+   Start from `frontend\.env.example`. The Vite proxy sends `/v1` and `/socket.io` to `ZUVO_API_PORT`.
+
+3. **Your own database.** `MONGODB_DB` must be yours alone (`zuvo_dev<N>`). Never `zuvo_dev`: staging uses
+   it. A new database is empty, so you sign up again the first time; the API creates the indexes on start.
+
+4. **Check it.** `pnpm dev` prints the frontend URL, and the API and the worker each log a line like
+   `Using MONGODB_DB=zuvo_dev7 and Redis 127.0.0.1:6397`. Then open your own frontend URL
+   (`http://127.0.0.1:5197` in the example). All dev servers listen on 127.0.0.1 only, and refuse to start if
+   their port is taken.
+
+Other people's processes can be seen on this machine, and they can connect to your Redis port if they
+know its password, so use a password of your own. Never touch the shared `Memurai` service on port 6379.
+
+Playwright never reuses a running server. It uses ports 4197 and 5194 (and 4198 and 5193 for the dev-proxy
+run), and refuses to run if they are taken. To use others, set `E2E_API_PORT` and `E2E_WEB_PORT` (and
+`E2E_DEV_API_PORT` and `E2E_DEV_WEB_PORT`).
 
 ## Branch workflow
 
@@ -115,6 +147,7 @@ pnpm install
 
 # 3. Create your local backend env file and fill in the secrets
 Copy-Item backend\.env.example backend\.env
+Copy-Item frontend\.env.example frontend\.env.local
 notepad backend\.env
 ```
 

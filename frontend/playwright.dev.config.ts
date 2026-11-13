@@ -7,8 +7,8 @@ import { assertPortsFree } from './e2e/port-guard';
  * production build, which cannot see bugs that only exist in development.
  * Own ports and Vite cache, so it can run beside a `pnpm dev` on this shared machine.
  */
-const PORT = 5193;
-const API_PORT = 4198;
+const PORT = Number(process.env.E2E_DEV_WEB_PORT ?? 5193);
+const API_PORT = Number(process.env.E2E_DEV_API_PORT ?? 4198);
 const BASE_URL = `http://127.0.0.1:${PORT}`;
 const CI = Boolean(process.env.CI);
 

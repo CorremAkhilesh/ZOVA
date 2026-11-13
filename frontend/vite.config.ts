@@ -4,14 +4,18 @@ import { tanstackRouter } from '@tanstack/router-plugin/vite';
 import react from '@vitejs/plugin-react';
 import { brand } from '@zuvo/config';
 import { darkColors, lightColors } from '@zuvo/ui-tokens';
-import { defineConfig, type Plugin } from 'vite';
+import { defineConfig, loadEnv, type Plugin } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import { APPLE_TOUCH_ICON, ICONS_DIR, MANIFEST_ICONS, splashLinkTags } from './pwa/assets.ts';
+import { devPorts } from './src/lib/dev-ports.ts';
 
-/** Dev server port. 5173/5175 are taken by other projects on this shared machine. */
-export const DEV_PORT = 5191;
-/** Backend for the /v1 proxy. E2E points it at the test API (ZUVO_API_TARGET). */
-const BACKEND = process.env.ZUVO_API_TARGET ?? 'http://127.0.0.1:4000';
+/**
+ * Dev and preview ports and the API behind the /v1 proxy: ZUVO_DEV_PORT, ZUVO_PREVIEW_PORT and
+ * ZUVO_API_PORT from the environment or frontend/.env.local (the environment wins). Shared machine:
+ * every developer picks their own. E2E points the proxy at the test API (ZUVO_API_TARGET).
+ */
+const PORTS = devPorts(loadEnv('', fileURLToPath(new URL('.', import.meta.url)), 'ZUVO_'));
+const BACKEND = PORTS.apiTarget;
 
 /** Fills brand placeholders and the iOS splash links in index.html — the brand lives only in brand.ts. */
 function brandHtml(): Plugin {
@@ -108,7 +112,7 @@ export default defineConfig({
   server: {
     // Shared machine: never listen on public interfaces.
     host: '127.0.0.1',
-    port: DEV_PORT,
+    port: PORTS.dev,
     strictPort: true,
     // Same-origin in dev so session cookies just work.
     proxy: {
@@ -118,7 +122,7 @@ export default defineConfig({
   },
   preview: {
     host: '127.0.0.1',
-    port: DEV_PORT + 1,
+    port: PORTS.preview,
     strictPort: true,
     proxy: {
       '/v1': { target: BACKEND, changeOrigin: false },
