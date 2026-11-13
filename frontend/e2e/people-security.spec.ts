@@ -62,7 +62,21 @@ test('profile photo and username, and finding a colleague', async ({ browser }) 
   });
 
   await test.step('chat info shows the username', async () => {
-    await b.getByRole('button', { name: 'Chat info' }).first().click();
+    const info = b.getByRole('button', { name: 'Chat info' }).first();
+    try {
+      // Its own limit, so a failure says why the click could not happen (CI Firefox only).
+      await info.click({ timeout: 30_000 });
+    } catch (error) {
+      const box = await info.boundingBox();
+      const atCentre = box
+        ? await b.evaluate(
+            ([x, y]) => document.elementFromPoint(x, y)?.outerHTML.slice(0, 400) ?? 'nothing',
+            [box.x + box.width / 2, box.y + box.height / 2] as const,
+          )
+        : 'no box';
+      throw new Error(`Chat info could not be clicked. At its centre: ${atCentre}
+${error}`);
+    }
     await expect(b.getByText(`@${username}`).first()).toBeVisible(SLOW);
   });
 });
