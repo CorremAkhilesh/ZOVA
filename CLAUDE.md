@@ -286,18 +286,36 @@
 
 ### Local (Windows PC)
 
-- **No Docker locally.** `pnpm dev` starts Redis, the backend (`127.0.0.1:4000`) and the frontend
-  (`127.0.0.1:5191`, Vite, which proxies `/v1` and `/socket.io` to the backend). Shared machine: every dev
-  server binds 127.0.0.1 only, on fixed ports checked to be free.
+- **No Docker locally.** `pnpm dev` starts Redis, the backend and the frontend (Vite, which proxies `/v1`
+  and `/socket.io` to the backend). Shared machine: every dev server binds 127.0.0.1 only, on ports checked
+  to be free.
 - Connects to MongoDB Atlas (your own `zuvo_dev<N>`) and your own local Memurai process (your own port and
   password from `REDIS_URL`, started by `pnpm dev`).
+- **Per-developer ports and database.** Each developer picks their own; defaults apply when nothing is set.
+  README → "Running on the shared server" shows how to choose and check them.
+
+  | Setting                                | Where                 | Default | dev7 (owner) |
+  | -------------------------------------- | --------------------- | ------- | ------------ |
+  | API port `PORT`                        | `backend/.env`        | 4000    | 4007         |
+  | Vite dev port `ZUVO_DEV_PORT`          | `frontend/.env.local` | 5191    | 5197         |
+  | Vite preview port `ZUVO_PREVIEW_PORT`  | `frontend/.env.local` | 5192    | 5198         |
+  | API port for the proxy `ZUVO_API_PORT` | `frontend/.env.local` | 4000    | 4007         |
+  | Redis (`REDIS_URL`)                    | `backend/.env`        |         | 6391         |
+  | `MONGODB_DB`                           | `backend/.env`        |         | `zuvo_dev7`  |
+
+  `APP_URL` and `CORS_ORIGINS` name your own Vite port (add the preview port to `CORS_ORIGINS` to test Web
+  Push, which needs the built app). E2E uses its own ports (4197/5194, dev proxy 4198/5193).
 
 ### VPS (Ubuntu + Docker Engine + Docker Compose + Caddy auto-HTTPS)
 
-| Stack      | Hosts                                                                                             | DB          |
-| ---------- | ------------------------------------------------------------------------------------------------- | ----------- |
-| staging    | `dev-app.zuvo.corremadvisory.com`, `dev-api.zuvo.corremadvisory.com`                              | `zuvo_dev`  |
-| production | `zuvo.corremadvisory.com` (landing), `app.zuvo.corremadvisory.com`, `api.zuvo.corremadvisory.com` | `zuvo_prod` |
+| Stack      | Hosts                                                                | DB          |
+| ---------- | -------------------------------------------------------------------- | ----------- |
+| staging    | `dev-app.zuvo.corremadvisory.com`, `dev-api.zuvo.corremadvisory.com` | `zuvo_dev`  |
+| production | `app.zuvo.corremadvisory.com`, `api.zuvo.corremadvisory.com`         | `zuvo_prod` |
+
+- **No separate landing website** (decided in Step 19; the old Step 21 is skipped). Install guides, FAQ,
+  privacy note and contact live in the app under Settings → Help & About (`/help/...`).
+  `zuvo.corremadvisory.com` may later simply redirect to the app.
 
 ### Git & CI/CD
 
