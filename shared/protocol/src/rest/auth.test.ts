@@ -43,5 +43,13 @@ describe('auth contracts', () => {
       needsProfile: true,
     });
     expect(parsed.needsProfile).toBe(true);
+    // A copy saved before the language was part of the session reads English.
+    expect(parsed.user.language).toBe('en');
+  });
+
+  it('saves the language, English or Hindi only', () => {
+    expect(updateProfileBodySchema.parse({ language: 'hi' })).toEqual({ language: 'hi' });
+    expect(updateProfileBodySchema.safeParse({ language: 'fr' }).success).toBe(false);
+    expect(updateProfileBodySchema.safeParse({}).success).toBe(false);
   });
 });

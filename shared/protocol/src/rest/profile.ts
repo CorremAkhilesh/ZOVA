@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { isoDateTimeSchema } from '../common/id.ts';
 import { cursorPageQuerySchema, cursorPageSchema } from '../common/pagination.ts';
 import { usernameSchema } from '../common/username.ts';
-import { displayNameSchema, userRoleSchema, userStatusSchema } from './auth.ts';
+import { appLanguageSchema, displayNameSchema, userRoleSchema, userStatusSchema } from './auth.ts';
 import { disappearTimerSchema } from './disappearing.ts';
 
 export const ABOUT_MAX = 140;
@@ -33,9 +33,14 @@ export const DEFAULT_PRIVACY: z.infer<typeof privacySettingsSchema> = {
 
 /** PATCH /v1/me/profile — at least one field. */
 export const updateProfileBodySchema = z
-  .object({ displayName: displayNameSchema.optional(), about: aboutSchema.optional() })
+  .object({
+    displayName: displayNameSchema.optional(),
+    about: aboutSchema.optional(),
+    language: appLanguageSchema.optional(),
+  })
   .refine(
-    (body) => body.displayName !== undefined || body.about !== undefined,
+    (body) =>
+      body.displayName !== undefined || body.about !== undefined || body.language !== undefined,
     'Nothing to update',
   );
 
@@ -88,6 +93,7 @@ export const myProfileSchema = z.object({
   avatar: avatarSchema,
   role: userRoleSchema,
   status: userStatusSchema,
+  language: appLanguageSchema,
 });
 export const myProfileResponseSchema = z.object({ profile: myProfileSchema });
 

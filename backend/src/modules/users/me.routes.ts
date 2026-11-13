@@ -43,7 +43,7 @@ export const meRoutes: FastifyPluginAsyncZod = async (app) => {
     {
       schema: {
         tags: ['profile'],
-        summary: 'Update display name and/or about',
+        summary: 'Update display name, about and/or app language',
         body: updateProfileBodySchema,
         response: { 200: myProfileResponseSchema },
       },

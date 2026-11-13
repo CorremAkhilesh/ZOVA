@@ -1,5 +1,6 @@
 import { DEFAULT_QUIET_HOURS, type PushPayload } from '@zuvo/protocol';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { headers } from '../../../test/auth-helpers.ts';
 import { buildTestApp } from '../../../test/helpers.ts';
 import { flushPushes, pushesTo, pushOutbox, subscribeDevice } from '../../../test/push-helpers.ts';
 import {
@@ -129,6 +130,21 @@ describe('a new message', () => {
       expect(JSON.stringify(payload)).not.toMatch(/secret|Alice/);
     }
     expect(messagePayloads(preview.bob.id)[0]?.silent).toBe(true);
+  });
+
+  it('is written in the language the person saved in their profile', async () => {
+    const { alice, bob, chatId } = await pair();
+    const saved = await app().inject({
+      method: 'PATCH',
+      url: '/v1/me/profile',
+      headers: headers(bob.cookie),
+      payload: { language: 'hi' },
+    });
+    expect(saved.json().profile.language).toBe('hi');
+    await setMember(chatId, bob.id, { locked: true });
+    await say(alice.id, chatId, 'secret');
+    await flushPushes(app());
+    expect(messagePayloads(bob.id)[0]).toMatchObject({ title: 'नया संदेश', hidden: true });
   });
 
   it('respects a mute, and quiet hours with their chat exception', async () => {

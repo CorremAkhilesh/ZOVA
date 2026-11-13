@@ -3,6 +3,7 @@ import {
   myProfileResponseSchema,
   privacyResponseSchema,
   publicProfileResponseSchema,
+  sessionResponseSchema,
   usernameAvailabilityResponseSchema,
   usernameSuggestionResponseSchema,
 } from '@zuvo/protocol';
@@ -54,6 +55,28 @@ describe('profile and username', () => {
     const tooLong = await call('PATCH', '/v1/me/profile', alice.cookie, { about: 'x'.repeat(141) });
     expect(tooLong.statusCode).toBe(400);
     expect((await call('PATCH', '/v1/me/profile', alice.cookie, {})).statusCode).toBe(400);
+  });
+
+  it('saves the app language, returns it everywhere, and refuses anything else', async () => {
+    const before = myProfileResponseSchema.parse(
+      (await call('GET', '/v1/me/profile', bob.cookie)).json(),
+    );
+    expect(before.profile.language).toBe('en');
+    const saved = await call('PATCH', '/v1/me/profile', bob.cookie, { language: 'hi' });
+    expect(saved.statusCode).toBe(200);
+    expect(myProfileResponseSchema.parse(saved.json()).profile).toMatchObject({
+      language: 'hi',
+      displayName: 'Bob Das',
+    });
+    const me = sessionResponseSchema.parse((await call('GET', '/v1/auth/me', bob.cookie)).json());
+    expect(me.user.language).toBe('hi');
+    expect((await loadUser(app(), bob.id))?.language).toBe('hi');
+    const invalid = await call('PATCH', '/v1/me/profile', bob.cookie, { language: 'fr' });
+    expect(invalid.statusCode).toBe(400);
+    expect((await call('PATCH', '/v1/me/profile', undefined, { language: 'hi' })).statusCode).toBe(
+      401,
+    );
+    await call('PATCH', '/v1/me/profile', bob.cookie, { language: 'en' });
   });
 
   it('checks availability, suggests and rejects a taken username', async () => {

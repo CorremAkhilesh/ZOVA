@@ -1,4 +1,5 @@
 import {
+  type AppLanguage,
   type ChatSettings,
   type PrivacySettings,
   type PublicProfile,
@@ -112,7 +113,11 @@ export async function setUsername(
 export async function updateProfile(
   app: FastifyInstance,
   userId: string,
-  changes: { displayName?: string | undefined; about?: string | undefined },
+  changes: {
+    displayName?: string | undefined;
+    about?: string | undefined;
+    language?: AppLanguage | undefined;
+  },
 ): Promise<UserDoc> {
   const user = await requireUser(app, userId);
   const displayName = changes.displayName ?? user.displayName ?? null;
@@ -121,6 +126,7 @@ export async function updateProfile(
   };
   if (changes.displayName !== undefined) Object.assign(set, { displayName, name: displayName });
   if (changes.about !== undefined) set.about = changes.about;
+  if (changes.language !== undefined) set.language = changes.language;
   return (await usersModel(app)
     .findByIdAndUpdate(userId, { $set: set }, { returnDocument: 'after' })
     .lean()) as UserDoc;

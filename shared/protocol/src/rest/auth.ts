@@ -14,6 +14,9 @@ export const SESSION_EXPIRY_WARNING_SECONDS = 24 * 60 * 60;
 export const userRoleSchema = z.enum(['user', 'admin']);
 export const userStatusSchema = z.enum(['active', 'deactivated']);
 export const displayNameSchema = z.string().trim().min(1, 'Enter your name').max(50);
+/** The languages the app speaks; also the language of everything the server writes to someone. */
+export const APP_LANGUAGES = ['en', 'hi'] as const;
+export const appLanguageSchema = z.enum(APP_LANGUAGES);
 export const otpCodeSchema = z.string().regex(/^\d{6}$/, 'Enter the 6-digit code');
 
 /** POST /v1/auth/otp/request */
@@ -38,6 +41,8 @@ export const sessionUserSchema = z.object({
   avatar: z.object({ small: z.string(), large: z.string() }).nullable(),
   role: userRoleSchema,
   status: userStatusSchema,
+  /** Saved from Settings → Language; the server writes emails and push in it. Older copies: English. */
+  language: appLanguageSchema.default('en'),
   createdAt: isoDateTimeSchema,
 });
 
@@ -78,5 +83,6 @@ export type RequestOtpBody = z.infer<typeof requestOtpBodySchema>;
 export type RequestOtpResponse = z.infer<typeof requestOtpResponseSchema>;
 export type VerifyOtpBody = z.infer<typeof verifyOtpBodySchema>;
 export type SessionUser = z.infer<typeof sessionUserSchema>;
+export type AppLanguage = z.infer<typeof appLanguageSchema>;
 export type SessionResponse = z.infer<typeof sessionResponseSchema>;
 export type AdminUserStatusResponse = z.infer<typeof adminUserStatusResponseSchema>;

@@ -38,6 +38,7 @@ export function sessionFixture(overrides: Partial<SessionResponse> = {}): Sessio
       avatar: null,
       role: 'user',
       status: 'active',
+      language: 'en',
       createdAt: new Date(now - 86_400_000).toISOString(),
     },
     session: {
@@ -68,6 +69,7 @@ export function profileFixture(overrides: Partial<MyProfile> = {}): MyProfile {
     avatar: null,
     role: user.role,
     status: user.status,
+    language: user.language,
     ...overrides,
   };
 }

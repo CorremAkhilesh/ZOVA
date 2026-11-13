@@ -23,6 +23,8 @@ const userSchema = new Schema(
       defaultDisappearing: String,
     },
     chatSettings: { keepChatsArchived: Boolean },
+    /** 'en' | 'hi': emails and push are written in it. Missing: English. */
+    language: String,
     /** Lowercase words of the display name and username, for prefix search. */
     searchTerms: [String],
     role: String,

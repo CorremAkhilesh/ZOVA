@@ -1,6 +1,6 @@
 import { Button, Text } from '@react-email/components';
 import { render } from '@react-email/render';
-import { brand } from '@zuvo/config';
+import type { AppLanguage } from '@zuvo/protocol';
 import type { DeviceInfo } from '../../security/devices.ts';
 import type { MailMessage } from '../mailer.ts';
 import {
@@ -10,6 +10,7 @@ import {
   secondaryStyle,
   textStyle,
 } from './email-layout.tsx';
+import { emailStrings } from './email-strings.ts';
 
 const { light } = EMAIL_COLORS;
 
@@ -17,36 +18,38 @@ interface LoginAlertProps {
   device: DeviceInfo;
   signedInAt: Date;
   notMeUrl: string;
+  /** The account's language; English by default. */
+  language?: AppLanguage;
 }
 
-function detailLines({ device, signedInAt }: Pick<LoginAlertProps, 'device' | 'signedInAt'>) {
+function detailLines({ device, signedInAt, language = 'en' }: Omit<LoginAlertProps, 'notMeUrl'>) {
+  const s = emailStrings(language).loginAlert;
   return [
-    `Device: ${device.deviceType === 'unknown' ? 'Unknown device' : device.deviceType}`,
-    `Browser: ${device.browser}`,
-    `Operating system: ${device.os}`,
-    `Time: ${formatIst(signedInAt, true)}`,
+    s.device(device.deviceType),
+    s.browser(device.browser),
+    s.os(device.os),
+    s.time(formatIst(signedInAt, true, language)),
   ];
 }
 
-export function LoginAlertEmail({ device, signedInAt, notMeUrl }: LoginAlertProps) {
+export function LoginAlertEmail(props: LoginAlertProps) {
+  const language = props.language ?? 'en';
+  const s = emailStrings(language).loginAlert;
   return (
-    <EmailLayout
-      preview={`New sign-in to your ${brand.name} account`}
-      heading="New sign-in to your account"
-    >
+    <EmailLayout language={language} preview={s.subject} heading={s.heading}>
       <Text className="text" style={{ ...textStyle, margin: '0 0 16px' }}>
-        {`Your ${brand.name} account was just used to sign in on a new device.`}
+        {s.intro}
       </Text>
-      {detailLines({ device, signedInAt }).map((line) => (
+      {detailLines(props).map((line) => (
         <Text key={line} className="text" style={{ ...textStyle, margin: '0 0 4px' }}>
           {line}
         </Text>
       ))}
       <Text className="text" style={{ ...textStyle, margin: '16px 0 16px' }}>
-        If this was you, you don’t need to do anything.
+        {s.ifYou}
       </Text>
       <Button
-        href={notMeUrl}
+        href={props.notMeUrl}
         className="button"
         style={{
           backgroundColor: light.button,
@@ -59,33 +62,29 @@ export function LoginAlertEmail({ device, signedInAt, notMeUrl }: LoginAlertProp
           textDecoration: 'none',
         }}
       >
-        This wasn’t me — sign out everywhere
+        {s.button}
       </Button>
       <Text className="secondary" style={{ ...secondaryStyle, margin: '16px 0 0' }}>
-        The button signs your account out on every device. The link works once and expires in 7
-        days.
+        {s.note}
       </Text>
     </EmailLayout>
   );
 }
 
-/** "New sign-in" alert with a single-use "This wasn't me" link. */
+/** "New sign-in" alert with a single-use "This wasn't me" link, in the account's language. */
 export async function loginAlertEmail(to: string, props: LoginAlertProps): Promise<MailMessage> {
+  const strings = emailStrings(props.language ?? 'en');
+  const s = strings.loginAlert;
   const text = [
-    `Your ${brand.name} account was just used to sign in on a new device.`,
+    s.intro,
     '',
     ...detailLines(props),
     '',
-    'If this was you, you don’t need to do anything.',
-    'If it wasn’t you, open this link to sign out everywhere (works once, expires in 7 days):',
+    s.ifYou,
+    s.linkLine,
     props.notMeUrl,
     '',
-    `${brand.name} — ${brand.tagline}`,
+    strings.footer,
   ].join('\n');
-  return {
-    to,
-    subject: `New sign-in to your ${brand.name} account`,
-    html: await render(<LoginAlertEmail {...props} />),
-    text,
-  };
+  return { to, subject: s.subject, html: await render(<LoginAlertEmail {...props} />), text };
 }

@@ -7,6 +7,8 @@ const NAME = 'Zuvo';
 export const brand = {
   name: NAME,
   tagline: 'Fast, private chat for the Correm team',
+  /** The tagline in Hindi, for emails written to people who chose Hindi. */
+  taglineHi: 'Correm टीम के लिए तेज़ और निजी चैट',
   description:
     'Zuvo is fast, private chat for the Correm Advisory team on every device, right in the browser.',
   company: 'Correm Advisory India Pvt. Ltd.',

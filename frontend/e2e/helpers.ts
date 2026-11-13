@@ -22,7 +22,7 @@ export async function readOtp(page: Page, email: string, previousSubject = ''): 
         if (!response.ok()) return '';
         const { subject } = await response.json();
         if (subject === previousSubject) return '';
-        code = /^(\d{6}) is your /.exec(subject)?.[1] ?? '';
+        code = /^(\d{6}) /.exec(subject)?.[1] ?? '';
         return code;
       },
       { timeout: 15_000 },

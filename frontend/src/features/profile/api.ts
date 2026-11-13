@@ -1,4 +1,5 @@
 import {
+  type AppLanguage,
   myProfileResponseSchema,
   type PrivacySettings,
   privacyResponseSchema,
@@ -11,7 +12,7 @@ import { apiDelete, apiGet, apiPatch, apiPut, apiUpload, withQuery } from '@/lib
 
 export const profileApi = {
   get: () => apiGet('/v1/me/profile', myProfileResponseSchema),
-  update: (changes: { displayName?: string; about?: string }) =>
+  update: (changes: { displayName?: string; about?: string; language?: AppLanguage }) =>
     apiPatch('/v1/me/profile', changes, myProfileResponseSchema),
   setUsername: (username: string) =>
     apiPut('/v1/me/username', { username }, myProfileResponseSchema),

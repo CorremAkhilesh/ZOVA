@@ -24,6 +24,7 @@ export function applyProfile(queryClient: QueryClient, profile: MyProfile) {
     username: profile.username,
     about: profile.about,
     avatar: profile.avatar,
+    language: profile.language,
   };
   setSignedIn(queryClient, {
     ...state.data,

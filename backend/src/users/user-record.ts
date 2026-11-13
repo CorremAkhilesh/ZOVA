@@ -1,5 +1,6 @@
 import { brand } from '@zuvo/config';
 import {
+  type AppLanguage,
   type ChatSettings,
   DEFAULT_CHAT_SETTINGS,
   DEFAULT_PRIVACY,
@@ -23,6 +24,7 @@ export interface UserDoc {
   avatar?: { small: string; large: string; version: string } | null;
   privacy?: Partial<PrivacySettings> | null;
   chatSettings?: Partial<ChatSettings> | null;
+  language?: string | null;
   searchTerms?: string[];
   role?: string | null;
   status?: string | null;
@@ -57,6 +59,10 @@ export function avatarUrls(user: UserDoc): { small: string; large: string } | nu
   };
 }
 
+/** The saved app language; anything else (or nothing yet) is English. */
+export const languageOf = (user: Pick<UserDoc, 'language'> | null | undefined): AppLanguage =>
+  user?.language === 'hi' ? 'hi' : 'en';
+
 const isAdmin = (user: UserDoc) => user.role === 'admin';
 const isDeactivated = (user: UserDoc) => user.status === 'deactivated';
 
@@ -70,6 +76,7 @@ export function toSessionUser(user: UserDoc): SessionUser {
     avatar: avatarUrls(user),
     role: isAdmin(user) ? 'admin' : 'user',
     status: isDeactivated(user) ? 'deactivated' : 'active',
+    language: languageOf(user),
     createdAt: new Date(user.createdAt).toISOString(),
   };
 }
@@ -88,6 +95,7 @@ export function toMyProfile(user: UserDoc): MyProfile {
     avatar: session.avatar,
     role: session.role,
     status: session.status,
+    language: session.language,
   };
 }
 

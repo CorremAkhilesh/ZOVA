@@ -17,7 +17,6 @@ import { AppError } from '../../lib/errors.ts';
 import { buildTestPayload } from '../../push/content.ts';
 import { deliverToDevices, liveDevices } from '../../push/devices.ts';
 import { pushSettingsFor, updatePushSettings } from '../../push/settings.service.ts';
-import { toPushLanguage } from '../../push/strings.ts';
 import {
   listPushDevices,
   removePushDevice,
@@ -135,9 +134,7 @@ export const pushRoutes: FastifyPluginAsyncZod = async (app) => {
       });
       if (devices.length === 0) return { sent: 0 };
       const settings = await pushSettingsFor(app.mongo, userId);
-      const language = toPushLanguage(
-        (request.auth?.record as { language?: unknown } | undefined)?.language,
-      );
+      const language = request.auth?.user.language ?? 'en';
       const payload = buildTestPayload(settings, language, new Date());
       const result = await deliverToDevices(
         { mongo: app.mongo, log: request.log, sender },

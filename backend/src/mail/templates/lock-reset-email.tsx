@@ -1,6 +1,6 @@
 import { Text } from '@react-email/components';
 import { render } from '@react-email/render';
-import { brand } from '@zuvo/config';
+import type { AppLanguage } from '@zuvo/protocol';
 import type { MailMessage } from '../mailer.ts';
 import {
   EMAIL_COLORS,
@@ -10,6 +10,7 @@ import {
   secondaryStyle,
   textStyle,
 } from './email-layout.tsx';
+import { emailStrings } from './email-strings.ts';
 
 const { light } = EMAIL_COLORS;
 
@@ -17,21 +18,20 @@ interface LockResetProps {
   code: string;
   expiresAt: Date;
   minutes: number;
+  /** The account's language; English by default. */
+  language?: AppLanguage;
 }
 
-const expiryLine = ({ expiresAt, minutes }: Omit<LockResetProps, 'code'>) =>
-  `This code expires in ${minutes} minutes (at ${formatIst(expiresAt)}). Only the most recent code works.`;
-const IGNORE =
-  'If you didn’t ask for this, ignore this email: your PIN stays as it is. Nobody can reset it without the code.';
+const expiryLine = ({ expiresAt, minutes, language = 'en' }: Omit<LockResetProps, 'code'>) =>
+  emailStrings(language).lockReset.expiry(minutes, formatIst(expiresAt, false, language));
 
 export function LockResetEmail(props: LockResetProps) {
+  const language = props.language ?? 'en';
+  const s = emailStrings(language).lockReset;
   return (
-    <EmailLayout
-      preview={`${props.code} is your ${brand.name} PIN reset code`}
-      heading="Reset your PIN"
-    >
+    <EmailLayout language={language} preview={s.subject(props.code)} heading={s.heading}>
       <Text className="secondary" style={{ ...secondaryStyle, fontSize: 15, margin: '0 0 20px' }}>
-        {`Enter this code in ${brand.name} to remove your PIN. Your locked chats stay locked, and you will set a new PIN.`}
+        {s.intro}
       </Text>
       <Text
         className="code"
@@ -56,7 +56,7 @@ export function LockResetEmail(props: LockResetProps) {
         {expiryLine(props)}
       </Text>
       <Text className="secondary" style={secondaryStyle}>
-        {IGNORE}
+        {s.ignore}
       </Text>
     </EmailLayout>
   );
@@ -64,18 +64,14 @@ export function LockResetEmail(props: LockResetProps) {
 
 /** "Forgot PIN": subject "<code> is your Zuvo PIN reset code", HTML and plain text. */
 export async function lockResetEmail(to: string, props: LockResetProps): Promise<MailMessage> {
+  const strings = emailStrings(props.language ?? 'en');
+  const s = strings.lockReset;
   return {
     to,
-    subject: `${props.code} is your ${brand.name} PIN reset code`,
+    subject: s.subject(props.code),
     html: await render(<LockResetEmail {...props} />),
-    text: [
-      `Your ${brand.name} PIN reset code is: ${props.code}`,
-      '',
-      expiryLine(props),
-      '',
-      IGNORE,
-      '',
-      `${brand.name} — ${brand.tagline}`,
-    ].join('\n'),
+    text: [s.codeLine(props.code), '', expiryLine(props), '', s.ignore, '', strings.footer].join(
+      '\n',
+    ),
   };
 }

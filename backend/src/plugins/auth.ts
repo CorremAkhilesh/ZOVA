@@ -61,6 +61,7 @@ function newLoginAlert(app: FastifyInstance, env: Env, dispatcher: EmailDispatch
         device: describeDevice(login.userAgent),
         signedInAt: login.signedInAt,
         notMeUrl,
+        language: login.language,
       });
       await dispatcher.dispatch(message, 'login-alert');
     } catch (error) {
