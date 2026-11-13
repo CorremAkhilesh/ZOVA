@@ -59,7 +59,8 @@ function lastMessageView(
   const status = unsent ?? (lastMessage.seq > row.seq ? 'pending' : 'sent');
   return {
     authorId: mine ? ME : (lastMessage.senderId ?? ''),
-    authorName: person?.displayName ?? name,
+    // A group member not loaded yet has no name: never show the group's name as the sender.
+    authorName: person?.displayName ?? (row.type === 'group' ? '' : name),
     text: lastMessage.deleted ? (labels.deleted ?? '') : previewText(lastMessage, labels),
     at: new Date(lastMessage.createdAt),
     ...(mine ? { status: tickState({ status, seq: lastMessage.seq }, row) } : {}),

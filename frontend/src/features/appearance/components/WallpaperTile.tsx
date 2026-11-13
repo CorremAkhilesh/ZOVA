@@ -26,8 +26,8 @@ export function WallpaperTile(props: {
         style={props.style}
         className={cn(
           'flex h-16 w-14 items-center justify-center rounded-xl border bg-background text-xs text-text-muted',
-          'peer-focus-visible:ring-2 peer-focus-visible:ring-brand peer-focus-visible:ring-offset-2',
-          props.checked && 'border-brand ring-2 ring-brand',
+          'peer-focus-visible:ring-2 peer-focus-visible:ring-brand-text peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-surface',
+          props.checked && 'border-brand-text ring-2 ring-brand-text',
         )}
       >
         {props.children}

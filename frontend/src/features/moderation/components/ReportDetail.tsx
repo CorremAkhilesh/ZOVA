@@ -70,7 +70,7 @@ export function ReportDetail({ id, onClose }: { id: string; onClose: () => void 
           </p>
         ) : (
           <div className="space-y-4">
-            <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
+            <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 text-sm wrap-anywhere">
               <dt className="text-text-muted">{t('adminReports.reporter')}</dt>
               <dd>{`${report.reporter.displayName} (${report.reporter.email})`}</dd>
               <dt className="text-text-muted">{t('adminReports.reported')}</dt>

@@ -97,7 +97,7 @@ function ProfileForm({
         />
         <div>
           <p className="text-sm text-text-muted">{t('profile.email')}</p>
-          <p className="font-medium">{profile.email}</p>
+          <p className="font-medium wrap-anywhere">{profile.email}</p>
         </div>
       </SettingsSection>
     </>

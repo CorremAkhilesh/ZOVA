@@ -6,6 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { authErrorMessage } from '@/features/auth/errors';
 import { TIMERS, timerLabel } from '@/features/disappearing/rules';
 import { SettingsSection } from '@/features/settings/SettingsPage';
+import { onRadioGroupKeyDown } from '@/lib/radio-keys';
 import { cn } from '@/lib/utils';
 import { profileApi } from '../api';
 import { privacyQuery } from '../queries';
@@ -31,7 +32,12 @@ function ChoiceGroup<V extends string | boolean>({
         <p className="font-medium">{label}</p>
         <p className="text-sm text-text-muted">{hint}</p>
       </div>
-      <div role="radiogroup" aria-label={label} className="flex flex-wrap gap-2">
+      <div
+        role="radiogroup"
+        onKeyDown={onRadioGroupKeyDown}
+        aria-label={label}
+        className="flex flex-wrap gap-2"
+      >
         {choices.map((choice) => (
           // biome-ignore lint/a11y/useSemanticElements: segmented control styled as buttons
           <button
@@ -39,6 +45,7 @@ function ChoiceGroup<V extends string | boolean>({
             type="button"
             role="radio"
             aria-checked={choice.value === value}
+            tabIndex={choice.value === value ? 0 : -1}
             onClick={() => onChange(choice.value)}
             className={cn(
               'rounded-lg border px-4 py-2 text-sm font-medium transition-colors',

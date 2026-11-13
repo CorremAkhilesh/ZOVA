@@ -65,6 +65,13 @@ function DialogContent({
   );
 }
 
+/**
+ * For DialogContent's className: below the desktop layout the dialog fills the screen like a page
+ * (clear of notches and the home bar) instead of floating as a card.
+ */
+const FULL_SCREEN_ON_PHONE =
+  'max-md:top-0 max-md:left-0 max-md:h-dvh max-md:max-h-dvh max-md:w-full max-md:max-w-none max-md:translate-x-0 max-md:translate-y-0 max-md:rounded-none max-md:border-0 max-md:px-4 max-md:pt-[max(1rem,env(safe-area-inset-top))] max-md:pb-[max(1rem,env(safe-area-inset-bottom))]';
+
 interface ConfirmDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -99,4 +106,4 @@ function ConfirmDialog(props: ConfirmDialogProps) {
   );
 }
 
-export { ConfirmDialog, Dialog, DialogClose, DialogContent, DialogTrigger };
+export { ConfirmDialog, Dialog, DialogClose, DialogContent, DialogTrigger, FULL_SCREEN_ON_PHONE };

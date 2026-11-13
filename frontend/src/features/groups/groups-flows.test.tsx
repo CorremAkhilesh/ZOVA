@@ -244,9 +244,10 @@ describe('the group header', () => {
     await openGroup(group());
     await screen.findByText('Riya, Vikram, You');
     act(() => setTyping('c1', 'u-riya', true));
-    expect(await screen.findByText('Riya is typing…')).toBeInTheDocument();
+    // Shown in the header, and said once by its polite live region.
+    expect(await screen.findAllByText('Riya is typing…')).toHaveLength(2);
     act(() => setTyping('c1', 'u-vikram', true));
-    expect(await screen.findByText('Riya and Vikram are typing…')).toBeInTheDocument();
+    expect(await screen.findAllByText('Riya and Vikram are typing…')).toHaveLength(2);
     act(() => {
       setTyping('c1', 'u-riya', false);
       setTyping('c1', 'u-vikram', false);

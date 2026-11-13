@@ -31,7 +31,7 @@ export function DeliveryTicks({
       // A new key per state replays the fade, subtly marking the change.
       key={status}
       className={cn(
-        'size-4 shrink-0 animate-in fade-in-0 duration-300 motion-reduce:animate-none',
+        'size-4 shrink-0 animate-in fade-in-0 duration-200 motion-reduce:animate-none',
         className,
         status === 'read' && readClassName,
       )}

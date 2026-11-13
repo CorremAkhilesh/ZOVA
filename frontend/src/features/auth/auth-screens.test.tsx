@@ -210,7 +210,7 @@ describe('code step', () => {
   it('shows the hint in Hindi', async () => {
     await startAtCode();
     await act(() => i18n.changeLanguage('hi'));
-    expect(screen.getByText('केवल सबसे नया कोड काम करता है।')).toBeInTheDocument();
+    expect(screen.getByText('सिर्फ़ सबसे नया कोड काम करेगा।')).toBeInTheDocument();
   });
 
   it('goes back to change the email', async () => {

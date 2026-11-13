@@ -73,6 +73,8 @@
     "notOfflineTitle": "Not available offline",
     "notOfflineBody": "This chat isn’t on this device yet. Connect to the internet to open it.",
     "typing": "typing…",
+    "newMessage": "New message from {{name}}: {{text}}",
+    "newMessageNoText": "New message from {{name}}",
     "lastSeenToday": "last seen today at {{time}}",
     "lastSeenYesterday": "last seen yesterday at {{time}}",
     "lastSeenDate": "last seen {{date}}"
@@ -95,9 +97,8 @@
     "themeDark": "Dark",
     "themeSystem": "System",
     "language": "Language",
-    "languageHint": "Changes the app language on this device.",
+    "languageHint": "Saved to your account: used on all your devices, in emails and in notifications.",
     "account": "Account",
-    "openProfile": "Open profile of {{name}}",
     "accountMenu": "Account",
     "about": "About"
   },
@@ -1168,7 +1169,10 @@
     "unlockChatsHint": "Enter your PIN to see your locked chats for 5 minutes.",
     "chatLockedTitle": "This chat is locked",
     "locked": "Locked",
-    "lockNow": "Lock now"
+    "lockNow": "Lock now",
+    "hiddenStarred": "Messages in locked chats are hidden. Unlock to see them.",
+    "hiddenForward": "Locked chats are hidden. Unlock to forward to them.",
+    "hiddenMedia": "This chat is locked. Unlock to see its media."
   },
   "disappearing": {
     "title": "Disappearing messages",
@@ -1221,6 +1225,7 @@
     "text": "Message",
     "caption": "Caption",
     "schedule": "Schedule",
+    "uploading": "Uploading… {{percent}}%",
     "done": "Scheduled for {{time}}",
     "saved": "Will now send {{time}}",
     "problems": {
@@ -1292,8 +1297,8 @@
     "voters_other": "{{count}} people voted",
     "optionLabel_one": "{{text}}, {{count}} vote, {{percent}} percent",
     "optionLabel_other": "{{text}}, {{count}} votes, {{percent}} percent",
-    "seeVoters_one": "See who voted for {{text}} ({{count}} vote)",
-    "seeVoters_other": "See who voted for {{text}} ({{count}} votes)",
+    "seeVoters_one": "See who voted for {{text}}: {{count}} vote",
+    "seeVoters_other": "See who voted for {{text}}: {{count}} votes",
     "votes_one": "{{count}} vote",
     "votes_other": "{{count}} votes",
     "votersTitle": "Voters",
@@ -1304,5 +1309,9 @@
     "closeHint": "No one will be able to vote any more. The results stay visible.",
     "voteFailed": "Your vote couldn’t be saved. Try again.",
     "closeFailed": "Couldn’t close the poll. Try again."
+  },
+  "help": {
+    "menuTitle": "Help & About",
+    "menuHint": "Install guide, common questions, privacy and contact"
   }
 }

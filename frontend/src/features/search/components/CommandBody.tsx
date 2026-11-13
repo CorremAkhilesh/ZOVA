@@ -18,7 +18,7 @@ export function CommandBody({ command }: { command: Command }) {
         </span>
       ) : null}
       {command.shortcut ? (
-        <kbd className="shrink-0 rounded border px-1.5 py-0.5 font-mono text-xs text-text-muted">
+        <kbd className="shrink-0 rounded border px-1.5 py-0.5 font-mono text-xs text-text-muted pointer-coarse:hidden">
           {formatKeys(command.shortcut)}
         </kbd>
       ) : null}

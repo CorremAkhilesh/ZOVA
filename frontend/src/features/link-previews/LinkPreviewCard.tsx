@@ -89,7 +89,7 @@ export function ComposerLinkPreview({
         type="button"
         onClick={onRemove}
         aria-label={t('linkPreview.remove')}
-        className="absolute top-1 right-1 rounded-full bg-surface/90 p-1 text-text-muted hover:text-text"
+        className="tap-target absolute top-1 right-1 rounded-full bg-surface/90 p-1 text-text-muted hover:text-text"
       >
         <X className="size-4" aria-hidden />
       </button>

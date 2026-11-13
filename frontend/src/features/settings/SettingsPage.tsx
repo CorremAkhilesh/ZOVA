@@ -16,11 +16,11 @@ export function SettingsPage({
 }) {
   const { t } = useTranslation();
   return (
-    <div className="h-full overflow-y-auto">
+    <div className="relative h-full overflow-y-auto">
       <div className="mx-auto max-w-2xl space-y-4 p-4 md:p-8">
         <Link
           to="/settings"
-          className="inline-flex items-center gap-1.5 rounded-md text-sm font-medium text-text-muted hover:text-text"
+          className="inline-flex items-center gap-1.5 rounded-md text-sm font-medium text-text-muted transition-colors hover:text-text pointer-coarse:min-h-11"
         >
           <ArrowLeft className="size-4" aria-hidden />
           {t('settings.title')}

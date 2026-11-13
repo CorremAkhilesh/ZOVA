@@ -54,7 +54,7 @@ export function EmojiField(props: {
               aria-hidden
               className={cn(
                 'flex h-9 min-w-9 items-center justify-center rounded-lg border px-1.5 text-lg',
-                'peer-focus-visible:ring-2 peer-focus-visible:ring-brand',
+                'peer-focus-visible:ring-2 peer-focus-visible:ring-brand-text',
                 'peer-checked:border-brand peer-checked:bg-brand/10',
                 emoji === null && 'text-xs text-text-muted',
               )}

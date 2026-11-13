@@ -3,9 +3,11 @@ import { lazy, type ReactNode, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AccountSettings } from '@/features/auth/components/AccountSettings';
 import { InstallSetting } from '@/features/install/InstallUi';
+import { chooseLanguage } from '@/features/settings/language-sync';
 import { SettingsMenu } from '@/features/settings/SettingsMenu';
 import { ThemeSwitcher } from '@/features/theme/ThemeSwitcher';
 import { LANGUAGES } from '@/lib/i18n';
+import { onRadioGroupKeyDown } from '@/lib/radio-keys';
 import { cn } from '@/lib/utils';
 
 /** Not in production builds, which do not even contain the file. MODE, not DEV: DEV follows NODE_ENV,
@@ -34,7 +36,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 function Settings() {
   const { t, i18n } = useTranslation();
   return (
-    <div className="h-full overflow-y-auto">
+    <div className="relative h-full overflow-y-auto">
       <div className="mx-auto max-w-2xl space-y-4 p-4 md:p-8">
         <h1 className="text-2xl font-bold tracking-tight">{t('settings.title')}</h1>
 
@@ -50,7 +52,12 @@ function Settings() {
         <Section title={t('settings.language')}>
           <div className="space-y-2">
             <p className="text-sm text-text-muted">{t('settings.languageHint')}</p>
-            <div role="radiogroup" aria-label={t('settings.language')} className="flex gap-2">
+            <div
+              role="radiogroup"
+              aria-label={t('settings.language')}
+              onKeyDown={onRadioGroupKeyDown}
+              className="flex gap-2"
+            >
               {LANGUAGES.map(({ code, label }) => {
                 const selected = i18n.resolvedLanguage === code;
                 return (
@@ -60,10 +67,11 @@ function Settings() {
                     type="button"
                     role="radio"
                     aria-checked={selected}
+                    tabIndex={selected ? 0 : -1}
                     lang={code}
-                    onClick={() => void i18n.changeLanguage(code)}
+                    onClick={() => void chooseLanguage(code)}
                     className={cn(
-                      'rounded-lg border px-4 py-2 text-sm font-medium transition-colors',
+                      'rounded-lg border px-4 py-2 text-sm font-medium transition-colors pointer-coarse:min-h-11',
                       selected
                         ? 'border-brand bg-brand-subtle text-brand-text'
                         : 'text-text-muted hover:text-text',

@@ -1,5 +1,6 @@
 import { Monitor, Moon, Sun } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { onRadioGroupKeyDown } from '@/lib/radio-keys';
 import { cn } from '@/lib/utils';
 import { type ThemeMode, useThemeStore } from './theme-store';
 
@@ -19,6 +20,7 @@ export function ThemeSwitcher({ className }: { className?: string }) {
     <div
       role="radiogroup"
       aria-label={t('settings.theme')}
+      onKeyDown={onRadioGroupKeyDown}
       className={cn('inline-flex rounded-lg border bg-background p-1', className)}
     >
       {OPTIONS.map(({ mode: option, icon: Icon, labelKey }) => {
@@ -30,9 +32,10 @@ export function ThemeSwitcher({ className }: { className?: string }) {
             type="button"
             role="radio"
             aria-checked={selected}
+            tabIndex={selected ? 0 : -1}
             onClick={() => setMode(option)}
             className={cn(
-              'flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
+              'flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors pointer-coarse:min-h-11',
               selected ? 'bg-surface text-text shadow-sm' : 'text-text-muted hover:text-text',
             )}
           >

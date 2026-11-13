@@ -164,6 +164,22 @@ describe('conversation', () => {
     await waitFor(() => expect(router.state.location.pathname).toBe('/chats'));
   });
 
+  it('Esc closes the info pane first, giving focus back to the header, then the chat', async () => {
+    await seedLocal([chat], history);
+    const user = userEvent.setup();
+    const { router } = await renderApp('/chats/c1', { width: DESKTOP_WIDTH });
+    const header = await screen.findByRole('button', { name: /^Asha Verma.*Chat info$/ });
+    await user.click(header);
+    const pane = await screen.findByRole('complementary', { name: 'Chat info' });
+    within(pane).getByRole('button', { name: 'Close chat info' }).focus();
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('complementary')).not.toBeInTheDocument());
+    expect(router.state.location.pathname).toBe('/chats/c1');
+    await waitFor(() => expect(header).toHaveFocus());
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(router.state.location.pathname).toBe('/chats'));
+  });
+
   it('Esc does nothing on mobile, which has a back button', async () => {
     await seedLocal([chat], history);
     const user = userEvent.setup();

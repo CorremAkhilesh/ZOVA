@@ -67,7 +67,7 @@ export function PeopleSelect({ selected, onChange, excludeIds, max }: PeopleSele
                 type="button"
                 onClick={() => toggle(person)}
                 aria-label={t('groups.unselect', { name: person.displayName })}
-                className="flex items-center gap-1 rounded-full bg-brand-subtle py-0.5 pr-1.5 pl-2.5 text-sm"
+                className="tap-target flex items-center gap-1 rounded-full bg-brand-subtle py-0.5 pr-1.5 pl-2.5 text-sm"
               >
                 {person.displayName}
                 <X className="size-3.5" aria-hidden />

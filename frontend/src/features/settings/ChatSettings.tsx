@@ -37,7 +37,7 @@ function Toggle({
         aria-hidden
         className={cn(
           'relative mt-1 inline-flex h-6 w-11 shrink-0 rounded-full transition-colors',
-          'peer-focus-visible:ring-2 peer-focus-visible:ring-brand peer-focus-visible:ring-offset-2',
+          'peer-focus-visible:ring-2 peer-focus-visible:ring-brand-text peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-surface',
           checked ? 'bg-brand' : 'bg-border',
         )}
       >

@@ -39,7 +39,7 @@ export function ResetPinFlow({ onDone, onCancel }: { onDone: () => void; onCance
   if (!sent) {
     return (
       <div className="space-y-4">
-        <p className="text-sm text-text-muted">{t('lock.resetHint', { email })}</p>
+        <p className="text-sm text-text-muted wrap-anywhere">{t('lock.resetHint', { email })}</p>
         {failed ? (
           <p role="alert" className="text-sm text-danger">
             {lockErrorMessage(failed, t)}
@@ -58,7 +58,7 @@ export function ResetPinFlow({ onDone, onCancel }: { onDone: () => void; onCance
   }
   return (
     <div className="space-y-4">
-      <p className="text-sm text-text-muted">{t('lock.codeSent', { email })}</p>
+      <p className="text-sm text-text-muted wrap-anywhere">{t('lock.codeSent', { email })}</p>
       <OtpInput
         value={code}
         onChange={setCode}

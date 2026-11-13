@@ -3,6 +3,7 @@ import type { AppLockIdle, LockStatus } from '@zuvo/protocol';
 import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
+import { onRadioGroupKeyDown } from '@/lib/radio-keys';
 import { cn } from '@/lib/utils';
 import { LOCK_KEY, lockApi } from '../api';
 import { lockErrorMessage } from '../errors';
@@ -62,7 +63,7 @@ export function AppLockSettings({ status }: { status: LockStatus }) {
           aria-hidden
           className={cn(
             'relative mt-1 inline-flex h-6 w-11 shrink-0 rounded-full transition-colors',
-            'peer-focus-visible:ring-2 peer-focus-visible:ring-brand peer-focus-visible:ring-offset-2',
+            'peer-focus-visible:ring-2 peer-focus-visible:ring-brand-text peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-surface',
             appLock.enabled ? 'bg-brand' : 'bg-border',
           )}
         >
@@ -81,6 +82,7 @@ export function AppLockSettings({ status }: { status: LockStatus }) {
           </p>
           <div
             role="radiogroup"
+            onKeyDown={onRadioGroupKeyDown}
             aria-labelledby={`${hintId}-idle`}
             className="flex flex-wrap gap-2"
           >
@@ -91,6 +93,7 @@ export function AppLockSettings({ status }: { status: LockStatus }) {
                 type="button"
                 role="radio"
                 aria-checked={appLock.idleMinutes === minutes}
+                tabIndex={appLock.idleMinutes === minutes ? 0 : -1}
                 onClick={() => save.mutate({ ...appLock, idleMinutes: minutes })}
                 className={cn(
                   'rounded-lg border px-4 py-2 text-sm font-medium transition-colors',

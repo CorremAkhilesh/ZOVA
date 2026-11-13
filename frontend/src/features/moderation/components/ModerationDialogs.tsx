@@ -78,7 +78,7 @@ function ReportDialog({ request, onClose }: { request: ReportRequest; onClose: (
               maxLength={NOTE_MAX}
               rows={3}
               onChange={(event) => setNote(event.target.value)}
-              className="w-full resize-none rounded-lg border bg-surface px-3 py-2 text-sm outline-none focus-visible:border-brand"
+              className="w-full resize-none rounded-lg border bg-surface px-3 py-2 text-sm outline-none focus-visible:border-brand-text"
             />
           </div>
           {person ? (

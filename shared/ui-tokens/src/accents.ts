@@ -49,7 +49,7 @@ export const accents: Record<AccentName, AccentPreset> = {
       brand: '#0F766E',
       brandHover: '#115E59',
       brandForeground: '#FFFFFF',
-      brandSubtle: '#134E4A',
+      brandSubtle: '#0F3F3C',
       brandText: '#5EEAD4',
       bubbleOutgoing: '#115E59',
       bubbleOutgoingText: '#FFFFFF',

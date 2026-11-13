@@ -11,7 +11,7 @@ export function Switch(props: {
   return (
     <label
       className={cn(
-        'flex items-start gap-4',
+        'relative flex items-start gap-4',
         props.disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer',
       )}
     >
@@ -32,7 +32,7 @@ export function Switch(props: {
         aria-hidden
         className={cn(
           'relative mt-1 inline-flex h-6 w-11 shrink-0 rounded-full transition-colors',
-          'peer-focus-visible:ring-2 peer-focus-visible:ring-brand peer-focus-visible:ring-offset-2',
+          'peer-focus-visible:ring-2 peer-focus-visible:ring-brand-text peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-surface',
           props.checked ? 'bg-brand' : 'bg-border',
         )}
       >

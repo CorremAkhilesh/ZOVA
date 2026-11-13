@@ -16,6 +16,10 @@ const TEXT_PAIRS: Array<[text: ColorName, background: ColorName]> = [
   ['brandText', 'surface'],
   ['brandText', 'background'],
   ['accentText', 'surface'],
+  ['accentText', 'background'],
+  // Avatar fallbacks and badges: tinted text on its own subtle background.
+  ['accentText', 'accentSubtle'],
+  ['brandText', 'brandSubtle'],
   ['brandForeground', 'brand'],
   ['brandForeground', 'brandHover'],
   ['accentForeground', 'accent'],

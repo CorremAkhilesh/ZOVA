@@ -110,7 +110,7 @@ export function NewGroupDialog() {
                 maxLength={GROUP_DESCRIPTION_MAX}
                 rows={3}
                 onChange={(event) => setDescription(event.target.value)}
-                className="w-full resize-none rounded-lg border bg-surface px-3 py-2 text-sm font-normal outline-none focus-visible:border-brand"
+                className="w-full resize-none rounded-lg border bg-surface px-3 py-2 text-sm font-normal outline-none focus-visible:border-brand-text"
               />
             </label>
             <label className="flex cursor-pointer items-center gap-2 text-sm font-medium">

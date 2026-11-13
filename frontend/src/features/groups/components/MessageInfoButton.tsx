@@ -55,7 +55,7 @@ export function MessageInfoButton({ chatId, messageId }: { chatId: string; messa
         type="button"
         aria-label={t('groups.messageInfo')}
         onClick={() => setOpen(true)}
-        className="self-center rounded-full p-1 text-text-muted opacity-0 transition-opacity group-hover/message:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-60"
+        className="tap-target self-center rounded-full p-1 text-text-muted opacity-0 transition-opacity group-hover/message:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-60"
       >
         <Info className="size-4" aria-hidden />
       </button>

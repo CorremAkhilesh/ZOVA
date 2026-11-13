@@ -33,7 +33,7 @@ function UserRow({
   return (
     <li className="flex flex-wrap items-center gap-3 py-3 first:pt-0 last:pb-0">
       <div className="min-w-0 flex-1">
-        <p className="flex flex-wrap items-center gap-2 font-medium">
+        <p className="flex flex-wrap items-center gap-2 font-medium wrap-anywhere">
           {user.displayName ?? user.email}
           {admin ? <Badge>{t('admin.roleAdmin')}</Badge> : null}
           {deactivated ? <Badge variant="muted">{t('admin.deactivated')}</Badge> : null}
