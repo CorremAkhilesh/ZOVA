@@ -124,12 +124,15 @@ export function StarredScreen({ chatId }: { chatId?: string | undefined }) {
     (rows ?? []).map((row) => [row.id, toChatSummary(row, me, labels).name] as const),
   );
   // Also here, not only on the server: an answer from before the chat was locked may still be cached.
+  // Nothing until my chats are known: before that, a locked chat would not look locked.
   const pages = useMemo(
     () =>
-      stars.data?.pages
-        .flatMap((page) => page.items)
-        .filter((item) => !lockedIds.has(item.message.chatId)),
-    [lockedIds, stars.data],
+      rows === undefined
+        ? undefined
+        : stars.data?.pages
+            .flatMap((page) => page.items)
+            .filter((item) => !lockedIds.has(item.message.chatId)),
+    [lockedIds, rows, stars.data],
   );
   const lockedHidden = hidesLocked(stars.data?.pages, lockedIds, chatId);
   const items = useWithoutExpired(pages, (item) => item.message.expiresAt) ?? [];
@@ -156,7 +159,7 @@ export function StarredScreen({ chatId }: { chatId?: string | undefined }) {
         </h1>
       </header>
       <ScrollArea className="min-h-0 flex-1 px-2 pb-3">
-        {stars.isPending ? (
+        {stars.isPending || rows === undefined ? (
           <div role="status" aria-label={t('common.loading')} className="space-y-2 p-2">
             <Skeleton className="h-14 w-full" />
             <Skeleton className="h-14 w-full" />

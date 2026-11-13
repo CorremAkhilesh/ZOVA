@@ -14,9 +14,16 @@ export function useLocalDb(): LocalDb | null {
 }
 
 /** All chats, most recent activity first. Undefined until the first read. */
+/**
+ * My chats, newest first. Undefined until this user's database has been read: an empty list would
+ * look like "nothing is locked" to screens that hide locked chats' content.
+ */
 export function useChats(): ChatRow[] | undefined {
   const db = useLocalDb();
-  return useLive(() => db?.chats.orderBy('sortAt').reverse().toArray() ?? [], [db]);
+  return useLive<ChatRow[] | undefined>(
+    () => (db ? db.chats.orderBy('sortAt').reverse().toArray() : undefined),
+    [db],
+  );
 }
 
 /** What is waiting to be sent, per chat, so the list can show a clock or "Not sent". */

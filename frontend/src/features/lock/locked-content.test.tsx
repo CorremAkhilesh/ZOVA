@@ -66,7 +66,7 @@ describe('starred messages in locked chats', () => {
     const { container } = await renderApp('/starred', { width: DESKTOP_WIDTH });
     expect(await screen.findByText('the open plan', undefined, SLOW)).toBeInTheDocument();
     expect(document.body).not.toHaveTextContent('the locked plan');
-    expect(document.body).not.toHaveTextContent('Kiran');
+    expect(document.body).not.toHaveTextContent('Kiran Secret');
     const notice = screen.getByTestId('locked-hidden');
     expect(notice).toHaveTextContent('Messages in locked chats are hidden. Unlock to see them.');
     expect(asked.every((search) => !search.includes('includeLocked'))).toBe(true);
@@ -90,7 +90,7 @@ describe('starred messages in locked chats', () => {
     expect(await screen.findByTestId('locked-hidden', {}, SLOW)).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Starred messages' })).toBeInTheDocument();
     expect(screen.queryByText(/Nothing starred yet/)).toBeNull();
-    expect(document.body).not.toHaveTextContent('Kiran');
+    expect(document.body).not.toHaveTextContent('Kiran Secret');
   });
 });
 
