@@ -1,6 +1,7 @@
 import type { CreateUploadBody } from '@zuvo/protocol';
 import { useCallback, useState } from 'react';
 import { useMessageUi } from '@/features/messages/store';
+import { scheduleMedia } from '@/features/scheduled/schedule-media';
 import { useSyncStore } from '@/features/sync/store';
 import { uuidv7 } from '@/lib/uuid';
 import type { PickedFile } from './components/PreviewSheet';
@@ -10,7 +11,7 @@ import { useAppConfig } from './use-app-config';
 
 const isVisual = (kind: CreateUploadBody['kind']) => kind === 'image' || kind === 'video';
 
-const toUploadInfo = (file: PreparedFile): CreateUploadBody => ({
+export const toUploadInfo = (file: PreparedFile): CreateUploadBody => ({
   kind: file.kind,
   name: file.name,
   mime: file.mime,
@@ -59,11 +60,37 @@ export function useSendMedia(chatId: string) {
     [chatId],
   );
 
+  /** "Schedule message" from the preview sheet: each file goes as its own message, at `at`. */
+  const schedule = useCallback(
+    async (
+      input: { items: PickedFile[]; asDocument: boolean },
+      at: Date,
+      onProgress: (fraction: number) => void,
+    ) => {
+      const prepared = await Promise.all(
+        input.items.map((item) => prepareFile(item.file, input.asDocument)),
+      );
+      await scheduleMedia(
+        chatId,
+        prepared.map((file, index) => ({
+          file: file.file,
+          info: toUploadInfo(file),
+          poster: file.poster,
+          caption: input.items[index]?.caption ?? '',
+        })),
+        at,
+        onProgress,
+      );
+    },
+    [chatId],
+  );
+
   return {
     picked,
     setPicked,
     addFiles,
     send,
+    schedule,
     clear: useCallback(() => setPicked([]), []),
     // Unknown while offline. The server still decides, and the message then says why it failed.
     maxBytes: config?.media.maxFileBytes ?? null,

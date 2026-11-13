@@ -1,13 +1,17 @@
 import { ALBUM_MAX_ITEMS, CAPTION_MAX } from '@zuvo/protocol';
 import { FileText, Loader2, Music, Video, X } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { ScheduleMenu } from '@/features/scheduled/components/ScheduleMenu';
+import { mediaLine } from '@/features/scheduled/preview';
 import { offersViewOnce } from '@/features/view-once/rules';
 import { ViewOnceToggle } from '@/features/view-once/ViewOnceToggle';
 import { uuidv7 } from '@/lib/uuid';
 import { formatBytes, kindOf } from '../process';
+
+const ScheduleDialog = lazy(() => import('@/features/scheduled/components/ScheduleDialog'));
 
 export interface PickedFile {
   id: string;
@@ -34,6 +38,12 @@ interface PreviewSheetProps {
   onSend: (input: SendInput) => Promise<void>;
   /** Offer "View once" (not in Saved Messages). */
   allowViewOnce?: boolean;
+  /** "Schedule message" from the Send button's menu: uploads now, sends at `at`. */
+  onSchedule?: (
+    input: Omit<SendInput, 'viewOnce'>,
+    at: Date,
+    onProgress: (fraction: number) => void,
+  ) => Promise<void>;
 }
 
 /** A picture's preview, in the sheet only; it goes when the sheet does. */
@@ -78,7 +88,7 @@ function PickedItem(props: {
             type="button"
             aria-label={t('media.removeFile', { name: item.file.name })}
             onClick={props.onRemove}
-            className="shrink-0 rounded-full p-1 text-text-muted hover:bg-background"
+            className="tap-target shrink-0 rounded-full p-1 text-text-muted hover:bg-background"
           >
             <X className="size-4" aria-hidden />
           </button>
@@ -99,7 +109,7 @@ function PickedItem(props: {
           onChange={(event) => props.onCaption(event.target.value)}
           placeholder={t('media.addCaption')}
           aria-label={t('media.captionFor', { name: item.file.name })}
-          className="w-full rounded-lg border bg-surface px-2.5 py-1.5 text-sm outline-none focus-visible:border-brand"
+          className="w-full rounded-lg border bg-surface px-2.5 py-1.5 text-sm outline-none focus-visible:border-brand-text"
         />
       </div>
     </li>
@@ -108,12 +118,13 @@ function PickedItem(props: {
 
 /** Check before sending: remove things, add captions, or send without compressing. */
 export function PreviewSheet(props: PreviewSheetProps) {
-  const { picked, maxBytes, onChange, onClose, onSend, allowViewOnce = false } = props;
+  const { picked, maxBytes, onChange, onClose, onSend, onSchedule, allowViewOnce = false } = props;
   const { t, i18n } = useTranslation();
   const [asDocument, setAsDocument] = useState(false);
   const [viewOnce, setViewOnce] = useState(false);
   const [sending, setSending] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [scheduling, setScheduling] = useState(false);
   const items = picked.slice(0, ALBUM_MAX_ITEMS);
   const overLimit = picked.length > ALBUM_MAX_ITEMS;
   const sendable = items.filter((item) => !isTooBig(item.file, maxBytes));
@@ -188,14 +199,55 @@ export function PreviewSheet(props: PreviewSheetProps) {
             <Button variant="ghost" onClick={onClose}>
               {t('media.cancel')}
             </Button>
-            <Button onClick={() => void send()} disabled={sending || nothing}>
-              {sending ? (
-                <Loader2 className="size-4 animate-spin motion-reduce:animate-none" aria-hidden />
-              ) : null}
-              {nothing ? t('media.nothingToSend') : t('media.send', { count: sendable.length })}
-            </Button>
+            <ScheduleMenu
+              // View once is for now: a scheduled file is an ordinary one.
+              available={() =>
+                onSchedule !== undefined && !sending && !nothing && !(once && viewOnce)
+              }
+              onSchedule={() => setScheduling(true)}
+            >
+              {(trigger) => (
+                <Button
+                  disabled={sending || nothing}
+                  {...trigger}
+                  onClick={(event) => {
+                    trigger.onClick(event);
+                    if (!event.defaultPrevented) void send();
+                  }}
+                >
+                  {sending ? (
+                    <Loader2
+                      className="size-4 animate-spin motion-reduce:animate-none"
+                      aria-hidden
+                    />
+                  ) : null}
+                  {nothing ? t('media.nothingToSend') : t('media.send', { count: sendable.length })}
+                </Button>
+              )}
+            </ScheduleMenu>
           </div>
         </div>
+        {/* Inside the sheet: its focus and its outside clicks stay with the dialog on top. */}
+        {scheduling && onSchedule ? (
+          <Suspense fallback={null}>
+            <ScheduleDialog
+              mode="media"
+              summary={sendable
+                .map((item) =>
+                  mediaLine(
+                    { kind: asDocument ? 'document' : kindOf(item.file), name: item.file.name },
+                    item.caption.trim() || null,
+                  ),
+                )
+                .join('\n')}
+              schedule={(at, onProgress) =>
+                onSchedule({ items: sendable, asDocument }, at, onProgress)
+              }
+              onDone={onClose}
+              onClose={() => setScheduling(false)}
+            />
+          </Suspense>
+        ) : null}
       </DialogContent>
     </Dialog>
   );
