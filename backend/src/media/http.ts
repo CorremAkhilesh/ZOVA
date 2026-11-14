@@ -21,7 +21,7 @@ export function setFileHeaders(
     .header('Content-Type', thumbnail ? 'image/webp' : doc.mime)
     .header('X-Content-Type-Options', 'nosniff')
     .header('Content-Disposition', contentDisposition(inline ? 'inline' : 'attachment', doc.name))
-    .header('Content-Security-Policy', "default-src 'none'; sandbox")
+    .header('Content-Security-Policy', "default-src 'none'; sandbox; frame-ancestors 'none'")
     .header('Cache-Control', IMMUTABLE)
     .header('Accept-Ranges', 'bytes');
   if (doc.sha256 && !thumbnail) reply.header('ETag', `"${doc.sha256}"`);

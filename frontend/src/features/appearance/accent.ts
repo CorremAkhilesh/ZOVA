@@ -1,6 +1,6 @@
 import { type AccentName, DEFAULT_ACCENT, isAccentName } from '@zuvo/ui-tokens';
 
-/** localStorage key — also read by the inline script in index.html, so the first paint has the accent. */
+/** localStorage key — also read by public/theme-init.js, so the first paint has the accent. */
 export const ACCENT_STORAGE_KEY = 'zuvo-accent';
 
 /** The accent this device used last. */

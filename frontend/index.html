@@ -15,29 +15,8 @@
     <meta name="apple-mobile-web-app-title" content="%BRAND_NAME%" />
     <!-- PWA:SPLASH -->
     <title>%BRAND_NAME%</title>
-    <script>
-      // Apply the saved theme before first paint so there is no flash of the wrong theme.
-      (() => {
-        let dark = false;
-        try {
-          const saved = JSON.parse(localStorage.getItem('zuvo-theme') || '{}');
-          const mode = saved.state?.mode || 'system';
-          dark =
-            mode === 'dark' ||
-            (mode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-        } catch {
-          // Storage blocked: fall back to light.
-        }
-        document.documentElement.dataset.theme = dark ? 'dark' : 'light';
-        // The accent this device used last (features/appearance/accent.ts).
-        try {
-          const accent = localStorage.getItem('zuvo-accent');
-          if (accent && /^[a-z]+$/.test(accent)) document.documentElement.dataset.accent = accent;
-        } catch {
-          // Storage blocked: the default accent.
-        }
-      })();
-    </script>
+    <!-- Saved theme + accent before first paint. A file, not inline: the CSP forbids inline scripts. -->
+    <script src="/theme-init.js" vite-ignore></script>
   </head>
   <body>
     <div id="root"></div>

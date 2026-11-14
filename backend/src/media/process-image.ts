@@ -1,5 +1,6 @@
 import sharp from 'sharp';
 import { AppError } from '../lib/errors.ts';
+import { detectImageType } from '../users/avatar.ts';
 
 export const FULL_MAX_PX = 2560;
 export const THUMBNAIL_MAX_PX = 320;
@@ -56,8 +57,18 @@ export async function processImage(path: string) {
   }
 }
 
+/** Poster frames the browser makes (canvas → JPEG); checked by magic bytes before any decoder runs. */
+const POSTER_TYPES = new Set(['jpeg', 'png', 'webp']);
+
 /** A video's poster comes from the browser: it must really be a picture before we keep it. */
 export async function processPoster(bytes: Uint8Array) {
+  const type = detectImageType(bytes);
+  if (!type || !POSTER_TYPES.has(type)) {
+    throw new AppError(
+      'UNSUPPORTED_MEDIA_TYPE',
+      'The video poster must be a JPEG, PNG or WebP image.',
+    );
+  }
   try {
     const thumbnail = await pipeline(bytes)
       .rotate()

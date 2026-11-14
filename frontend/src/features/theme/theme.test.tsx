@@ -29,7 +29,7 @@ describe('theme store', () => {
     expect(document.documentElement.style.colorScheme).toBe('dark');
   });
 
-  it('persists the chosen mode under the key read by index.html', () => {
+  it('persists the chosen mode under the key read by public/theme-init.js', () => {
     useThemeStore.getState().setMode('dark');
     expect(JSON.parse(localStorage.getItem(THEME_STORAGE_KEY) ?? '{}')).toMatchObject({
       state: { mode: 'dark' },

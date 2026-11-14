@@ -62,7 +62,9 @@
       <img src="/favicon.svg" alt="" />
       <h1>You’re offline</h1>
       <p>The app couldn’t load. Check your connection and try again.</p>
-      <button type="button" onclick="location.reload()">Try again</button>
+      <button type="button" id="retry">Try again</button>
     </main>
+    <!-- Not inline: the CSP forbids inline scripts. -->
+    <script src="/offline.js"></script>
   </body>
 </html>

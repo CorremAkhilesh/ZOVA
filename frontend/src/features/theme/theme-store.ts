@@ -4,7 +4,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 export type ThemeMode = 'light' | 'dark' | 'system';
 export type ResolvedTheme = 'light' | 'dark';
 
-/** localStorage key — also read by the inline script in index.html to avoid a theme flash. */
+/** localStorage key — also read by public/theme-init.js to avoid a theme flash. */
 export const THEME_STORAGE_KEY = 'zuvo-theme';
 
 interface ThemeState {

@@ -19,16 +19,20 @@
     "db:sync-indexes": "tsx --env-file=.env src/scripts/sync-indexes.ts",
     "admin:role": "tsx --env-file=.env src/scripts/admin-role.ts",
     "bench:realtime": "tsx src/scripts/bench-realtime.ts",
+    "load:local": "tsx load/local.ts",
+    "index:coverage": "tsx src/scripts/index-coverage.ts",
     "test:coverage": "vitest run --coverage",
     "e2e:server": "tsx src/scripts/e2e-server.ts"
   },
   "devDependencies": {
+    "@types/autocannon": "7.12.7",
     "@types/node": "^24.19.2",
     "@types/nodemailer": "8.0.2",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "@types/web-push": "3.6.4",
     "@vitest/coverage-v8": "5.0.5",
+    "autocannon": "8.0.0",
     "esbuild": "0.28.2",
     "mongodb-memory-server": "11.3.0",
     "pino-pretty": "13.2.0",
@@ -39,7 +43,6 @@
   },
   "dependencies": {
     "@fastify/cors": "11.4.0",
-    "@fastify/helmet": "13.2.0",
     "@fastify/multipart": "10.1.7",
     "@fastify/rate-limit": "11.2.1",
     "@fastify/swagger": "9.9.3",
