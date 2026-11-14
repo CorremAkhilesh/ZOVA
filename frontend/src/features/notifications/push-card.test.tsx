@@ -1,8 +1,10 @@
-import { act, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { brand } from '@zuvo/config';
 import { DEFAULT_PUSH_SETTINGS } from '@zuvo/protocol';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { resetPromoVisit } from '@/features/promo/PromoBar';
+import { PROMO_DELAY_MS } from '@/features/promo/ready';
 import { OPEN_URL_MESSAGE } from '@/sw/push/handlers';
 import { axe } from '@/test/axe';
 import { chatFixture, messageFixture, personFixture } from '@/test/chat-fixtures';
@@ -26,6 +28,9 @@ beforeAll(() => {
 });
 
 afterEach(() => {
+  // Unmount first: a bar that loses its reason while mounted closes for the visit.
+  cleanup();
+  resetPromoVisit();
   restorePushBrowser();
   vi.restoreAllMocks();
 });
@@ -37,6 +42,7 @@ async function openChats() {
   await seedLocal([asha]);
   return renderApp('/chats', { width: DESKTOP_WIDTH });
 }
+/** The promo bar comes a moment after the rows have painted. */
 const card = () => screen.findByRole('complementary', { name: /notif|Home Screen/i }, SLOW);
 /** Opening a chat loads its history: none here. */
 const serveNoMessages = () =>
@@ -44,11 +50,14 @@ const serveNoMessages = () =>
     http.get('*/v1/chats/:id/messages', () => HttpResponse.json({ items: [], hasMore: false })),
   );
 
-describe('"Get notified" card', () => {
+describe('"Get notified" bar', () => {
   it('asks only after Enable, then subscribes and goes away; no axe violations', async () => {
     const api = servePush();
     const browser = installPushBrowser({ permission: 'default', answer: 'granted' });
     const { container } = await openChats();
+    // The rows paint first; the bar waits for them, then for an idle moment.
+    await screen.findByText('Asha Verma', {}, SLOW);
+    expect(screen.queryByRole('complementary', { name: /notif/i })).toBeNull();
     expect(await card()).toHaveTextContent('Get notified about new messages');
     expect(browser.Notification.requestPermission).not.toHaveBeenCalled();
     expect(await axe(container)).toHaveNoViolations();
@@ -58,13 +67,17 @@ describe('"Get notified" card', () => {
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Enable' })).toBeNull());
   });
 
-  it('explains how to unblock when notifications are denied', async () => {
+  it('names a block in the bar and explains how to unblock in a dialog', async () => {
     servePush();
     installPushBrowser({ permission: 'denied' });
-    await openChats();
+    const { container } = await openChats();
     const shown = await card();
     expect(shown).toHaveTextContent('Notifications are blocked');
-    expect(shown).toHaveTextContent('Site settings');
+    expect(shown).not.toHaveTextContent('Site settings');
+    await userEvent.setup().click(within(shown).getByRole('button', { name: 'What to do' }));
+    const help = await screen.findByRole('dialog', { name: 'Notifications are blocked' });
+    expect(help).toHaveTextContent('Site settings');
+    expect(await axe(container)).toHaveNoViolations();
   });
 
   it('on iPhone outside the installed app, explains Add to Home Screen', async () => {
@@ -77,11 +90,11 @@ describe('"Get notified" card', () => {
     expect(await axe(container)).toHaveNoViolations();
   });
 
-  it('says so in a browser without push, and remembers a dismissal', async () => {
+  it('says so in a browser without push, and remembers "Not now"', async () => {
     servePush();
     await openChats();
     expect(await card()).toHaveTextContent('Notifications aren’t available here');
-    await userEvent.setup().click(screen.getByRole('button', { name: 'Dismiss' }));
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Not now' }));
     expect(screen.queryByText('Notifications aren’t available here')).toBeNull();
     expect(localStorage.getItem(PUSH_CARD_DISMISSED_KEY)).toBe('1');
   });
@@ -90,7 +103,7 @@ describe('"Get notified" card', () => {
     installPushBrowser({ permission: 'default' });
     await openChats();
     await screen.findByText('Asha Verma', {}, SLOW);
-    await act(() => new Promise((resolve) => setTimeout(resolve, 100)));
+    await act(() => new Promise((resolve) => setTimeout(resolve, PROMO_DELAY_MS + 300)));
     expect(screen.queryByText('Get notified about new messages')).toBeNull();
   });
 
@@ -99,7 +112,7 @@ describe('"Get notified" card', () => {
     installPushBrowser({ permission: 'granted' });
     await openChats();
     await screen.findByText('Asha Verma', {}, SLOW);
-    await act(() => new Promise((resolve) => setTimeout(resolve, 100)));
+    await act(() => new Promise((resolve) => setTimeout(resolve, PROMO_DELAY_MS + 300)));
     expect(screen.queryByRole('complementary', { name: /notif/i })).toBeNull();
   });
 });

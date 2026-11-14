@@ -1,7 +1,7 @@
 import { Link } from '@tanstack/react-router';
 import type { LastReaction, SystemEvent } from '@zuvo/protocol';
 import { Archive, ArrowLeft, MessageSquarePlus, Search, Star } from 'lucide-react';
-import { lazy, type RefObject, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { type RefObject, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChatListSkeleton } from '@/components/common/ChatListSkeleton';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useSession } from '@/features/auth/session';
 import { useChatListView } from '@/features/commands/chat-list-view';
-import { ConnectionStatus } from '@/features/connection/ConnectionStatus';
+import { ListStatus } from '@/features/connection/ListStatus';
 import { useFolders } from '@/features/folders/api';
 import { FolderChips } from '@/features/folders/components/FolderChips';
 import { FolderEditorHost } from '@/features/folders/components/FolderEditorHost';
@@ -21,7 +21,7 @@ import { systemText } from '@/features/groups/wording';
 import { useWithoutLocked } from '@/features/lock/chat-lock';
 import { LockedChatsEntry } from '@/features/lock/components/LockedChatsEntry';
 import { ChatMenu } from '@/features/messages/components/ChatMenu';
-import { usePushPrefs } from '@/features/notifications/prefs';
+import { useChatListPromo } from '@/features/promo/use-chat-list-promo';
 import { QuietIndicator } from '@/features/quiet-hours/components/QuietIndicator';
 import { useGlobalSearch } from '@/features/search/store';
 import { useSyncStore } from '@/features/sync/store';
@@ -32,8 +32,6 @@ import type { ChatFolder, ChatSummary } from '../types';
 import { toChatSummary } from '../view';
 import { ChatRows } from './ChatRows';
 import { NoChatsYet } from './NoChatsYet';
-
-const PushCard = lazy(() => import('@/features/notifications/components/PushCard'));
 
 function EmptyFolder({ folder, searching }: { folder: ChatFolder; searching: boolean }) {
   const { t } = useTranslation();
@@ -159,23 +157,22 @@ export function ChatListPane() {
   );
   const archivedCount = all?.filter((chat) => chat.archived).length ?? 0;
   const showArchivedRow = !archivedList && !query.trim() && folder === 'all' && archivedCount > 0;
-  // "Get notified": once there is a real chat, and never while searching or in Archived.
-  const pushCardDismissed = usePushPrefs((state) => state.cardDismissed);
-  const offerPush =
-    !pushCardDismissed &&
-    !archivedList &&
-    !query.trim() &&
-    Boolean(rows?.some((r) => r.type !== 'self'));
+  // "Get notified" / "Install the app": a bar over the list's bottom, once the rows have painted.
+  const promo = useChatListPromo({
+    rowsShown: chats.length > 0,
+    pushAllowed: Boolean(rows?.some((r) => r.type !== 'self')),
+    hidden: archivedList || Boolean(query.trim()),
+  });
 
   return (
-    <section aria-labelledby="chat-list-title" className="flex h-full min-h-0 flex-col">
+    <section aria-labelledby="chat-list-title" className="relative flex h-full min-h-0 flex-col">
       <header className="space-y-3 px-4 pt-4 pb-2">
         <div className="flex items-center justify-between gap-2">
           <h1 id="chat-list-title" className="text-2xl font-bold tracking-tight">
             {t('nav.chats')}
           </h1>
           <div className="flex items-center gap-1">
-            <ConnectionStatus />
+            <ListStatus />
             <QuietIndicator />
             <Button asChild variant="ghost" size="icon-sm">
               <Link to="/starred" aria-label={t('messages.starredTitle')}>
@@ -216,11 +213,6 @@ export function ChatListPane() {
 
       <ChatMenu />
       <FolderEditorHost />
-      {offerPush ? (
-        <Suspense fallback={null}>
-          <PushCard />
-        </Suspense>
-      ) : null}
       <ScrollArea viewportRef={scroller} className="min-h-0 flex-1 px-2 pb-3">
         {archivedList ? (
           <button
@@ -263,7 +255,9 @@ export function ChatListPane() {
             {t('search.inMessages', { q: query.trim() })}
           </button>
         ) : null}
+        {promo.spacer}
       </ScrollArea>
+      {promo.bar}
     </section>
   );
 }
