@@ -1,7 +1,7 @@
 import { Queue, Worker } from 'bullmq';
 import type { FastifyInstance } from 'fastify';
 import type { Redis } from 'ioredis';
-import mongoose from 'mongoose';
+import type { Connection } from 'mongoose';
 import type { Logger } from 'pino';
 import { sweepExpiredPins } from '../chats/pins.service.ts';
 import type { Env } from '../config/env.ts';
@@ -38,20 +38,17 @@ export async function startPinsCleanup(
 }
 
 /** The worker has no Fastify app: the sweep only needs MongoDB from one. */
-export async function startWorkerPinsCleanup(env: Env, connection: Redis, logger: Logger) {
-  const mongo = await mongoose
-    .createConnection(env.MONGODB_URI, {
-      dbName: env.MONGODB_DB,
-      autoIndex: false,
-      appName: 'zuvo-worker-pins',
-    })
-    .asPromise();
+export async function startWorkerPinsCleanup(
+  env: Env,
+  mongo: Connection,
+  connection: Redis,
+  logger: Logger,
+) {
   const context = { mongo, env } as unknown as FastifyInstance;
   const job = await startPinsCleanup(connection, () => sweepExpiredPins(context), logger);
   return {
     async close() {
       await job.close();
-      await mongo.close();
     },
   };
 }

@@ -27,6 +27,8 @@ describe('Web Push queries use indexes', () => {
     await expectIndexedQuery(
       PushSubscription.find({ sessionId: 's1', endpoint: { $ne: 'https://push.example.test/a' } }),
     );
+    // A session ending (devices list, sign-out cleanup).
+    await expectIndexedQuery(PushSubscription.find({ sessionId: 's1' }));
   });
 
   it('what a push job reads: membership, messages, hidden, blocks, badge', async () => {

@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import { CoalescingQueue } from '../lib/coalescing-queue.ts';
 import { privacyOf, type UserDoc, usersModel } from '../users/user-record.ts';
 import { chatModels, oid } from './chats.service.ts';
 import { logUpdates } from './updates.ts';
@@ -18,8 +19,18 @@ export async function ownReceiptsOn(app: FastifyInstance, userId: string): Promi
  *
  * Marks only ever go up. When one does, every member hears once, which is about once per message
  * however many people each report it, rather than for every one of them.
+ *
+ * One refresh per chat at a time in this process; reports arriving meanwhile share one more. Each
+ * refresh is a transaction that bumps every member's sync counter, and running one per report made
+ * them collide (Step 20 load test: tens of thousands of write conflicts for ~1,500 messages).
  */
-export async function refreshGroupMarks(app: FastifyInstance, chatId: string): Promise<void> {
+export function refreshGroupMarks(app: FastifyInstance, chatId: string): Promise<void> {
+  return markRefreshes.run(chatId, () => applyGroupMarks(app, chatId));
+}
+
+const markRefreshes = new CoalescingQueue();
+
+async function applyGroupMarks(app: FastifyInstance, chatId: string): Promise<void> {
   const models = chatModels(app);
   const { Chat, ChatMember } = models;
   const id = oid(chatId);

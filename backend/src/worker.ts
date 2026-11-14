@@ -3,6 +3,7 @@ import { EnvError, loadEnv } from './config/env.ts';
 import { createEmailWorker } from './jobs/email-worker.ts';
 import { startWorkerPinsCleanup } from './jobs/pins-cleanup.ts';
 import { startWorkerMediaCleanup } from './jobs/worker-media-cleanup.ts';
+import { connectWorkerMongo } from './jobs/worker-mongo.ts';
 import { startWorkerPush } from './jobs/worker-push.ts';
 import { connectionsLine, describeConnections } from './lib/connections.ts';
 import { loggerOptions } from './lib/logger.ts';
@@ -22,15 +23,18 @@ async function main() {
   const connection = createBullConnection(env.REDIS_URL, 'zuvo-worker');
   const mailer = createMailer(env);
   const emailWorker = createEmailWorker(connection, mailer, logger);
-  const mediaCleanup = await startWorkerMediaCleanup(env, connection, logger);
-  const pinsCleanup = await startWorkerPinsCleanup(env, connection, logger);
-  const push = await startWorkerPush(env, connection, logger);
+  // One MongoDB client for every job.
+  const db = await connectWorkerMongo(env, logger);
+  const mediaCleanup = await startWorkerMediaCleanup(env, db.mongo, connection, logger);
+  const pinsCleanup = await startWorkerPinsCleanup(env, db.mongo, connection, logger);
+  const push = await startWorkerPush(env, db.mongo, connection, logger);
 
   handleShutdown(logger, async () => {
     await emailWorker.close();
     await mediaCleanup.close();
     await pinsCleanup.close();
     await push?.close();
+    await db.close();
     mailer.close();
     await connection.quit();
   });

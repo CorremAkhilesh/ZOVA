@@ -4,5 +4,5 @@
     "types": ["node"],
     "jsx": "react-jsx"
   },
-  "include": ["src", "test", "scripts", "vitest.config.ts"]
+  "include": ["src", "test", "scripts", "load", "vitest.config.ts"]
 }

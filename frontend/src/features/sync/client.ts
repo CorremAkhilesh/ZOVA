@@ -82,6 +82,10 @@ export function startSyncClient(options: SyncClientOptions): SyncClient {
   const socket: AppSocket = io({
     path: '/socket.io',
     withCredentials: true,
+    // WebSocket first: no long-polling handshake round trips, and no sticky sessions needed once
+    // there are several API instances. Long-polling stays as the fallback (proxies that block it).
+    transports: ['websocket', 'polling'],
+    tryAllTransports: true,
     autoConnect: navigator.onLine,
     reconnectionDelay: 1000,
     reconnectionDelayMax: 30_000,
