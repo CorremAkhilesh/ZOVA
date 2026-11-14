@@ -2,6 +2,7 @@ import { Clock } from 'lucide-react';
 import { Popover } from 'radix-ui';
 import { type MouseEvent, type ReactElement, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useBackClose } from '@/lib/back-stack';
 
 const LONG_PRESS_MS = 500;
 
@@ -30,6 +31,7 @@ interface ScheduleMenuProps {
 export function ScheduleMenu({ available, onSchedule, children }: ScheduleMenuProps) {
   const { t } = useTranslation();
   const [menu, setMenu] = useState(false);
+  useBackClose(menu, () => setMenu(false));
   const press = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pressed = useRef(false);
 

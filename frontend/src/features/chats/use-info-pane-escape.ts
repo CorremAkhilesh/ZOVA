@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useMessageUi } from '@/features/messages/store';
+import { useBackClose } from '@/lib/back-stack';
 
 /** The header button that opens chat info: focus goes back to it when the pane closes. */
 export const INFO_TOGGLE_ATTR = 'data-info-toggle';
@@ -16,6 +17,8 @@ export function focusInfoToggle(): void {
  * this pane, then the chat. Listens on `document`, which hears the key before `window` does.
  */
 export function useInfoPaneEscape(open: boolean, chatId: string, onClose: () => void): void {
+  // A touch screen wide enough for the pane: Back closes it, after anything opened over it.
+  useBackClose(open, onClose);
   useEffect(() => {
     if (!open) return;
     function onKeyDown(event: KeyboardEvent) {

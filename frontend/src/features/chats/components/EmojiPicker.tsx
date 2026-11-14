@@ -3,6 +3,7 @@ import { Popover } from 'radix-ui';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
+import { useBackClose } from '@/lib/back-stack';
 import { cn } from '@/lib/utils';
 import { EMOJI_GROUPS, type EmojiGroup } from '../emoji-data';
 
@@ -11,6 +12,7 @@ export function EmojiPicker({ onPick }: { onPick: (emoji: string) => void }) {
   const { t } = useTranslation();
   const [group, setGroup] = useState<EmojiGroup>(EMOJI_GROUPS[0]);
   const [open, setOpen] = useState(false);
+  useBackClose(open, () => setOpen(false));
 
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>

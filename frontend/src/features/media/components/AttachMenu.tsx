@@ -3,6 +3,7 @@ import { Popover } from 'radix-ui';
 import { type ChangeEvent, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
+import { useBackClose } from '@/lib/back-stack';
 import { useIsDesktop } from '@/lib/hooks';
 
 const CHOICE =
@@ -17,6 +18,7 @@ export function AttachMenu(props: {
   const { t } = useTranslation();
   const isDesktop = useIsDesktop();
   const [open, setOpen] = useState(false);
+  useBackClose(open, () => setOpen(false));
   const media = useRef<HTMLInputElement>(null);
   const document = useRef<HTMLInputElement>(null);
   const camera = useRef<HTMLInputElement>(null);

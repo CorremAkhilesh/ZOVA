@@ -155,6 +155,21 @@ describe('conversation', () => {
     expect(await screen.findByRole('dialog', { name: 'Chat info' })).toBeInTheDocument();
   });
 
+  it('the phone’s Back closes chat info before it leaves the chat', async () => {
+    await seedLocal([chat], history);
+    const user = userEvent.setup();
+    const { router } = await renderApp('/chats/c1', { width: MOBILE_WIDTH });
+    const [toggle] = await screen.findAllByRole('button', { name: 'Chat info' });
+    if (!toggle) throw new Error('no info toggle');
+    await user.click(toggle);
+    await screen.findByRole('dialog', { name: 'Chat info' });
+    await waitFor(() => expect(router.history.location.state).toHaveProperty('zuvoOverlay'));
+
+    act(() => router.history.back());
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(router.state.location.pathname).toBe('/chats/c1');
+  });
+
   it('Esc returns to the list on desktop', async () => {
     await seedLocal([chat], history);
     const user = userEvent.setup();

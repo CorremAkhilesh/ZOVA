@@ -1,6 +1,7 @@
 import { useNavigate } from '@tanstack/react-router';
 import { useEffect } from 'react';
 import { useMessageUi } from '@/features/messages/store';
+import { useBackClose } from '@/lib/back-stack';
 import { useIsDesktop } from '@/lib/hooks';
 import { useNewChat } from './new-chat-store';
 
@@ -20,6 +21,14 @@ export function useChatShortcuts(openChatId: string | undefined): void {
   const isDesktop = useIsDesktop();
   const navigate = useNavigate();
   const open = useNewChat((state) => state.open);
+  // Back cancels them one by one too, before it leaves the chat (see back-stack.ts).
+  const inProgress = useMessageUi(
+    (state) =>
+      state.selecting !== null ||
+      state.editing !== null ||
+      Boolean(openChatId && state.replies[openChatId]),
+  );
+  useBackClose(inProgress, () => useMessageUi.getState().cancelOne(openChatId));
 
   useEffect(() => {
     if (new URLSearchParams(window.location.search).has('new')) open();

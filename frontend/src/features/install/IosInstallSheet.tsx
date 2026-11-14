@@ -2,6 +2,7 @@ import { CheckCircle2, PlusSquare, Share } from 'lucide-react';
 import { Dialog } from 'radix-ui';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
+import { useBackClose } from '@/lib/back-stack';
 import { useInstallStore } from './install-store';
 
 /** Step-by-step "Share → Add to Home Screen" sheet for iPhone and iPad Safari. */
@@ -9,6 +10,7 @@ export default function IosInstallSheet() {
   const { t } = useTranslation();
   const open = useInstallStore((state) => state.iosSheetOpen);
   const setOpen = useInstallStore((state) => state.setIosSheetOpen);
+  useBackClose(open, () => setOpen(false));
   const steps = [
     { icon: Share, text: t('install.iosStep1') },
     { icon: PlusSquare, text: t('install.iosStep2') },
