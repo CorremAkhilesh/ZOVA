@@ -93,6 +93,28 @@ describe('the composer', () => {
     expect(input).toHaveValue('*_hello_*');
   });
 
+  it('keeps the selection between two shortcuts, even when frames lag', async () => {
+    // A slow machine: animation frames run late, after the next keys.
+    const frames: FrameRequestCallback[] = [];
+    const raf = vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
+      frames.push(callback);
+      return frames.length;
+    });
+    try {
+      const user = userEvent.setup();
+      const { input } = await openChat();
+      input.focus();
+      await user.keyboard('hello');
+      (input as HTMLTextAreaElement).setSelectionRange(0, 5);
+      await user.keyboard('{Control>}b{/Control}');
+      await user.keyboard('{Control>}i{/Control}');
+      for (const frame of frames.splice(0)) frame(performance.now());
+      expect(input).toHaveValue('*_hello_*');
+    } finally {
+      raf.mockRestore();
+    }
+  });
+
   it('previews a link after a pause, and sends it with the message', async () => {
     const asked: string[] = [];
     server.use(
