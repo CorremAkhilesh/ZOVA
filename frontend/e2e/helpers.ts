@@ -1,4 +1,4 @@
-import { expect, type Page } from '@playwright/test';
+import { expect, type Page, test } from '@playwright/test';
 
 /** A unique organization address per test, so tests never share accounts or rate limits. */
 export function uniqueEmail(prefix = 'e2e'): string {
@@ -54,6 +54,34 @@ export async function signUp(page: Page, name = 'E2E Tester', username?: string)
   await expect(page.getByText('Available')).toBeVisible(SLOW);
   await page.getByRole('button', { name: 'Continue' }).click();
   await expect(page).toHaveURL(/\/chats$/, SLOW);
+  return email;
+}
+
+/**
+ * A new account the quick way: the same API calls the sign-up screens make (code by email, verify,
+ * name, @username), then the app opens on /chats like for a returning user. For the many tests
+ * that only need someone signed in; auth.spec.ts and the people tests go through the screens.
+ */
+export async function signUpByApi(
+  page: Page,
+  name: string,
+  username = `${name.replace(/[^a-z]/gi, '').toLowerCase()}${Math.random().toString(36).slice(2, 12)}`,
+): Promise<string> {
+  const email = uniqueEmail();
+  const origin = new URL(String(test.info().project.use.baseURL)).origin;
+  const post = async (url: string, method: 'POST' | 'PATCH' | 'PUT', data: object) => {
+    const response = await page.request.fetch(url, { method, data, headers: { origin } });
+    const failure = response.ok() ? '' : `${response.status()} ${await response.text()}`;
+    expect(response.ok(), `${method} ${url}: ${failure}`).toBe(true);
+  };
+  await post('/v1/auth/otp/request', 'POST', { email });
+  const code = await readOtp(page, email);
+  // The session cookie lands in this page's browser context.
+  await post('/v1/auth/otp/verify', 'POST', { email, code });
+  await post('/v1/me/profile', 'PATCH', { displayName: name });
+  await post('/v1/me/username', 'PUT', { username });
+  await page.goto('/chats');
+  await expect(page.getByRole('button', { name: 'New chat' })).toBeVisible(SLOW);
   return email;
 }
 

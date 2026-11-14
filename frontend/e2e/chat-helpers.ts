@@ -1,5 +1,5 @@
 import { type Browser, type BrowserContext, expect, type Page } from '@playwright/test';
-import { SLOW, signIn, signUp } from './helpers';
+import { SLOW, signIn, signUpByApi } from './helpers';
 
 export interface Person {
   context: BrowserContext;
@@ -11,15 +11,19 @@ export interface Person {
 
 /** A new account in its own browser context: its own cookies and its own IndexedDB. */
 /**
- * A browser for one person, as a returning user: the "Get notified" card stays away, so the chat
- * list does not move under a click while it loads. The card has its own component tests, and
- * push.spec.ts covers pushes.
+ * A browser for one person, as a returning user: the chat list's promo bar ("Get notified" /
+ * "Install the app") stays away, so it never covers a row under a click. The bar has its own
+ * component tests, and push.spec.ts covers pushes.
  */
 async function newContext(browser: Browser): Promise<BrowserContext> {
   const context = await browser.newContext();
   await context.addInitScript(() => {
     try {
       localStorage.setItem('zuvo.push.card-dismissed', '1');
+      localStorage.setItem(
+        'zuvo-install',
+        JSON.stringify({ state: { bannerDismissed: true }, version: 0 }),
+      );
     } catch {
       // No storage: the card may show, nothing more.
     }
@@ -32,7 +36,7 @@ export async function newPerson(browser: Browser, name: string): Promise<Person>
   const page = await context.newPage();
   // Random: tests in parallel workers start within the same millisecond.
   const username = `${name.toLowerCase()}${Math.random().toString(36).slice(2, 12)}`;
-  const email = await signUp(page, name, username);
+  const email = await signUpByApi(page, name, username);
   return { context, page, name, username, email };
 }
 
@@ -49,8 +53,15 @@ export async function openChatWith(page: Page, person: Person): Promise<void> {
   await page.getByRole('button', { name: 'New chat' }).click();
   const picker = page.getByRole('dialog', { name: 'New chat' });
   await picker.getByRole('combobox').fill(person.username);
-  await expect(picker.getByRole('option')).toHaveCount(1, SLOW);
-  await expect(picker.getByRole('option', { name: new RegExp(person.name) })).toBeVisible();
+  // Until the search answers, the list shows recent people and suggestions (people from other
+  // tests too), and may hold a single other person for a moment: wait for exactly this one.
+  const options = picker.getByRole('option');
+  await expect
+    .poll(async () => {
+      const texts = await options.allTextContents();
+      return texts.length === 1 && texts[0]?.includes(`@${person.username}`);
+    }, SLOW)
+    .toBe(true);
   await picker.getByRole('combobox').press('Enter');
   await expect(thread(page, person.name)).toBeAttached(SLOW);
 }
@@ -68,6 +79,30 @@ export async function openFromList(page: Page, chatName: string): Promise<void> 
 export async function send(page: Page, text: string): Promise<void> {
   await page.getByRole('textbox', { name: 'Write a message' }).fill(text);
   await page.getByRole('button', { name: 'Send' }).click();
+}
+
+/**
+ * A message the server has accepted: its row has a sequence number (`data-seq`). Until then the
+ * bubble is only on this device, and has no menu, reply or right click (see canAct). Waiting for
+ * this before acting on it, or before leaving the page, keeps tests off that race.
+ */
+export const sentRow = (page: Page, chatName: string, text: string) =>
+  page
+    .getByRole('list', { name: chatName, exact: true })
+    .locator('[data-seq]')
+    .filter({ has: page.getByText(text, { exact: true }) });
+
+export async function expectSent(page: Page, chatName: string, text: string): Promise<void> {
+  await expect(sentRow(page, chatName, text)).toBeVisible(SLOW);
+}
+
+/** Right click on a sent message: its menu. */
+export async function messageMenu(page: Page, chatName: string, text: string) {
+  await expectSent(page, chatName, text);
+  await sentRow(page, chatName, text).getByText(text, { exact: true }).click({ button: 'right' });
+  const menu = page.getByRole('menu', { name: 'Message actions' });
+  await expect(menu).toBeVisible();
+  return menu;
 }
 
 /** Message texts in the order shown. */

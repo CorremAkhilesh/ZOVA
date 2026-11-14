@@ -112,64 +112,12 @@ jobs:
           path: frontend/coverage
           retention-days: 7
 
-  e2e:
-    name: E2E (Chromium, Firefox, WebKit, mobile)
-    runs-on: ubuntu-latest
-    # 4 browsers, then the dev-proxy run of the critical flows: about 45 minutes with retries.
-    timeout-minutes: 60
-    env:
-      CI: true
-      # The E2E API (backend e2e:server) runs on an in-memory MongoDB.
-      MONGOMS_DOWNLOAD_DIR: ${{ github.workspace }}/.cache/mongodb-binaries
-    steps:
-      - uses: actions/checkout@v7
-      - uses: ./.github/actions/setup
-
-      - name: Cache Playwright browsers
-        uses: actions/cache@v6
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: |
-            playwright-${{ runner.os }}-
-
-      - name: Cache MongoDB binary (mongodb-memory-server)
-        uses: actions/cache@v6
-        with:
-          path: ${{ env.MONGOMS_DOWNLOAD_DIR }}
-          key: mongodb-binaries-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: |
-            mongodb-binaries-${{ runner.os }}-
-
-      - name: Install Playwright browsers and system dependencies
-        run: pnpm --filter @zuvo/frontend exec playwright install --with-deps chromium firefox webkit
-
-      # NODE_ENV=test would give a development build of React, not what users get.
-      - name: Build the frontend
-        env:
-          NODE_ENV: production
-        run: pnpm --filter @zuvo/frontend build
-
-      - name: Run Playwright (vite preview + in-memory test API)
-        run: pnpm --filter @zuvo/frontend test:e2e:ci
-
-      - name: Run the chat flows through the Vite dev server, like pnpm dev
-        run: pnpm --filter @zuvo/frontend exec playwright test -c playwright.dev.config.ts
-
-      - name: Upload Playwright report and traces
-        if: failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: playwright-report
-          path: |
-            frontend/playwright-report
-            frontend/test-results
-          retention-days: 7
-
   build:
     name: Build + bundle budget
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    outputs:
+      e2e-matrix: ${{ steps.plan.outputs.matrix }}
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
@@ -179,6 +127,131 @@ jobs:
         run: pnpm build
       - name: Check main bundle size (gzip ≤ 200 KB)
         run: pnpm --filter @zuvo/frontend size
+      # The E2E shards test this exact build (vite preview serves frontend/dist): none rebuilds it.
+      - name: Upload the built app for the E2E shards
+        uses: actions/upload-artifact@v7
+        with:
+          name: app-build
+          path: |
+            frontend/dist
+            backend/dist
+          if-no-files-found: error
+          retention-days: 3
+      - name: Plan the E2E shards (push → Chromium; pull request or manual run → every browser)
+        id: plan
+        env:
+          SUITES: ${{ github.event_name == 'push' && 'dev' || 'full' }}
+        run: node .github/scripts/e2e-matrix.mjs "$SUITES" >> "$GITHUB_OUTPUT"
+
+  e2e:
+    name: E2E ${{ matrix.name }} ${{ matrix.shard }}/${{ matrix.total }}
+    needs: build
+    runs-on: ubuntu-latest
+    # About 5 minutes of tests per shard; the limit leaves room for a retry of slow tests.
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.build.outputs.e2e-matrix) }}
+    env:
+      CI: true
+      # The E2E API (backend e2e:server) runs on an in-memory MongoDB.
+      MONGOMS_DOWNLOAD_DIR: ${{ github.workspace }}/.cache/mongodb-binaries
+      PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/.cache/ms-playwright
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+
+      - name: Download the built app
+        uses: actions/download-artifact@v8
+        with:
+          name: app-build
+
+      - name: Playwright version
+        id: playwright
+        working-directory: frontend
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      # One cache per browser and Playwright version: a shard downloads only the browser it runs.
+      - name: Cache the ${{ matrix.browser }} browser
+        id: browser-cache
+        uses: actions/cache@v6
+        with:
+          path: ${{ env.PLAYWRIGHT_BROWSERS_PATH }}
+          key: playwright-${{ runner.os }}-${{ matrix.browser }}-${{ steps.playwright.outputs.version }}
+
+      - name: Install ${{ matrix.browser }} and its system libraries
+        if: steps.browser-cache.outputs.cache-hit != 'true'
+        run: pnpm --filter @zuvo/frontend exec playwright install --with-deps ${{ matrix.browser }}
+
+      # A cached browser still needs its system libraries. The runner image already has what
+      # Chromium needs; Firefox and WebKit need a few more packages.
+      - name: Install the system libraries for ${{ matrix.browser }}
+        if: steps.browser-cache.outputs.cache-hit == 'true' && matrix.browser != 'chromium'
+        run: pnpm --filter @zuvo/frontend exec playwright install-deps ${{ matrix.browser }}
+
+      - name: Cache MongoDB binary (mongodb-memory-server)
+        uses: actions/cache@v6
+        with:
+          path: ${{ env.MONGOMS_DOWNLOAD_DIR }}
+          key: mongodb-binaries-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            mongodb-binaries-${{ runner.os }}-
+
+      - name: Run Playwright (${{ matrix.project }}, shard ${{ matrix.shard }} of ${{ matrix.total }})
+        env:
+          PLAYWRIGHT_BLOB_OUTPUT_NAME: report-${{ matrix.name }}-${{ matrix.shard }}.zip
+        run: >-
+          pnpm --filter @zuvo/frontend exec playwright test
+          --config ${{ matrix.config }}
+          --project ${{ matrix.project }}
+          --shard ${{ matrix.shard }}/${{ matrix.total }}
+
+      # Always, so the merged report covers every shard (the traces of failures are inside).
+      - name: Upload the blob report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: blob-report-${{ matrix.name }}-${{ matrix.shard }}
+          path: frontend/blob-report
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # The one E2E check for branch protection, whatever the matrix holds: one HTML report for all
+  # shards, and green only if every shard passed.
+  e2e-report:
+    name: E2E
+    needs: e2e
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        if: needs.e2e.result != 'skipped'
+      - uses: ./.github/actions/setup
+        if: needs.e2e.result != 'skipped'
+      - name: Download the blob reports of all shards
+        if: needs.e2e.result != 'skipped'
+        uses: actions/download-artifact@v8
+        with:
+          pattern: blob-report-*
+          path: all-blob-reports
+          merge-multiple: true
+      - name: Merge them into one HTML report
+        if: needs.e2e.result != 'skipped'
+        run: pnpm --filter @zuvo/frontend exec playwright merge-reports --reporter html ../all-blob-reports
+      - name: Upload the HTML report
+        if: needs.e2e.result != 'skipped'
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: frontend/playwright-report
+          retention-days: 7
+      - name: Every shard passed
+        env:
+          RESULT: ${{ needs.e2e.result }}
+        run: |
+          echo "E2E shards: $RESULT"
+          test "$RESULT" = success
 
   security:
     name: Security (audit + secret scan)

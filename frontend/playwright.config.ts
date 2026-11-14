@@ -21,12 +21,16 @@ await assertPortsFree([PORT, API_PORT]);
 export default defineConfig({
   testDir: './e2e',
   outputDir: './test-results',
+  // Every test makes its own accounts, so tests spread over workers and CI shards one by one.
   fullyParallel: true,
-  // Local runs share a busy machine: two workers keep auth calls under their timeouts.
-  ...(CI ? {} : { workers: 2 }),
+  // Two workers, each driving 2–3 browsers, fit a 4-vCPU CI runner beside the test API and
+  // `vite preview`; locally they keep auth calls on the busy shared machine under their timeouts.
+  workers: 2,
   forbidOnly: CI,
-  retries: CI ? 2 : 0,
-  reporter: CI ? [['github'], ['html', { open: 'never' }]] : [['list']],
+  // One retry at most: a test that needs more is flaky and gets fixed (docs/runbooks/ci.md).
+  retries: CI ? 1 : 0,
+  // CI: each shard writes a blob report; the E2E job merges them into one HTML report.
+  reporter: CI ? [['github'], ['list'], ['blob']] : [['list']],
   use: {
     baseURL: BASE_URL,
     trace: 'retain-on-failure',
@@ -52,7 +56,8 @@ export default defineConfig({
       env: { E2E_API_PORT: String(API_PORT), E2E_APP_ORIGIN: BASE_URL },
       // Never someone else's server: it could be a real API on a real database.
       reuseExistingServer: false,
-      timeout: 180_000,
+      // tsx compiles the API on start: minutes on the busy shared machine, far less on CI.
+      timeout: 300_000,
     },
     {
       command: `pnpm exec vite preview --port ${PORT} --strictPort`,

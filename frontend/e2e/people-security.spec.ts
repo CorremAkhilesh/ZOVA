@@ -1,5 +1,5 @@
 import { type Browser, expect, type Page, test } from '@playwright/test';
-import { open, SLOW, signIn, signUp } from './helpers';
+import { open, SLOW, signIn, signUp, signUpByApi } from './helpers';
 
 // A 96×96 PNG: the crop dialog re-encodes it, the server makes the 512/128 px WebP versions.
 const PHOTO = Buffer.from(
@@ -58,11 +58,18 @@ test('profile photo and username, and finding a colleague', async ({ browser }) 
     await expect(picker.getByRole('option')).toHaveCount(1, SLOW);
     await expect(picker.getByRole('option', { name: /Asha Verma/ })).toBeVisible();
     await picker.getByRole('combobox').press('Enter');
+    await expect(picker).toBeHidden(SLOW);
     await expect(b.getByRole('heading', { name: 'Asha Verma' })).toBeAttached(SLOW);
   });
 
   await test.step('chat info shows the username', async () => {
-    const info = b.getByRole('button', { name: 'Chat info' }).first();
+    // The small (i) button at the header's right end, not the wide name button that the loose name
+    // "Chat info" also matches (its label ends in ", Chat info"). The name button sits under the
+    // top-centre toasts: once the pointer rests on a toast it stays (hover pauses it), and the
+    // click waits behind it until the test ends. On a phone the (i) button is hidden, and the name
+    // button is the way in.
+    const icon = b.getByRole('button', { name: 'Chat info', exact: true });
+    const info = (await icon.isVisible()) ? icon : b.locator('header [data-info-toggle]');
     try {
       // Its own limit, so a failure says why the click could not happen (CI Firefox only).
       await info.click({ timeout: 30_000 });
@@ -83,7 +90,7 @@ ${error}`);
 
 test('signing out another device from Devices', async ({ browser }) => {
   const a = await newPage(browser);
-  const emailA = await signUp(a, 'Asha Verma');
+  const emailA = await signUpByApi(a, 'Asha Verma');
   const a2 = await newPage(browser);
   await signIn(a2, emailA);
   await open(a, '/settings/devices');
@@ -100,8 +107,8 @@ test('signing out another device from Devices', async ({ browser }) => {
 test('an admin deactivates someone, who is signed out, and it is audited', async ({ browser }) => {
   const b = await newPage(browser);
   const admin = await newPage(browser);
-  const emailB = await signUp(b, 'Bharat Rao');
-  const adminEmail = await signUp(admin, 'Ada Admin');
+  const emailB = await signUpByApi(b, 'Bharat Rao');
+  const adminEmail = await signUpByApi(admin, 'Ada Admin');
   await admin.request.post('/v1/test/promote', { data: { email: adminEmail } });
   await open(admin, '/settings/admin/users');
   await admin.getByRole('searchbox').fill(emailB);

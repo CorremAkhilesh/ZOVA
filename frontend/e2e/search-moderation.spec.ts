@@ -1,5 +1,5 @@
 import { expect, type Page, test } from '@playwright/test';
-import { newPerson, openChatWith, openFromList, send, thread } from './chat-helpers';
+import { expectSent, newPerson, openChatWith, openFromList, send, thread } from './chat-helpers';
 import { readOtp, SLOW } from './helpers';
 
 test.describe.configure({ timeout: 300_000 });
@@ -47,10 +47,14 @@ test('A searches a word and opens the result in the right chat', async ({ browse
   const word = `zebra${Date.now().toString(36)}`;
   await openChatWith(asha.page, chitra);
   await send(asha.page, 'nothing to see here');
+  // Search asks the server, and leaving the page holds back what is still in the outbox: wait
+  // until each message is accepted before moving on.
+  await expectSent(asha.page, 'Chitra', 'nothing to see here');
   // On a phone the open chat covers the list, and with it the New chat button.
   await asha.page.goto('/chats');
   await openChatWith(asha.page, bharat);
   await send(asha.page, `the ${word} plan is ready`);
+  await expectSent(asha.page, 'Bharat', `the ${word} plan is ready`);
   await asha.page.goto('/chats');
 
   // The chat list's search box hands over to message search.

@@ -1,6 +1,7 @@
 import { expect, type Page, test } from '@playwright/test';
 import {
   createGroup,
+  messageMenu,
   newPerson,
   openChatWith,
   openFromList,
@@ -54,10 +55,7 @@ test('pinning a message shows it under the header, and a tap jumps to it', async
   await send(asha.page, 'agenda for friday');
   for (const n of [1, 2, 3]) await send(asha.page, `chat ${n}`);
 
-  const agenda = thread(asha.page, 'Bharat').getByText('agenda for friday', { exact: true });
-  await agenda.click({ button: 'right' });
-  await asha.page
-    .getByRole('menu', { name: 'Message actions' })
+  await (await messageMenu(asha.page, 'Bharat', 'agenda for friday'))
     .getByRole('menuitem', { name: 'Pin' })
     .click();
   const dialog = asha.page.getByRole('dialog', { name: 'Pin for everyone' });
