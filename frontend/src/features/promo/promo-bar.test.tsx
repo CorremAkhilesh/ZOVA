@@ -118,7 +118,9 @@ describe('chat list promo bar', () => {
     expect([...pane.children].indexOf(bar)).toBeGreaterThan(before);
     expect(scroller.firstElementChild).toBe(firstRowBefore);
     // Room to scroll the last row clear of the bar, added at the very end of the list.
-    expect(scroller.lastElementChild).toBe(await screen.findByTestId('promo-spacer'));
+    // Wait for the spacer first: `expect(scroller.lastElementChild)` would read the list too early.
+    const spacer = await screen.findByTestId('promo-spacer');
+    expect(scroller.lastElementChild).toBe(spacer);
   });
 
   it('stays away while searching', async () => {
