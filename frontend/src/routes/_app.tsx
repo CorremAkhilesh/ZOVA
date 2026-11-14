@@ -1,12 +1,12 @@
 import { createFileRoute, Outlet, useMatchRoute } from '@tanstack/react-router';
 import { AppRail } from '@/components/common/AppRail';
 import { BottomTabs } from '@/components/common/BottomTabs';
+import { ChatListSkeleton } from '@/components/common/ChatListSkeleton';
 import { ErrorScreen, NotFound } from '@/components/common/StatusScreens';
 import { AppearanceHost } from '@/features/appearance/components/AppearanceHost';
 import { SessionGate } from '@/features/auth/components/SessionGate';
 import { requireCompleteSession } from '@/features/auth/guards';
 import { rememberJoinPath } from '@/features/groups/rules';
-import { InstallBanner } from '@/features/install/InstallUi';
 import { LockHost } from '@/features/lock/components/LockHost';
 import { MentionProfileHost } from '@/features/mentions/mention-marks';
 import { ModerationHost } from '@/features/moderation/components/ModerationHost';
@@ -28,6 +28,17 @@ export const Route = createFileRoute('/_app')({
     }
   },
   component: AppShell,
+  // Never a blank screen: while the session check (first visit on this device) or the shell's code
+  // loads, a skeleton shows at once. It ships with the route itself (not split), so it needs no
+  // download of its own.
+  pendingComponent: () => (
+    <main className="h-full">
+      <ChatListSkeleton />
+    </main>
+  ),
+  pendingMs: 0,
+  pendingMinMs: 0,
+  codeSplitGroupings: [['component'], ['errorComponent'], ['notFoundComponent']],
   // Rendered inside the shell's <main>, so no extra landmark here.
   notFoundComponent: NotFound,
   errorComponent: ({ reset }) => <ErrorScreen onRetry={reset} />,
@@ -61,7 +72,6 @@ function AppShell() {
         <AppRail />
         <main className="flex min-w-0 flex-1 flex-col">
           <SessionGate />
-          <InstallBanner />
           <MiniPlayer />
           <div className="min-h-0 flex-1">
             <Outlet />
@@ -75,7 +85,6 @@ function AppShell() {
       {hosts}
       <main className="glass flex min-h-0 flex-1 flex-col">
         <SessionGate />
-        {inConversation ? null : <InstallBanner />}
         <MiniPlayer />
         <div className="min-h-0 flex-1">
           <Outlet />

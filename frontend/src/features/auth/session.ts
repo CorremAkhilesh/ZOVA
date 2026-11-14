@@ -5,7 +5,8 @@ import { ApiClientError } from '@/lib/api-client';
 import { authApi } from './api';
 
 export type SessionState =
-  | { status: 'signed-in'; data: SessionResponse; offline?: boolean }
+  /** `unverified`: taken from the stored snapshot while the server check runs (see primeSession). */
+  | { status: 'signed-in'; data: SessionResponse; offline?: boolean; unverified?: boolean }
   | { status: 'signed-out'; reason: 'expired' | null };
 
 const SNAPSHOT_KEY = 'zuvo-session';
@@ -80,6 +81,26 @@ export const sessionQuery = queryOptions({
   refetchOnWindowFocus: 'always',
   retry: false,
 });
+
+/**
+ * Starts the session check as early as possible, without ever making the first paint wait for it.
+ *
+ * A returning user (a stored snapshot that has not expired) opens the app at once: the snapshot
+ * stands in for the session while GET /v1/auth/me runs in the background. If the server says the
+ * session is gone (revoked, expired, deactivated), the answer replaces the snapshot and SessionGate
+ * signs out, exactly as when a session ends while the app is open. Without a snapshot the check
+ * just starts now, so the guards find it already on its way. Does nothing once the session is known.
+ */
+export function primeSession(queryClient: QueryClient): void {
+  if (queryClient.getQueryState(sessionQuery.queryKey)) return;
+  const snapshot = sessionSnapshot.load();
+  if (snapshot) {
+    const state: SessionState = { status: 'signed-in', data: snapshot, unverified: true };
+    // Stale from the start (updatedAt 0): any observer still checks with the server.
+    queryClient.setQueryData(sessionQuery.queryKey, state, { updatedAt: 0 });
+  }
+  void queryClient.fetchQuery({ ...sessionQuery, staleTime: 0 }).catch(() => undefined);
+}
 
 export function setSignedIn(queryClient: QueryClient, data: SessionResponse) {
   sessionSnapshot.save(data);

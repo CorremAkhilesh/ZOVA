@@ -6,8 +6,10 @@ import { brand } from '@zuvo/config';
 import { darkColors, lightColors } from '@zuvo/ui-tokens';
 import { defineConfig, loadEnv, type Plugin } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
+import { buildOutput } from './bundling/chunks.ts';
 import { APPLE_TOUCH_ICON, ICONS_DIR, MANIFEST_ICONS, splashLinkTags } from './pwa/assets.ts';
 import { devPorts } from './src/lib/dev-ports.ts';
+import { securityHeaders } from './src/lib/security-headers-plugin.ts';
 
 /**
  * Dev and preview ports and the API behind the /v1 proxy: ZUVO_DEV_PORT, ZUVO_PREVIEW_PORT and
@@ -40,6 +42,8 @@ export default defineConfig({
     react(),
     tailwindcss(),
     brandHtml(),
+    // CSP and the other security headers on dev and preview (shared/config/src/security-headers.ts).
+    securityHeaders(),
     VitePWA({
       strategies: 'injectManifest',
       srcDir: 'src/sw',
@@ -110,6 +114,8 @@ export default defineConfig({
   define: {
     'import.meta.env.VITE_BUILD_DATE': JSON.stringify(new Date().toISOString().slice(0, 10)),
   },
+  // Fewer, bigger files for the first screen (bundling/chunks.ts, docs/runbooks/performance.md).
+  build: { rolldownOptions: { output: buildOutput() } },
   resolve: {
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
   },

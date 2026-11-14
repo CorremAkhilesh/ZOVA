@@ -111,6 +111,7 @@
   "status": {
     "connected": "Connected",
     "connecting": "Connecting…",
+    "updating": "Updating…",
     "unreachable": "Server unreachable",
     "offlineShort": "Offline",
     "connectingHint": "Trying to reach the server…",
@@ -128,11 +129,8 @@
     "goHome": "Go to chats"
   },
   "install": {
-    "bannerLabel": "Install the app",
-    "bannerText": "Install the app for a faster, full-screen experience.",
     "install": "Install",
     "howTo": "How to install",
-    "dismiss": "Dismiss",
     "settingsTitle": "App",
     "settingsHint": "Install on this device for quick access, its own window and notifications.",
     "installApp": "Install app",
@@ -1039,9 +1037,7 @@
     "failed": "Couldn’t turn on notifications. Try again.",
     "card": {
       "title": "Get notified about new messages",
-      "text": "Turn on notifications to hear about new messages even when {{brand}} is closed.",
-      "enable": "Enable",
-      "dismiss": "Dismiss"
+      "enable": "Enable"
     },
     "denied": {
       "title": "Notifications are blocked",
@@ -1315,5 +1311,10 @@
     "menuHint": "Install guide, common questions, privacy and contact",
     "signIn": "Sign in",
     "backToApp": "Back to the app"
+  },
+  "promo": {
+    "notNow": "Not now",
+    "learnMore": "What to do",
+    "installText": "Install the app for quick access"
   }
 }

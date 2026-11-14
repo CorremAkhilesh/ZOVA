@@ -13,6 +13,8 @@ import { median } from './probes';
 const RUNS = Number(process.env.PERF_LH_RUNS ?? 3);
 const LABEL = process.env.PERF_LABEL ?? 'latest';
 const OUT = 'perf/reports';
+/** Chats the signed-in user has on the server (groups with a couple of messages each): a phone screen of rows. */
+const SEEDED_CHATS = 8; // the API allows 10 new groups an hour
 const CATEGORIES = ['performance', 'accessibility', 'best-practices', 'seo'] as const;
 type Scores = Record<(typeof CATEGORIES)[number], number>;
 
@@ -68,7 +70,19 @@ test('Lighthouse and installability', async ({ browser, baseURL }) => {
   mkdirSync(OUT, { recursive: true });
   const context = await browser.newContext();
   const page = await context.newPage();
-  await signUp(page, 'Lighthouse');
+  const email = await signUp(page, 'Lighthouse');
+  // A realistic first screen: the chat list has rows (its LCP is a row, not the empty state).
+  for (let n = 1; n <= SEEDED_CHATS; n++) {
+    const created = await page.request.post('/v1/groups', {
+      data: { name: `Team ${n}`, memberIds: [] },
+    });
+    expect(created.ok(), await created.text()).toBe(true);
+    const { chat } = (await created.json()) as { chat: { id: string } };
+    const seeded = await page.request.post('/v1/test/seed-messages', {
+      data: { chatId: chat.id, email, count: 2 },
+    });
+    expect(seeded.ok(), await seeded.text()).toBe(true);
+  }
   const cookie = (await context.cookies())
     .map((entry) => `${entry.name}=${entry.value}`)
     .join('; ');
@@ -98,7 +112,16 @@ test('Lighthouse and installability', async ({ browser, baseURL }) => {
       const runs: ReturnType<typeof lighthouse>[] = [];
       for (let run = 1; run <= RUNS; run++) {
         const file = `${OUT}/lighthouse-${LABEL}-${name}-${preset}-${run}`;
-        runs.push(lighthouse(`${baseURL}${path}`, preset, signedIn ? cookie : null, file));
+        const measure = () =>
+          lighthouse(`${baseURL}${path}`, preset, signedIn ? cookie : null, file);
+        // A loaded machine sometimes makes Chrome miss the paint (NO_FCP): one more try.
+        let result: ReturnType<typeof lighthouse>;
+        try {
+          result = measure();
+        } catch {
+          result = measure();
+        }
+        runs.push(result);
       }
       const scores = Object.fromEntries(
         CATEGORIES.map((key) => [key, median(runs.map((run) => run.scores[key]))]),

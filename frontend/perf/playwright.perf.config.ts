@@ -12,6 +12,8 @@ const PORT = Number(process.env.E2E_WEB_PORT ?? 5194);
 const API_PORT = Number(process.env.E2E_API_PORT ?? 4197);
 const BASE_URL = `http://127.0.0.1:${PORT}`;
 const EXTERNAL = process.env.PERF_EXTERNAL_SERVERS === '1';
+/** Serve a build from another folder (`vite build --outDir …`), e.g. to compare two builds. */
+const DIST = process.env.PERF_DIST ? ` --outDir "${process.env.PERF_DIST}"` : '';
 
 if (!EXTERNAL) await assertPortsFree([PORT, API_PORT]);
 
@@ -52,7 +54,7 @@ export default defineConfig({
           timeout: 180_000,
         },
         {
-          command: `pnpm exec vite preview --port ${PORT} --strictPort`,
+          command: `pnpm exec vite preview --port ${PORT} --strictPort${DIST}`,
           cwd: '..',
           url: BASE_URL,
           env: { ZUVO_API_TARGET: `http://127.0.0.1:${API_PORT}` },
