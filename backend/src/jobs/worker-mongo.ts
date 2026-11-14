@@ -8,7 +8,7 @@ import { attachSlowQueryLogger } from '../db/slow-query.ts';
  * One client instead of one per job: each client keeps its own pool and monitoring sockets.
  */
 export async function connectWorkerMongo(
-  env: Pick<Env, 'MONGODB_URI' | 'MONGODB_DB'>,
+  env: Pick<Env, 'MONGODB_URI' | 'MONGODB_DB' | 'NODE_ENV'>,
   logger: { warn: (object: object, message: string) => void },
 ): Promise<{ mongo: Connection; close(): Promise<void> }> {
   const mongo = await mongoose
@@ -16,7 +16,7 @@ export async function connectWorkerMongo(
       dbName: env.MONGODB_DB,
       autoIndex: false,
       autoCreate: false,
-      ...mongoClientOptions('worker'),
+      ...mongoClientOptions('worker', { compress: env.NODE_ENV === 'production' }),
     })
     .asPromise();
   const detach = attachSlowQueryLogger(mongo.getClient(), logger);

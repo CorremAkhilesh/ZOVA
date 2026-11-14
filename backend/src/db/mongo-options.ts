@@ -7,12 +7,16 @@ import type { ConnectOptions } from 'mongoose';
  *   times (1–5 ms in-region) 20 connections carry several hundred sends a second. The worker runs
  *   a handful of jobs at a time and needs far fewer. Atlas limits connections per cluster, and every
  *   client also keeps 2 monitoring sockets per replica-set member, so the worker uses one client.
- * - Compression: zlib is built into Node (snappy/zstd need native packages). Atlas egress and
- *   history/sync pages shrink several times; tiny messages cost almost nothing to compress.
+ * - Compression (production only): zlib is built into Node (snappy/zstd need native packages). Atlas
+ *   egress and history/sync pages shrink several times. Against a local or in-memory database it
+ *   only costs CPU (CI runs the database on the same 4 cores as the tests), so it is off there.
  * - Timeouts: a request should fail in seconds, not hang, when Atlas is unreachable.
  * - `monitorCommands` feeds the slow query log (src/db/slow-query.ts).
  */
-export function mongoClientOptions(role: 'api' | 'worker'): ConnectOptions {
+export function mongoClientOptions(
+  role: 'api' | 'worker',
+  { compress }: { compress: boolean },
+): ConnectOptions {
   return {
     maxPoolSize: role === 'api' ? 20 : 5,
     minPoolSize: role === 'api' ? 2 : 0,
@@ -23,7 +27,7 @@ export function mongoClientOptions(role: 'api' | 'worker'): ConnectOptions {
     serverSelectionTimeoutMS: 10_000,
     connectTimeoutMS: 10_000,
     socketTimeoutMS: 45_000,
-    compressors: ['zlib'],
+    ...(compress ? { compressors: ['zlib' as const] } : {}),
     appName: role === 'api' ? 'zuvo-api' : 'zuvo-worker',
     monitorCommands: true,
   };

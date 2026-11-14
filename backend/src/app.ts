@@ -118,6 +118,7 @@ export async function buildApp(env: Env, deps: Partial<AppDeps> = {}) {
     uri: env.MONGODB_URI,
     dbName: env.MONGODB_DB,
     autoIndex: env.NODE_ENV !== 'production',
+    compress: env.NODE_ENV === 'production',
   });
   await app.register(servicesPlugin, {
     storage: deps.storage ?? new LocalDiskDriver(env.MEDIA_STORAGE_PATH),

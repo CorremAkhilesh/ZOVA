@@ -15,6 +15,8 @@ interface MongoPluginOptions {
   dbName: string;
   /** Build indexes on startup. Off in production, where `db:sync-indexes` runs during deploy. */
   autoIndex: boolean;
+  /** Wire compression: on for Atlas (production), off for local and in-memory databases. */
+  compress: boolean;
   /** Queries at or above this duration are logged (shape only, no values). */
   slowQueryMs?: number;
 }
@@ -25,7 +27,7 @@ async function setupMongo(app: FastifyInstance, options: MongoPluginOptions) {
     autoIndex: options.autoIndex,
     autoCreate: options.autoIndex,
     // Pool, timeouts, compression; `monitorCommands` for the slow query log.
-    ...mongoClientOptions('api'),
+    ...mongoClientOptions('api', { compress: options.compress }),
   });
 
   connection.on('connected', () => app.log.info({ db: options.dbName }, 'mongodb connected'));

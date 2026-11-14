@@ -5,8 +5,8 @@ import { connectWorkerMongo } from './worker-mongo.ts';
 
 describe('MongoDB client settings', () => {
   it('gives the API a bigger pool than the worker, both compressed and monitored', () => {
-    const api = mongoClientOptions('api');
-    const worker = mongoClientOptions('worker');
+    const api = mongoClientOptions('api', { compress: true });
+    const worker = mongoClientOptions('worker', { compress: true });
     expect(api.maxPoolSize).toBeGreaterThan(worker.maxPoolSize ?? 0);
     for (const options of [api, worker]) {
       expect(options.compressors).toEqual(['zlib']);
@@ -17,6 +17,11 @@ describe('MongoDB client settings', () => {
     }
     expect(worker.appName).toBe('zuvo-worker');
   });
+
+  it('compresses only when asked (production, Atlas)', () => {
+    expect(mongoClientOptions('api', { compress: false }).compressors).toBeUndefined();
+    expect(mongoClientOptions('worker', { compress: false }).compressors).toBeUndefined();
+  });
 });
 
 describe('the worker database client', () => {
@@ -26,13 +31,16 @@ describe('the worker database client', () => {
       {
         MONGODB_URI: inject('mongoUri'),
         MONGODB_DB: `zuvo_test_${randomBytes(6).toString('hex')}`,
+        NODE_ENV: 'test',
       },
       { warn: (_object, message) => void warnings.push(message) },
     );
     try {
       expect(db.mongo.readyState).toBe(1);
       const client = db.mongo.getClient();
-      expect(client.options.maxPoolSize).toBe(mongoClientOptions('worker').maxPoolSize);
+      expect(client.options.maxPoolSize).toBe(
+        mongoClientOptions('worker', { compress: false }).maxPoolSize,
+      );
       // Fires the listener the slow query logger attached (a 0 ms threshold is not used here, so
       // this only proves the client emits command events at all).
       let events = 0;
