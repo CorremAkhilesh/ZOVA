@@ -16,6 +16,7 @@ test-results/
 blob-report/
 # Benchmark and Lighthouse output (docs/runbooks/performance.md)
 frontend/perf/reports/
+backend/load/reports/
 
 # Environment files (keep only the examples)
 .env
@@ -52,3 +53,6 @@ backend/storage/
 
 # CI-only caches (e.g. MONGOMS_DOWNLOAD_DIR)
 .cache/
+
+# Internal server details (Step 21). Never commit: this repository is public.
+SERVER_CONTEXT.md
