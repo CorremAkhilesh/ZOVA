@@ -1,7 +1,7 @@
 import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { delay } from 'msw';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { getUserDb } from '@/features/sync/local-db';
 import { useSyncStore } from '@/features/sync/store';
 import { axe } from '@/test/axe';
@@ -22,9 +22,34 @@ function scrollState(top: number, height = 5000, client = 800) {
   const viewport = screen.getByLabelText('Messages');
   Object.defineProperty(viewport, 'scrollHeight', { configurable: true, value: height });
   Object.defineProperty(viewport, 'clientHeight', { configurable: true, value: client });
+  // The reader's own scroll: only that may take the list away from its end.
+  fireEvent.wheel(viewport);
   viewport.scrollTop = top;
   fireEvent.scroll(viewport);
   return viewport;
+}
+
+/** A ResizeObserver whose callbacks the test runs, for the elements it chooses. */
+const observed: Array<{ callback: ResizeObserverCallback; targets: Element[] }> = [];
+class TestResizeObserver {
+  private entry: (typeof observed)[number];
+  constructor(callback: ResizeObserverCallback) {
+    this.entry = { callback, targets: [] };
+    observed.push(this.entry);
+  }
+  observe(target: Element) {
+    this.entry.targets.push(target);
+  }
+  unobserve() {}
+  disconnect() {
+    this.entry.targets = [];
+  }
+}
+function resized(target: Element) {
+  for (const { callback, targets } of observed) {
+    if (!targets.includes(target)) continue;
+    act(() => callback([{ target } as ResizeObserverEntry], {} as ResizeObserver));
+  }
 }
 
 async function ready() {
@@ -144,6 +169,54 @@ describe('sticking to the bottom', () => {
     await waitFor(() =>
       expect(screen.queryByRole('button', { name: /Jump to latest/ })).not.toBeInTheDocument(),
     );
+  });
+});
+
+describe('opening at the end', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    observed.length = 0;
+  });
+
+  it('follows the end as the list grows after it opened, until the reader scrolls', async () => {
+    vi.stubGlobal('ResizeObserver', TestResizeObserver);
+    await seedLocal([chat], history);
+    await renderApp('/chats/c1', { width: DESKTOP_WIDTH });
+    const list = await screen.findByRole('list', { name: 'Asha Verma' });
+    await ready();
+    const viewport = screen.getByLabelText('Messages');
+    const contentHeight = (value: number) =>
+      Object.defineProperty(viewport, 'scrollHeight', { configurable: true, value });
+    Object.defineProperty(viewport, 'clientHeight', { configurable: true, value: 800 });
+
+    // Rows measured after the first paint: the content grows with no new message.
+    contentHeight(5000);
+    resized(list);
+    expect(viewport.scrollTop).toBe(5000);
+    // The scroll event a layout change causes is not the reader leaving the end.
+    contentHeight(6000);
+    fireEvent.scroll(viewport);
+    expect(viewport.scrollTop).toBe(6000);
+    expect(screen.queryByRole('button', { name: /Jump to latest/ })).not.toBeInTheDocument();
+
+    // Once the reader scrolls up, the list stays where they put it.
+    scrollState(1000, 6000);
+    contentHeight(7000);
+    resized(list);
+    expect(viewport.scrollTop).toBe(1000);
+    expect(await screen.findByRole('button', { name: /Jump to latest/ })).toBeInTheDocument();
+  });
+
+  it('takes a scroll upwards as the reader’s, whatever moved it', async () => {
+    await seedLocal([chat], history);
+    await renderApp('/chats/c1', { width: DESKTOP_WIDTH });
+    await screen.findByRole('list', { name: 'Asha Verma' });
+    await ready();
+    const viewport = scrollState(5000);
+    viewport.scrollTop = 1200;
+    fireEvent.scroll(viewport);
+    expect(await screen.findByRole('button', { name: /Jump to latest/ })).toBeInTheDocument();
+    expect(viewport.scrollTop).toBe(1200);
   });
 });
 

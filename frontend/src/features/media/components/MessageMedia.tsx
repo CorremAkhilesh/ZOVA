@@ -7,18 +7,10 @@ import { ViewOnceBubble } from '@/features/view-once/ViewOnceBubble';
 import { AudioBubble } from '@/features/voice/components/AudioBubble';
 import { VoiceBubble } from '@/features/voice/components/VoiceBubble';
 import { cn } from '@/lib/utils';
+import { mediaBoxStyle } from '../media-box';
 import { formatDuration } from '../process';
 import { useLocalPreview, useThumbnail } from '../use-thumbnail';
 import { DocumentCard } from './DocumentCard';
-
-/** Keeps a bubble to a sensible size whatever the picture's shape. */
-const MAX_BOX_PX = 320;
-
-function boxStyle(message: ChatMessage) {
-  const { width, height } = message.media ?? {};
-  const ratio = width && height ? width / height : 4 / 3;
-  return { aspectRatio: String(Math.min(2.2, Math.max(0.6, ratio))), maxWidth: MAX_BOX_PX };
-}
 
 function NotAvailable() {
   const { t } = useTranslation();
@@ -137,7 +129,7 @@ export function MediaVisual({ message, onOpen, more = 0, fill = false }: VisualP
 
   return (
     <div
-      style={fill ? undefined : boxStyle(message)}
+      style={fill ? undefined : mediaBoxStyle(media)}
       className={cn(
         'relative block w-full overflow-hidden rounded-xl bg-background',
         fill && 'h-full',
