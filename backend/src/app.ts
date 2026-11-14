@@ -42,6 +42,7 @@ import { quietHoursRoutes } from './modules/settings/quiet-hours.routes.ts';
 import { expireTestRoutes } from './modules/test-support/expire.routes.ts';
 import { outboxRoutes } from './modules/test-support/outbox.routes.ts';
 import { pushOutboxRoutes } from './modules/test-support/push-outbox.routes.ts';
+import { scheduledTestRoutes } from './modules/test-support/scheduled.routes.ts';
 import { meRoutes } from './modules/users/me.routes.ts';
 import { usersRoutes } from './modules/users/users.routes.ts';
 import { authPlugin } from './plugins/auth.ts';
@@ -49,6 +50,7 @@ import { docsPlugin } from './plugins/docs.ts';
 import { errorHandlerPlugin } from './plugins/error-handler.ts';
 import { expirySweepPlugin, SWEEP_EVERY_MS } from './plugins/expiry-sweep.ts';
 import { mongoPlugin } from './plugins/mongo.ts';
+import { originCheckPlugin } from './plugins/origin-check.ts';
 import { pushPlugin } from './plugins/push.ts';
 import { rateLimitPlugin } from './plugins/rate-limit.ts';
 import { redisPlugin } from './plugins/redis.ts';
@@ -105,6 +107,8 @@ export async function buildApp(env: Env, deps: Partial<AppDeps> = {}) {
 
   await app.register(errorHandlerPlugin);
   await app.register(securityPlugin, { env });
+  // CSRF: state-changing requests only from our own origins (docs/security-routes.md).
+  await app.register(originCheckPlugin, { env });
   await app.register(redisPlugin, {
     url: env.REDIS_URL,
     ...(deps.redis !== undefined ? { client: deps.redis } : {}),
@@ -178,6 +182,7 @@ export async function buildApp(env: Env, deps: Partial<AppDeps> = {}) {
   if (env.NODE_ENV === 'test' && isMemoryMailer(app.mailer)) {
     await app.register(outboxRoutes(app.mailer), { prefix: '/v1' });
     await app.register(expireTestRoutes, { prefix: '/v1' });
+    await app.register(scheduledTestRoutes, { prefix: '/v1' });
   }
   if (env.NODE_ENV === 'test' && app.push.sender && isMemoryPushSender(app.push.sender)) {
     await app.register(pushOutboxRoutes(app.push.sender), { prefix: '/v1' });
