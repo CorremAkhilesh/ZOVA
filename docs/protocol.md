@@ -35,6 +35,11 @@ Every member's devices then get `message:new { message, cursor }` and
 `chat:updated { chatId, seq, lastMessage, lastReadSeq, unreadCount, … , cursor }`, including the
 sender's other devices. The sender's own device gets them too, so match on `clientMsgId`.
 
+In a group, `lastMessage.senderName` is the sender's display name when the message was sent, so the
+chat list reads "Asha: …" before any member profile has loaded. It is not updated on a rename: the old
+name stays until that member's next message, unless the device already has their newer profile. It is
+`null` for system messages and in direct chats, and missing from chats last written before it existed.
+
 Read state: `read:update { chatId, seq }` (or `POST /v1/chats/:id/read`) moves my position forward,
 never back. My devices get `read:update { chatId, lastReadSeq, unreadCount, cursor }`.
 

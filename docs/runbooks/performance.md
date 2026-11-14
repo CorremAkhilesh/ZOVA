@@ -23,7 +23,8 @@ pnpm perf lighthouse             # Lighthouse (mobile + desktop) + installabilit
   Other ports: `E2E_API_PORT` / `E2E_WEB_PORT`. To reuse servers you started yourself (see
   `playwright.config.ts` for the two commands), set `PERF_EXTERNAL_SERVERS=1`.
 - `PERF_LABEL=before` names the report files; `PERF_CYCLES` (default 8) sets the session length;
-  `PERF_LH_RUNS` (default 3) sets the Lighthouse runs per page and preset.
+  `PERF_LH_RUNS` (default 3) sets the Lighthouse runs per page and preset; `PERF_DIST=<folder>` serves
+  a build from another folder (`vite build --outDir <folder>`), to compare two builds.
 - Reports (JSON, and Lighthouse HTML) go to `frontend/perf/reports/` (gitignored).
 - The CI budget is unchanged: `pnpm --filter @zuvo/frontend size` fails above 200 KB gzip.
 
@@ -108,6 +109,45 @@ errors, service worker in control).
 - **iOS install sheet** loads only when opened (its dialog code left the main bundle).
 - **Desktop layout shift**: the resizable panels started at 50/50 before measuring and jumped to
   32/68 (CLS 0.27); they now start at their real layout.
+
+## Step 20: first screen without waiting
+
+Same machine, same harness (now with 8 server-side chats for the signed-in user, so the list has
+rows), median of 3, before = the build at the start of Step 20. The machine was far busier than at
+Step 19, so absolute numbers are lower for both builds; compare before with after only.
+
+| Page, preset     | Before: score, LCP / TBT / CLS     | After: score, LCP / TBT / CLS      |
+| ---------------- | ---------------------------------- | ---------------------------------- |
+| Sign-in, mobile  | 85 / 100 / 96, 2.2 s / 133 / 0.006 | 84 / 100 / 96, 2.1 s / 200 / 0.006 |
+| Sign-in, desktop | 87 / 100 / 96, 1.1 s / 0 / 0       | 83 / 100 / 96, 1.5 s / 5 / 0       |
+| /chats, mobile   | 48 / 100 / 100, 8.4 s / 556 / 0.11 | 55 / 100 / 100, 8.7 s / 427 / 0.07 |
+| /chats, desktop  | 61 / 100 / 100, 18 s / 21 / 0.03   | 86 / 100 / 100, 1.1 s / 35 / 0.04  |
+
+Requests on a cold /chats: 114 → 36 (JS files 93 → 23). Returning user (chats on the device),
+phone-like CPU (4×) and 150 ms RTT, navigation → chat rows shown: ~1.7 s → ~1.0 s.
+
+What changed:
+
+- **No waiting for the session.** A stored session snapshot opens the app at once
+  (`primeSession`, `features/auth/session.ts`); GET /v1/auth/me runs in the background and a
+  failed check signs out exactly like a session revoked while the app is open (SessionGate:
+  welcome screen, "session ended" for expiry, local data wiped). Without a snapshot the check starts
+  in `main.tsx`, before React renders.
+- **Route code in parallel** (`app/first-screen.ts`): the code of the routes the address matches
+  starts loading with the session check instead of after it.
+- **Never blank:** `_app` shows a skeleton at once while the session or its code loads (the skeleton
+  ships with the route, not split). The chat list says "Updating…" while a sync takes longer than
+  300 ms (`features/connection/ListStatus.tsx`); stored chats always show.
+- **Fewer files** (`bundling/chunks.ts`): the first load is 7 JS files (was 21), the first screen's
+  code one lazy file, lazy libraries grouped by the screens that use them. Needs
+  `strictExecutionOrder` (without it the app fails to start); it costs ~25 KB gzip of wrappers in
+  the first load. `pnpm size` now checks every first-load file against the 200 KB budget.
+
+Still limiting mobile /chats (cold device): its LCP is the "Turn on notifications" / "Install the
+app" card, which appears last (after the first sync, the card's own code, or the install prompt
+after the service worker installs) and is the largest text on screen. It also causes most of the
+CLS. Showing these cards below the list, or only after the first visit, would fix both: a product
+decision.
 
 ## Known gaps (not fixed here)
 

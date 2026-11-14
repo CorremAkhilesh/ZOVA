@@ -34,6 +34,9 @@ Known work that was decided on or deliberately left for later. Product scope liv
 - **A deleted file** stays reachable by its uploader until the hourly job removes it, up to an hour.
 - **Starred messages for one chat** open from the chat's menu in the list, not yet from chat info.
 - **Refused actions** show the server's English message rather than a translated one.
+- **Back gesture** (phones and touch screens, `frontend/src/lib/back-stack.ts`): overlays close in the
+  order they opened, which matches Esc in practice. A menu choice that opens another page leaves its
+  overlay's history entry behind, so going back over it takes one extra press.
 
 ## Search
 

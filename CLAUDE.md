@@ -230,8 +230,8 @@
 ### Implementation (Better Auth)
 
 - **Better Auth** (email OTP plugin, MongoDB adapter, Redis secondary storage for rate limits,
-  verification data and a session cache) is mounted at `/v1/auth/*`. The frontend uses only the
-  typed wrappers:
+  verification data and a session cache) runs behind our own typed routes below; its raw endpoints are
+  **not** exposed (Step 20: they returned session tokens to scripts). The frontend uses only these:
 
   | Endpoint                                                             | Purpose                                                 |
   | -------------------------------------------------------------------- | ------------------------------------------------------- |
@@ -252,8 +252,8 @@
   re-checked at verify and in the session-create database hook.
 - **Cookie:** `zuvo.session_token`, host-only, `httpOnly`, `SameSite=Lax`, and `Secure` (with the
   `__Secure-` prefix) in production. Lax rather than Strict so opening the app from an email link
-  isn't treated as logged out; cross-site writes are blocked by Lax plus Better Auth's origin check
-  (`trustedOrigins` = `APP_URL` + `CORS_ORIGINS`).
+  isn't treated as logged out; cross-site writes are blocked by Lax plus an app-wide origin check on
+  every state-changing request (`APP_URL` + `CORS_ORIGINS`; see `docs/security.md`).
 - **Sessions:** 7 days absolute (`disableSessionRefresh`), stored in MongoDB (and cached in Redis).
 - **Production is same-origin:** Caddy serves the app and proxies `/v1` and `/socket.io` on the app
   domain, so set `API_URL` = `APP_URL` = `https://app.zuvo.corremadvisory.com`.
@@ -322,8 +322,10 @@
 
 - Work only on `dev`.
 - Push to `dev` → GitHub Actions runs CI (`.github/workflows/ci.yml`: quality, backend + frontend tests
-  with coverage gates, E2E on 4 browsers, build + bundle budget, audit + gitleaks; see
-  `docs/runbooks/ci.md`). CI never uses secrets, Atlas or real SMTP.
+  with coverage gates, build + bundle budget, audit + gitleaks, and E2E on Chromium in parallel shards).
+  A pull request into `main` runs the full E2E matrix (Chromium, Firefox, WebKit, mobile, dev proxy).
+  See `docs/runbooks/ci.md` (also the required checks for `main`). CI never uses secrets, Atlas or real
+  SMTP.
 - **Deploys come later.** The app is built first and deployed to the VPS at the end (Steps 22–25).
   Until then a push to `dev` runs **CI only**: no deploy workflow exists and nothing reaches staging.
 - Planned once deploys exist:
