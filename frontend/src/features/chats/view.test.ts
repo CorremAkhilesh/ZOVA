@@ -6,7 +6,7 @@ import { toChatSummary } from './view';
 
 const labels = { saved: 'Saved Messages', unknown: 'Unknown' };
 
-const groupRow = (): ChatRow =>
+const groupRow = (senderName?: string | null): ChatRow =>
   ({
     ...chatFixture({
       id: 'g',
@@ -25,6 +25,7 @@ const groupRow = (): ChatRow =>
         id: 'm1',
         seq: 1,
         senderId: 'u-chitra',
+        ...(senderName === undefined ? {} : { senderName }),
         type: 'text',
         preview: 'Thanks!',
         createdAt: '2026-11-05T10:00:00.000Z',
@@ -45,5 +46,25 @@ describe('toChatSummary', () => {
     ]);
     const summary = toChatSummary(groupRow(), ME_ID, labels, undefined, people);
     expect(summary.lastMessage?.authorName).toBe('Chitra Iyer');
+  });
+
+  it('names the sender at once from the name the message was sent with', () => {
+    const summary = toChatSummary(groupRow('Chitra'), ME_ID, labels, undefined, new Map());
+    expect(summary.lastMessage?.authorName).toBe('Chitra');
+  });
+
+  it('prefers the loaded profile, which has any newer name', () => {
+    const people = new Map([
+      ['u-chitra', personFixture({ id: 'u-chitra', displayName: 'Chitra Iyer' })],
+    ]);
+    const summary = toChatSummary(groupRow('Chitra'), ME_ID, labels, undefined, people);
+    expect(summary.lastMessage?.authorName).toBe('Chitra Iyer');
+  });
+
+  it('has no sender for an old snapshot without a name, nor a null one', () => {
+    for (const senderName of [undefined, null]) {
+      const summary = toChatSummary(groupRow(senderName), ME_ID, labels, undefined, new Map());
+      expect(summary.lastMessage?.authorName).toBe('');
+    }
   });
 });

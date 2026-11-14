@@ -4,6 +4,7 @@ import type { ChatDoc, ChatMemberDoc, LastMessageSnapshot, MessageDoc } from '..
 import { chatModels, oid } from './chats.service.ts';
 import { previewOf, shownLast, toLastMessage } from './message-format.ts';
 import { refreshQuotes } from './message-updates.ts';
+import { senderNameOf } from './sender-name.ts';
 import { logUpdates } from './updates.ts';
 import { canSeeSeq } from './visibility.ts';
 
@@ -17,12 +18,13 @@ export const dueMessagesQuery = (app: FastifyInstance, now: Date, batch = EXPIRY
     .limit(batch);
 
 /** The chat list's copy of a message. */
-function snapshotOf(doc: MessageDoc): LastMessageSnapshot {
+function snapshotOf(doc: MessageDoc, senderName: string | null): LastMessageSnapshot {
   const deleted = doc.deletedForEveryoneAt !== null;
   return {
     id: doc._id,
     seq: doc.seq,
     senderId: doc.senderId,
+    senderName,
     type: doc.type,
     preview: deleted ? '' : previewOf(doc.media, doc.text, doc.poll),
     ...(doc.system ? { system: doc.system } : {}),
@@ -75,6 +77,7 @@ async function forget(
 
 /** When the chat list showed one of them, it moves back to the newest message left (or none). */
 async function moveLastBack(
+  app: FastifyInstance,
   models: Models,
   session: ClientSession,
   chatId: Types.ObjectId,
@@ -84,9 +87,10 @@ async function moveLastBack(
   const chat = await Chat.findById(chatId).select({ lastMessage: 1 }).session(session).lean();
   if (!chat?.lastMessage || !seqs.includes(chat.lastMessage.seq)) return false;
   const newest = await Message.findOne({ chatId }).sort({ seq: -1 }).session(session).lean();
+  const senderName = newest ? await senderNameOf(app, newest.senderId) : null;
   await Chat.updateOne(
     { _id: chatId },
-    { $set: { lastMessage: newest ? snapshotOf(newest) : null } },
+    { $set: { lastMessage: newest ? snapshotOf(newest, senderName) : null } },
     { session },
   );
   return true;
@@ -139,7 +143,7 @@ async function expireInChat(
     const seqs = removed.map((doc) => doc.seq);
     await Message.deleteMany({ _id: { $in: removed.map((doc) => doc._id) } }, { session });
     await forget(models, session, chatId, removed, now);
-    const lastChanged = await moveLastBack(models, session, chatId, seqs);
+    const lastChanged = await moveLastBack(app, models, session, chatId, seqs);
     const members = await ChatMember.find({ chatId }).session(session).lean();
     const cursors = await logRemovals(models, session, chatId, members, seqs, now);
     const chat = await Chat.findById(chatId).session(session).lean();

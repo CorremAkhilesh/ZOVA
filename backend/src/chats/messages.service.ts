@@ -22,6 +22,7 @@ import {
   kindFields,
   typeOf,
 } from './send-rules.ts';
+import { senderNameOf } from './sender-name.ts';
 import { unarchiveForNewMessage } from './unarchive.ts';
 import { logUpdates } from './updates.ts';
 
@@ -72,6 +73,8 @@ export async function sendMessage(app: FastifyInstance, input: SendInput): Promi
   const shareRead = peerId ? await readsVisibleBetween(app, [userId, peerId]) : false;
   const links = await linkFields(app, input.linkPreviewId, text);
   const mentioned = await checkMentions(app, oid(chatId), sender, text, input);
+  // Only a group's chat list names the sender of its last message.
+  const senderName = peerId ? null : await senderNameOf(app, oid(userId));
 
   const models = chatModels(app);
   const chatOid = oid(chatId);
@@ -98,6 +101,7 @@ export async function sendMessage(app: FastifyInstance, input: SendInput): Promi
           id,
           seq: chat.seq,
           senderId,
+          senderName,
           type,
           preview: previewOf(media, text, input.poll),
           createdAt: now,

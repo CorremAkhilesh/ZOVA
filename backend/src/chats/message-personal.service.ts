@@ -10,6 +10,7 @@ import {
   logMessageUpdate,
   requireVisibleMessage,
 } from './message-updates.ts';
+import { senderNameOf } from './sender-name.ts';
 import { logUpdates } from './updates.ts';
 import { visibleSeqs } from './visibility.ts';
 
@@ -33,6 +34,7 @@ async function previewBefore(
     id: earlier._id,
     seq: earlier.seq,
     senderId: earlier.senderId,
+    senderName: await senderNameOf(app, earlier.senderId),
     type: earlier.type,
     preview: previewOf(earlier.media, earlier.text, earlier.poll),
     system: earlier.system ?? null,

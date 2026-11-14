@@ -29,6 +29,8 @@ export interface LastMessageSnapshot {
   id: Types.ObjectId;
   seq: number;
   senderId: Types.ObjectId | null;
+  /** Display name at the time: see senderNameOf. Missing in snapshots from before it existed. */
+  senderName?: string | null;
   type: 'text' | 'system' | 'poll' | MediaInfo['kind'];
   preview: string;
   system?: SystemEvent | null;

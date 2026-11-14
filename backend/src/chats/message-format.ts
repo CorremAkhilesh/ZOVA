@@ -140,6 +140,7 @@ export function toLastMessage(snapshot: LastMessageSnapshot): LastMessage {
     id: snapshot.id.toString(),
     seq: snapshot.seq,
     senderId: snapshot.senderId?.toString() ?? null,
+    senderName: snapshot.senderName ?? null,
     type: snapshot.type,
     preview: snapshot.preview,
     system: snapshot.system ?? null,
