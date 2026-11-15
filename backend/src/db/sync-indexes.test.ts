@@ -1,6 +1,22 @@
 import { describe, expect, it, vi } from 'vitest';
 import { modelRegistrations, registerModels } from './models.ts';
-import { type IndexedModel, syncIndexes } from './sync-indexes.ts';
+import { assertExpectedDatabase, type IndexedModel, syncIndexes } from './sync-indexes.ts';
+
+describe('assertExpectedDatabase (deploy guard)', () => {
+  it('lets the expected database through', () => {
+    expect(() => assertExpectedDatabase('zuvo_prod', 'zuvo_prod')).not.toThrow();
+  });
+
+  it('refuses any other database', () => {
+    expect(() => assertExpectedDatabase('zuvo_dev', 'zuvo_prod')).toThrow(
+      'MONGODB_DB is "zuvo_dev", but this run may only touch "zuvo_prod"',
+    );
+  });
+
+  it('checks nothing without an expected name', () => {
+    expect(() => assertExpectedDatabase('zuvo_dev7', undefined)).not.toThrow();
+  });
+});
 
 function fakeModel(overrides: Partial<IndexedModel> = {}): IndexedModel {
   return {

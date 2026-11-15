@@ -28,6 +28,16 @@ export interface IndexedModel {
   syncIndexes(): Promise<unknown>;
 }
 
+/**
+ * Deploy guard (`--expect-db zuvo_prod`): refuses to touch any other database, so a wrong env file
+ * can never sync (and drop) indexes somewhere else. Without an expected name nothing is checked.
+ */
+export function assertExpectedDatabase(actual: string, expected: string | undefined): void {
+  if (expected !== undefined && actual !== expected) {
+    throw new Error(`MONGODB_DB is "${actual}", but this run may only touch "${expected}"`);
+  }
+}
+
 function describeIndex(definition: unknown): string {
   if (typeof definition === 'object' && definition !== null && 'key' in definition) {
     const { key, ...options } = definition as { key: unknown };
