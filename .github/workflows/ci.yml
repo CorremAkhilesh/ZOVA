@@ -264,12 +264,13 @@ jobs:
     timeout-minutes: 25
     env:
       NODE_ENV: production
-      ZUVO_DATA_DIR: ${{ runner.temp }}/zuvo-data
-      ZUVO_BACKUP_DIR: ${{ runner.temp }}/zuvo-backups
     steps:
       - uses: actions/checkout@v7
-      - name: Versions
-        run: docker version --format 'Docker {{.Server.Version}}' && docker compose version && node --version
+      - name: Versions and data folders (in place of /var/data/zuvo and /var/backups/zuvo)
+        run: |
+          docker version --format 'Docker {{.Server.Version}}' && docker compose version && node --version
+          echo "ZUVO_DATA_DIR=$RUNNER_TEMP/zuvo-data" >> "$GITHUB_ENV"
+          echo "ZUVO_BACKUP_DIR=$RUNNER_TEMP/zuvo-backups" >> "$GITHUB_ENV"
       - name: Deploy the production stack and check it
         run: sudo -E env "PATH=$PATH" bash deploy/ci/prod-smoke.sh
       - name: Host Nginx site in front of it
