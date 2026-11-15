@@ -172,8 +172,14 @@ services:
       MEDIA_STORAGE_PATH: /data/uploads
       NODE_OPTIONS: --max-old-space-size=512
     command: [node, --enable-source-maps, dist/worker.js]
+    # No HTTP port: healthy while the worker process runs (`up --wait` refuses a service whose
+    # healthcheck is disabled). It exits on fatal errors, and Docker restarts it.
     healthcheck:
-      disable: true
+      test: [CMD, pgrep, -f, dist/worker.js]
+      interval: 15s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
     volumes:
       - ${ZUVO_DATA_DIR:-/var/data/zuvo}/uploads:/data/uploads
     depends_on:
