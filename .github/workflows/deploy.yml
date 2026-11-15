@@ -1,0 +1,128 @@
+# Production deploy: every push to main (a merged PR from dev) and manual runs on main.
+#   1. ci     - the whole CI (ci.yml) on this exact commit, including the production stack smoke test.
+#   2. deploy - over SSH as the `deploy` user, runs the server's root-owned deploy script:
+#                 sudo -n /usr/local/bin/correm-deploy zuvo <sha>
+#               It fetches the commit, builds the images, starts the stack (backup → sync indexes →
+#               api/worker), checks 127.0.0.1:7148/v1/ready + 127.0.0.1:7147/health and rolls back to
+#               the previous commit when anything fails. Then the public check below.
+#
+# GitHub environment "production". Repository (or environment) secrets, same names as the other apps:
+#   VPS_HOST, VPS_USER (deploy), VPS_SSH_KEY (private key, this repo only), VPS_SSH_PORT,
+#   VPS_KNOWN_HOSTS (pinned host key; StrictHostKeyChecking yes)
+# Until all five exist the deploy job SKIPS (green, with a notice): CI never fails for missing secrets.
+# Env files are never written by CI (deploy/scripts/setup-env.sh on the server, once).
+#
+# correm-deploy exit codes: 0 deployed and healthy · 1 failed, rolled back (healthy) · 2 bad arguments
+# 3 failed AND the rollback failed (look at the server now) · 4 refused before changing anything.
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+env:
+  APP: zuvo
+  PUBLIC_URL: https://zuvo.corremadvisory.com
+
+jobs:
+  ci:
+    name: CI
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    name: Deploy to production
+    needs: ci
+    if: ${{ github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment:
+      name: production
+      url: https://zuvo.corremadvisory.com
+    steps:
+      - name: Check the deploy secrets
+        id: secrets
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_SSH_PORT: ${{ secrets.VPS_SSH_PORT }}
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          missing=()
+          for name in VPS_HOST VPS_USER VPS_SSH_KEY VPS_SSH_PORT VPS_KNOWN_HOSTS; do
+            [ -n "${!name}" ] || missing+=("$name")
+          done
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::notice title=Deploy skipped::Secrets not set yet: ${missing[*]} (docs/runbooks/first-deploy.md step 6)."
+            printf '### Deploy skipped\nSecrets not set yet: `%s`.\n' "${missing[*]}" >> "$GITHUB_STEP_SUMMARY"
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up SSH (pinned host key)
+        if: steps.secrets.outputs.ready == 'true'
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_SSH_PORT: ${{ secrets.VPS_SSH_PORT }}
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          umask 077
+          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/deploy_key
+          printf '%s\n' "$VPS_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          cat > ~/.ssh/config <<EOF
+          Host vps
+            HostName $VPS_HOST
+            User $VPS_USER
+            Port $VPS_SSH_PORT
+            IdentityFile ~/.ssh/deploy_key
+            IdentitiesOnly yes
+            StrictHostKeyChecking yes
+            UserKnownHostsFile ~/.ssh/known_hosts
+            BatchMode yes
+            ConnectTimeout 15
+            ServerAliveInterval 30
+          EOF
+          host_entry="$VPS_HOST"; [ "$VPS_SSH_PORT" = "22" ] || host_entry="[$VPS_HOST]:$VPS_SSH_PORT"
+          if ! ssh-keygen -F "$host_entry" -f ~/.ssh/known_hosts > /dev/null; then
+            echo "::error title=Host key not pinned::VPS_KNOWN_HOSTS has no entry for the server."
+            exit 1
+          fi
+
+      # The only remote command: the root-owned deploy script, with this app's name and this exact commit.
+      - name: Deploy on the server (sudo correm-deploy zuvo)
+        if: steps.secrets.outputs.ready == 'true'
+        run: |
+          echo "correm-deploy $APP $GITHUB_SHA"
+          status=0
+          ssh vps "sudo -n /usr/local/bin/correm-deploy $APP $GITHUB_SHA" || status=$?
+          case "$status" in
+            0) printf '### Deploy: passed\n`%s` is running and healthy.\n' "$GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY" ;;
+            1) echo "::error title=Deploy failed, rolled back::correm-deploy could not deploy $GITHUB_SHA and rolled back to the previous commit (healthy). Log: /var/log/correm-deploy/$APP.log" ;;
+            3) echo "::error title=Deploy AND rollback failed::Zuvo needs attention on the server now. Log: /var/log/correm-deploy/$APP.log" ;;
+            *) echo "::error title=Deploy refused::correm-deploy exited $status (2 bad arguments, 4 refused before any change: lock, checkout, env file, SHA). Log: /var/log/correm-deploy/$APP.log" ;;
+          esac
+          exit "$status"
+
+      - name: Public health check (${{ env.PUBLIC_URL }}/v1/ready)
+        if: steps.secrets.outputs.ready == 'true'
+        run: |
+          curl -fsS --retry 10 --retry-delay 5 --retry-all-errors --max-time 15 "$PUBLIC_URL/v1/ready"
+          echo
+          curl -fsS --retry 5 --retry-delay 5 --retry-all-errors --max-time 15 -o /dev/null "$PUBLIC_URL/"
+          echo "app and API answer on $PUBLIC_URL"
+
+      - name: Remove the SSH key
+        if: ${{ always() }}
+        run: rm -f ~/.ssh/deploy_key

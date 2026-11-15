@@ -6,6 +6,8 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+  # deploy.yml runs this whole CI on the exact main commit before it deploys.
+  workflow_call:
 
 # One run per branch: a newer push cancels the outdated run.
 concurrency:
@@ -252,6 +254,33 @@ jobs:
         run: |
           echo "E2E shards: $RESULT"
           test "$RESULT" = success
+
+  # The production stack as the server runs it (deploy/docker-compose.prod.yml): setup-env.sh, the
+  # correm-deploy port guard, image builds (NODE_ENV=production), up --wait, /v1/ready, the app, the
+  # real host Nginx site (HTTP/2, headers, cache, WebSocket) and backup + restore. Fake secrets only.
+  prod-stack:
+    name: Production stack (Docker)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      NODE_ENV: production
+      ZUVO_DATA_DIR: ${{ runner.temp }}/zuvo-data
+      ZUVO_BACKUP_DIR: ${{ runner.temp }}/zuvo-backups
+    steps:
+      - uses: actions/checkout@v7
+      - name: Versions
+        run: docker version --format 'Docker {{.Server.Version}}' && docker compose version && node --version
+      - name: Deploy the production stack and check it
+        run: sudo -E env "PATH=$PATH" bash deploy/ci/prod-smoke.sh
+      - name: Host Nginx site in front of it
+        run: sudo -E env "PATH=$PATH" bash deploy/ci/nginx-smoke.sh
+      - name: Backup, restore test and real restore
+        run: sudo -E env "PATH=$PATH" bash deploy/ci/backup-smoke.sh
+      - name: Show the stack (on failure)
+        if: failure()
+        run: |
+          sudo -E docker compose -p zuvo -f deploy/docker-compose.prod.yml ps -a || true
+          sudo -E docker compose -p zuvo -f deploy/docker-compose.prod.yml logs --tail 60 || true
 
   security:
     name: Security (audit + secret scan)
