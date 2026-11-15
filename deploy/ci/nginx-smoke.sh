@@ -26,7 +26,7 @@ docker exec zuvo-host-nginx nginx -t || fail "nginx -t failed"
 sleep 1
 
 c() { curl -sS --resolve "$HOST:443:127.0.0.1" --resolve "$HOST:80:127.0.0.1" -k "$@"; }
-header() { c -o /dev/null -D - "https://$HOST$1" | tr -d '\r' | grep -i "^$2:" | sed -n 1p | cut -d' ' -f2-; }
+header() { c -H 'Accept-Encoding: gzip' -o /dev/null -D - "https://$HOST$1" | tr -d '\r' | grep -i "^$2:" | sed -n 1p | cut -d' ' -f2-; }
 
 [ "$(c -o /dev/null -w '%{http_version}' "https://$HOST/")" = 2 ] || fail "HTTP/2 is not served"
 [ "$(c -o /dev/null -w '%{http_code}' "http://$HOST/chats")" = 301 ] || fail "http must redirect to https"
