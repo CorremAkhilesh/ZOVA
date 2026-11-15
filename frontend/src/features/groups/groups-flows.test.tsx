@@ -149,14 +149,21 @@ describe('the join page', () => {
   it('shows the group, and only joins when asked', async () => {
     const user = userEvent.setup();
     const joined = vi.fn();
+    const groupChat = chatFixture({ type: 'group', otherUser: null, group: group() });
+    let member = false;
     server.use(
       http.get('*/v1/invites/:code', () => HttpResponse.json(preview)),
       http.post('*/v1/invites/:code/join', () => {
         joined();
-        return HttpResponse.json({
-          chat: chatFixture({ type: 'group', otherUser: null, group: group() }),
-        });
+        member = true;
+        return HttpResponse.json({ chat: groupChat });
       }),
+      // Like the real server: once joined, the group is in my chat list. The first sync is a reset
+      // that reloads this list; when it lands after the join, it must not drop the new group (a
+      // list without it made this test fail about half the time).
+      http.get('*/v1/chats', () =>
+        HttpResponse.json({ items: member ? [groupChat] : [], nextCursor: null }),
+      ),
       http.get('*/v1/chats/:id/members', () => HttpResponse.json({ members: members('member') })),
       http.get('*/v1/chats/:id/media', () => HttpResponse.json({ items: [], hasMore: false })),
     );
