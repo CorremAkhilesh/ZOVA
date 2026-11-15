@@ -5,7 +5,9 @@
 ARG NODE_IMAGE=node:24-alpine
 
 FROM ${NODE_IMAGE} AS build
-ENV CI=true
+# No lifecycle scripts anywhere in the build (install and deploy): none is needed, and the root
+# `prepare` (lefthook install) needs git, which the image does not have.
+ENV CI=true npm_config_ignore_scripts=true
 WORKDIR /repo
 # pnpm from package.json "packageManager" (same version as local and CI).
 RUN npm install -g --no-audit --no-fund pnpm@10.34.8

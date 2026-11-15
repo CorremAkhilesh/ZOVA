@@ -5,7 +5,7 @@ ARG NODE_IMAGE=node:24-alpine
 ARG NGINX_IMAGE=nginxinc/nginx-unprivileged:1.29-alpine
 
 FROM ${NODE_IMAGE} AS build
-ENV CI=true
+ENV CI=true npm_config_ignore_scripts=true
 WORKDIR /repo
 RUN npm install -g --no-audit --no-fund pnpm@10.34.8
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
