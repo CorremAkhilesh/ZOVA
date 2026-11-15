@@ -272,11 +272,11 @@ jobs:
           echo "ZUVO_DATA_DIR=$RUNNER_TEMP/zuvo-data" >> "$GITHUB_ENV"
           echo "ZUVO_BACKUP_DIR=$RUNNER_TEMP/zuvo-backups" >> "$GITHUB_ENV"
       - name: Deploy the production stack and check it
-        run: sudo -E env "PATH=$PATH" bash deploy/ci/prod-smoke.sh
+        run: sudo -E env "PATH=$PATH" bash deploy/ci/run.sh deploy/ci/prod-smoke.sh
       - name: Host Nginx site in front of it
-        run: sudo -E env "PATH=$PATH" bash deploy/ci/nginx-smoke.sh
+        run: sudo -E env "PATH=$PATH" bash deploy/ci/run.sh deploy/ci/nginx-smoke.sh
       - name: Backup, restore test and real restore
-        run: sudo -E env "PATH=$PATH" bash deploy/ci/backup-smoke.sh
+        run: sudo -E env "PATH=$PATH" bash deploy/ci/run.sh deploy/ci/backup-smoke.sh
       - name: Show the stack (on failure)
         if: failure()
         run: |

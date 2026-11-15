@@ -47,7 +47,7 @@ csp_count="$(c -o /dev/null -D - "https://$HOST/v1/ready" | grep -ci '^content-s
 # WebSocket upgrade through Nginx (Engine.IO answers 101 before any sign-in check).
 upgrade="$(c --http1.1 --max-time 3 -o /dev/null -w '%{http_code}' \
   -H 'Connection: Upgrade' -H 'Upgrade: websocket' -H 'Sec-WebSocket-Version: 13' \
-  -H 'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==' -H "Origin: https://$HOST" \
+  -H "Sec-WebSocket-Key: $(openssl rand -base64 16)" -H "Origin: https://$HOST" \
   "https://$HOST/socket.io/?EIO=4&transport=websocket" || true)"
 [ "$upgrade" = 101 ] || fail "the WebSocket upgrade did not pass Nginx (got $upgrade)"
 docker rm -f zuvo-host-nginx > /dev/null

@@ -19,7 +19,7 @@ RUN pnpm install --frozen-lockfile --ignore-scripts --filter "@zuvo/backend..."
 COPY shared shared
 COPY backend backend
 RUN NODE_ENV=production pnpm --filter @zuvo/backend build \
-  && pnpm --filter @zuvo/backend deploy --legacy --prod --ignore-scripts /out \
+  && pnpm --filter @zuvo/backend deploy --legacy --prod /out \
   && rm -rf /out/src /out/test /out/load /out/scripts /out/storage /out/dist \
   && cp -r backend/dist /out/dist
 
