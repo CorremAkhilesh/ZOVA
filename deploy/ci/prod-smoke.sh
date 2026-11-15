@@ -8,6 +8,12 @@ cd "$(dirname "$0")/../.."
 export ZUVO_DIR="$PWD"
 compose() { docker compose -p zuvo -f deploy/docker-compose.prod.yml "$@"; }
 fail() { echo "::error title=Production stack::$*"; exit 1; }
+# On any failure: which container is in which state, and the last lines of the app's services.
+explain() {
+  compose ps -a --format '{{.Service}}: {{.Status}}' || true
+  for svc in backup migrate api worker; do compose logs --no-log-prefix --tail 6 "$svc" 2>&1 | sed "s/^/$svc| /" | cut -c1-240 || true; done
+}
+trap 'status=$?; [ "$status" -eq 0 ] || explain; exit "$status"' EXIT
 
 echo "--- setup-env.sh (the one the owner runs once on the server)"
 SMTP_PASS=ci-not-a-real-password bash deploy/scripts/setup-env.sh
