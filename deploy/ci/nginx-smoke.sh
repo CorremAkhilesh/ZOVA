@@ -26,19 +26,19 @@ docker exec zuvo-host-nginx nginx -t || fail "nginx -t failed"
 sleep 1
 
 c() { curl -sS --resolve "$HOST:443:127.0.0.1" --resolve "$HOST:80:127.0.0.1" -k "$@"; }
-header() { c -o /dev/null -D - "https://$HOST$1" | tr -d '\r' | grep -i "^$2:" | head -n 1 | cut -d' ' -f2-; }
+header() { c -o /dev/null -D - "https://$HOST$1" | tr -d '\r' | grep -i "^$2:" | sed -n 1p | cut -d' ' -f2-; }
 
 [ "$(c -o /dev/null -w '%{http_version}' "https://$HOST/")" = 2 ] || fail "HTTP/2 is not served"
 [ "$(c -o /dev/null -w '%{http_code}' "http://$HOST/chats")" = 301 ] || fail "http must redirect to https"
-c "https://$HOST/chats" | grep -q '<div id="root">' || fail "the app shell did not load through Nginx"
-header / content-security-policy | grep -q "script-src 'self'" || fail "no CSP on the app"
-header / strict-transport-security | grep -q max-age || fail "no HSTS on the app"
+c "https://$HOST/chats" | grep >/dev/null '<div id="root">' || fail "the app shell did not load through Nginx"
+header / content-security-policy | grep >/dev/null "script-src 'self'" || fail "no CSP on the app"
+header / strict-transport-security | grep >/dev/null max-age || fail "no HSTS on the app"
 [ "$(header / cache-control)" = no-cache ] || fail "the shell must be no-cache"
 [ "$(header /sw.js cache-control)" = no-cache ] || fail "sw.js must be no-cache"
-asset="$(c "https://$HOST/" | grep -oE '/assets/[^"]+\.js' | head -n 1)"
+asset="$(c "https://$HOST/" | grep -oE '/assets/[^"]+\.js' | sed -n 1p)"
 [ -n "$asset" ] || fail "no hashed asset in index.html"
-header "$asset" cache-control | grep -q immutable || fail "hashed assets must be immutable"
-header "$asset" content-encoding | grep -q gzip || [ "$(c -o /dev/null -w '%{size_download}' -H 'Accept-Encoding: gzip' "https://$HOST$asset")" -lt 1024 ] \
+header "$asset" cache-control | grep >/dev/null immutable || fail "hashed assets must be immutable"
+header "$asset" content-encoding | grep >/dev/null gzip || [ "$(c -o /dev/null -w '%{size_download}' -H 'Accept-Encoding: gzip' "https://$HOST$asset")" -lt 1024 ] \
   || fail "JavaScript is not gzipped"
 [ "$(c -o /dev/null -w '%{http_code}' "https://$HOST/v1/ready")" = 200 ] || fail "/v1/ready through Nginx"
 csp_count="$(c -o /dev/null -D - "https://$HOST/v1/ready" | grep -ci '^content-security-policy:')"

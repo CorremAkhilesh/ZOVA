@@ -41,7 +41,7 @@ echo "$out"
 grep -q '^ci_restore_marker 1$' <<< "$out" || fail "the restored copy lacks the marker"
 grep -q 'OK: restore test' <<< "$out" || fail "the restore test did not pass"
 mongo_eval "print(db.getSiblingDB('admin').adminCommand({ listDatabases: 1 }).databases.map((d) => d.name).join(','))" \
-  | grep -q zuvo_restore_test && fail "zuvo_restore_test was not dropped"
+  | grep >/dev/null zuvo_restore_test && fail "zuvo_restore_test was not dropped"
 
 echo "--- REAL restore"
 mongo_eval "db.getSiblingDB('zuvo_prod').ci_restore_marker.insertOne({ after: true })" > /dev/null
