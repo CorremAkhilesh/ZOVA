@@ -107,12 +107,16 @@ cannot pass arguments to `redis-server` (password, eviction policy).
 
 ## Branch protection
 
-Set in **Settings → Rules → Rulesets** (or **Settings → Branches → Branch protection rules**).
-Only the owner changes these.
+Set in **Settings → Rules → Rulesets** (applied in Step 21 through the API and read back):
+`main: pull request + CI` and `dev: no force push or deletion`. Only the owner changes these.
+Rulesets rather than classic branch protection, so the admin bypass can be limited to pull requests:
+the owner can still merge a pull request (also past a stuck check), but nobody can force-push or
+delete `main`, not even an admin.
 
 ### `main`
 
-- **Require a pull request before merging** (from `dev`; merge commits, as in the README).
+- **Require a pull request before merging** (from `dev`; merge commits, as in the README), with
+  **0 required approvals** (one developer). Bypass: repository admins, **pull requests only**.
 - **Require status checks to pass**, with **Require branches to be up to date before merging**.
   Required checks (exact job names):
   - `Quality (Biome + typecheck)`
@@ -129,8 +133,25 @@ Only the owner changes these.
   ruleset in the same change.
 - **Block force pushes** and **restrict deletions**.
 - Optional: **Require conversation resolution before merging**.
+- Not required (on purpose): `Production stack (Docker)`. It runs on every push and pull request,
+  and `deploy.yml` reruns the whole CI, this job included, before every deploy; add it to the
+  ruleset if a red production smoke test should also block merging.
 
 ### `dev`
 
 - **Restrict deletions** and **block force pushes**. No pull request is required: work is pushed
   to `dev` directly, and every push runs CI.
+
+## Production stack and deploy
+
+- **`Production stack (Docker)`** (`deploy/ci/*.sh`): runs `setup-env.sh` with fake secrets, checks
+  the compose file and the `correm-deploy` port guard, builds both images (`NODE_ENV=production`),
+  `up -d --wait` like the server, checks `/v1/ready`, the app shell, that test routes are absent,
+  the index sync and the pre-deploy dump, deploys a second time, puts the real Nginx site file in
+  front (`nginx:1.24`, self-signed certificate: HTTP/2, headers, cache rules, WebSocket upgrade), and
+  runs the daily backup, a restore test and a real restore.
+- **`deploy.yml`** (push to `main`, or a manual run on `main`): calls `ci.yml` on the same commit
+  (`workflow_call`), then the `Deploy to production` job (environment `production`) runs
+  `sudo -n /usr/local/bin/correm-deploy zuvo <sha>` over SSH and checks
+  `https://zuvo.corremadvisory.com/v1/ready`. Without all five `VPS_*` secrets it skips green with a
+  notice. Server side: `docs/runbooks/first-deploy.md`.

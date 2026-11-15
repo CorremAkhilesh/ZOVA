@@ -109,8 +109,9 @@ Work only on **`dev`**, using [Conventional Commits](https://www.conventionalcom
 CI. **`main`** only changes through a pull request from `dev`, merged with a merge commit, and only when the
 owner says so.
 
-Staging and production deploys are planned but not set up yet: see
-[docs/runbooks/vps-checklist.md](docs/runbooks/vps-checklist.md).
+Merging into `main` deploys to production (`https://zuvo.corremadvisory.com`, no staging) through
+`.github/workflows/deploy.yml`. Server setup: [docs/runbooks/first-deploy.md](docs/runbooks/first-deploy.md);
+backups: [docs/runbooks/backups.md](docs/runbooks/backups.md).
 
 ---
 
@@ -182,7 +183,8 @@ ZUVO/
 │  ├─ protocol/     Zod schemas for REST DTOs and socket events
 │  ├─ config/       Brand name and shared config
 │  └─ ui-tokens/    Design tokens (colors, spacing, typography)
-├─ infra/           Docker Compose, Caddy and VPS deploy files
+├─ deploy/          Production: Docker Compose, Dockerfiles, Nginx site, env setup, backups
+├─ infra/           Generated Nginx security headers, VAPID key tool
 ├─ docs/            Documentation and ADRs (docs/adr/)
 └─ .github/         GitHub Actions workflows
 ```

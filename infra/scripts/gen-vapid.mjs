@@ -2,7 +2,7 @@
 /**
  * Prints a new Web Push (VAPID) key pair as env lines, in base64url (RFC 8292):
  *   pnpm vapid:gen
- * Paste both lines into backend/.env (or /srv/zuvo/<env>.env on the VPS). One pair per environment;
+ * Paste both lines into backend/.env. Production: deploy/scripts/setup-env.sh runs this itself. One pair per environment;
  * changing it makes every device subscribe again. Plain Node, no dependencies.
  */
 import { createECDH } from 'node:crypto';

@@ -1,7 +1,7 @@
 # Nginx: security headers
 
-Production runs on a shared company server behind Nginx + Certbot (HTTP/2). Nginx serves the built
-web app (`frontend/dist`) and proxies `/v1` and `/socket.io` to the API on the same origin.
+Production runs on a shared company server behind Nginx + Certbot (HTTP/2). The host Nginx proxies
+the app to the web container and `/v1` + `/socket.io` to the API, all on one origin.
 
 The security headers are part of the app, not of the server config:
 
@@ -23,50 +23,11 @@ headers anywhere else in the Nginx config.
 
 ## Including it
 
-Copy (or symlink) the file to the server, e.g. `/etc/nginx/snippets/zuvo-security-headers.conf`, then:
-
-```nginx
-server {
-    listen 443 ssl;
-    http2 on;
-    server_name app.zuvo.corremadvisory.com;
-    # ssl_certificate … (Certbot)
-
-    root /srv/zuvo/prod/web;   # frontend/dist
-
-    # The API sets its own security headers: forward them, add nothing.
-    location /v1/ {
-        proxy_pass http://127.0.0.1:4000;   # the API's PORT
-        proxy_set_header Host $host;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        client_max_body_size 12m;   # largest request: an 8 MB upload chunk or a 10 MB wallpaper
-    }
-    location /socket.io/ {
-        proxy_pass http://127.0.0.1:4000;   # the API's PORT
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host $host;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
-    # The app: static files with the app's security headers.
-    location / {
-        include /etc/nginx/snippets/zuvo-security-headers.conf;
-        try_files $uri /index.html;
-    }
-    location = /sw.js {
-        include /etc/nginx/snippets/zuvo-security-headers.conf;
-        add_header Cache-Control "no-cache" always;
-    }
-    location /assets/ {
-        include /etc/nginx/snippets/zuvo-security-headers.conf;
-        add_header Cache-Control "public, max-age=31536000, immutable" always;
-    }
-}
-```
+The production site file is [`deploy/nginx/zuvo.corremadvisory.com.conf`](../../deploy/nginx/zuvo.corremadvisory.com.conf):
+`/` goes to the web container (`127.0.0.1:7147`), `/v1/` and `/socket.io/` to the API (`127.0.0.1:7148`).
+It includes this file as `/etc/nginx/snippets/zuvo-security-headers.conf` in every app location.
+Install and update steps: `docs/runbooks/first-deploy.md` step 5. CI runs that exact site file in
+`nginx:1.24` and checks the headers (`deploy/ci/nginx-smoke.sh`).
 
 Things to know:
 

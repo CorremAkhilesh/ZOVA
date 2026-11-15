@@ -154,8 +154,8 @@ decision.
 - **Cold `/chats` on a slow phone** is slow in Lighthouse: the empty-device path waits for the
   session, then ~100 route chunks (most 1 KB: one per shared module or icon), then the first sync
   (`/v1/chats` → `/v1/sync` → `/v1/chats/self` → `/v1/sync`) before anything but a skeleton shows.
-  `vite preview` serves HTTP/1.1 (6 connections), so the chunk count costs many round trips; Caddy
-  in production serves HTTP/2/3, where it costs much less. A returning user (chats already in
+  `vite preview` serves HTTP/1.1 (6 connections), so the chunk count costs many round trips; the host
+  Nginx in production serves HTTP/2, where it costs much less. A returning user (chats already in
   IndexedDB) does not wait for the sync. Merging chunks with Rolldown `codeSplitting.groups` was tried
   and rejected: it pulled lazy code into the first load (+55 KB).
 - `GET /v1/auth/me` answers a signed-out visitor with 401, which the browser logs as a console error

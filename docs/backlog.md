@@ -83,8 +83,7 @@ Known work that was decided on or deliberately left for later. Product scope liv
 
 ## Operations
 
-- **Alert email at 80% disk use**, required by `CLAUDE.md`.
-- **Deploy workflows and `infra/`** do not exist yet (Steps 22–25): see `docs/runbooks/vps-checklist.md`.
+- **Weekly backup copy off the server**: options in `docs/runbooks/backups.md`, not built yet.
 
 ## Performance
 

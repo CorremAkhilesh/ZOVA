@@ -42,13 +42,13 @@ E2E runs, each with its own `mongod`). Run it when the machine is quiet, run it 
 compare runs, not single numbers. In-memory MongoDB on a local disk is not Atlas: absolute numbers
 are a floor for the code path and say nothing about network round trips to Atlas.
 
-## On the server (later, Steps 22–25)
+## On the server
 
-Plan for the real test, once staging runs on the VPS:
+There is no staging (ADR 0009). Plan for a real test, if the owner wants one:
 
-- **Target:** staging only (`dev-app.zuvo.corremadvisory.com`, database `zuvo_dev` would be polluted:
-  use a dedicated `zuvo_load_<date>` database on the cluster or a staging copy, then drop it). Never
-  production, never `zuvo_prod`.
+- **Target:** a throwaway second stack on the server (its own compose project, database
+  `zuvo_load_<date>`, its own two ports, removed afterwards), at a quiet hour, because the server is
+  shared. Never production, never `zuvo_prod`.
 - **Where the driver runs:** a separate machine (not the VPS), so the driver's CPU does not compete
   with the API. Same scripts: `local.ts` needs a `--target` mode that skips starting its own API and
   reads seeded seats from a file (to be added with the deploy steps); seeding then goes through a

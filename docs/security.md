@@ -188,7 +188,7 @@ on any High/Critical `pnpm audit` advisory. Current Moderate/Low advisories are 
 
 ### Backups
 
-Planned with the deploy steps (CLAUDE.md §3a, `docs/runbooks/vps-checklist.md`): daily backups of the database and the media folder, and an alert email above 80 % disk use.
+Built in Step 21 (`docs/runbooks/backups.md`): a `mongodump` before every deploy, daily database + media backups kept 14 days (files `600`, folders `700`, root only), a tested restore, and an alert email to the admins from 80 % disk use. A copy off the server is still to be chosen.
 
 ---
 
@@ -236,7 +236,7 @@ Backend authorization findings: see section 7.
   response, and the Nginx snippet is current.
 - `pnpm --filter @zuvo/frontend exec playwright test e2e/csp.spec.ts` (after `vite build`) — no CSP
   violation on the main screens.
-- `curl -sI https://app.zuvo.corremadvisory.com/ | grep -i -E 'content-security|strict-transport'`
+- `curl -sI https://zuvo.corremadvisory.com/ | grep -i -E 'content-security|strict-transport'`
   after deploying.
 
 ## 6. Changing a header
