@@ -10,6 +10,7 @@ compose() { docker compose -p zuvo -f deploy/docker-compose.prod.yml "$@"; }
 fail() { echo "::error title=Production stack::$*"; exit 1; }
 # On any failure: which container is in which state, and the last lines of the app's services.
 explain() {
+  echo "=== WHY"
   compose ps -a --format '{{.Service}}: {{.Status}}' || true
   for svc in backup migrate api worker; do compose logs --no-log-prefix --tail 6 "$svc" 2>&1 | sed "s/^/$svc| /" | cut -c1-240 || true; done
 }
@@ -38,7 +39,7 @@ compose config --format json | node -e '
 
 echo "--- build + up --wait (same flags as correm-deploy)"
 compose build
-compose up -d --wait --wait-timeout 300 --remove-orphans
+compose up -d --quiet-pull --wait --wait-timeout 300 --remove-orphans
 
 echo "--- checks"
 ready="$(curl -fsS http://127.0.0.1:7148/v1/ready)" || fail "/v1/ready is not 200"
@@ -61,7 +62,7 @@ done
 compose logs api | grep -q 'Using MONGODB_DB=zuvo_prod' || fail "the API must log its database"
 
 echo "--- a second deploy (correm-deploy runs up again): backup and migrate run again, API stays up"
-compose up -d --wait --wait-timeout 300 --remove-orphans
+compose up -d --quiet-pull --wait --wait-timeout 300 --remove-orphans
 [ "$(ls "$ZUVO_BACKUP_DIR"/predeploy/zuvo-*.archive.gz | wc -l)" -ge 2 ] || fail "the second deploy made no backup"
 curl -fsS -o /dev/null http://127.0.0.1:7148/v1/ready || fail "/v1/ready after the second deploy"
 echo "production stack OK"
