@@ -18,11 +18,8 @@ export const brand = {
   defaultAbout: `Hey there! I'm using ${NAME}`,
   domains: {
     organization: 'corremadvisory.com',
-    landing: 'zuvo.corremadvisory.com',
-    app: 'app.zuvo.corremadvisory.com',
-    api: 'api.zuvo.corremadvisory.com',
-    stagingApp: 'dev-app.zuvo.corremadvisory.com',
-    stagingApi: 'dev-api.zuvo.corremadvisory.com',
+    /** Production: the app, `/v1` and `/socket.io` on one origin (host Nginx; no staging). */
+    app: 'zuvo.corremadvisory.com',
   },
   supportEmail: 'nova@corremadvisory.com',
   email: {
