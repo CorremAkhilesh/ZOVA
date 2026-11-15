@@ -1,0 +1,29 @@
+# Build context for deploy/docker/*.Dockerfile (context = repo root). Only sources and manifests
+# go in: never env files, local data, server notes or build output.
+**/node_modules
+**/dist
+**/coverage
+**/.turbo
+**/.vite
+**/playwright-report
+**/test-results
+**/blob-report
+**/*.log
+.git
+.github
+.cache
+.vscode
+.idea
+docs
+infra
+deploy/*
+!deploy/docker
+backend/storage
+backend/load
+frontend/perf
+frontend/e2e
+**/.env
+**/.env.*
+SERVER_CONTEXT.md
+SERVER_STEPS.local.md
+*.local.md
