@@ -125,6 +125,8 @@ delete `main`, not even an admin.
   - `Build + bundle budget`
   - `E2E`
   - `Security (audit + secret scan)`
+  - `Production stack (Docker)` (added after Step 21, so a broken production stack also blocks
+    merging)
 
   Require **`E2E`**, not the shard jobs (`E2E chromium 1/3`, …): the shard list changes with the
   trigger and with shard counts, while `E2E` is always there and only passes when every shard
@@ -133,10 +135,6 @@ delete `main`, not even an admin.
   ruleset in the same change.
 - **Block force pushes** and **restrict deletions**.
 - Optional: **Require conversation resolution before merging**.
-- Not required (on purpose): `Production stack (Docker)`. It runs on every push and pull request,
-  and `deploy.yml` reruns the whole CI, this job included, before every deploy; add it to the
-  ruleset if a red production smoke test should also block merging.
-
 ### `dev`
 
 - **Restrict deletions** and **block force pushes**. No pull request is required: work is pushed

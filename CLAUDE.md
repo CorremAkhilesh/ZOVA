@@ -342,8 +342,8 @@ companies' apps: never touch their Nginx sites, containers, databases or ports.
   `up --wait`, `/v1/ready`, the real Nginx site, backup + restore). See `docs/runbooks/ci.md`.
   CI never uses secrets, Atlas or real SMTP.
 - **Branch rules** (GitHub rulesets): `main` needs a pull request (no approvals: one developer) and
-  the six required checks, up to date; no force push or deletion on `main` or `dev`. Admins may
-  bypass only through a pull request.
+  the seven required checks (including "Production stack (Docker)"), up to date; no force push or
+  deletion on `main` or `dev`. Admins may bypass only through a pull request.
 - **Deploy:** merge `dev` → `main` (**only when the owner says so**) → `.github/workflows/deploy.yml`
   runs CI on that commit, then over SSH `sudo -n /usr/local/bin/correm-deploy zuvo <sha>`:
   fetch → build → `up -d --wait` (pre-deploy `mongodump` → `db:sync-indexes --expect-db zuvo_prod` →

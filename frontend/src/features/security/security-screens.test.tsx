@@ -15,7 +15,7 @@ const device = (id: string, overrides: Partial<DeviceSession> = {}): DeviceSessi
   os: 'Windows 11',
   deviceType: 'desktop',
   name: null,
-  ipAddress: '103.201.140.•••',
+  ipAddress: '203.0.113.•••',
   createdAt: new Date(now - 3_600_000).toISOString(),
   lastActiveAt: new Date(now - 60_000).toISOString(),
   expiresAt: new Date(now + 6 * 86_400_000).toISOString(),
@@ -44,7 +44,7 @@ describe('Settings → Devices', () => {
     );
     const { container } = await renderApp('/settings/devices');
     expect(await screen.findByText('This device')).toBeInTheDocument();
-    expect(screen.getAllByText('103.201.140.•••')).toHaveLength(3);
+    expect(screen.getAllByText('203.0.113.•••')).toHaveLength(3);
     expect(await axe(container)).toHaveNoViolations();
 
     await user.click(screen.getByRole('button', { name: 'Sign out Firefox 140 · Windows 11' }));
