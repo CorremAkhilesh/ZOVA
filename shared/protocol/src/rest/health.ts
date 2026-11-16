@@ -4,7 +4,12 @@ import { isoDateTimeSchema } from '../common/id.ts';
 /** GET /v1/health — liveness: the process is up. Never checks dependencies. */
 export const healthResponseSchema = z.object({
   status: z.literal('ok'),
+  /** Backend package version. */
   version: z.string().min(1),
+  /** Short commit SHA of the running build, or "unknown" when the build could not tell. */
+  commit: z.union([z.string().regex(/^[0-9a-f]{7}$/), z.literal('unknown')]),
+  /** When the production image was built; null outside a Docker build (local dev). */
+  builtAt: isoDateTimeSchema.nullable(),
   /** Process uptime in seconds. */
   uptime: z.number().nonnegative(),
   timestamp: isoDateTimeSchema,

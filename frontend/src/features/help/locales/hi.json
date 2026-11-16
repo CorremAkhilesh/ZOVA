@@ -180,7 +180,7 @@
   "about": {
     "subtitle": "{{company}} का {{brand}}।",
     "versionTitle": "वर्ज़न",
-    "version": "वर्ज़न {{version}}",
+    "version": "वर्ज़न {{version}} ({{commit}})",
     "built": "{{date}} को बना",
     "whatsNew": "नया क्या है"
   }

@@ -60,6 +60,8 @@ describe('apiGet', () => {
         return HttpResponse.json({
           status: 'ok',
           version: '1',
+          commit: 'unknown',
+          builtAt: null,
           uptime: 0,
           timestamp: new Date().toISOString(),
         });

@@ -6,6 +6,7 @@ import { brand } from '@zuvo/config';
 import { darkColors, lightColors } from '@zuvo/ui-tokens';
 import { defineConfig, loadEnv, type Plugin } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
+import { readBuildInfo } from './bundling/build-info.ts';
 import { buildOutput } from './bundling/chunks.ts';
 import { APPLE_TOUCH_ICON, ICONS_DIR, MANIFEST_ICONS, splashLinkTags } from './pwa/assets.ts';
 import { devPorts } from './src/lib/dev-ports.ts';
@@ -16,7 +17,10 @@ import { securityHeaders } from './src/lib/security-headers-plugin.ts';
  * ZUVO_API_PORT from the environment or frontend/.env.local (the environment wins). Shared machine:
  * every developer picks their own. E2E points the proxy at the test API (ZUVO_API_TARGET).
  */
-const PORTS = devPorts(loadEnv('', fileURLToPath(new URL('.', import.meta.url)), 'ZUVO_'));
+const ENV = loadEnv('', fileURLToPath(new URL('.', import.meta.url)), 'ZUVO_');
+const PORTS = devPorts(ENV);
+/** Commit and build time for Help → About; the Docker build passes ZUVO_BUILD_INFO (web.Dockerfile). */
+const BUILD = readBuildInfo(ENV.ZUVO_BUILD_INFO);
 const BACKEND = PORTS.apiTarget;
 
 /** Fills brand placeholders and the iOS splash links in index.html — the brand lives only in brand.ts. */
@@ -112,7 +116,8 @@ export default defineConfig({
   ],
   // Shown on Help → About.
   define: {
-    'import.meta.env.VITE_BUILD_DATE': JSON.stringify(new Date().toISOString().slice(0, 10)),
+    'import.meta.env.VITE_BUILD_DATE': JSON.stringify(BUILD.builtAt.slice(0, 10)),
+    'import.meta.env.VITE_COMMIT': JSON.stringify(BUILD.commit),
   },
   // Fewer, bigger files for the first screen (bundling/chunks.ts, docs/runbooks/performance.md).
   build: { rolldownOptions: { output: buildOutput() } },

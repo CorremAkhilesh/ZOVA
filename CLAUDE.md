@@ -348,8 +348,13 @@ companies' apps: never touch their Nginx sites, containers, databases or ports.
   runs CI on that commit, then over SSH `sudo -n /usr/local/bin/correm-deploy zuvo <sha>`:
   fetch → build → `up -d --wait` (pre-deploy `mongodump` → `db:sync-indexes --expect-db zuvo_prod` →
   api/worker) → health on `127.0.0.1:7148/v1/ready` and `:7147/health` → automatic rollback to the
-  previous commit if unhealthy; then `https://zuvo.corremadvisory.com/v1/ready`. It skips (green)
-  while the `VPS_*` secrets are missing. A push to `dev` never deploys.
+  previous commit if unhealthy; then `https://zuvo.corremadvisory.com/v1/ready`, and `/v1/health` must
+  name the merged commit. It skips (green) while the `VPS_*` secrets are missing. A push to `dev`
+  never deploys.
+- **Which build is live:** `GET /v1/health` returns `version`, `commit` (short SHA, or `unknown`) and
+  `builtAt`; Help → About shows "Version x.y.z (abc1234)". The images read the SHA from the detached
+  `.git/HEAD` that `correm-deploy` checks out (`.dockerignore` lets in only HEAD and branch refs; a
+  "meta" build stage writes `build-info.json`), so the shared deploy script needs no change.
 - Secrets live in GitHub Secrets (`VPS_*`, environment `production`) and in `deploy/.env.prod` on the
   server only.
 

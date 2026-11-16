@@ -144,12 +144,14 @@ delete `main`, not even an admin.
 
 - **`Production stack (Docker)`** (`deploy/ci/*.sh`): runs `setup-env.sh` with fake secrets, checks
   the compose file and the `correm-deploy` port guard, builds both images (`NODE_ENV=production`),
-  `up -d --wait` like the server, checks `/v1/ready`, the app shell, that test routes are absent,
+  `up -d --wait` like the server, checks `/v1/ready`, that `/v1/health` and the web bundle name the
+  commit being tested (and the image holds no `.git`), the app shell, that test routes are absent,
   the index sync and the pre-deploy dump, deploys a second time, puts the real Nginx site file in
   front (`nginx:1.24`, self-signed certificate: HTTP/2, headers, cache rules, WebSocket upgrade), and
   runs the daily backup, a restore test and a real restore.
 - **`deploy.yml`** (push to `main`, or a manual run on `main`): calls `ci.yml` on the same commit
   (`workflow_call`), then the `Deploy to production` job (environment `production`) runs
   `sudo -n /usr/local/bin/correm-deploy zuvo <sha>` over SSH and checks
-  `https://zuvo.corremadvisory.com/v1/ready`. Without all five `VPS_*` secrets it skips green with a
+  `https://zuvo.corremadvisory.com/v1/ready`, then that `/v1/health` names the deployed commit.
+  Without all five `VPS_*` secrets it skips green with a
   notice. Server side: `docs/runbooks/first-deploy.md`.

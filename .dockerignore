@@ -10,6 +10,12 @@
 **/blob-report
 **/*.log
 .git
+# ...except what names the commit (build-info: deploy/docker/*.Dockerfile, "meta" stage): HEAD, which
+# correm-deploy leaves detached at the deployed SHA, and the branch refs it may point to. A few bytes.
+!.git/HEAD
+!.git/refs/heads
+!.git/refs/heads/**
+!.git/packed-refs
 .github
 .cache
 .vscode

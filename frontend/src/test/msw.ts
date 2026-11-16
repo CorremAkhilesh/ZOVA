@@ -21,6 +21,8 @@ export const healthyResponse = () =>
   HttpResponse.json({
     status: 'ok',
     version: '0.0.0',
+    commit: 'abc1234',
+    builtAt: null,
     uptime: 1,
     timestamp: new Date().toISOString(),
   });

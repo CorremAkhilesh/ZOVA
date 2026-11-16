@@ -6,6 +6,8 @@ import { HelpPage, HelpSection, Points } from './HelpPage';
 
 /** Set by vite.config.ts (YYYY-MM-DD); missing in tests. */
 const BUILD_DATE: string | undefined = import.meta.env.VITE_BUILD_DATE;
+/** Short commit SHA set by vite.config.ts, so support can tell which build someone runs. */
+const COMMIT: string = import.meta.env.VITE_COMMIT ?? 'unknown';
 
 /** /help/about: version, build date and what's new. */
 export function AboutPage() {
@@ -21,7 +23,7 @@ export function AboutPage() {
         <div className="flex items-center gap-4">
           <Logo className="[&_svg]:size-10" />
           <div>
-            <p className="font-medium">{text('about.version', { version })}</p>
+            <p className="font-medium">{text('about.version', { version, commit: COMMIT })}</p>
             {built ? (
               <p className="text-text-muted">{text('about.built', { date: built })}</p>
             ) : null}
