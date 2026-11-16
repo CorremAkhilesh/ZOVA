@@ -83,16 +83,16 @@ export function ConversationHeader({
       {showBack ? (
         <Button asChild variant="ghost" size="icon" aria-label={t('conversation.back')}>
           <Link to="/chats">
-            <ArrowLeft className="size-5" />
+            <ArrowLeft className="size-5" aria-hidden />
           </Link>
         </Button>
       ) : null}
       <button
         type="button"
         onClick={onToggleInfo}
-        className="flex min-w-0 flex-1 items-center gap-3 rounded-lg p-1 text-left"
-        aria-label={t('conversation.info')}
+        className="flex min-w-0 flex-1 items-center gap-3 rounded-lg p-1 text-left transition-colors hover:bg-background/60"
         aria-expanded={infoOpen}
+        data-info-toggle
       >
         <ChatAvatar chat={chat} online={presence?.online === true} className="size-10" />
         <span className="min-w-0">
@@ -116,7 +116,13 @@ export function ConversationHeader({
             </span>
           )}
         </span>
+        {/* The name as shown comes first (voice control says what it sees), then what it opens. */}
+        <span className="sr-only">, {t('conversation.info')}</span>
       </button>
+      {/* Said once when someone starts typing; the animated line above stays silent. */}
+      <span aria-live="polite" className="sr-only">
+        {typing ? group.typingLabel || `${chat.name}: ${t('conversation.typing')}` : ''}
+      </span>
       <div className="flex items-center">
         <DisappearingBadge timer={chat.disappearing} />
         {/* On phones the chat list, which also shows it, is hidden while a chat is open. */}
@@ -139,7 +145,7 @@ export function ConversationHeader({
               : useInChatSearch.getState().open(chat.id)
           }
         >
-          <Search className="size-5" />
+          <Search className="size-5" aria-hidden />
         </Button>
         <Button
           variant="ghost"
@@ -149,7 +155,7 @@ export function ConversationHeader({
           onClick={onToggleInfo}
           className="hidden lg:inline-flex"
         >
-          <Info className="size-5" />
+          <Info className="size-5" aria-hidden />
         </Button>
       </div>
     </header>

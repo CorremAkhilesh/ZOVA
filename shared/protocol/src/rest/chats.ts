@@ -145,6 +145,12 @@ export const lastMessageSchema = z.object({
   id: z.string(),
   seq: z.number().int().positive(),
   senderId: z.string().nullable(),
+  /**
+   * The sender's display name when this message was sent, so a group's preview names them before
+   * their profile is loaded. Null for system messages; absent in chats from before it existed. A
+   * later rename shows from their next message (or once the reader has their profile).
+   */
+  senderName: z.string().nullable().optional(),
   type: messageTypeSchema,
   preview: z.string(),
   system: systemEventSchema.nullable().optional(),

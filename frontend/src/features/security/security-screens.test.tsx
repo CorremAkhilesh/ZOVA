@@ -2,6 +2,7 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { DeviceSession } from '@zuvo/protocol';
 import { describe, expect, it } from 'vitest';
+import { sessionSnapshot } from '@/features/auth/session';
 import { axe } from '@/test/axe';
 import { HttpResponse, http, server, sessionFixture } from '@/test/msw';
 import { renderApp } from '@/test/render-app';
@@ -14,7 +15,7 @@ const device = (id: string, overrides: Partial<DeviceSession> = {}): DeviceSessi
   os: 'Windows 11',
   deviceType: 'desktop',
   name: null,
-  ipAddress: '103.201.140.•••',
+  ipAddress: '203.0.113.•••',
   createdAt: new Date(now - 3_600_000).toISOString(),
   lastActiveAt: new Date(now - 60_000).toISOString(),
   expiresAt: new Date(now + 6 * 86_400_000).toISOString(),
@@ -43,7 +44,7 @@ describe('Settings → Devices', () => {
     );
     const { container } = await renderApp('/settings/devices');
     expect(await screen.findByText('This device')).toBeInTheDocument();
-    expect(screen.getAllByText('103.201.140.•••')).toHaveLength(3);
+    expect(screen.getAllByText('203.0.113.•••')).toHaveLength(3);
     expect(await axe(container)).toHaveNoViolations();
 
     await user.click(screen.getByRole('button', { name: 'Sign out Firefox 140 · Windows 11' }));
@@ -99,6 +100,18 @@ const adminSession = () => {
 };
 
 describe('Admin screens', () => {
+  it('open for someone just promoted, even when this device still remembers "user"', async () => {
+    // The stored session predates the promotion; admin screens must ask the server.
+    sessionSnapshot.save(sessionFixture());
+    server.use(
+      http.get('*/v1/auth/me', () => HttpResponse.json(adminSession())),
+      http.get('*/v1/admin/users', () => HttpResponse.json({ items: [], nextCursor: null })),
+    );
+    const { router } = await renderApp('/settings/admin/users');
+    expect(await screen.findByRole('searchbox')).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe('/settings/admin/users');
+  });
+
   it('are hidden from and closed to non-admins', async () => {
     const { router } = await renderApp('/settings/admin/users');
     await waitFor(() => expect(router.state.location.pathname).toBe('/settings'));

@@ -1,7 +1,6 @@
 import { Text } from '@react-email/components';
 import { render } from '@react-email/render';
-import { brand } from '@zuvo/config';
-import { OTP_TTL_SECONDS } from '@zuvo/protocol';
+import { type AppLanguage, OTP_TTL_SECONDS } from '@zuvo/protocol';
 import type { MailMessage } from '../mailer.ts';
 import {
   EMAIL_COLORS,
@@ -11,6 +10,7 @@ import {
   secondaryStyle,
   textStyle,
 } from './email-layout.tsx';
+import { emailStrings } from './email-strings.ts';
 
 export { EMAIL_COLORS, EMAIL_CONTRAST_PAIRS } from './email-layout.tsx';
 
@@ -20,16 +20,15 @@ const { light } = EMAIL_COLORS;
 interface OtpEmailProps {
   code: string;
   expiresAt: Date;
+  language?: AppLanguage;
 }
 
-export function OtpEmail({ code, expiresAt }: OtpEmailProps) {
+export function OtpEmail({ code, expiresAt, language = 'en' }: OtpEmailProps) {
+  const s = emailStrings(language).otp;
   return (
-    <EmailLayout
-      preview={`${code} is your ${brand.name} verification code`}
-      heading="Your verification code"
-    >
+    <EmailLayout language={language} preview={s.subject(code)} heading={s.heading}>
       <Text className="secondary" style={{ ...secondaryStyle, fontSize: 15, margin: '0 0 20px' }}>
-        {`Enter this code in ${brand.name} to sign in.`}
+        {s.intro}
       </Text>
       {/* One text node: copies/selects as a single string; letter-spacing only spaces it visually. */}
       <Text
@@ -52,33 +51,43 @@ export function OtpEmail({ code, expiresAt }: OtpEmailProps) {
         {code}
       </Text>
       <Text className="text" style={textStyle}>
-        {`This code expires in ${MINUTES} minutes (at ${formatIst(expiresAt)}). Only the most recent code works.`}
+        {s.expiry(MINUTES, formatIst(expiresAt, false, language))}
       </Text>
       <Text className="secondary" style={secondaryStyle}>
-        If you didn’t request this, ignore this email. Nobody can sign in without the code.
+        {s.ignore}
       </Text>
     </EmailLayout>
   );
 }
 
-export function otpEmailText(code: string, expiresAt: Date): string {
+export function otpEmailText(code: string, expiresAt: Date, language: AppLanguage = 'en'): string {
+  const strings = emailStrings(language);
+  const s = strings.otp;
   return [
-    `Your ${brand.name} verification code is: ${code}`,
+    s.codeLine(code),
     '',
-    `This code expires in ${MINUTES} minutes (at ${formatIst(expiresAt)}). Only the most recent code works.`,
+    s.expiry(MINUTES, formatIst(expiresAt, false, language)),
     '',
-    'If you didn’t request this, ignore this email. Nobody can sign in without the code.',
+    s.ignore,
     '',
-    `${brand.name} — ${brand.tagline}`,
+    strings.footer,
   ].join('\n');
 }
 
-/** Builds the full OTP email: subject "<code> is your Zuvo verification code", HTML and plain text. */
-export async function otpEmail(to: string, code: string, expiresAt: Date): Promise<MailMessage> {
+/**
+ * The full OTP email (subject "<code> is your Zuvo verification code"), HTML and plain text, in
+ * the account's language (see auth.ts for addresses without one).
+ */
+export async function otpEmail(
+  to: string,
+  code: string,
+  expiresAt: Date,
+  language: AppLanguage = 'en',
+): Promise<MailMessage> {
   return {
     to,
-    subject: `${code} is your ${brand.name} verification code`,
-    html: await render(<OtpEmail code={code} expiresAt={expiresAt} />),
-    text: otpEmailText(code, expiresAt),
+    subject: emailStrings(language).otp.subject(code),
+    html: await render(<OtpEmail code={code} expiresAt={expiresAt} language={language} />),
+    text: otpEmailText(code, expiresAt, language),
   };
 }

@@ -10,6 +10,8 @@ import {
   waitUntil,
 } from '../../test/realtime-helpers.ts';
 import { getOrCreateDirectChat } from '../chats/chats.service.ts';
+import { addMembers, removeMember } from '../chats/group-members.service.ts';
+import { createGroup } from '../chats/groups.service.ts';
 import { windowLimit } from './socket-limit.ts';
 import { TYPING_TTL_MS } from './typing.ts';
 
@@ -96,6 +98,37 @@ describe('typing', () => {
     await waitUntil(() => expect(toBob).toHaveLength(1));
     expect(toBob[0]?.userId).toBe(alice.id);
     expect(toStranger).toEqual([]);
+  });
+
+  it('a removed member hears nothing more at once, and a new member hears it at once', async () => {
+    seed += 1;
+    const alice = await signedIn(app(), `t${seed}ga@corremadvisory.com`);
+    const bob = await signedIn(app(), `t${seed}gb@corremadvisory.com`);
+    const carol = await signedIn(app(), `t${seed}gc@corremadvisory.com`);
+    const dave = await signedIn(app(), `t${seed}gd@corremadvisory.com`);
+    const group = await createGroup(app(), alice.id, {
+      name: 'Typing',
+      description: '',
+      memberIds: [bob.id, carol.id],
+    });
+    const aliceSocket = await connect(url, alice.cookie);
+    const toBob = record(await connect(url, bob.cookie), 'typing:update');
+    const toCarol = record(await connect(url, carol.cookie), 'typing:update');
+    const toDave = record(await connect(url, dave.cookie), 'typing:update');
+
+    await start(aliceSocket, group.id);
+    await waitUntil(() => expect(toCarol).toHaveLength(1));
+    await waitUntil(() => expect(toBob).toHaveLength(1));
+
+    await removeMember(app(), alice.id, group.id, bob.id);
+    await addMembers(app(), alice.id, group.id, [dave.id]);
+    await start(aliceSocket, group.id);
+    await stop(aliceSocket, group.id);
+    await waitUntil(() => expect(toCarol).toHaveLength(3));
+    await waitUntil(() => expect(toDave).toHaveLength(2));
+    expect(toDave.map((event) => event.typing)).toEqual([true, false]);
+    // Bob heard the first update only: not the one after his removal, nor its stop.
+    expect(toBob).toHaveLength(1);
   });
 
   it('is rate limited per socket', async () => {

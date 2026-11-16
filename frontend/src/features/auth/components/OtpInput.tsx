@@ -96,7 +96,7 @@ export function OtpInput({
           className={cn(
             // Boxes share the width, so all six always fit (down to 320 px screens).
             'h-12 min-w-0 flex-1 rounded-xl border bg-surface text-center text-xl font-semibold text-text tabular-nums outline-none transition-[border-color,box-shadow]',
-            'focus:border-brand focus:ring-3 focus:ring-brand/20 disabled:opacity-60 sm:h-14',
+            'focus:border-brand-text focus:ring-3 focus:ring-brand/20 disabled:opacity-60 sm:h-14',
             invalid && 'border-danger',
           )}
         />

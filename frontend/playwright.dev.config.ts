@@ -7,8 +7,8 @@ import { assertPortsFree } from './e2e/port-guard';
  * production build, which cannot see bugs that only exist in development.
  * Own ports and Vite cache, so it can run beside a `pnpm dev` on this shared machine.
  */
-const PORT = 5193;
-const API_PORT = 4198;
+const PORT = Number(process.env.E2E_DEV_WEB_PORT ?? 5193);
+const API_PORT = Number(process.env.E2E_DEV_API_PORT ?? 4198);
 const BASE_URL = `http://127.0.0.1:${PORT}`;
 const CI = Boolean(process.env.CI);
 
@@ -16,13 +16,17 @@ await assertPortsFree([PORT, API_PORT]);
 
 export default defineConfig({
   testDir: './e2e',
-  testMatch: /(chat|presence|media|media-sender|voice|groups|messages|search-moderation)\.spec\.ts/,
-  grep: /two people chat|second device|both people open|stuck tab|ticks, read-receipt|photos with captions|upload interrupted|over the limit|no room in the browser|sender|expired video|voice note|cancelling discards|seeking moves|recorded offline|group|message actions|forward to two|made offline|searches a word|formatted message|link with a preview|blocks A|reports B|Work" folder|pinning a message|an @mention|draft typed|Toggle theme|scheduled a minute|a poll: B votes|disappearing messages: 24|view-once photo|locked chat leaves|accent colour/,
+  testMatch:
+    /(chat|presence|media|media-sender|voice|groups|messages|search-moderation|advanced|step17|push)\.spec\.ts/,
+  grep: /two people chat|second device|both people open|stuck tab|ticks, read-receipt|photos with captions|upload interrupted|over the limit|no room in the browser|sender|expired video|voice note|cancelling discards|seeking moves|recorded offline|group|message actions|forward to two|made offline|searches a word|formatted message|link with a preview|blocks A|reports B|Work" folder|pinning a message|an @mention|draft typed|Toggle theme|scheduled a minute|a poll: B votes|disappearing messages: 24|view-once photo|locked chat leaves|accent colour|push while away|muted group|Send test notification/,
   outputDir: './test-results/dev',
+  // One worker: the dev server compiles on first use and runs StrictMode. Tests stand alone, so
+  // CI shards split them one by one.
+  fullyParallel: true,
   workers: 1,
   forbidOnly: CI,
   retries: CI ? 1 : 0,
-  reporter: CI ? [['github'], ['list']] : [['list']],
+  reporter: CI ? [['github'], ['list'], ['blob']] : [['list']],
   use: { baseURL: BASE_URL, trace: 'retain-on-failure', screenshot: 'only-on-failure' },
   projects: [
     {
@@ -42,7 +46,8 @@ export default defineConfig({
       url: `http://127.0.0.1:${API_PORT}/v1/health`,
       env: { E2E_API_PORT: String(API_PORT), E2E_APP_ORIGIN: BASE_URL },
       reuseExistingServer: false,
-      timeout: 180_000,
+      // tsx compiles the API on start: minutes on the busy shared machine, far less on CI.
+      timeout: 300_000,
     },
     {
       command: `pnpm exec vite --port ${PORT}`,

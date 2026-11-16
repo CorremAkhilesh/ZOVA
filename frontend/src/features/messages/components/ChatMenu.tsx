@@ -27,6 +27,7 @@ import { FolderMenuEntries } from '@/features/folders/components/FolderMenuEntri
 import { LockMenuEntry } from '@/features/lock/components/LockMenuEntry';
 import { ModerationEntries } from '@/features/moderation/components/ModerationEntries';
 import { useSyncStore } from '@/features/sync/store';
+import { useBackClose } from '@/lib/back-stack';
 import { type ChatMenuRequest, useMessageUi } from '../store';
 
 const ITEM =
@@ -184,6 +185,7 @@ function OpenMenu(props: {
 }) {
   const { t } = useTranslation();
   const { request, commands, onConfirm, onClose } = props;
+  useBackClose(true, onClose);
   return (
     <DropdownMenu.Root open modal={false} onOpenChange={(open) => (open ? undefined : onClose())}>
       <DropdownMenu.Trigger asChild>

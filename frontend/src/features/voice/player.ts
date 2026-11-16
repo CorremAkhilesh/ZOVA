@@ -23,6 +23,8 @@ export interface Track {
   title: string;
   /** What it is, for lock screens. */
   subtitle: string;
+  /** The sender's photo, for lock screens. */
+  artwork?: string | undefined;
   /** From the message: a recording in WebM does not know its own length. */
   duration: number;
   /** An incoming voice note nobody has reported as played yet. */
@@ -197,6 +199,8 @@ export function playTrack(track: Track, startAt = 0) {
     return markFailed(track);
   }
   set({ track, position: startAt, playing: false, loading: true });
+  // Lock screens show this note's sender now, not the last one's until the first time update.
+  updateMediaSession({ track, position: startAt, playing: false, speed: state().speed });
   void loadLink(track, startAt);
 }
 

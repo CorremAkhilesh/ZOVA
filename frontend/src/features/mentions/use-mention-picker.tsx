@@ -1,6 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
 import type { GroupMember } from '@zuvo/protocol';
-import { type KeyboardEvent, type RefObject, useId, useMemo, useState } from 'react';
+import {
+  type KeyboardEvent,
+  type RefObject,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/ui/avatar';
 import { useSession } from '@/features/auth/session';
@@ -61,6 +69,16 @@ export function useMentionPicker(
   const [caret, setCaret] = useState<number | null>(null);
   const [index, setIndex] = useState(0);
   const [dismissedAt, setDismissedAt] = useState<number | null>(null);
+  // Where the caret goes once the chosen mention is in the box: set right after React writes the
+  // value, before the next key. (A later animation frame moved it back over what was typed since.)
+  const pendingCaret = useRef<{ value: string; caret: number } | null>(null);
+  useLayoutEffect(() => {
+    const pending = pendingCaret.current;
+    const element = field.current;
+    if (!pending || !element || element.value !== pending.value) return;
+    element.setSelectionRange(pending.caret, pending.caret);
+    pendingCaret.current = null;
+  });
   const at = caret ?? field.current?.selectionStart ?? text.length;
   const query = isGroup ? mentionQuery(text, Math.min(at, text.length)) : null;
   const options: Option[] = useMemo(() => {
@@ -89,7 +107,7 @@ export function useMentionPicker(
     update(next.value);
     setCaret(next.caret);
     setIndex(0);
-    requestAnimationFrame(() => field.current?.setSelectionRange(next.caret, next.caret));
+    pendingCaret.current = { value: next.value, caret: next.caret };
   }
 
   return {
@@ -111,7 +129,11 @@ export function useMentionPicker(
     },
     /** The caret moved without typing: the picker follows it. */
     onSelect: () => setCaret(field.current?.selectionStart ?? null),
-    onChange: () => setCaret(null),
+    onChange: () => {
+      // Typed after choosing: the caret is already where the typing put it.
+      pendingCaret.current = null;
+      setCaret(null);
+    },
     inputProps: isGroup
       ? {
           // A textarea stays a textbox (axe: aria-allowed-role); it still points at the list.

@@ -44,6 +44,11 @@ describe('message actions use an index', () => {
     await expectIndexedQuery(
       MessageHidden.find({ userId, chatId: { $in: [chatId] }, messageId: { $in: [messageId] } }),
     );
+    // Search: everything I hid, in every chat.
+    await expectIndexedQuery(MessageHidden.find({ userId }).select({ messageId: 1 }));
+    // Who hid this message (view once), and cleanup when messages expire.
+    await expectIndexedQuery(MessageHidden.find({ chatId, messageId }));
+    await expectIndexedQuery(MessageHidden.find({ chatId, messageId: { $in: [messageId] } }));
   });
 
   it('forwarded files and quotes', async () => {

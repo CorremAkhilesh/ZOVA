@@ -149,14 +149,21 @@ describe('the join page', () => {
   it('shows the group, and only joins when asked', async () => {
     const user = userEvent.setup();
     const joined = vi.fn();
+    const groupChat = chatFixture({ type: 'group', otherUser: null, group: group() });
+    let member = false;
     server.use(
       http.get('*/v1/invites/:code', () => HttpResponse.json(preview)),
       http.post('*/v1/invites/:code/join', () => {
         joined();
-        return HttpResponse.json({
-          chat: chatFixture({ type: 'group', otherUser: null, group: group() }),
-        });
+        member = true;
+        return HttpResponse.json({ chat: groupChat });
       }),
+      // Like the real server: once joined, the group is in my chat list. The first sync is a reset
+      // that reloads this list; when it lands after the join, it must not drop the new group (a
+      // list without it made this test fail about half the time).
+      http.get('*/v1/chats', () =>
+        HttpResponse.json({ items: member ? [groupChat] : [], nextCursor: null }),
+      ),
       http.get('*/v1/chats/:id/members', () => HttpResponse.json({ members: members('member') })),
       http.get('*/v1/chats/:id/media', () => HttpResponse.json({ items: [], hasMore: false })),
     );
@@ -169,9 +176,10 @@ describe('the join page', () => {
     await waitFor(() => expect(joined).toHaveBeenCalled());
     // Opening a chat loads its route and reads the local database.
     expect(
-      await screen.findByRole('heading', { name: 'Launch team' }, { timeout: 15_000 }),
+      await screen.findByRole('heading', { name: 'Launch team' }, { timeout: 30_000 }),
     ).toBeInTheDocument();
-  });
+    // Longer than the wait above: on CI the whole suite runs at once, and this test loads a route.
+  }, 45_000);
 
   it('says so when the link no longer works', async () => {
     server.use(
@@ -243,9 +251,10 @@ describe('the group header', () => {
     await openGroup(group());
     await screen.findByText('Riya, Vikram, You');
     act(() => setTyping('c1', 'u-riya', true));
-    expect(await screen.findByText('Riya is typing…')).toBeInTheDocument();
+    // Shown in the header, and said once by its polite live region.
+    expect(await screen.findAllByText('Riya is typing…')).toHaveLength(2);
     act(() => setTyping('c1', 'u-vikram', true));
-    expect(await screen.findByText('Riya and Vikram are typing…')).toBeInTheDocument();
+    expect(await screen.findAllByText('Riya and Vikram are typing…')).toHaveLength(2);
     act(() => {
       setTyping('c1', 'u-riya', false);
       setTyping('c1', 'u-vikram', false);

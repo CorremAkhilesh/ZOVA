@@ -1,5 +1,5 @@
 import type { MyProfile, PrivacySettings, SessionResponse } from '@zuvo/protocol';
-import { DEFAULT_APPEARANCE, DEFAULT_QUIET_HOURS } from '@zuvo/protocol';
+import { DEFAULT_APPEARANCE, DEFAULT_PUSH_SETTINGS, DEFAULT_QUIET_HOURS } from '@zuvo/protocol';
 import { HttpResponse, http } from 'msw';
 import { setupServer } from 'msw/node';
 
@@ -38,6 +38,7 @@ export function sessionFixture(overrides: Partial<SessionResponse> = {}): Sessio
       avatar: null,
       role: 'user',
       status: 'active',
+      language: 'en',
       createdAt: new Date(now - 86_400_000).toISOString(),
     },
     session: {
@@ -68,6 +69,7 @@ export function profileFixture(overrides: Partial<MyProfile> = {}): MyProfile {
     avatar: null,
     role: user.role,
     status: user.status,
+    language: user.language,
     ...overrides,
   };
 }
@@ -114,6 +116,10 @@ export const server = setupServer(
   http.get('*/v1/me/appearance', () => HttpResponse.json({ appearance: DEFAULT_APPEARANCE })),
   http.get('*/v1/me/wallpapers', () => HttpResponse.json({ images: [] })),
   http.get('*/v1/me/quiet-hours', () => HttpResponse.json({ quietHours: DEFAULT_QUIET_HOURS })),
+  // Push is not set up (no VAPID key): nothing asks or subscribes unless a test says so.
+  http.get('*/v1/me/push', () =>
+    HttpResponse.json({ publicKey: null, settings: DEFAULT_PUSH_SETTINGS, devices: [] }),
+  ),
   http.get('*/v1/me/chat-settings', () =>
     HttpResponse.json({ settings: { keepChatsArchived: true } }),
   ),

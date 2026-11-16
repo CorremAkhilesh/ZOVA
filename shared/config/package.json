@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./brand": "./src/brand.ts",
+    "./security-headers": "./src/security-headers.ts",
     "./tsconfig.base.json": "./tsconfig.base.json"
   },
   "scripts": {

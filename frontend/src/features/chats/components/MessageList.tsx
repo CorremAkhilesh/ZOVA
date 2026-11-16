@@ -13,15 +13,15 @@ import { toast } from 'sonner';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useMessageUi } from '@/features/messages/store';
 import { buildTimeline, dayKind, type TimelineItem } from '../chat-utils';
+import { estimateRowPx } from '../row-estimate';
 import type { ChatMessage } from '../types';
+import { useBottomPin } from '../use-bottom-pin';
 import { MessageBubble } from './MessageBubble';
 
 /** Within this distance from the end still counts as "at the bottom". */
 const BOTTOM_SLOP_PX = 64;
 /** Starts fetching older messages this far before the top, so scrolling rarely stops. */
 const TOP_SLOP_PX = 600;
-const ROW_ESTIMATE_PX = 52;
-const DATE_ESTIMATE_PX = 44;
 const HIGHLIGHT_MS = 2000;
 
 function DateSeparator({ date }: { date: Date }) {
@@ -122,14 +122,18 @@ export function MessageList({
 }: MessageListProps) {
   const { t } = useTranslation();
   const viewport = useRef<HTMLDivElement>(null);
+  const content = useRef<HTMLOListElement>(null);
   const stick = useRef(true);
+  const bottom = useBottomPin(viewport, content, stick);
   const rows = useMemo(() => toRows(buildTimeline(messages)), [messages]);
 
   const virtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => viewport.current,
-    estimateSize: (index) =>
-      rows[index]?.date ? ROW_ESTIMATE_PX + DATE_ESTIMATE_PX : ROW_ESTIMATE_PX,
+    estimateSize: (index) => {
+      const row = rows[index];
+      return row ? estimateRowPx(row) : 0;
+    },
     getItemKey: (index) => {
       const row = rows[index];
       return row?.albumId ? `album-${row.albumId}` : (row?.key ?? index);
@@ -148,8 +152,7 @@ export function MessageList({
   useImperativeHandle(ref, () => ({
     scrollToBottom() {
       setStick(true);
-      const element = viewport.current;
-      if (element) element.scrollTop = element.scrollHeight;
+      bottom.pin();
     },
   }));
 
@@ -181,18 +184,22 @@ export function MessageList({
   }, [highlight]);
 
   // After every change in content, before the browser paints. Older messages arriving above need
-  // nothing here: `anchorTo` keeps the row the reader is looking at in place.
+  // nothing here: `anchorTo` keeps the row the reader is looking at in place. Sizes that change
+  // later (rows measured, the viewport resized) are followed by useBottomPin.
   // biome-ignore lint/correctness/useExhaustiveDependencies: both change what the bottom is
   useLayoutEffect(() => {
-    const element = viewport.current;
-    if (element && stick.current) element.scrollTop = element.scrollHeight;
+    if (stick.current) bottom.pin();
   }, [messages, total]);
 
   function handleScroll() {
     const element = viewport.current;
     if (!element) return;
-    const distance = element.scrollHeight - element.scrollTop - element.clientHeight;
-    setStick(distance <= BOTTOM_SLOP_PX);
+    const reader = bottom.byReader(element);
+    const atBottom =
+      element.scrollHeight - element.scrollTop - element.clientHeight <= BOTTOM_SLOP_PX;
+    // Only the reader leaves the bottom: a scroll that layout caused is followed instead.
+    if (atBottom || reader) setStick(atBottom);
+    else if (stick.current) bottom.pin();
     if (element.scrollTop <= TOP_SLOP_PX) onReachTop?.();
   }
 
@@ -206,6 +213,7 @@ export function MessageList({
       className="h-full px-3 md:px-8"
     >
       <ol
+        ref={content}
         aria-label={chatName}
         className="relative mx-auto w-full max-w-3xl"
         style={{ height: total }}

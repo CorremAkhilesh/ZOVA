@@ -73,6 +73,8 @@
     "notOfflineTitle": "Not available offline",
     "notOfflineBody": "This chat isn’t on this device yet. Connect to the internet to open it.",
     "typing": "typing…",
+    "newMessage": "New message from {{name}}: {{text}}",
+    "newMessageNoText": "New message from {{name}}",
     "lastSeenToday": "last seen today at {{time}}",
     "lastSeenYesterday": "last seen yesterday at {{time}}",
     "lastSeenDate": "last seen {{date}}"
@@ -95,9 +97,8 @@
     "themeDark": "Dark",
     "themeSystem": "System",
     "language": "Language",
-    "languageHint": "Changes the app language on this device.",
+    "languageHint": "Saved to your account: used on all your devices, in emails and in notifications.",
     "account": "Account",
-    "openProfile": "Open profile of {{name}}",
     "accountMenu": "Account",
     "about": "About"
   },
@@ -110,6 +111,7 @@
   "status": {
     "connected": "Connected",
     "connecting": "Connecting…",
+    "updating": "Updating…",
     "unreachable": "Server unreachable",
     "offlineShort": "Offline",
     "connectingHint": "Trying to reach the server…",
@@ -127,11 +129,8 @@
     "goHome": "Go to chats"
   },
   "install": {
-    "bannerLabel": "Install the app",
-    "bannerText": "Install the app for a faster, full-screen experience.",
     "install": "Install",
     "howTo": "How to install",
-    "dismiss": "Dismiss",
     "settingsTitle": "App",
     "settingsHint": "Install on this device for quick access, its own window and notifications.",
     "installApp": "Install app",
@@ -997,8 +996,6 @@
   },
   "quietHours": {
     "screenTitle": "Notifications",
-    "screenSubtitle": "Quiet hours and who can still reach you.",
-    "menuHint": "Quiet hours (Do Not Disturb)",
     "title": "Quiet hours",
     "hint": "While quiet, new messages arrive without sounds or alerts, on all your devices.",
     "mode": "Quiet hours",
@@ -1032,6 +1029,71 @@
     "saveFailed": "Couldn’t save quiet hours. Try again.",
     "loadFailed": "Couldn’t load your quiet hours.",
     "indicator": "Quiet hours are on"
+  },
+  "notifications": {
+    "newMessage": "New message",
+    "enabling": "Turning on…",
+    "enabled": "Notifications are on for this device.",
+    "failed": "Couldn’t turn on notifications. Try again.",
+    "card": {
+      "title": "Get notified about new messages",
+      "enable": "Enable"
+    },
+    "denied": {
+      "title": "Notifications are blocked",
+      "text": "Your browser is blocking notifications from {{brand}}. To allow them:"
+    },
+    "help": {
+      "chromium": "Click the lock icon next to the web address, open Site settings, and set Notifications to Allow. Then reload the page.",
+      "firefox": "Click the lock icon next to the web address and clear the blocked Notifications permission. Then reload the page and turn notifications on again.",
+      "safari-mac": "Open Safari → Settings → Websites → Notifications, and set {{brand}} to Allow.",
+      "ios": "Open your iPhone’s Settings → Notifications → {{brand}}, and turn on Allow Notifications."
+    },
+    "ios": {
+      "title": "Add {{brand}} to your Home Screen first",
+      "text": "On iPhone and iPad, notifications only work in the installed app: tap Share, then “Add to Home Screen”, and open {{brand}} from its icon."
+    },
+    "unsupported": {
+      "title": "Notifications aren’t available here",
+      "text": "This browser can’t show notifications from {{brand}}. Try a recent Chrome, Edge, Firefox or Safari."
+    },
+    "settings": {
+      "screenSubtitle": "Push notifications, sounds and quiet hours.",
+      "menuHint": "Push, sounds and quiet hours",
+      "loadFailed": "Couldn’t load your notification settings.",
+      "saveFailed": "Couldn’t save that change. Try again.",
+      "deviceTitle": "This device",
+      "push": "Push notifications",
+      "pushHint": "Show new messages on this device, even when {{brand}} is closed.",
+      "serverOff": "Push notifications aren’t set up on this server yet.",
+      "permission": {
+        "default": "Your browser will ask for permission when you turn this on.",
+        "granted": "Allowed by your browser.",
+        "denied": "Blocked by your browser.",
+        "unsupported": "Not available in this browser."
+      },
+      "allTitle": "All your devices",
+      "preview": "Show message preview",
+      "previewHint": "Show the sender and text. Off: just “New message”. Locked chats never show them.",
+      "sound": "Sound",
+      "soundHint": "Play a sound for new messages. Quiet hours keep it silent.",
+      "testHint": "Check that notifications reach your devices.",
+      "test": "Send test notification",
+      "testSending": "Sending…",
+      "testSent_one": "Test notification sent to {{count}} device.",
+      "testSent_other": "Test notification sent to {{count}} devices.",
+      "testNone": "No device received it. Turn on push notifications on a device first.",
+      "testFailed": "Couldn’t send a test notification. Try again.",
+      "devicesTitle": "My devices with notifications",
+      "devicesEmpty": "None of your devices gets notifications yet.",
+      "thisDevice": "This device",
+      "added": "Turned on {{when}}",
+      "lastUsed": "Last notified {{when}}",
+      "remove": "Remove",
+      "removeLabel": "Stop notifications on {{name}}",
+      "removed": "That device won’t get notifications any more.",
+      "removeFailed": "Couldn’t remove that device. Try again."
+    }
   },
   "lock": {
     "settingsTitle": "Chat lock",
@@ -1103,7 +1165,10 @@
     "unlockChatsHint": "Enter your PIN to see your locked chats for 5 minutes.",
     "chatLockedTitle": "This chat is locked",
     "locked": "Locked",
-    "lockNow": "Lock now"
+    "lockNow": "Lock now",
+    "hiddenStarred": "Messages in locked chats are hidden. Unlock to see them.",
+    "hiddenForward": "Locked chats are hidden. Unlock to forward to them.",
+    "hiddenMedia": "This chat is locked. Unlock to see its media."
   },
   "disappearing": {
     "title": "Disappearing messages",
@@ -1156,6 +1221,7 @@
     "text": "Message",
     "caption": "Caption",
     "schedule": "Schedule",
+    "uploading": "Uploading… {{percent}}%",
     "done": "Scheduled for {{time}}",
     "saved": "Will now send {{time}}",
     "problems": {
@@ -1227,8 +1293,8 @@
     "voters_other": "{{count}} people voted",
     "optionLabel_one": "{{text}}, {{count}} vote, {{percent}} percent",
     "optionLabel_other": "{{text}}, {{count}} votes, {{percent}} percent",
-    "seeVoters_one": "See who voted for {{text}} ({{count}} vote)",
-    "seeVoters_other": "See who voted for {{text}} ({{count}} votes)",
+    "seeVoters_one": "See who voted for {{text}}: {{count}} vote",
+    "seeVoters_other": "See who voted for {{text}}: {{count}} votes",
     "votes_one": "{{count}} vote",
     "votes_other": "{{count}} votes",
     "votersTitle": "Voters",
@@ -1239,5 +1305,16 @@
     "closeHint": "No one will be able to vote any more. The results stay visible.",
     "voteFailed": "Your vote couldn’t be saved. Try again.",
     "closeFailed": "Couldn’t close the poll. Try again."
+  },
+  "help": {
+    "menuTitle": "Help & About",
+    "menuHint": "Install guide, common questions, privacy and contact",
+    "signIn": "Sign in",
+    "backToApp": "Back to the app"
+  },
+  "promo": {
+    "notNow": "Not now",
+    "learnMore": "What to do",
+    "installText": "Install the app for quick access"
   }
 }

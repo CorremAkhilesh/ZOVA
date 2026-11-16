@@ -41,35 +41,19 @@ describe('install (Chrome / Edge / Android)', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('captures the prompt, shows banner + settings button, and installs on click', async () => {
+  it('captures the prompt, shows the settings button, and installs on click', async () => {
     const user = userEvent.setup();
     await renderApp('/settings', { width: DESKTOP_WIDTH });
     const event = firePrompt('accepted');
     expect(event.defaultPrevented).toBe(true);
 
-    expect(
-      await screen.findByRole('complementary', { name: 'Install the app' }),
-    ).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Install app' }));
+    await user.click(await screen.findByRole('button', { name: 'Install app' }));
     expect(event.prompt).toHaveBeenCalledOnce();
-
     expect(await screen.findByText(/Already installed/)).toBeInTheDocument();
+    // The "Install the app" bar lives in the chat list only (promo-bar.test.tsx).
     expect(
       screen.queryByRole('complementary', { name: 'Install the app' }),
     ).not.toBeInTheDocument();
-  });
-
-  it('remembers when the banner is dismissed', async () => {
-    const user = userEvent.setup();
-    await renderApp('/chats', { width: DESKTOP_WIDTH });
-    firePrompt();
-    await user.click(await screen.findByRole('button', { name: 'Dismiss' }));
-    expect(
-      screen.queryByRole('complementary', { name: 'Install the app' }),
-    ).not.toBeInTheDocument();
-    expect(JSON.parse(localStorage.getItem('zuvo-install') ?? '{}')).toMatchObject({
-      state: { bannerDismissed: true },
-    });
   });
 
   it('hides install UI after the appinstalled event', async () => {

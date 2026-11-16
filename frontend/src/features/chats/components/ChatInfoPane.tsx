@@ -1,5 +1,5 @@
 import { X } from 'lucide-react';
-import { motion } from 'motion/react';
+import { m } from 'motion/react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { DisappearingRow } from '@/features/disappearing/DisappearingRow';
@@ -22,11 +22,12 @@ export function ChatInfoPane({
 }) {
   const { t } = useTranslation();
   return (
-    <motion.aside
+    <m.aside
       aria-label={t('conversation.info')}
+      data-info-pane
       initial={{ x: 24, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
-      className="glass flex h-full w-80 shrink-0 flex-col border-l"
+      className="glass flex h-full w-80 max-w-full shrink-0 flex-col border-l max-lg:absolute max-lg:inset-y-0 max-lg:right-0 max-lg:z-30 max-lg:bg-surface max-lg:shadow-xl"
     >
       <div className="flex h-16 items-center justify-between border-b px-4">
         <h2 className="font-semibold">{t('conversation.info')}</h2>
@@ -36,7 +37,7 @@ export function ChatInfoPane({
           onClick={onClose}
           aria-label={t('conversation.closeInfo')}
         >
-          <X className="size-4" />
+          <X className="size-4" aria-hidden />
         </Button>
       </div>
       {chat.kind === 'group' ? (
@@ -53,6 +54,6 @@ export function ChatInfoPane({
           {chat.kind === 'saved' ? null : <ChatGallery chatId={chat.id} onOpen={onOpenMedia} />}
         </>
       )}
-    </motion.aside>
+    </m.aside>
   );
 }

@@ -1,4 +1,5 @@
 import { chatsApi } from '@/features/chats/api';
+import { chooseLanguage } from '@/features/settings/language-sync';
 import { applyChats } from '@/features/sync/apply';
 import type { LocalDb } from '@/features/sync/local-db';
 import { useSyncStore } from '@/features/sync/store';
@@ -14,9 +15,9 @@ export function toggleTheme() {
   setMode(shown === 'dark' ? 'light' : 'dark');
 }
 
-/** English ↔ हिन्दी. */
+/** English ↔ हिन्दी, saved to the profile like Settings → Language. */
 export function switchLanguage() {
-  void i18n.changeLanguage(i18n.language?.startsWith('hi') ? 'en' : 'hi');
+  void chooseLanguage(i18n.language?.startsWith('hi') ? 'en' : 'hi');
 }
 
 /** The Saved Messages chat's id: this device's copy, or the server's (stored here first). */

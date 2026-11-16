@@ -73,11 +73,13 @@
 - Node.js LTS, TypeScript strict
 - Fastify (+ Zod type provider)
 - Socket.IO with Redis adapter
-- Mongoose on MongoDB Atlas, Redis (ioredis), BullMQ
+- Mongoose on MongoDB (Atlas in development, own `mongo:8.0` container in production), Redis
+  (ioredis), BullMQ
 - Better Auth (email OTP plugin + MongoDB adapter)
 - Nodemailer + React Email via Hostinger SMTP (`smtp.hostinger.com:465` SSL, from `nova@corremadvisory.com`)
 - web-push (VAPID), pino logs, Vitest
-- Media stored on the VPS disk behind a `StorageDriver` interface (S3/R2 later)
+- Media stored on the server's disk behind a `StorageDriver` interface (S3/R2 later)
+- Production: Docker Compose on the shared company server behind its Nginx (`docs/adr/0009-production-hosting.md`)
 
 ### shared/protocol
 
@@ -94,15 +96,17 @@
 
 ### MongoDB
 
-- MongoDB Atlas cluster `cluster0.zitp2pj.mongodb.net`, shared by local and VPS.
-- Separate databases on the same cluster, selected via the `MONGODB_DB` env variable:
+- **Development:** MongoDB Atlas cluster `cluster0.zitp2pj.mongodb.net`, one database per developer.
+- **Production:** its own `mongo:8.0` container on the server (single-node replica set `rs0`, auth +
+  key file, never published), data in `/var/data/zuvo/db` (`docs/adr/0009-production-hosting.md`).
+- The database is selected via the `MONGODB_DB` env variable:
 
-  | Database             | Used by                               |
-  | -------------------- | ------------------------------------- |
-  | `zuvo_dev<N>`        | each developer on the shared machine  |
-  | `zuvo_dev`           | staging                               |
-  | `zuvo_prod`          | production                            |
-  | `zuvo_test_<random>` | tests — throwaway, dropped afterwards |
+  | Database             | Used by                                         |
+  | -------------------- | ----------------------------------------------- |
+  | `zuvo_dev<N>`        | each developer on the shared machine (Atlas)    |
+  | `zuvo_dev`           | old shared dev database on Atlas (no staging)   |
+  | `zuvo_prod`          | production (the server's own MongoDB container) |
+  | `zuvo_test_<random>` | tests — throwaway, dropped afterwards           |
 
 - Tests must **NEVER** touch `zuvo_dev` or `zuvo_prod`.
 - Connection string only in env (`MONGODB_URI`) — never in code, docs or git.
@@ -110,11 +114,11 @@
 
 ### Redis
 
-| Environment        | Redis                                                                        |
-| ------------------ | ---------------------------------------------------------------------------- |
-| local PC           | Own Memurai **user process** on `127.0.0.1:6391` (`pnpm redis:start`)        |
-| staging/production | Redis container on the VPS: password-protected, internal Docker network only |
-| CI                 | `redis` service container in GitHub Actions                                  |
+| Environment | Redis                                                                   |
+| ----------- | ----------------------------------------------------------------------- |
+| local PC    | Own Memurai **user process** on `127.0.0.1:6391` (`pnpm redis:start`)   |
+| production  | `redis` container on the server: password, internal Docker network only |
+| CI          | `redis` service container in GitHub Actions                             |
 
 - **Local:** no Windows service and no admin rights. `backend/scripts/redis.ts` generates the
   config from `REDIS_URL` and runs `C:\Program Files\Memurai\memurai.exe` as the current user, with
@@ -156,11 +160,10 @@
   with no other code changes.
 - **Location** comes from env `MEDIA_STORAGE_PATH`:
 
-  | Environment | Path                                      |
-  | ----------- | ----------------------------------------- |
-  | local PC    | `backend/storage/uploads` (gitignored)    |
-  | staging     | `/srv/zuvo/staging/media` (Docker volume) |
-  | production  | `/srv/zuvo/prod/media` (Docker volume)    |
+  | Environment | Path                                                                |
+  | ----------- | ------------------------------------------------------------------- |
+  | local PC    | `backend/storage/uploads` (gitignored)                              |
+  | production  | `/var/data/zuvo/uploads` on the host (bind mount → `/data/uploads`) |
 
 - **Private files.** Media is served only through the API after an authorization check (chat members
   only), using short-lived signed URLs (15 min). Range requests must work so audio and video can seek.
@@ -180,9 +183,9 @@
 - **Uploads:** chunked and resumable, see `docs/adr/0003-media-uploads.md`.
 - **Backups:** the media folder is backed up daily along with the database. Send an alert email when
   disk usage passes 80%.
-- **Known dev limitation:** local and staging share the `zuvo_dev` database but not the media folder,
-  so media from one environment shows a friendly "Media not available" placeholder in the other. This
-  must **never** crash the app.
+- **Missing files:** a message whose file is not in this environment's media folder (e.g. two
+  developers sharing one dev database) shows a friendly "Media not available" placeholder. This must
+  **never** crash the app.
 
 ---
 
@@ -230,8 +233,8 @@
 ### Implementation (Better Auth)
 
 - **Better Auth** (email OTP plugin, MongoDB adapter, Redis secondary storage for rate limits,
-  verification data and a session cache) is mounted at `/v1/auth/*`. The frontend uses only the
-  typed wrappers:
+  verification data and a session cache) runs behind our own typed routes below; its raw endpoints are
+  **not** exposed (Step 20: they returned session tokens to scripts). The frontend uses only these:
 
   | Endpoint                                                             | Purpose                                                 |
   | -------------------------------------------------------------------- | ------------------------------------------------------- |
@@ -252,11 +255,11 @@
   re-checked at verify and in the session-create database hook.
 - **Cookie:** `zuvo.session_token`, host-only, `httpOnly`, `SameSite=Lax`, and `Secure` (with the
   `__Secure-` prefix) in production. Lax rather than Strict so opening the app from an email link
-  isn't treated as logged out; cross-site writes are blocked by Lax plus Better Auth's origin check
-  (`trustedOrigins` = `APP_URL` + `CORS_ORIGINS`).
+  isn't treated as logged out; cross-site writes are blocked by Lax plus an app-wide origin check on
+  every state-changing request (`APP_URL` + `CORS_ORIGINS`; see `docs/security.md`).
 - **Sessions:** 7 days absolute (`disableSessionRefresh`), stored in MongoDB (and cached in Redis).
-- **Production is same-origin:** Caddy serves the app and proxies `/v1` and `/socket.io` on the app
-  domain, so set `API_URL` = `APP_URL` = `https://app.zuvo.corremadvisory.com`.
+- **Production is same-origin:** the server's Nginx sends `/` to the web container and `/v1` +
+  `/socket.io` to the API, so `API_URL` = `APP_URL` = `https://zuvo.corremadvisory.com`.
 - **OTP emails** go through the BullMQ `email` queue (`pnpm dev` also starts the worker). Codes are
   stored hashed, jobs are deleted once sent, and email content is redacted from logs.
 - **`NODE_ENV=test`:** an in-memory mailer, plus `GET /v1/test/outbox/latest` (test only) so tests and
@@ -265,7 +268,7 @@
 - **Env:** `AUTH_SECRET` (32+ random characters, unique per environment), `ADMIN_EMAILS`,
   `OTP_IP_LIMIT_PER_HOUR`.
 - **Admin account:** `novaadmin@corremadvisory.com` (emails are lowercased, so `novaAdmin@…` is the
-  same account). `ADMIN_EMAILS` must be set in every environment, staging and production included.
+  same account). `ADMIN_EMAILS` must be set in every environment, production included.
   It promotes a listed account to admin on its next sign-in (new or existing account), written to
   the audit log as a system action, and never demotes anyone.
 - **Emergency role change** (e.g. no admin can sign in), run where the env points at the database:
@@ -286,33 +289,69 @@
 
 ### Local (Windows PC)
 
-- **No Docker locally.** `pnpm dev` starts Redis, the backend (`127.0.0.1:4000`) and the frontend
-  (`127.0.0.1:5191`, Vite, which proxies `/v1` and `/socket.io` to the backend). Shared machine: every dev
-  server binds 127.0.0.1 only, on fixed ports checked to be free.
+- **No Docker locally.** `pnpm dev` starts Redis, the backend and the frontend (Vite, which proxies `/v1`
+  and `/socket.io` to the backend). Shared machine: every dev server binds 127.0.0.1 only, on ports checked
+  to be free.
 - Connects to MongoDB Atlas (your own `zuvo_dev<N>`) and your own local Memurai process (your own port and
   password from `REDIS_URL`, started by `pnpm dev`).
+- **Per-developer ports and database.** Each developer picks their own; defaults apply when nothing is set.
+  README → "Running on the shared server" shows how to choose and check them.
 
-### VPS (Ubuntu + Docker Engine + Docker Compose + Caddy auto-HTTPS)
+  | Setting                                | Where                 | Default | dev7 (owner) |
+  | -------------------------------------- | --------------------- | ------- | ------------ |
+  | API port `PORT`                        | `backend/.env`        | 4000    | 4007         |
+  | Vite dev port `ZUVO_DEV_PORT`          | `frontend/.env.local` | 5191    | 5197         |
+  | Vite preview port `ZUVO_PREVIEW_PORT`  | `frontend/.env.local` | 5192    | 5198         |
+  | API port for the proxy `ZUVO_API_PORT` | `frontend/.env.local` | 4000    | 4007         |
+  | Redis (`REDIS_URL`)                    | `backend/.env`        |         | 6391         |
+  | `MONGODB_DB`                           | `backend/.env`        |         | `zuvo_dev7`  |
 
-| Stack      | Hosts                                                                                             | DB          |
-| ---------- | ------------------------------------------------------------------------------------------------- | ----------- |
-| staging    | `dev-app.zuvo.corremadvisory.com`, `dev-api.zuvo.corremadvisory.com`                              | `zuvo_dev`  |
-| production | `zuvo.corremadvisory.com` (landing), `app.zuvo.corremadvisory.com`, `api.zuvo.corremadvisory.com` | `zuvo_prod` |
+  `APP_URL` and `CORS_ORIGINS` name your own Vite port (add the preview port to `CORS_ORIGINS` to test Web
+  Push, which needs the built app). E2E uses its own ports (4197/5194, dev proxy 4198/5193).
+
+### Production (shared company server: Ubuntu + Docker Compose + host Nginx/Certbot)
+
+**Production only, no staging** (`docs/adr/0009-production-hosting.md`). The server also runs other
+companies' apps: never touch their Nginx sites, containers, databases or ports.
+
+| What    | Value                                                                                  |
+| ------- | -------------------------------------------------------------------------------------- |
+| Origin  | `https://zuvo.corremadvisory.com`: app at `/`, API at `/v1`, realtime at `/socket.io`  |
+| Proxy   | Host Nginx, HTTP/2, Certbot: `deploy/nginx/zuvo.corremadvisory.com.conf`               |
+| Ports   | `127.0.0.1:7147` web, `127.0.0.1:7148` API. Nothing else published (Docker skips ufw)  |
+| Compose | project `zuvo`, `deploy/docker-compose.prod.yml`, code in `/var/www/zuvo` (root-owned) |
+| Env     | `/var/www/zuvo/deploy/.env.prod` (600), created once by `deploy/scripts/setup-env.sh`  |
+| Data    | `/var/data/zuvo/{db,redis,uploads}` (bind mounts). Never `docker compose down -v`      |
+| Backups | `/var/backups/zuvo`: pre-deploy dumps + daily dump/media (14 days), cron at 02:30      |
+| DB      | `zuvo_prod` in its own `mongo:8.0` container; Redis in its own container               |
+
+- **No separate landing website** (decided in Step 19). Install guides, FAQ, privacy note and contact
+  live in the app under Settings → Help & About (`/help/...`). These pages are public (no sign-in)
+  and never load user data.
+- Server setup, step by step: `docs/runbooks/first-deploy.md` (placeholders). The owner's real values
+  are in the git-ignored `SERVER_STEPS.local.md`; `SERVER_CONTEXT.md` (server facts) is also
+  git-ignored. **Never commit either; no IPs, users or key fingerprints in tracked files.**
 
 ### Git & CI/CD
 
 - Work only on `dev`.
 - Push to `dev` → GitHub Actions runs CI (`.github/workflows/ci.yml`: quality, backend + frontend tests
-  with coverage gates, E2E on 4 browsers, build + bundle budget, audit + gitleaks; see
-  `docs/runbooks/ci.md`). CI never uses secrets, Atlas or real SMTP.
-- **Deploys come later.** The app is built first and deployed to the VPS at the end (Steps 22–25).
-  Until then a push to `dev` runs **CI only**: no deploy workflow exists and nothing reaches staging.
-- Planned once deploys exist:
-  - push to `dev` → CI, then deploy to **staging**
-  - merge `dev` → `main` (**only when the owner says so**) → deploy **production**
-  - images on GHCR; deploys over SSH with health checks and auto-rollback
-- Setting up or changing the VPS: `docs/runbooks/vps-checklist.md`.
-- Secrets live in GitHub Secrets and `/srv/zuvo/*.env` on the VPS.
+  with coverage gates, build + bundle budget, audit + gitleaks, and E2E on Chromium in parallel shards).
+  A pull request into `main` runs the full E2E matrix (Chromium, Firefox, WebKit, mobile, dev proxy).
+  CI also deploys the production stack itself on the runner ("Production stack (Docker)": images,
+  `up --wait`, `/v1/ready`, the real Nginx site, backup + restore). See `docs/runbooks/ci.md`.
+  CI never uses secrets, Atlas or real SMTP.
+- **Branch rules** (GitHub rulesets): `main` needs a pull request (no approvals: one developer) and
+  the seven required checks (including "Production stack (Docker)"), up to date; no force push or
+  deletion on `main` or `dev`. Admins may bypass only through a pull request.
+- **Deploy:** merge `dev` → `main` (**only when the owner says so**) → `.github/workflows/deploy.yml`
+  runs CI on that commit, then over SSH `sudo -n /usr/local/bin/correm-deploy zuvo <sha>`:
+  fetch → build → `up -d --wait` (pre-deploy `mongodump` → `db:sync-indexes --expect-db zuvo_prod` →
+  api/worker) → health on `127.0.0.1:7148/v1/ready` and `:7147/health` → automatic rollback to the
+  previous commit if unhealthy; then `https://zuvo.corremadvisory.com/v1/ready`. It skips (green)
+  while the `VPS_*` secrets are missing. A push to `dev` never deploys.
+- Secrets live in GitHub Secrets (`VPS_*`, environment `production`) and in `deploy/.env.prod` on the
+  server only.
 
 ---
 

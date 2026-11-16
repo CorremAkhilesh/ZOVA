@@ -3,7 +3,7 @@ import { ArrowDown, Bookmark, Loader2, MessagesSquare } from 'lucide-react';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, FULL_SCREEN_ON_PHONE } from '@/components/ui/dialog';
 import { ChatWallpaper } from '@/features/appearance/components/ChatWallpaper';
 import { useSession } from '@/features/auth/session';
 import { DisappearingRow } from '@/features/disappearing/DisappearingRow';
@@ -26,12 +26,14 @@ import { useSyncStore } from '@/features/sync/store';
 import { useIsDesktop } from '@/lib/hooks';
 import { useConversationMessages } from '../queries';
 import type { ChatSummary } from '../types';
+import { focusInfoToggle, useInfoPaneEscape } from '../use-info-pane-escape';
 import { useMarkRead } from '../use-mark-read';
 import { toChatMessage, toChatSummary } from '../view';
 import { ChatFooter, footerNotice } from './ChatFooter';
 import { ChatInfoPane } from './ChatInfoPane';
 import { ConversationHeader } from './ConversationHeader';
 import { MessageList, type MessageListHandle } from './MessageList';
+import { NewMessageAnnouncer } from './NewMessageAnnouncer';
 
 function EmptyChat({ saved, name }: { saved: boolean; name: string }) {
   const { t } = useTranslation();
@@ -98,7 +100,7 @@ function MobileProfile(props: {
   const { t } = useTranslation();
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent title={t('conversation.info')} className="max-w-lg">
+      <DialogContent title={t('conversation.info')} className={`max-w-lg ${FULL_SCREEN_ON_PHONE}`}>
         <ProfileCard person={props.person} />
         <DisappearingRow chat={props.row} />
         <div className="flex h-80 flex-col">
@@ -122,8 +124,11 @@ function MobileInfo(props: {
   if (chat.kind === 'group') {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent title={t('conversation.info')} className="max-w-lg">
-          <div className="flex max-h-[75vh] flex-col">
+        <DialogContent
+          title={t('conversation.info')}
+          className={`max-w-lg ${FULL_SCREEN_ON_PHONE}`}
+        >
+          <div className="-mx-4 flex min-h-0 flex-1 flex-col md:mx-0 md:max-h-[75vh]">
             <GroupInfoBody row={row} chat={chat} onOpenMedia={onOpenMedia} />
           </div>
         </DialogContent>
@@ -176,6 +181,8 @@ function useNewMessageCount(newestSeq: number, atBottom: boolean): number {
 export function Conversation({ chat }: { chat: ChatRow }) {
   const isDesktop = useIsDesktop();
   const [infoOpen, setInfoOpen] = useState(false);
+  const closeInfo = useCallback(() => setInfoOpen(false), []);
+  useInfoPaneEscape(infoOpen && isDesktop, chat.id, closeInfo);
   const [atBottom, setAtBottom] = useState(true);
   const { summary, messages, rows, newestSeq, older, members } = useConversationView(chat);
   const { loadingOlder, loadFailed, hasOlder, loadOlder } = older;
@@ -200,7 +207,7 @@ export function Conversation({ chat }: { chat: ChatRow }) {
   const canSend = footerNotice(summary) === null;
 
   return (
-    <div className="flex h-full min-h-0">
+    <div className="relative flex h-full min-h-0">
       {canSend ? (
         <PreviewSheet
           picked={media.picked}
@@ -209,6 +216,7 @@ export function Conversation({ chat }: { chat: ChatRow }) {
           allowViewOnce={summary.kind !== 'saved'}
           onClose={media.clear}
           onSend={media.send}
+          onSchedule={media.schedule}
         />
       ) : null}
       {viewing ? (
@@ -223,7 +231,13 @@ export function Conversation({ chat }: { chat: ChatRow }) {
         className="flex min-w-0 flex-1 flex-col"
         onFiles={canSend ? media.addFiles : undefined}
       >
-        <h2 className="sr-only">{summary.name}</h2>
+        {/* On a phone the chat is the whole screen, so its name is the page's main heading. */}
+        {isDesktop ? (
+          <h2 className="sr-only">{summary.name}</h2>
+        ) : (
+          <h1 className="sr-only">{summary.name}</h1>
+        )}
+        <NewMessageAnnouncer messages={messages} />
         <MessageMenu chat={summary} />
         <MessageDialogs chat={summary} />
         <ConversationHeader
@@ -260,7 +274,10 @@ export function Conversation({ chat }: { chat: ChatRow }) {
         <ChatInfoPane
           chat={summary}
           row={chat}
-          onClose={() => setInfoOpen(false)}
+          onClose={() => {
+            closeInfo();
+            focusInfoToggle();
+          }}
           onOpenMedia={setViewing}
         />
       ) : null}

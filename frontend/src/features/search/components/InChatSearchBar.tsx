@@ -41,8 +41,11 @@ export function InChatSearchBar({ chatId }: { chatId: string }) {
   const newer = () => setIndex((value) => Math.max(0, value - 1));
   /** Results start at the newest match, so "next" (Enter, ↑) goes further back in the chat. */
   function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
-    if (event.key === 'Escape') close();
-    else if (event.key === 'Enter') {
+    if (event.key === 'Escape') {
+      // Handled: the chat info pane and the chat itself stay open.
+      event.preventDefault();
+      close();
+    } else if (event.key === 'Enter') {
       event.preventDefault();
       if (event.shiftKey) newer();
       else older();

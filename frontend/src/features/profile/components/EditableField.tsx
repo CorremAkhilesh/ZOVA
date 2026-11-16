@@ -79,7 +79,7 @@ export function EditableField(props: EditableFieldProps) {
           {...field}
           rows={3}
           onChange={(event) => setDraft(event.target.value)}
-          className="w-full rounded-lg border bg-surface px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-brand"
+          className="w-full rounded-lg border bg-surface px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-brand-text"
         />
       ) : (
         <Input {...field} onChange={(event) => setDraft(event.target.value)} />

@@ -78,12 +78,15 @@ export function DisappearingRow({ chat }: { chat: ChatRow }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        aria-label={`${t('disappearing.title')}: ${value}`}
-        className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left text-sm hover:bg-background"
+        className="flex min-h-11 w-full items-center gap-3 rounded-lg px-2 py-2 text-left text-sm transition-colors hover:bg-background"
       >
         <Timer className="size-4 shrink-0 text-text-muted" aria-hidden />
         <span className="min-w-0 flex-1">
-          <span className="block font-medium">{t('disappearing.title')}</span>
+          {/* Named by what it shows: "Disappearing messages: Off". */}
+          <span className="block font-medium">
+            {t('disappearing.title')}
+            <span className="sr-only">:</span>
+          </span>{' '}
           <span className="block text-xs text-text-muted">{value}</span>
         </span>
         <ChevronRight className="size-4 text-text-muted" aria-hidden />

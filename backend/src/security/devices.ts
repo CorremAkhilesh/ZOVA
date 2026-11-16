@@ -20,7 +20,7 @@ export function describeDevice(userAgent: string | null | undefined): DeviceInfo
   return { browser: browser || 'Unknown browser', os: os || 'Unknown OS', deviceType };
 }
 
-/** Hides the host part: 103.201.140.••• or 2001:db8:85a3:•••. */
+/** Hides the host part: 203.0.113.••• or 2001:db8:85a3:•••. */
 export function maskIp(ip: string | null | undefined): string | null {
   if (!ip) return null;
   const v4 = ip.replace(/^::ffff:/, '');

@@ -4,6 +4,7 @@ import {
   CheckCheck,
   Keyboard,
   Languages,
+  LifeBuoy,
   Lock,
   type LucideIcon,
   MessageSquarePlus,
@@ -27,7 +28,8 @@ export type AppPath =
   | '/starred'
   | '/settings'
   | '/settings/devices'
-  | '/settings/privacy';
+  | '/settings/privacy'
+  | '/help';
 
 export interface CommandContext {
   go: (to: AppPath) => void;
@@ -142,5 +144,12 @@ export const COMMANDS: readonly Command[] = [
     icon: Keyboard,
     shortcut: 'Mod+/',
     run: () => useShortcutsHelp.getState().show(),
+  },
+  {
+    id: 'go-help',
+    label: 'help.menuTitle',
+    keywords: ['help', 'about', 'faq', 'install', 'support', 'contact', 'version'],
+    icon: LifeBuoy,
+    run: ({ go }) => go('/help'),
   },
 ];

@@ -1,5 +1,6 @@
 import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { ChatSummary as ServerChat } from '@zuvo/protocol';
 import { delay } from 'msw';
 import { describe, expect, it } from 'vitest';
 import { useSyncStore } from '@/features/sync/store';
@@ -207,6 +208,32 @@ describe('folders and search', () => {
     await user.clear(box);
     await user.type(box, 'deck');
     expect(screen.getByText('No chats match your search.')).toBeInTheDocument();
+  });
+
+  it('names the sender of a group’s last message before any member profile is loaded', async () => {
+    const team = chatFixture({
+      id: 'c-team',
+      type: 'group',
+      otherUser: null,
+      seq: 1,
+      group: {
+        name: 'Quarterly planning',
+        description: '',
+        photo: null,
+        memberCount: 3,
+        myRole: 'member',
+        active: true,
+      } as ServerChat['group'],
+      lastMessage: {
+        ...lastMessage('u-chitra', 'Thanks!', '2026-11-04T12:00:00.000Z'),
+        senderName: 'Chitra Iyer',
+      },
+      lastActivityAt: '2026-11-04T12:00:00.000Z',
+    });
+    await seedLocal([team]);
+    await renderApp('/chats', { width: DESKTOP_WIDTH });
+    const row = await screen.findByRole('link', { name: /Quarterly planning/ });
+    expect(row).toHaveTextContent('Chitra: Thanks!');
   });
 
   it('keeps Saved Messages in the list with no other chats', async () => {

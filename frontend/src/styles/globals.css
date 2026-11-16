@@ -94,13 +94,39 @@
     border-color: var(--color-border);
   }
 
+  /* Browsers give fieldsets min-width: min-content, so one long unbroken name widens the page. */
+  fieldset {
+    min-width: 0;
+  }
+
+  /* brandText: at least 3:1 on every background, in every theme and accent (ui-tokens tests). */
   :focus-visible {
-    outline: 2px solid var(--color-brand);
+    outline: 2px solid var(--color-brand-text);
     outline-offset: 2px;
   }
 
   ::selection {
     background-color: color-mix(in srgb, var(--color-brand) 25%, transparent);
+  }
+
+  /*
+   * Touch screens: every button and `.tap-target` takes taps from at least 44×44 px around it,
+   * without looking any bigger. Insets in % refer to the button itself (its containing block).
+   * A position utility (`absolute`, …) still wins: utilities come after this layer.
+   */
+  @media (pointer: coarse) {
+    [data-slot="button"],
+    .tap-target {
+      position: relative;
+    }
+
+    [data-slot="button"]::after,
+    .tap-target::after {
+      content: "";
+      position: absolute;
+      inset-block: min(0px, calc((100% - 2.75rem) / 2));
+      inset-inline: min(0px, calc((100% - 2.75rem) / 2));
+    }
   }
 }
 

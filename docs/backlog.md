@@ -16,8 +16,8 @@ Known work that was decided on or deliberately left for later. Product scope liv
 
 ## Voice notes
 
-- **Group chats:** auto-next uses the previous note's sender name, and played status has only been
-  designed for direct chats. Both need revisiting when groups are built.
+- **Group chats:** played status has only been designed for direct chats. (Auto-next now names each
+  note's own sender.)
 - **Seeking in long WebM notes** has only been proven on short ones. MediaRecorder writes no seek index.
 
 ## Groups
@@ -34,6 +34,9 @@ Known work that was decided on or deliberately left for later. Product scope liv
 - **A deleted file** stays reachable by its uploader until the hourly job removes it, up to an hour.
 - **Starred messages for one chat** open from the chat's menu in the list, not yet from chat info.
 - **Refused actions** show the server's English message rather than a translated one.
+- **Back gesture** (phones and touch screens, `frontend/src/lib/back-stack.ts`): overlays close in the
+  order they opened, which matches Esc in practice. A menu choice that opens another page leaves its
+  overlay's history entry behind, so going back over it takes one extra press.
 
 ## Search
 
@@ -70,10 +73,6 @@ Known work that was decided on or deliberately left for later. Product scope liv
 
 ## Step 17 follow-ups
 
-- **Scheduling a photo or file from the composer:** the server accepts a finished upload, but the
-  composer uploads only when sending, so the app schedules text (with mentions) for now.
-- **Locked chats** still appear in Starred messages and in the forward picker (their text shows in
-  Starred). Push notifications (Step 18) must hide their text.
 - **Poll labels:** the pinned bar and the Starred list show a poll's question without "📊 Poll:".
 - **The disappearing badge** in the chat header is a label only: tapping it does not open the timer.
 - **Scheduled list** returns up to 200 items without pagination (the limit is 50 waiting, so failed
@@ -84,11 +83,21 @@ Known work that was decided on or deliberately left for later. Product scope liv
 
 ## Operations
 
-- **Alert email at 80% disk use**, required by `CLAUDE.md`.
-- **Deploy workflows and `infra/`** do not exist yet (Steps 22–25): see `docs/runbooks/vps-checklist.md`.
+- **Weekly backup copy off the server**: options in `docs/runbooks/backups.md`, not built yet
+  (restic to R2 or B2 recommended).
+- **Disk space on the shared server:** the disk was 74% used at the first deploy, and other apps share
+  it. The daily backup already emails the admins from 80% (`disk-alert`); add a check that runs more
+  often than once a day and warns at 85%, so a fast-filling disk is caught before the next backup.
+- **Rotate the GitHub Actions deploy key.** Its private key was once pasted into a chat. It is
+  `restrict`ed to the deploy command, but should still be replaced: new key on the server, then the
+  `VPS_SSH_KEY` secret.
+- **Tell the server admin:** reloading Nginx prints a "Too many open files" inotify warning. It is
+  harmless for Zuvo, but the server's inotify limits may be worth raising.
 
 ## Performance
 
+- **Measure mobile Lighthouse on `/chats` again on the live server**; the earlier figures came from
+  local builds.
 - **CI E2E is getting slower.** Run 38 (71edc1f, 2026-11-07) took 19:40 for the E2E job, against 13–16
   minutes for the runs just before it. Look at it in the performance step: the slowest specs per browser,
   the worker count, and whether the dev-server pass repeats flows the production pass already covers.

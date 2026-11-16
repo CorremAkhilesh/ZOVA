@@ -29,7 +29,7 @@ export function ComposerBanner({ chatId }: { chatId: string }) {
       <button
         type="button"
         aria-label={t(editing ? 'messages.cancelEdit' : 'messages.cancelReply')}
-        className="rounded-full p-1 text-text-muted hover:bg-background"
+        className="tap-target rounded-full p-1 text-text-muted hover:bg-background"
         onClick={() => {
           const ui = useMessageUi.getState();
           if (editing) ui.setEditing(null);

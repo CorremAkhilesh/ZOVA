@@ -39,7 +39,7 @@ function CopyButton({ code }: { code: string }) {
   return (
     <button
       type="button"
-      className="flex items-center gap-1 rounded px-1.5 py-0.5 text-xs text-text-muted hover:bg-border/60 hover:text-text"
+      className="tap-target flex items-center gap-1 rounded px-1.5 py-0.5 text-xs text-text-muted hover:bg-border/60 hover:text-text"
       aria-label={copied ? t('formatting.copied') : t('formatting.copyCode')}
       onClick={(event) => {
         event.stopPropagation();

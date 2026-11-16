@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { ConfirmDialog, Dialog, DialogContent } from '@/components/ui/dialog';
 import { SCHEDULED_KEY, scheduledApi, useChatScheduled } from '../api';
 import { scheduleErrorText } from '../errors';
+import { scheduledPreview } from '../preview';
 import { browserTimeZone, formatSendAt } from '../time';
 import ScheduleDialog from './ScheduleDialog';
 
@@ -21,7 +22,7 @@ function ScheduledRow(props: {
 }) {
   const { t, i18n } = useTranslation();
   const { item } = props;
-  const preview = item.text || (item.media ? `📎 ${item.media.name}` : '');
+  const preview = scheduledPreview(item);
   const time = formatSendAt(item.sendAt, i18n.language, browserTimeZone());
   const busy = item.status === 'sending';
   return (

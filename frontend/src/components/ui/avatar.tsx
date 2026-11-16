@@ -32,7 +32,9 @@ function Avatar({ name, src, online, className, ...props }: AvatarProps) {
         {...props}
       >
         {src ? <AvatarPrimitive.Image src={src} alt="" className="size-full object-cover" /> : null}
+        {/* Initials are decoration: the name is always announced next to the avatar. */}
         <AvatarPrimitive.Fallback
+          aria-hidden
           className={cn(
             'flex size-full items-center justify-center text-sm font-semibold',
             tintFor(name),

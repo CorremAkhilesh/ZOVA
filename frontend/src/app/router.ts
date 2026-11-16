@@ -1,5 +1,6 @@
 import { QueryClient } from '@tanstack/react-query';
 import { createRouter, type RouterHistory } from '@tanstack/react-router';
+import { scrollKeyOf } from '@/lib/back-stack';
 import { routeTree } from '../routeTree.gen';
 
 export function createQueryClient() {
@@ -16,6 +17,8 @@ export function createAppRouter(queryClient: QueryClient, history?: RouterHistor
     context: { queryClient },
     defaultPreload: 'intent',
     scrollRestoration: true,
+    // An open menu or dialog has its own history entry (see back-stack.ts), not its own scroll.
+    getScrollRestorationKey: scrollKeyOf,
     ...(history ? { history } : {}),
   });
 }

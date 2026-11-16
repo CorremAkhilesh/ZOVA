@@ -20,6 +20,8 @@ const result = await build({
     'src/scripts/sync-indexes.ts',
     // Emergency: node dist/scripts/admin-role.js --email <email> --role <admin|user>
     'src/scripts/admin-role.ts',
+    // Daily backup: node dist/scripts/disk-alert.js --percent <n> (emails ADMIN_EMAILS from 80%)
+    'src/scripts/disk-alert.ts',
   ],
   outbase: 'src',
   outdir: 'dist',

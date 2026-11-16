@@ -27,6 +27,7 @@ import { type ChatMessage, type ChatSummary, ME } from '@/features/chats/types';
 
 import { applyChats } from '@/features/sync/apply';
 import { useSyncStore } from '@/features/sync/store';
+import { useBackClose } from '@/lib/back-stack';
 import { isPinned, mayPin, reportMessage, togglePin } from '../menu-actions';
 import { canEdit, targetOf, toQuote } from '../rules';
 import { type MenuRequest, useMessageUi } from '../store';
@@ -219,6 +220,10 @@ export function MessageMenu({ chat }: { chat: ChatSummary }) {
   const request = useMessageUi((state) => state.menu);
   const set = useMessageUi((state) => state.set);
   const [full, setFull] = useState(false);
+  useBackClose(request !== null, () => {
+    setFull(false);
+    set({ menu: null });
+  });
   if (!request) return null;
   const { message, x, y } = request;
   const mine = message.reactions?.find((reaction) => reaction.userId === me)?.emoji ?? null;

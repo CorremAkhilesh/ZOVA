@@ -2,6 +2,7 @@ import { Loader2, Pause, Play, SendHorizontal, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { formatDuration } from '@/features/media/process';
+import { ScheduleMenu } from '@/features/scheduled/components/ScheduleMenu';
 import { isNearLimit, type RecorderStatus } from '../recorder-machine';
 
 interface RecordingBarProps {
@@ -14,6 +15,8 @@ interface RecordingBarProps {
   onPause: () => void;
   onResume: () => void;
   onSend: () => void;
+  /** "Schedule message" from the Send button's menu (right click or long press). */
+  onSchedule?: () => void;
 }
 
 /** Speech rarely gets near full scale, so quiet levels are lifted to be visible. */
@@ -99,16 +102,27 @@ export function RecordingBar(props: RecordingBarProps) {
         </Button>
       ) : null}
       {locked ? (
-        <Button
-          type="button"
-          size="icon"
-          className="rounded-full"
-          disabled={asking}
-          onClick={onSend}
-          aria-label={t('voice.send')}
+        <ScheduleMenu
+          available={() => !asking && props.onSchedule !== undefined}
+          onSchedule={() => props.onSchedule?.()}
         >
-          <SendHorizontal className="size-5" />
-        </Button>
+          {(trigger) => (
+            <Button
+              type="button"
+              size="icon"
+              className="rounded-full"
+              disabled={asking}
+              aria-label={t('voice.send')}
+              {...trigger}
+              onClick={(event) => {
+                trigger.onClick(event);
+                if (!event.defaultPrevented) onSend();
+              }}
+            >
+              <SendHorizontal className="size-5" />
+            </Button>
+          )}
+        </ScheduleMenu>
       ) : null}
     </div>
   );

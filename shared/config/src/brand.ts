@@ -7,18 +7,19 @@ const NAME = 'Zuvo';
 export const brand = {
   name: NAME,
   tagline: 'Fast, private chat for the Correm team',
+  /** The tagline in Hindi, for emails written to people who chose Hindi. */
+  taglineHi: 'Correm टीम के लिए तेज़ और निजी चैट',
   description:
     'Zuvo is fast, private chat for the Correm Advisory team on every device, right in the browser.',
   company: 'Correm Advisory India Pvt. Ltd.',
+  /** The company as people say it ("Correm's IT/server team"). */
+  companyShort: 'Correm',
   /** Default profile “about” text for new users. */
   defaultAbout: `Hey there! I'm using ${NAME}`,
   domains: {
     organization: 'corremadvisory.com',
-    landing: 'zuvo.corremadvisory.com',
-    app: 'app.zuvo.corremadvisory.com',
-    api: 'api.zuvo.corremadvisory.com',
-    stagingApp: 'dev-app.zuvo.corremadvisory.com',
-    stagingApi: 'dev-api.zuvo.corremadvisory.com',
+    /** Production: the app, `/v1` and `/socket.io` on one origin (host Nginx; no staging). */
+    app: 'zuvo.corremadvisory.com',
   },
   supportEmail: 'nova@corremadvisory.com',
   email: {

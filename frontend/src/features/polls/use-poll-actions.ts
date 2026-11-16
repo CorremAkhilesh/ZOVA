@@ -2,9 +2,9 @@ import type { Poll } from '@zuvo/protocol';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import { useSession } from '@/features/auth/session';
 import { useLocalDb } from '@/features/chats/queries';
 import type { ChatMessage } from '@/features/chats/types';
+import { useMyId } from '@/features/chats/use-my-id';
 import { pollsApi } from './api';
 import { withChoice } from './logic';
 
@@ -15,7 +15,7 @@ import { withChoice } from './logic';
 export function usePollActions(message: ChatMessage) {
   const { t } = useTranslation();
   const db = useLocalDb();
-  const me = useSession()?.user.id ?? '';
+  const me = useMyId() ?? '';
   const [closing, setClosing] = useState(false);
   // Votes go out one after another, and only the newest one's answer (or failure) counts.
   const latest = useRef(0);

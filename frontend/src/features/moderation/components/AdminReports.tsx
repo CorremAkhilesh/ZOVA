@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { SettingsSection } from '@/features/settings/SettingsPage';
+import { onRadioGroupKeyDown } from '@/lib/radio-keys';
 import { cn } from '@/lib/utils';
 import { adminReportsApi } from '../api';
 import { ReportDetail } from './ReportDetail';
@@ -62,7 +63,12 @@ export default function AdminReports() {
   const reports = query.data?.pages.flatMap((page) => page.items) ?? [];
   return (
     <SettingsSection>
-      <div role="radiogroup" aria-label={t('adminReports.filter')} className="flex gap-2">
+      <div
+        role="radiogroup"
+        onKeyDown={onRadioGroupKeyDown}
+        aria-label={t('adminReports.filter')}
+        className="flex gap-2"
+      >
         {FILTERS.map((value) => (
           // biome-ignore lint/a11y/useSemanticElements: segmented control styled as buttons
           <button
@@ -70,6 +76,7 @@ export default function AdminReports() {
             type="button"
             role="radio"
             aria-checked={filter === value}
+            tabIndex={filter === value ? 0 : -1}
             onClick={() => setFilter(value)}
             className={cn(
               'rounded-lg border px-3 py-1.5 text-sm font-medium',

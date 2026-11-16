@@ -12,6 +12,15 @@ export const MANIFEST_ICONS = [
   { file: 'maskable-512.png', size: 512, purpose: 'maskable' },
 ] as const;
 
+/**
+ * Notification badges (Android's status-bar icon): Android draws only the alpha channel, so a
+ * colour icon becomes a white square. These are the glyph alone, white on transparent.
+ */
+export const BADGE_ICONS = [
+  { file: 'badge-96.png', size: 96 },
+  { file: 'badge-72.png', size: 72 },
+] as const;
+
 export const APPLE_TOUCH_ICON = { file: 'apple-touch-icon.png', size: 180 } as const;
 
 /** iOS launch images (portrait), in CSS pixels × device pixel ratio. */

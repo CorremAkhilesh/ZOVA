@@ -24,8 +24,8 @@ see the same conversation as everyone else. That requires the server to keep mes
 - **Good:** server-side search, full-history sync to new devices and multi-device all stay simple,
   and an account can be used from any browser without moving keys around.
 - **Accepted risk:** anyone with database access can read messages, including Atlas administrators
-  and whoever holds `MONGODB_URI`. Keep that credential in GitHub Secrets and `/srv/zuvo/*.env`
-  only, and limit who can open the Atlas project.
+  and whoever holds `MONGODB_URI`. In production (ADR 0009) the database is the server's own MongoDB
+  container: keep `deploy/.env.prod` (600) and the backups root-only, and limit who has sudo there.
 - **Backups contain messages** and need the same care as the database.
 - **Message ordering and catch-up** are described in [docs/protocol.md](../protocol.md).
 

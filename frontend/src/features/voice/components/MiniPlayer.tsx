@@ -25,7 +25,7 @@ export function MiniPlayer() {
         type="button"
         onClick={togglePlaying}
         aria-label={playing ? t('voice.pause') : t('voice.play')}
-        className="flex size-8 shrink-0 items-center justify-center rounded-full bg-brand text-white"
+        className="tap-target flex size-8 shrink-0 items-center justify-center rounded-full bg-brand text-white"
       >
         {playing ? (
           <Pause className="size-4" aria-hidden />
@@ -51,7 +51,7 @@ export function MiniPlayer() {
         type="button"
         onClick={closePlayer}
         aria-label={t('voice.closePlayer')}
-        className="flex size-8 shrink-0 items-center justify-center rounded-full text-text-muted hover:bg-background"
+        className="tap-target flex size-8 shrink-0 items-center justify-center rounded-full text-text-muted hover:bg-background"
       >
         <X className="size-4" aria-hidden />
       </button>

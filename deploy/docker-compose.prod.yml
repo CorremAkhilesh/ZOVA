@@ -1,0 +1,208 @@
+# Zuvo production stack on the shared company server (compose project "zuvo").
+#
+#   sudo /usr/local/bin/correm-deploy zuvo <40-hex sha>    (CI and every later deploy)
+#   = docker compose -p zuvo -f deploy/docker-compose.prod.yml build && ... up -d --wait --remove-orphans
+#
+# Order on every `up` (deploy or rollback): mongo + redis healthy → backup (mongodump of zuvo_prod) →
+# migrate (db:sync-indexes on zuvo_prod only) → api + worker. The old API keeps serving until then.
+#
+# Shared-server rules (docs/runbooks/first-deploy.md):
+# - Published ports ONLY on 127.0.0.1 and only 7147 (web) and 7148 (API): Docker bypasses ufw, and
+#   correm-deploy refuses anything else. MongoDB and Redis are never published.
+# - Data lives on the host in bind mounts under /var/data/zuvo/{db,redis,uploads}. Never `down -v`.
+# - Every service has CPU/memory limits and rotated logs, so Zuvo can never starve the other apps.
+# - deploy/.env.prod is created once by deploy/scripts/setup-env.sh (chmod 600); CI never writes it.
+# ZUVO_DATA_DIR / ZUVO_BACKUP_DIR exist only for the CI smoke test; on the server they are never set.
+name: zuvo
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: "5"
+
+x-hardened: &hardened
+  read_only: true
+  tmpfs:
+    - /tmp
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+
+services:
+  mongo:
+    image: mongo:8.0
+    restart: unless-stopped
+    env_file: .env.prod
+    # The replica-set key must be a file owned by mongodb with mode 400: written from .env.prod at
+    # every start, inside the container only. The official entrypoint then creates the root user
+    # (first start only), runs /docker-entrypoint-initdb.d (the app user) and starts mongod with auth.
+    entrypoint:
+      - bash
+      - -c
+      - >-
+        install -d -o root -g root -m 0755 /etc/mongo-key &&
+        rm -f /etc/mongo-key/keyfile &&
+        (umask 077 && printf '%s' "$$MONGO_KEYFILE" > /etc/mongo-key/keyfile) &&
+        chown mongodb:mongodb /etc/mongo-key/keyfile && chmod 400 /etc/mongo-key/keyfile &&
+        exec docker-entrypoint.sh mongod --replSet rs0 --keyFile /etc/mongo-key/keyfile
+        --bind_ip_all --wiredTigerCacheSizeGB 1
+    volumes:
+      - ${ZUVO_DATA_DIR:-/var/data/zuvo}/db:/data/db
+      - ./mongo/init:/docker-entrypoint-initdb.d:ro
+      - ./mongo/healthcheck.js:/opt/zuvo-mongo/healthcheck.js:ro
+    healthcheck:
+      test: [CMD, mongosh, --quiet, --norc, /opt/zuvo-mongo/healthcheck.js]
+      interval: 10s
+      timeout: 10s
+      start_period: 60s
+      retries: 12
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits: { cpus: "2", memory: 2g }
+    logging: *logging
+
+  redis:
+    image: redis:8-alpine
+    restart: unless-stopped
+    env_file: .env.prod
+    user: "999:1000" # the image's redis user; owns /var/data/zuvo/redis
+    # The password goes into a config file in tmpfs, never on the command line (`ps` would show it).
+    command:
+      - sh
+      - -c
+      - >-
+        printf 'requirepass "%s"\n' "$$REDIS_PASSWORD" > /tmp/redis.conf &&
+        exec redis-server /tmp/redis.conf --dir /data --maxmemory 256mb
+        --maxmemory-policy noeviction --appendonly yes --appendfsync everysec --save ''
+    volumes:
+      - ${ZUVO_DATA_DIR:-/var/data/zuvo}/redis:/data
+    healthcheck:
+      test: [CMD-SHELL, 'REDISCLI_AUTH="$$REDIS_PASSWORD" redis-cli ping | grep -q PONG']
+      interval: 10s
+      timeout: 5s
+      start_period: 10s
+      retries: 6
+    <<: *hardened
+    deploy:
+      resources:
+        limits: { cpus: "0.5", memory: 512m }
+    logging: *logging
+
+  # One-shot, every deploy: dump zuvo_prod before anything else changes (deploy/scripts/predeploy-backup.sh).
+  backup:
+    image: mongo:8.0
+    restart: "no"
+    env_file: .env.prod
+    entrypoint: [sh, /opt/zuvo/predeploy-backup.sh]
+    volumes:
+      - ${ZUVO_BACKUP_DIR:-/var/backups/zuvo}:/backups
+      - ./scripts/predeploy-backup.sh:/opt/zuvo/predeploy-backup.sh:ro
+    depends_on:
+      mongo: { condition: service_healthy }
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits: { cpus: "1", memory: 512m }
+    logging: *logging
+
+  # One-shot, every deploy: create missing / drop stale indexes, refusing any database but zuvo_prod.
+  migrate:
+    image: zuvo-api:latest
+    pull_policy: never
+    restart: "no"
+    env_file: .env.prod
+    environment:
+      NODE_ENV: production
+      MEDIA_STORAGE_PATH: /data/uploads
+    command: [node, dist/scripts/sync-indexes.js, --yes, --expect-db, zuvo_prod]
+    healthcheck:
+      disable: true
+    depends_on:
+      backup: { condition: service_completed_successfully }
+    <<: *hardened
+    deploy:
+      resources:
+        limits: { cpus: "1", memory: 512m }
+    logging: *logging
+
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/docker/api.Dockerfile
+    image: zuvo-api:latest
+    restart: unless-stopped
+    init: true
+    env_file: .env.prod
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: "4000"
+      MEDIA_STORAGE_PATH: /data/uploads
+      NODE_OPTIONS: --max-old-space-size=768
+    volumes:
+      - ${ZUVO_DATA_DIR:-/var/data/zuvo}/uploads:/data/uploads
+    ports:
+      - 127.0.0.1:7148:4000
+    depends_on:
+      mongo: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      migrate: { condition: service_completed_successfully }
+    stop_grace_period: 30s
+    ulimits:
+      nofile: { soft: 65536, hard: 65536 }
+    <<: *hardened
+    deploy:
+      resources:
+        limits: { cpus: "2", memory: 1g }
+    logging: *logging
+
+  worker:
+    image: zuvo-api:latest
+    pull_policy: never
+    restart: unless-stopped
+    init: true
+    env_file: .env.prod
+    environment:
+      NODE_ENV: production
+      MEDIA_STORAGE_PATH: /data/uploads
+      NODE_OPTIONS: --max-old-space-size=512
+    command: [node, --enable-source-maps, dist/worker.js]
+    # No HTTP port: healthy while the worker process runs (`up --wait` refuses a service whose
+    # healthcheck is disabled). It exits on fatal errors, and Docker restarts it.
+    healthcheck:
+      test: [CMD, pgrep, -f, dist/worker.js]
+      interval: 15s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+    volumes:
+      - ${ZUVO_DATA_DIR:-/var/data/zuvo}/uploads:/data/uploads
+    depends_on:
+      mongo: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      migrate: { condition: service_completed_successfully }
+    stop_grace_period: 30s
+    <<: *hardened
+    deploy:
+      resources:
+        limits: { cpus: "1", memory: 768m }
+    logging: *logging
+
+  web:
+    build:
+      context: ..
+      dockerfile: deploy/docker/web.Dockerfile
+    image: zuvo-web:latest
+    restart: unless-stopped
+    ports:
+      - 127.0.0.1:7147:8080
+    <<: *hardened
+    deploy:
+      resources:
+        limits: { cpus: "0.5", memory: 128m }
+    logging: *logging

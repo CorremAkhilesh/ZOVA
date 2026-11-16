@@ -1,9 +1,13 @@
 import type { QueryClient } from '@tanstack/react-query';
 import { redirect } from '@tanstack/react-router';
 import { useAuthFlow } from './flow-store';
-import { type SessionState, sessionQuery } from './session';
+import { primeSession, type SessionState, sessionQuery } from './session';
 
-const load = (queryClient: QueryClient) => queryClient.ensureQueryData(sessionQuery);
+/** A returning user's stored session answers at once; the server check runs in the background. */
+function load(queryClient: QueryClient) {
+  primeSession(queryClient);
+  return queryClient.ensureQueryData(sessionQuery);
+}
 
 function rememberReason(state: SessionState) {
   if (state.status === 'signed-out' && state.reason === 'expired') {
@@ -40,7 +44,10 @@ export async function requireSignedOut(queryClient: QueryClient) {
 
 /** Admin screens: anyone else goes back to Settings (the API enforces this too). */
 export async function requireAdmin(queryClient: QueryClient) {
-  const state = await load(queryClient);
+  // Never the stored copy: a role can change (promoted or demoted since it was saved), so admin
+  // screens wait for the server's answer.
+  primeSession(queryClient);
+  const state = await queryClient.fetchQuery({ ...sessionQuery, staleTime: 0 });
   if (state.status !== 'signed-in' || state.data.user.role !== 'admin') {
     throw redirect({ to: '/settings' });
   }

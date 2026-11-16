@@ -44,7 +44,8 @@ export async function readOtp(
   await vi.waitFor(
     () => {
       const subject = outbox(app).lastTo(email)?.subject ?? '';
-      const match = /^(\d{6}) is your /.exec(subject);
+      // Any language: the code always leads the subject.
+      const match = /^(\d{6}) /.exec(subject);
       if (!match?.[1] || match[1] === previous) throw new Error('no new OTP yet');
       code = match[1];
       // The email is rendered and sent in the background; allow for slow, busy machines.

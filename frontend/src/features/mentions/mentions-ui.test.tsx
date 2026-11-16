@@ -110,6 +110,29 @@ describe('mentioning in a group', () => {
     );
   });
 
+  it('keeps what I type after picking a mention in order, even when frames lag', async () => {
+    // A slow machine: animation frames run late, after the next keys.
+    const frames: FrameRequestCallback[] = [];
+    const raf = vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
+      frames.push(callback);
+      return frames.length;
+    });
+    try {
+      const { input } = await openGroup('member');
+      const user = userEvent.setup();
+      input.focus();
+      await user.keyboard('ask @');
+      await screen.findByRole('listbox', { name: 'Mention someone' }, SLOW);
+      await user.keyboard('{ArrowDown}{Enter}');
+      await user.keyboard('p');
+      for (const frame of frames.splice(0)) frame(performance.now());
+      await user.keyboard('lease');
+      expect(input).toHaveValue('ask @Vikram please');
+    } finally {
+      raf.mockRestore();
+    }
+  });
+
   it('filters as I type, closes on Esc, and offers @everyone to admins', async () => {
     const { input } = await openGroup('owner');
     const user = userEvent.setup();

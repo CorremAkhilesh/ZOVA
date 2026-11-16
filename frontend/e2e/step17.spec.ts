@@ -74,11 +74,16 @@ test('a message scheduled a minute ahead arrives on its own', async ({ browser }
   await dialog.getByRole('button', { name: 'Schedule', exact: true }).click();
   await expect(dialog).toBeHidden(SLOW);
   await expect(asha.page.getByRole('button', { name: '1 scheduled message' })).toBeVisible(SLOW);
-  // Not yet, then on its own within the next couple of minutes.
+  // Not yet. Then its time comes: a test-only hook makes it due now and runs the server's sweep,
+  // the same send the timer makes (the timer itself has backend tests), so nobody waits 2 minutes.
   await expect(thread(bharat.page, 'Asha').getByText('scheduled hello')).toHaveCount(0);
-  await expect(thread(bharat.page, 'Asha').getByText('scheduled hello')).toBeVisible({
-    timeout: 200_000,
+  const response = await asha.page.request.post('/v1/test/run-scheduled', {
+    data: { chatId: chatIdOf(asha.page) },
   });
+  expect(await response.json()).toEqual({ sent: 1 });
+  await expect(thread(bharat.page, 'Asha').getByText('scheduled hello')).toBeVisible(SLOW);
+  await expect(thread(asha.page, 'Bharat').getByText('scheduled hello')).toBeVisible(SLOW);
+  await expect(asha.page.getByRole('button', { name: '1 scheduled message' })).toHaveCount(0, SLOW);
 });
 
 test('a poll: B votes and A sees the result', async ({ browser }) => {

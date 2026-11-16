@@ -14,12 +14,17 @@ coverage/
 playwright-report/
 test-results/
 blob-report/
+# Benchmark and Lighthouse output (docs/runbooks/performance.md)
+frontend/perf/reports/
+backend/load/reports/
 
 # Environment files (keep only the examples)
 .env
 .env.*
 !.env.example
 !**/.env.example
+# Production template (placeholders only). The real deploy/.env.prod exists only on the server.
+!deploy/.env.prod.example
 
 # Logs
 logs/
@@ -50,3 +55,8 @@ backend/storage/
 
 # CI-only caches (e.g. MONGOMS_DOWNLOAD_DIR)
 .cache/
+
+# Internal server details and the owner's real server steps. Never commit: this repository is public.
+SERVER_CONTEXT.md
+SERVER_STEPS.local.md
+*.local.md

@@ -14,6 +14,7 @@ import {
 import { insertUser } from '../../../test/user-helpers.ts';
 import { chatModels, oid } from '../../chats/chats.service.ts';
 import { onUserDeactivated } from '../../chats/group-ownership.service.ts';
+import { refreshGroupMarks } from '../../chats/group-receipts.service.ts';
 import { sendMessage } from '../../chats/messages.service.ts';
 import { markDelivered, markRead } from '../../chats/receipts.service.ts';
 
@@ -107,6 +108,31 @@ describe('group ticks', () => {
     await markDelivered(app(), chitra.id, chatId, message.seq);
     await waitUntil(() => expect(heard).toHaveLength(1));
     expect(heard[0]).toMatchObject({ chatId, lastDeliveredSeq: message.seq });
+  });
+
+  it('reports arriving together share one recount instead of colliding (Step 20 load test)', async () => {
+    const { bharat, chitra, chatId, message } = await threeWay();
+    const client = app().mongo.getClient();
+    let recounts = 0;
+    const count = (event: { commandName: string; command: Record<string, unknown> }) => {
+      const sort = event.command.sort as Record<string, unknown> | undefined;
+      if (event.commandName === 'find' && sort && 'lastDeliveredSeq' in sort) recounts += 1;
+    };
+    client.on('commandStarted', count);
+    try {
+      await Promise.all([
+        markDelivered(app(), bharat.id, chatId, message.seq),
+        markDelivered(app(), chitra.id, chatId, message.seq),
+        ...Array.from({ length: 8 }, () => refreshGroupMarks(app(), chatId)),
+      ]);
+    } finally {
+      client.off('commandStarted', count);
+    }
+    // Before: one per call (10). Now: the running one, plus one shared follow-up per wave.
+    expect(recounts).toBeLessThanOrEqual(4);
+    const { Chat } = chatModels(app());
+    const chat = await Chat.findById(oid(chatId)).lean();
+    expect(chat?.group?.deliveredMark).toBe(message.seq);
   });
 });
 

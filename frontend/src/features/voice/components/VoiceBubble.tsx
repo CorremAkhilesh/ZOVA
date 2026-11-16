@@ -5,7 +5,7 @@ import { formatDuration } from '@/features/media/process';
 import { cn } from '@/lib/utils';
 import { playTrack, seekTo, togglePlaying } from '../player';
 import { toTrack } from '../track';
-import { useTrackState } from '../use-track';
+import { trackLabels, useTrackState } from '../use-track';
 import { PlayIcon } from './PlayIcon';
 import { SpeedButton } from './SpeedButton';
 import { Waveform } from './Waveform';
@@ -43,7 +43,7 @@ export function VoiceBubble({ message }: { message: ChatMessage }) {
   const uploading = message.status === 'pending' && !media.id;
   const duration = media.duration ?? 0;
   const start = (at?: number) => {
-    const next = toTrack(message, { voice: t('voice.preview') });
+    const next = toTrack(message, trackLabels(t));
     if (next) playTrack(next, at);
   };
   const toggle = () => (active ? togglePlaying() : start());

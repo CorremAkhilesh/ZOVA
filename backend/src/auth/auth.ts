@@ -1,12 +1,20 @@
 import { brand } from '@zuvo/config';
-import { OTP_LENGTH, OTP_MAX_ATTEMPTS, OTP_TTL_SECONDS, SESSION_TTL_SECONDS } from '@zuvo/protocol';
+import {
+  type AppLanguage,
+  OTP_LENGTH,
+  OTP_MAX_ATTEMPTS,
+  OTP_TTL_SECONDS,
+  SESSION_TTL_SECONDS,
+} from '@zuvo/protocol';
 import { betterAuth, type SecondaryStorage } from 'better-auth';
 import { mongodbAdapter } from 'better-auth/adapters/mongodb';
 import { APIError, createAuthMiddleware } from 'better-auth/api';
 import { emailOTP } from 'better-auth/plugins';
 import type { Db, MongoClient } from 'mongodb';
 import type { EmailDispatcher } from '../mail/dispatcher.ts';
+import { languageFromHeader } from '../mail/templates/email-strings.ts';
 import { otpEmail } from '../mail/templates/otp-email.tsx';
+import { languageOf } from '../users/user-record.ts';
 import { type OtpThrottle, ThrottledError } from './otp-throttle.ts';
 import {
   type AccessPolicy,
@@ -43,6 +51,7 @@ export interface AuthOptions {
 export interface NewLogin {
   userId: string;
   email: string;
+  language: AppLanguage;
   userAgent: string | null;
   signedInAt: Date;
 }
@@ -80,6 +89,19 @@ async function guardOtpRequest(ctx: HookContext, { policy, throttle }: AuthOptio
   }
 }
 
+/**
+ * The OTP email's language: the account's saved choice; for an address with none (no account
+ * yet, or never chosen), the request's Accept-Language, which the app sets to its own language.
+ */
+type OtpSendContext = Parameters<Parameters<typeof emailOTP>[0]['sendVerificationOTP']>[1];
+
+async function otpLanguage(email: string, ctx: OtpSendContext): Promise<AppLanguage> {
+  const found = await ctx?.context.internalAdapter.findUserByEmail(email);
+  const saved = (found?.user as { language?: unknown } | undefined)?.language;
+  if (saved === 'en' || saved === 'hi') return saved;
+  return languageFromHeader(ctx?.headers?.get('accept-language'));
+}
+
 export function createAuth(options: AuthOptions) {
   const { policy } = options;
 
@@ -101,6 +123,8 @@ export function createAuth(options: AuthOptions) {
         role: { type: 'string', required: false, defaultValue: 'user', input: false },
         status: { type: 'string', required: false, defaultValue: 'active', input: false },
         lastLoginAt: { type: 'date', required: false, input: false },
+        // Read here for the language of the OTP and new-login emails (set by PATCH /v1/me/profile).
+        language: { type: 'string', required: false, input: false },
       },
     },
 
@@ -160,10 +184,11 @@ export function createAuth(options: AuthOptions) {
         storeOTP: 'hashed',
         // First successful verification creates the account: sign-up and sign-in are one flow.
         disableSignUp: false,
-        async sendVerificationOTP({ email, otp, type }) {
+        async sendVerificationOTP({ email, otp, type }, ctx) {
           if (type !== 'sign-in') return;
           const expiresAt = new Date(Date.now() + OTP_TTL_SECONDS * 1000);
-          await options.dispatcher.dispatch(await otpEmail(email, otp, expiresAt), 'otp');
+          const language = await otpLanguage(email, ctx);
+          await options.dispatcher.dispatch(await otpEmail(email, otp, expiresAt, language), 'otp');
         },
       }),
     ],
@@ -234,6 +259,7 @@ export function createAuth(options: AuthOptions) {
               await options.onNewLogin({
                 userId: session.userId,
                 email: user.email,
+                language: languageOf(user as { language?: string | null }),
                 userAgent: session.userAgent ?? null,
                 signedInAt: new Date(session.createdAt),
               });

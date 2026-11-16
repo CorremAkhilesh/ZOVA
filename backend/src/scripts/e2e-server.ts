@@ -1,7 +1,7 @@
 /**
  * API for Playwright E2E: in-memory MongoDB, NODE_ENV=test (in-memory mailer + test outbox route),
- * fake SMTP settings. No Redis unless E2E_REDIS_URL names a throwaway one. Never touches Atlas or
- * real SMTP.
+ * fake SMTP settings, in-memory Web Push sender. No Redis unless E2E_REDIS_URL names a throwaway
+ * one. Never touches Atlas or real SMTP.
  *   pnpm --filter @zuvo/backend e2e:server
  */
 import { MongoMemoryReplSet } from 'mongodb-memory-server';
@@ -15,6 +15,8 @@ import { E2E_ADMIN_EMAIL, startPreviewSite } from './e2e-preview-site.ts';
 const PORT = Number(process.env.E2E_API_PORT ?? 4197);
 /** The frontend preview origin: the browser talks to the API through its /v1 proxy. */
 const APP_ORIGIN = process.env.E2E_APP_ORIGIN ?? 'http://127.0.0.1:5194';
+/** Web Push bursts are collected for this long (production: PUSH_COALESCE_SECONDS). */
+const PUSH_COALESCE_MS = Math.max(50, Number(process.env.E2E_PUSH_COALESCE_MS ?? 500));
 
 // In-memory by default. E2E_MONGODB_URI points at a real cluster to debug against it; env validation
 // still only accepts a zuvo_test_ database.
@@ -62,6 +64,8 @@ const app = await buildApp(env, {
   mailer,
   emailDispatcher: directDispatcher(mailer, { error: (...args) => console.error(...args) }),
   linkPreviewOptions: site.fetchOptions,
+  // Pushes go to the in-memory sender (NODE_ENV=test): GET /v1/test/push/outbox?email=… reads them.
+  pushCoalesceMs: PUSH_COALESCE_MS,
 });
 // Where the E2E spec finds that page.
 app.get('/v1/test/preview-site', async () => ({ url: site.url('/article') }));

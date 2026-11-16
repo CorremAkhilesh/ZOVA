@@ -1,14 +1,15 @@
 /**
  * Syncs MongoDB indexes for every registered model against MONGODB_DB.
  *   pnpm --filter @zuvo/backend db:sync-indexes          (shows the diff, then asks)
- *   pnpm --filter @zuvo/backend db:sync-indexes -- --yes (deploy: applies without asking)
+ *   pnpm --filter @zuvo/backend db:sync-indexes -- --yes (applies without asking)
+ *   node dist/scripts/sync-indexes.js --yes --expect-db zuvo_prod   (production deploy, `migrate` service)
  */
 import { createInterface } from 'node:readline/promises';
 import { parseArgs } from 'node:util';
 import mongoose from 'mongoose';
 import { loadEnv } from '../config/env.ts';
 import { registerModels } from '../db/models.ts';
-import { syncIndexes } from '../db/sync-indexes.ts';
+import { assertExpectedDatabase, syncIndexes } from '../db/sync-indexes.ts';
 
 async function confirm(question: string): Promise<boolean> {
   const rl = createInterface({ input: process.stdin, output: process.stdout });
@@ -22,9 +23,13 @@ async function confirm(question: string): Promise<boolean> {
 async function main() {
   const { values } = parseArgs({
     args: process.argv.slice(2).filter((arg) => arg !== '--'),
-    options: { yes: { type: 'boolean', default: false } },
+    options: {
+      yes: { type: 'boolean', default: false },
+      'expect-db': { type: 'string' },
+    },
   });
   const env = loadEnv();
+  assertExpectedDatabase(env.MONGODB_DB, values['expect-db']);
   const connection = mongoose.createConnection(env.MONGODB_URI, {
     dbName: env.MONGODB_DB,
     autoIndex: false,

@@ -2,11 +2,10 @@ import type { FastifyInstance } from 'fastify';
 import fp from 'fastify-plugin';
 import { Redis } from 'ioredis';
 import { changeRoleByEmail, SYSTEM_ACTOR } from '../admin/role-change.ts';
-import { AUTH_BASE_PATH, type Auth, createAuth, type NewLogin } from '../auth/auth.ts';
+import { type Auth, createAuth, type NewLogin } from '../auth/auth.ts';
 import { type CounterStore, MemoryCounterStore, RedisCounterStore } from '../auth/counter-store.ts';
 import { OtpThrottle } from '../auth/otp-throttle.ts';
 import { redisSecondaryStorage } from '../auth/secondary-storage.ts';
-import { toWebHeaders } from '../auth/session.ts';
 import type { Env } from '../config/env.ts';
 import { registerModels } from '../db/models.ts';
 import { createEmailQueue } from '../jobs/email-queue.ts';
@@ -61,6 +60,7 @@ function newLoginAlert(app: FastifyInstance, env: Env, dispatcher: EmailDispatch
         device: describeDevice(login.userAgent),
         signedInAt: login.signedInAt,
         notMeUrl,
+        language: login.language,
       });
       await dispatcher.dispatch(message, 'login-alert');
     } catch (error) {
@@ -98,7 +98,10 @@ async function setupAuth(app: FastifyInstance, options: AuthPluginOptions) {
     dispatcher,
     onNewLogin: newLoginAlert(app, env, dispatcher),
     // Registered after this plugin, so looked up when a session is actually deleted.
-    onSessionDeleted: (sessionId) => app.realtime.revokeSession(sessionId, 'revoked'),
+    onSessionDeleted: (sessionId) => {
+      app.realtime.revokeSession(sessionId, 'revoked');
+      app.push.sessionEnded(sessionId);
+    },
     onAdminEmailSignIn: async (email) => {
       const result = await changeRoleByEmail(app.mongo, {
         email,
@@ -118,30 +121,10 @@ async function setupAuth(app: FastifyInstance, options: AuthPluginOptions) {
   app.decorate('emailDispatcher', dispatcher);
   app.decorateRequest('auth', null);
 
-  // Better Auth's own endpoints (get-session, sign-out, …). Our typed routes under the same
-  // prefix are more specific and take precedence.
-  app.route({
-    method: ['GET', 'POST'],
-    url: `${AUTH_BASE_PATH}/*`,
-    async handler(request, reply) {
-      const url = new URL(request.url, env.API_URL);
-      const hasBody = request.method !== 'GET' && request.body !== undefined;
-      const response = await auth.handler(
-        new Request(url, {
-          method: request.method,
-          headers: toWebHeaders(request),
-          ...(hasBody ? { body: JSON.stringify(request.body) } : {}),
-        }),
-      );
-      reply.status(response.status);
-      response.headers.forEach((value, name) => {
-        if (name !== 'set-cookie') reply.header(name, value);
-      });
-      const cookies = response.headers.getSetCookie();
-      if (cookies.length > 0) reply.header('set-cookie', cookies);
-      return reply.send(response.body ? await response.text() : null);
-    },
-  });
+  // Better Auth's own HTTP endpoints are deliberately NOT mounted: the app uses only our typed
+  // routes, which call auth.api in-process. Mounting /v1/auth/* exposed get-session and
+  // list-sessions (raw session tokens in JSON, readable by any script), and sign-in /
+  // check-verification-otp paths that skip our per-IP limit and attempt counter.
 }
 
 export const authPlugin = fp(setupAuth, {

@@ -155,11 +155,42 @@ describe('conversation', () => {
     expect(await screen.findByRole('dialog', { name: 'Chat info' })).toBeInTheDocument();
   });
 
+  it('the phone’s Back closes chat info before it leaves the chat', async () => {
+    await seedLocal([chat], history);
+    const user = userEvent.setup();
+    const { router } = await renderApp('/chats/c1', { width: MOBILE_WIDTH });
+    const [toggle] = await screen.findAllByRole('button', { name: 'Chat info' });
+    if (!toggle) throw new Error('no info toggle');
+    await user.click(toggle);
+    await screen.findByRole('dialog', { name: 'Chat info' });
+    await waitFor(() => expect(router.history.location.state).toHaveProperty('zuvoOverlay'));
+
+    act(() => router.history.back());
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(router.state.location.pathname).toBe('/chats/c1');
+  });
+
   it('Esc returns to the list on desktop', async () => {
     await seedLocal([chat], history);
     const user = userEvent.setup();
     const { router } = await renderApp('/chats/c1', { width: DESKTOP_WIDTH });
     await screen.findByRole('list', { name: 'Asha Verma' });
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(router.state.location.pathname).toBe('/chats'));
+  });
+
+  it('Esc closes the info pane first, giving focus back to the header, then the chat', async () => {
+    await seedLocal([chat], history);
+    const user = userEvent.setup();
+    const { router } = await renderApp('/chats/c1', { width: DESKTOP_WIDTH });
+    const header = await screen.findByRole('button', { name: /^Asha Verma.*Chat info$/ });
+    await user.click(header);
+    const pane = await screen.findByRole('complementary', { name: 'Chat info' });
+    within(pane).getByRole('button', { name: 'Close chat info' }).focus();
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('complementary')).not.toBeInTheDocument());
+    expect(router.state.location.pathname).toBe('/chats/c1');
+    await waitFor(() => expect(header).toHaveFocus());
     await user.keyboard('{Escape}');
     await waitFor(() => expect(router.state.location.pathname).toBe('/chats'));
   });

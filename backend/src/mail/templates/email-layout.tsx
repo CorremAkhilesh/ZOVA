@@ -9,7 +9,9 @@ import {
   Text,
 } from '@react-email/components';
 import { brand } from '@zuvo/config';
+import type { AppLanguage } from '@zuvo/protocol';
 import type { CSSProperties, ReactNode } from 'react';
+import { emailStrings } from './email-strings.ts';
 
 /**
  * Email-safe palette. Email clients ignore CSS variables and some (Outlook) recolor messages, so
@@ -99,15 +101,16 @@ export const textStyle: CSSProperties = { color: light.text, fontSize: 15, margi
 export const secondaryStyle: CSSProperties = { color: light.secondary, fontSize: 14, margin: 0 };
 
 interface EmailLayoutProps {
+  language?: AppLanguage;
   preview: string;
   heading: string;
   children: ReactNode;
 }
 
 /** Shared frame: brand header, heading, content, brand footer — light, dark and Outlook-safe. */
-export function EmailLayout({ preview, heading, children }: EmailLayoutProps) {
+export function EmailLayout({ language = 'en', preview, heading, children }: EmailLayoutProps) {
   return (
-    <Html lang="en">
+    <Html lang={language}>
       <Head>
         <meta name="color-scheme" content="light dark" />
         <meta name="supported-color-schemes" content="light dark" />
@@ -154,7 +157,7 @@ export function EmailLayout({ preview, heading, children }: EmailLayoutProps) {
             style={{ borderTop: `1px solid ${light.border}`, padding: '14px 28px' }}
           >
             <Text className="secondary" style={{ color: light.secondary, fontSize: 13, margin: 0 }}>
-              {`${brand.name} — ${brand.tagline}`}
+              {emailStrings(language).footer}
             </Text>
           </Section>
         </Container>
@@ -163,9 +166,9 @@ export function EmailLayout({ preview, heading, children }: EmailLayoutProps) {
   );
 }
 
-/** Expiry/time shown in India time, the team's timezone. */
-export function formatIst(date: Date, withDate = false): string {
-  const formatted = new Intl.DateTimeFormat('en-IN', {
+/** Expiry/time shown in India time, the team's timezone, in the email's language. */
+export function formatIst(date: Date, withDate = false, language: AppLanguage = 'en'): string {
+  const formatted = new Intl.DateTimeFormat(language === 'hi' ? 'hi-IN' : 'en-IN', {
     timeZone: 'Asia/Kolkata',
     ...(withDate ? { day: 'numeric', month: 'short', year: 'numeric' } : {}),
     hour: 'numeric',

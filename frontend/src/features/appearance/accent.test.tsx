@@ -120,10 +120,9 @@ describe('Settings → Appearance: accent', () => {
     expect(
       within(menu).getByRole('link', { name: /Accent color and chat wallpaper/ }),
     ).toHaveAttribute('href', '/settings/appearance');
-    expect(within(menu).getByRole('link', { name: /Quiet hours/ })).toHaveAttribute(
-      'href',
-      '/settings/notifications',
-    );
+    expect(
+      within(menu).getByRole('link', { name: /Push, sounds and quiet hours/ }),
+    ).toHaveAttribute('href', '/settings/notifications');
   });
 });
 

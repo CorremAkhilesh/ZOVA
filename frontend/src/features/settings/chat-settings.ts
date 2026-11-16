@@ -3,6 +3,7 @@ import { type ChatSettings, chatSettingsResponseSchema } from '@zuvo/protocol';
 import { applyPersonalChange } from '@/features/appearance/account-change';
 import { FOLDERS_KEY } from '@/features/folders/api';
 import { LOCK_KEY } from '@/features/lock/api';
+import { applyPushChange } from '@/features/notifications/account-change';
 import { applyScheduledChange } from '@/features/scheduled/events';
 import type { AccountChange } from '@/features/sync/account-events';
 import { apiGet, apiPatch } from '@/lib/api-client';
@@ -20,7 +21,13 @@ export const chatSettingsQuery = queryOptions({
 
 /** Keeps this device in step with changes made on my other devices. */
 export function applyAccountChange(queryClient: QueryClient, change: AccountChange) {
-  if (applyPersonalChange(queryClient, change) || applyScheduledChange(queryClient, change)) return;
+  if (
+    applyPersonalChange(queryClient, change) ||
+    applyScheduledChange(queryClient, change) ||
+    applyPushChange(queryClient, change)
+  ) {
+    return;
+  }
   if (change.kind === 'settings') {
     queryClient.setQueryData(chatSettingsQuery.queryKey, change.settings);
     return;

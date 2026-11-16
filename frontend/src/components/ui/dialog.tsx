@@ -1,11 +1,32 @@
 import { X } from 'lucide-react';
 import { Dialog as DialogPrimitive } from 'radix-ui';
 import type * as React from 'react';
+import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useBackClose } from '@/lib/back-stack';
 import { cn } from '@/lib/utils';
 import { Button } from './button';
 
-const Dialog = DialogPrimitive.Root;
+/** Radix's dialog root, closed by the phone's Back as well (see back-stack.ts). */
+function Dialog({
+  open: openProp,
+  defaultOpen = false,
+  onOpenChange,
+  ...props
+}: React.ComponentProps<typeof DialogPrimitive.Root>) {
+  const [openSelf, setOpenSelf] = useState(defaultOpen);
+  const open = openProp ?? openSelf;
+  const setOpen = useCallback(
+    (next: boolean) => {
+      if (openProp === undefined) setOpenSelf(next);
+      onOpenChange?.(next);
+    },
+    [openProp, onOpenChange],
+  );
+  useBackClose(open, () => setOpen(false));
+  return <DialogPrimitive.Root open={open} onOpenChange={setOpen} {...props} />;
+}
+
 const DialogTrigger = DialogPrimitive.Trigger;
 const DialogClose = DialogPrimitive.Close;
 
@@ -65,6 +86,13 @@ function DialogContent({
   );
 }
 
+/**
+ * For DialogContent's className: below the desktop layout the dialog fills the screen like a page
+ * (clear of notches and the home bar) instead of floating as a card.
+ */
+const FULL_SCREEN_ON_PHONE =
+  'max-md:top-0 max-md:left-0 max-md:h-dvh max-md:max-h-dvh max-md:w-full max-md:max-w-none max-md:translate-x-0 max-md:translate-y-0 max-md:rounded-none max-md:border-0 max-md:px-4 max-md:pt-[max(1rem,env(safe-area-inset-top))] max-md:pb-[max(1rem,env(safe-area-inset-bottom))]';
+
 interface ConfirmDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -99,4 +127,4 @@ function ConfirmDialog(props: ConfirmDialogProps) {
   );
 }
 
-export { ConfirmDialog, Dialog, DialogClose, DialogContent, DialogTrigger };
+export { ConfirmDialog, Dialog, DialogClose, DialogContent, DialogTrigger, FULL_SCREEN_ON_PHONE };

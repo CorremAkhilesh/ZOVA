@@ -29,12 +29,10 @@ export function AppRail() {
         </Tooltip>
       ))}
       <Tooltip label={name}>
-        <Link
-          to="/settings"
-          aria-label={t('auth.account.open', { name })}
-          className="mt-auto rounded-full"
-        >
+        <Link to="/settings" className="mt-auto rounded-full">
           <Avatar name={name || '?'} src={user?.avatar?.small} className="size-10" />
+          {/* Named in text, not aria-label: the avatar's initials are decoration (hidden). */}
+          <span className="sr-only">{t('auth.account.open', { name })}</span>
         </Link>
       </Tooltip>
     </nav>

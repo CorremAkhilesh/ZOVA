@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import fp from 'fastify-plugin';
 import mongoose, { type Connection } from 'mongoose';
+import { mongoClientOptions } from '../db/mongo-options.ts';
 import { attachSlowQueryLogger, SLOW_QUERY_MS } from '../db/slow-query.ts';
 
 declare module 'fastify' {
@@ -14,6 +15,8 @@ interface MongoPluginOptions {
   dbName: string;
   /** Build indexes on startup. Off in production, where `db:sync-indexes` runs during deploy. */
   autoIndex: boolean;
+  /** Wire compression: on for Atlas (production), off for local and in-memory databases. */
+  compress: boolean;
   /** Queries at or above this duration are logged (shape only, no values). */
   slowQueryMs?: number;
 }
@@ -23,14 +26,8 @@ async function setupMongo(app: FastifyInstance, options: MongoPluginOptions) {
     dbName: options.dbName,
     autoIndex: options.autoIndex,
     autoCreate: options.autoIndex,
-    maxPoolSize: 20,
-    minPoolSize: 2,
-    serverSelectionTimeoutMS: 10_000,
-    connectTimeoutMS: 10_000,
-    socketTimeoutMS: 45_000,
-    appName: 'zuvo-api',
-    // Needed for slow query logging (command start/finish events).
-    monitorCommands: true,
+    // Pool, timeouts, compression; `monitorCommands` for the slow query log.
+    ...mongoClientOptions('api', { compress: options.compress }),
   });
 
   connection.on('connected', () => app.log.info({ db: options.dbName }, 'mongodb connected'));

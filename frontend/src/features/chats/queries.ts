@@ -1,22 +1,29 @@
 import Dexie from 'dexie';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useSession } from '@/features/auth/session';
 import type { ChatRow, MessageRow } from '@/features/sync/local-db';
 import { getUserDb, type LocalDb, PENDING_ORDER_BASE } from '@/features/sync/local-db';
 import { useSyncStore } from '@/features/sync/store';
 import { useLive } from '@/features/sync/use-live';
 import { MESSAGE_PAGE } from './api';
+import { useMyId } from './use-my-id';
 
 /** The signed-in user's database. Null only for the moment a sign-out is finishing. */
 export function useLocalDb(): LocalDb | null {
-  const userId = useSession()?.user.id;
+  const userId = useMyId();
   return userId ? getUserDb(userId) : null;
 }
 
 /** All chats, most recent activity first. Undefined until the first read. */
+/**
+ * My chats, newest first. Undefined until this user's database has been read: an empty list would
+ * look like "nothing is locked" to screens that hide locked chats' content.
+ */
 export function useChats(): ChatRow[] | undefined {
   const db = useLocalDb();
-  return useLive(() => db?.chats.orderBy('sortAt').reverse().toArray() ?? [], [db]);
+  return useLive<ChatRow[] | undefined>(
+    () => (db ? db.chats.orderBy('sortAt').reverse().toArray() : undefined),
+    [db],
+  );
 }
 
 /** What is waiting to be sent, per chat, so the list can show a clock or "Not sent". */

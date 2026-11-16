@@ -12,6 +12,8 @@ import type { ChatMessage, ChatSummary } from '@/features/chats/types';
 import { toChatSummary } from '@/features/chats/view';
 import { useKnownPeople } from '@/features/groups/queries';
 import { groupAbilities } from '@/features/groups/rules';
+import { useHiddenLockedIds } from '@/features/lock/chat-lock';
+import { LockedHiddenNotice } from '@/features/lock/components/LockedHiddenNotice';
 import { useSyncStore } from '@/features/sync/store';
 import { cn } from '@/lib/utils';
 import { uuidv7 } from '@/lib/uuid';
@@ -29,20 +31,25 @@ function ForwardDialog({ messages }: { messages: ChatMessage[] }) {
   const [query, setQuery] = useState('');
   const [picked, setPicked] = useState<string[]>([]);
   const [comment, setComment] = useState('');
+  // Locked chats are not offered (not even their names) until the PIN opens them.
+  const lockedIds = useHiddenLockedIds(rows);
   const chats = useMemo(() => {
     const labels = { saved: t('chats.saved'), unknown: t('chats.unknownPerson') };
     const needle = query.trim().toLocaleLowerCase();
     return (rows ?? [])
+      .filter((row) => !lockedIds.has(row.id))
       .map((row) => toChatSummary(row, me, labels))
       .filter((chat) => mayWrite(chat) && chat.name.toLocaleLowerCase().includes(needle));
-  }, [me, query, rows, t]);
+  }, [lockedIds, me, query, rows, t]);
+  // Picked while unlocked, then the 5 minutes ran out: no longer offered, so not sent to.
+  const targets = picked.filter((id) => !lockedIds.has(id));
   const close = () => set({ forwarding: null });
   const toggle = (id: string) =>
     setPicked((current) =>
       current.includes(id) ? current.filter((other) => other !== id) : [...current, id],
     );
   const send = () => {
-    const action = forwardAction(messages, picked, comment, uuidv7());
+    const action = forwardAction(messages, targets, comment, uuidv7());
     void useSyncStore.getState().client?.act(action);
     useMessageUi.getState().stopSelecting();
     close();
@@ -66,8 +73,9 @@ function ForwardDialog({ messages }: { messages: ChatMessage[] }) {
           />
         </div>
         <p role="status" className="text-xs text-text-muted">
-          {t('messages.forwardLimit', { count: picked.length, max: FORWARD_MAX_CHATS })}
+          {t('messages.forwardLimit', { count: targets.length, max: FORWARD_MAX_CHATS })}
         </p>
+        {lockedIds.size > 0 ? <LockedHiddenNotice text={t('lock.hiddenForward')} /> : null}
         <ul aria-label={t('messages.forwardTo')} className="max-h-64 space-y-0.5 overflow-y-auto">
           {chats.map((chat) => {
             const isPicked = picked.includes(chat.id);
@@ -76,7 +84,7 @@ function ForwardDialog({ messages }: { messages: ChatMessage[] }) {
                 <button
                   type="button"
                   aria-pressed={isPicked}
-                  disabled={!isPicked && picked.length >= FORWARD_MAX_CHATS}
+                  disabled={!isPicked && targets.length >= FORWARD_MAX_CHATS}
                   onClick={() => toggle(chat.id)}
                   className={cn(
                     'flex w-full items-center gap-3 rounded-lg p-2 text-left hover:bg-background disabled:opacity-50',
@@ -104,7 +112,7 @@ function ForwardDialog({ messages }: { messages: ChatMessage[] }) {
           <Button variant="ghost" onClick={close}>
             {t('common.cancel')}
           </Button>
-          <Button disabled={picked.length === 0} onClick={send}>
+          <Button disabled={targets.length === 0} onClick={send}>
             {t('messages.forward')}
           </Button>
         </div>

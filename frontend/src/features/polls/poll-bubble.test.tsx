@@ -111,8 +111,8 @@ describe('poll bubble', () => {
     });
     const user = userEvent.setup();
     await openPoll(start);
-    expect(screen.getByRole('button', { name: 'See who voted for Dosa (0 votes)' })).toBeDisabled();
-    await user.click(screen.getByRole('button', { name: 'See who voted for Pizza (2 votes)' }));
+    expect(screen.getByRole('button', { name: 'See who voted for Dosa: 0 votes' })).toBeDisabled();
+    await user.click(screen.getByRole('button', { name: 'See who voted for Pizza: 2 votes' }));
     const dialog = await screen.findByRole('dialog', { name: 'Pizza' });
     const list = within(dialog).getByRole('list', { name: 'Voters' });
     await waitFor(() =>

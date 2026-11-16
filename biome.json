@@ -18,7 +18,8 @@
       "!**/generated",
       "!**/routeTree.gen.ts",
       "!**/pnpm-lock.yaml",
-      "!shared/ui-tokens/src/tokens.css"
+      "!shared/ui-tokens/src/tokens.css",
+      "!docs/runbooks/index-coverage.md"
     ]
   },
   "formatter": {
@@ -78,5 +79,17 @@
     "parser": {
       "tailwindDirectives": true
     }
-  }
+  },
+  "overrides": [
+    {
+      "includes": ["deploy/mongo/**"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noUndeclaredEnvVars": "off"
+          }
+        }
+      }
+    }
+  ]
 }

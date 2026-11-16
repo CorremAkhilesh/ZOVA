@@ -18,6 +18,7 @@ import { useMentionPicker } from '@/features/mentions/use-mention-picker';
 import { ComposerBanner } from '@/features/messages/components/ComposerBanner';
 import { useComposerActions } from '@/features/messages/use-composer-actions';
 import { usePollComposer } from '@/features/polls/use-poll-composer';
+import { ScheduleRecording } from '@/features/scheduled/components/ScheduleRecording';
 import { SendButton } from '@/features/scheduled/components/SendButton';
 import { useSyncStore } from '@/features/sync/store';
 import { MicButton } from '@/features/voice/components/MicButton';
@@ -123,6 +124,11 @@ export function Composer({ chatId, onSent, onFiles }: ComposerProps) {
           onClose={voice.closeExplaining}
         />
         <MicBlockedDialog open={voice.blockedOpen} onClose={voice.closeBlocked} />
+        <ScheduleRecording
+          recording={voice.toSchedule}
+          schedule={voice.schedule}
+          onClose={voice.dropScheduled}
+        />
         <ComposerBanner chatId={chatId} />
         {poll.dialog}
         <ComposerLinkPreview preview={link.preview} loading={link.loading} onRemove={link.remove} />
@@ -157,6 +163,7 @@ export function Composer({ chatId, onSent, onFiles }: ComposerProps) {
               onPause={recorder.pause}
               onResume={recorder.resume}
               onSend={recorder.finish}
+              onSchedule={voice.finishForSchedule}
             />
           ) : (
             <>
@@ -187,7 +194,7 @@ export function Composer({ chatId, onSent, onFiles }: ComposerProps) {
                 onKeyDown={onKeyDown}
                 aria-describedby={showHint ? 'composer-hint' : undefined}
                 placeholder={t('conversation.composerPlaceholder')}
-                className="max-h-36 min-h-10 flex-1 resize-none rounded-2xl border bg-surface px-4 py-2.5 text-[15px] text-text outline-none placeholder:text-text-muted focus-visible:border-brand focus-visible:ring-3 focus-visible:ring-brand/20"
+                className="max-h-36 min-h-10 flex-1 resize-none rounded-2xl border bg-surface px-4 py-2.5 text-[15px] text-text outline-none placeholder:text-text-muted focus-visible:border-brand-text focus-visible:ring-3 focus-visible:ring-brand/20"
               />
             </>
           )}

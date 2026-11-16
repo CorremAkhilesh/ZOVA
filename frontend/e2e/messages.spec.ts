@@ -1,5 +1,5 @@
 import { expect, type Page, test } from '@playwright/test';
-import { newPerson, openChatWith, openFromList, send, thread } from './chat-helpers';
+import { messageMenu, newPerson, openChatWith, openFromList, send, thread } from './chat-helpers';
 import { SLOW } from './helpers';
 
 test.describe.configure({ timeout: 300_000 });
@@ -8,16 +8,6 @@ test.use({ actionTimeout: 30_000 });
 
 const bubble = (page: Page, chat: string, text: string) =>
   thread(page, chat).getByText(text, { exact: true });
-
-/** Right click on a desktop, a long press on a phone. */
-async function menuOn(page: Page, chat: string, text: string) {
-  const target = bubble(page, chat, text);
-  await expect(target).toBeVisible(SLOW);
-  await target.click({ button: 'right' });
-  const menu = page.getByRole('menu', { name: 'Message actions' });
-  await expect(menu).toBeVisible();
-  return menu;
-}
 
 async function chatMenu(page: Page, name: string) {
   await page.getByRole('link', { name: new RegExp(name) }).click({ button: 'right' });
@@ -37,7 +27,7 @@ test('message actions between two people: reply, edit, react, delete', async ({ 
   await expect(bubble(asha.page, 'Bharat', 'answer from bharat')).toBeVisible(SLOW);
 
   // A replies to B's message, and B jumps to it.
-  await (await menuOn(asha.page, 'Bharat', 'answer from bharat'))
+  await (await messageMenu(asha.page, 'Bharat', 'answer from bharat'))
     .getByRole('menuitem', { name: 'Reply' })
     .click();
   await expect(asha.page.getByRole('button', { name: 'Cancel reply' })).toBeVisible();
@@ -48,7 +38,7 @@ test('message actions between two people: reply, edit, react, delete', async ({ 
   await expect(bharat.page.locator('[data-seq="2"]')).toHaveClass(/bg-brand/);
 
   // A edits within 15 minutes, and B sees "edited".
-  await (await menuOn(asha.page, 'Bharat', 'this is my reply'))
+  await (await messageMenu(asha.page, 'Bharat', 'this is my reply'))
     .getByRole('menuitem', { name: 'Edit' })
     .click();
   const composer = asha.page.getByRole('textbox', { name: 'Write a message' });
@@ -60,7 +50,7 @@ test('message actions between two people: reply, edit, react, delete', async ({ 
   await expect(thread(bharat.page, 'Asha').getByText('edited', { exact: true })).toBeVisible();
 
   // B reacts, A sees it, and tapping shows who.
-  await (await menuOn(bharat.page, 'Asha', 'first from asha'))
+  await (await messageMenu(bharat.page, 'Asha', 'first from asha'))
     .getByRole('menuitem', { name: '👍' })
     .click();
   const pill = asha.page.getByRole('button', { name: /👍, 1/ });
@@ -71,7 +61,7 @@ test('message actions between two people: reply, edit, react, delete', async ({ 
   await asha.page.keyboard.press('Escape');
 
   // A deletes for everyone, and B sees the tombstone.
-  await (await menuOn(asha.page, 'Bharat', 'this is my edited reply'))
+  await (await messageMenu(asha.page, 'Bharat', 'this is my edited reply'))
     .getByRole('menuitem', { name: 'Delete' })
     .click();
   await asha.page.getByRole('button', { name: 'Delete for everyone' }).click();
@@ -94,7 +84,7 @@ test('forward to two chats, star and find it, and chat menus', async ({ browser,
   await openChatWith(asha.page, bharat);
   await send(asha.page, 'worth sharing');
 
-  await (await menuOn(asha.page, 'Bharat', 'worth sharing'))
+  await (await messageMenu(asha.page, 'Bharat', 'worth sharing'))
     .getByRole('menuitem', { name: 'Forward' })
     .click();
   const dialog = asha.page.getByRole('dialog', { name: 'Forward to' });
@@ -105,7 +95,7 @@ test('forward to two chats, star and find it, and chat menus', async ({ browser,
   await expect(bubble(chitra.page, 'Asha', 'worth sharing')).toBeVisible(SLOW);
   await expect(thread(chitra.page, 'Asha').getByText('Forwarded', { exact: true })).toBeVisible();
 
-  await (await menuOn(asha.page, 'Bharat', 'worth sharing'))
+  await (await messageMenu(asha.page, 'Bharat', 'worth sharing'))
     .getByRole('menuitem', { name: 'Star' })
     .click();
   await asha.page.getByRole('link', { name: 'Starred messages' }).click();
@@ -151,7 +141,7 @@ test('an edit and a reaction made offline reach the other person after reconnect
   await expect(bubble(asha.page, 'Bharat', 'hello from bharat')).toBeVisible(SLOW);
 
   await asha.context.setOffline(true);
-  await (await menuOn(asha.page, 'Bharat', 'typed online'))
+  await (await messageMenu(asha.page, 'Bharat', 'typed online'))
     .getByRole('menuitem', { name: 'Edit' })
     .click();
   const composer = asha.page.getByRole('textbox', { name: 'Write a message' });
@@ -159,7 +149,7 @@ test('an edit and a reaction made offline reach the other person after reconnect
   // Enter makes a new line on a phone: the button sends everywhere.
   await asha.page.getByRole('button', { name: 'Send' }).click();
   await expect(bubble(asha.page, 'Bharat', 'changed offline')).toBeVisible();
-  await (await menuOn(asha.page, 'Bharat', 'hello from bharat'))
+  await (await messageMenu(asha.page, 'Bharat', 'hello from bharat'))
     .getByRole('menuitem', { name: '❤️' })
     .click();
   await expect(asha.page.getByRole('button', { name: /❤️, 1/ })).toBeVisible();

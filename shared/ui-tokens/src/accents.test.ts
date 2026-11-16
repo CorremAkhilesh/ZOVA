@@ -7,13 +7,16 @@ import { type ColorName, themes } from './tokens.ts';
 const AA_NORMAL_TEXT = 4.5;
 
 /** Text on the color it sits on: accent tokens on accent tokens, or on the theme's surfaces. */
-const PAIRS: Array<[text: AccentKey, background: AccentKey | ColorName]> = [
+const PAIRS: Array<[text: AccentKey | ColorName, background: AccentKey | ColorName]> = [
   ['brandForeground', 'brand'],
   ['brandForeground', 'brandHover'],
   ['brandText', 'surface'],
   ['brandText', 'background'],
   ['brandText', 'elevated'],
   ['brandText', 'brandSubtle'],
+  // A selected chat row and the active nav item sit on brandSubtle.
+  ['text', 'brandSubtle'],
+  ['textMuted', 'brandSubtle'],
   ['bubbleOutgoingText', 'bubbleOutgoing'],
   ['bubbleOutgoingMeta', 'bubbleOutgoing'],
   ['bubbleOutgoingRead', 'bubbleOutgoing'],
@@ -35,6 +38,23 @@ const cases = ACCENT_NAMES.flatMap((accent) =>
 describe('accent presets', () => {
   it.each(cases)('$accent ($theme): $text on $background ($ratio)', ({ ratio }) => {
     expect(ratio).toBeGreaterThanOrEqual(AA_NORMAL_TEXT);
+  });
+
+  // WCAG 1.4.11: focus rings (brandText, see globals.css) stand out from every page background.
+  const AA_NON_TEXT = 3;
+  const rings = ACCENT_NAMES.flatMap((accent) =>
+    (['light', 'dark'] as const).flatMap((theme) => {
+      const colors = { ...themes[theme].colors, ...accents[accent][theme] };
+      return (['background', 'surface', 'elevated'] as const).map((background) => ({
+        accent,
+        theme,
+        background,
+        ratio: contrastRatio(colors.brandText, colors[background]),
+      }));
+    }),
+  );
+  it.each(rings)('$accent ($theme): focus ring on $background ($ratio)', ({ ratio }) => {
+    expect(ratio).toBeGreaterThanOrEqual(AA_NON_TEXT);
   });
 
   it('keeps indigo #4F46E5 as the default brand', () => {

@@ -35,6 +35,11 @@ Every member's devices then get `message:new { message, cursor }` and
 `chat:updated { chatId, seq, lastMessage, lastReadSeq, unreadCount, … , cursor }`, including the
 sender's other devices. The sender's own device gets them too, so match on `clientMsgId`.
 
+In a group, `lastMessage.senderName` is the sender's display name when the message was sent, so the
+chat list reads "Asha: …" before any member profile has loaded. It is not updated on a rename: the old
+name stays until that member's next message, unless the device already has their newer profile. It is
+`null` for system messages and in direct chats, and missing from chats last written before it existed.
+
 Read state: `read:update { chatId, seq }` (or `POST /v1/chats/:id/read`) moves my position forward,
 never back. My devices get `read:update { chatId, lastReadSeq, unreadCount, cursor }`.
 
@@ -179,7 +184,9 @@ Clearing a chat stores one position (`clearedSeq`), not a row per message. Seein
 
 `typing:start` and `typing:stop` reach only the other members' sockets, and are never stored. The server
 ends "typing" 6 s after the last `typing:start`, and when the socket goes away. Clients send at most one
-per 3 s, and the server allows 20 per 10 s per socket.
+per 3 s, and the server allows 20 per 10 s per socket. The members are read again on every `typing:start`
+(no cache), so someone removed from a group hears nothing more at once, on every instance, and someone
+added hears it at once. "Stopped" goes only to those told "typing" who are still members.
 
 ## Presence
 
@@ -319,6 +326,14 @@ runs at startup and every 15 s. It claims due items atomically, and it is the on
 E2E and tests. A send stuck for 2 minutes is retried (safe through `clientMsgId`). Uploads waiting in a
 scheduled message are never removed as orphans.
 
+**Files and voice notes.** An item is text, or one finished upload (`mediaId`) with an optional caption in
+`text` (photo, video, document, audio or voice note). The upload must be mine, complete, not in a message
+yet and not waiting in another scheduled item (`409 MEDIA_NOT_ATTACHABLE`); `sendMessage` checks it again
+at the time, and a file gone by then fails the item with `media_unavailable`. Scheduled files are never
+view once. The app uploads first, in the foreground ("Uploading… n%"), when the time is picked from the
+Send button's menu in the preview sheet or the voice recorder (right click or long press), then schedules
+one item per file, all at that time: an album arrives as separate messages.
+
 ## Polls
 
 A message of type `poll` carries `poll: {question, options:[{id, text, voterIds}], multiple, closedAt}`.
@@ -360,8 +375,12 @@ locked, until a new PIN is set. **Biometric unlock** (WebAuthn, platform authent
 
 Locked chats are flagged on my membership (`locked`). The app keeps them behind "Locked chats", opens
 them for 5 minutes after the PIN (in memory and sessionStorage), and never shows their text in the list,
-the palette or search. Server message search leaves them out. The lock keeps other people's eyes off a
-shared screen; it does not encrypt what this device stores.
+the palette or search. Server message search leaves them out. Until the PIN, Starred messages, the
+forward picker and the chat's media gallery show one "hidden — unlock" line instead of locked chats.
+`GET /v1/stars` leaves locked chats out (`lockedHidden: true`) unless `includeLocked=true`, which the
+app sends only while its unlock lasts; the server does not know about that 5-minute unlock, so this
+is a default, not a proof. The lock keeps other people's eyes off a shared screen; it does not
+encrypt what this device stores.
 
 ## Quiet hours
 
@@ -371,6 +390,16 @@ protocol's `isQuietAt()` decides when it is quiet; Step 18's push will use `quie
 server. The app shows a moon while it is quiet. It has no in-app sounds or toasts for incoming messages
 yet, so `shouldAlert()` is ready for Step 18.
 
+## Language
+
+`language` (`en` | `hi`, English until chosen) is part of the profile: `PATCH /v1/me/profile { language }`,
+returned by `GET /v1/me/profile` and in the session user (`GET /v1/auth/me`). The server writes in it:
+push notifications, and the OTP, new-login and PIN-reset emails. An OTP for an address with no account
+(or none chosen yet) follows the request's `Accept-Language` (the app sends its own language), else
+English. In the app, the server's value wins at start-up, sign-in and every session refresh; a choice
+made on the device is applied at once and kept as pending until saved, so an offline change is not undone.
+A brand-new account (still naming itself) takes the device's language.
+
 ## Appearance
 
 `GET/PATCH /v1/me/appearance`: one of six accents (each tested for AA contrast in light and dark, applied
@@ -378,3 +407,71 @@ through `<html data-accent>`), a default wallpaper (pattern, colour or one of my
 for the dark theme. `PUT /v1/chats/:id/wallpaper` sets one chat's own wallpaper. Pictures:
 `POST /v1/me/wallpapers` (≤ 10 MB, magic bytes, re-encoded to WebP ≤ 2560 px, through the StorageDriver,
 10 per person), `GET` to list or fetch my own, `DELETE` (which also resets any wallpaper using it).
+
+## Notifications
+
+Web Push (Step 18, `docs/adr/0008-web-push.md`). Schemas: `shared/protocol/src/rest/push.ts`.
+
+| Endpoint                          | Purpose                                                                 |
+| --------------------------------- | ----------------------------------------------------------------------- |
+| `GET /v1/me/push`                 | `{ publicKey, settings, devices }`; `publicKey` null: push is off here  |
+| `PUT /v1/me/push/subscription`    | This device's `PushSubscription.toJSON()` (https only) → `{ device }`   |
+| `DELETE /v1/me/push/subscription` | `{ endpoint }`, mine only → `{ removed }`                               |
+| `DELETE /v1/me/push/devices/:id`  | One of my devices (someone else's is 404) → `{ removed }`               |
+| `PUT /v1/me/push/settings`        | `{ showPreview?, sound? }`, only what is sent → `{ settings }`          |
+| `POST /v1/me/push/test`           | A `test` push to this device's subscriptions → `{ sent }`               |
+| `POST /v1/chats/:id/read`         | The notification's "Mark as read" (same as `read:update`), plus `badge` |
+| `POST /v1/chats/:id/reply`        | Inline "Reply": `{ clientMsgId, text }`, every send rule → the send ack |
+
+A subscription belongs to the **session** that registered it (one per device; a new endpoint replaces
+the old one, and an endpoint signed in by someone else moves to them). It is deleted when the session
+ends: sign-out, a revoke (one or all others), "This wasn't me", deactivation, expiry (a TTL index on the
+session's absolute expiry, plus a check at send time), and when the push service answers 404/410. Keys
+are checked: `p256dh` a P-256 point (65 bytes), `auth` 16 bytes, both base64url.
+
+**Events.** `window:state` (client → server, `{ visible, focused }`): sent on every change and after
+(re)connecting. A device is _attended_ while any of its sockets is visible and focused. It is kept in
+Redis per session with a 45 s expiry refreshed every 15 s, so a crashed instance cannot silence anyone
+(in memory without Redis); a disconnect clears it. `push:updated` (server → my devices, `{ settings }`):
+settings or devices changed, fetch `GET /v1/me/push` again.
+
+**When.** Every stored message (socket, scheduled, forward, polls, reply) schedules a job per other
+member who has a device: one delayed job per person and chat (BullMQ `push` queue, deduplicated for
+`PUSH_COALESCE_SECONDS`, processed by the worker; in-process timers without Redis, in tests and E2E).
+The job re-reads everything at send time and runs `decidePush()` for each new message, then per device:
+
+| Skip reason   | When                                                                              |
+| ------------- | --------------------------------------------------------------------------------- |
+| `own_message` | I sent it (another device of mine)                                                |
+| `system`      | A system line (member added, …)                                                   |
+| `deleted`     | Deleted for everyone                                                              |
+| `expired`     | A disappearing message already due                                                |
+| `not_visible` | Before I joined or cleared the chat, or after I left or was removed               |
+| `hidden`      | Deleted for me                                                                    |
+| `read`        | I have read up to it meanwhile (on any device)                                    |
+| `blocked`     | 1:1, blocked either way                                                           |
+| `muted`       | Chat muted, unless the message mentions me (`@everyone` counts)                   |
+| `quiet_hours` | Quiet now, unless an exception: a mention (`allowMentions`) or an allowed chat    |
+| `attended`    | Per device: one of its tabs is visible and focused; my other devices still get it |
+
+The job also skips `not_member`, `deactivated`, `no_devices`, `already_notified` (each message is
+notified at most once: `pushedSeq` on my membership, claimed atomically) and `rate_limited`
+(`PUSH_USER_PER_MINUTE` per person; the rest join the next notification). If every device failed for a
+passing reason, the claim is given back and the queue retries (3 attempts, exponential backoff).
+
+**Payload** (`pushPayloadSchema`, well under 3 KB, no ids but `chatId`): 1:1 shows the sender's name and
+the text; a group its name and "Riya: text"; media as "📷 Photo", "🎤 Voice message (0:12)", "📊 Poll: …"
+(view once: its label only); cut at `PUSH_BODY_MAX` with "…", plus "(+N more)" for a coalesced burst.
+With the preview off, a locked chat or app lock: title "New message", empty body, `hidden: true`.
+`tag` is `chat:<id>` (one notification per chat), `seq` is what "Mark as read" reads up to, `badge` counts
+chats with something unread or marked unread (as the app does), `silent` means sound off. A quiet-hours
+exception sounds: that is why it was let through. The text is in the recipient's profile language when
+one is set (English, Hindi). Logs say sent, skipped (reason) or failed (status, push service host), never
+text or endpoints.
+
+**Tests and E2E** (`NODE_ENV=test`): an in-memory sender records every push.
+`GET /v1/test/push/outbox?email=…` returns
+`{ pushes: [{ sessionId, endpoint, payload, urgency, ttlSeconds, at }] }` (oldest first);
+`DELETE /v1/test/push/outbox` clears it. Any https endpoint can be registered with keys of the right
+shape, e.g. `p256dh` = "B" followed by 86 "A", `auth` = 22 "A". The E2E server collects bursts for
+`E2E_PUSH_COALESCE_MS` (default 500 ms).

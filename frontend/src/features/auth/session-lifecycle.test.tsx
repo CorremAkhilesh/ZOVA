@@ -112,6 +112,16 @@ describe('account settings', () => {
         loggedOut = true;
         return HttpResponse.json({ status: 'signed_out' });
       }),
+      // Signed out only once the logout call came: a session refetch before the click must not
+      // sign the app out by itself (then the click would never reach the server).
+      http.get('*/v1/auth/me', () =>
+        loggedOut
+          ? HttpResponse.json(
+              { code: 'UNAUTHENTICATED', message: 'Please sign in.', requestId: 'r' },
+              { status: 401 },
+            )
+          : HttpResponse.json(sessionFixture()),
+      ),
     );
     const user = userEvent.setup();
     const { router } = await renderApp('/settings', { width: DESKTOP_WIDTH });
@@ -121,7 +131,6 @@ describe('account settings', () => {
       screen.getByRole('link', { name: 'Account settings for Kiran Rao' }),
     ).toBeInTheDocument();
 
-    server.use(signedOut());
     await user.click(screen.getByRole('button', { name: 'Sign out' }));
     await waitFor(() => expect(router.state.location.pathname).toBe('/'));
     expect(loggedOut).toBe(true);

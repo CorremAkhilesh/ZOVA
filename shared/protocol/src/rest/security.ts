@@ -12,7 +12,7 @@ export const deviceSessionSchema = z.object({
   browser: z.string(),
   os: z.string(),
   deviceType: z.enum(['desktop', 'mobile', 'tablet', 'unknown']),
-  /** Partially hidden, e.g. 103.201.140.••• */
+  /** Partially hidden, e.g. 203.0.113.••• */
   ipAddress: z.string().nullable(),
   createdAt: isoDateTimeSchema,
   lastActiveAt: isoDateTimeSchema,

@@ -1,6 +1,6 @@
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
-import { type StarredItem, starsResponseSchema } from '@zuvo/protocol';
+import { type StarredItem, type StarsResponse, starsResponseSchema } from '@zuvo/protocol';
 import { ArrowLeft, Star } from 'lucide-react';
 import { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -13,16 +13,27 @@ import { useChats, useLocalDb } from '@/features/chats/queries';
 import { toChatSummary } from '@/features/chats/view';
 import { useWithoutExpired } from '@/features/disappearing/use-without-expired';
 import { useKnownPeople } from '@/features/groups/queries';
+import { useHiddenLockedIds } from '@/features/lock/chat-lock';
+import { LockedHiddenNotice } from '@/features/lock/components/LockedHiddenNotice';
+import { useChatsUnlocked } from '@/features/lock/store';
 import { useSyncStore } from '@/features/sync/store';
 import { useLive } from '@/features/sync/use-live';
 import { apiGet, withQuery } from '@/lib/api-client';
 import { useMessageUi } from '../store';
 
-const starsKey = (chatId: string | undefined) => ['stars', chatId ?? 'all'];
+const starsKey = (chatId: string | undefined, unlocked: boolean) => [
+  'stars',
+  chatId ?? 'all',
+  unlocked ? 'with-locked' : 'without-locked',
+];
 
 export const starsApi = {
-  list: (chatId: string | undefined, cursor: string | undefined) =>
-    apiGet(withQuery('/v1/stars', { chatId, cursor }), starsResponseSchema),
+  /** Locked chats' stars only while the PIN unlock lasts: the server leaves them out otherwise. */
+  list: (chatId: string | undefined, cursor: string | undefined, includeLocked: boolean) =>
+    apiGet(
+      withQuery('/v1/stars', { chatId, cursor, includeLocked: includeLocked ? 'true' : undefined }),
+      starsResponseSchema,
+    ),
 };
 
 function Row({ item, chatName }: { item: StarredItem; chatName: string }) {
@@ -82,14 +93,29 @@ function Row({ item, chatName }: { item: StarredItem; chatName: string }) {
   );
 }
 
+/** Whether stars in locked chats were left out, by the server or here. */
+function hidesLocked(
+  pages: StarsResponse[] | undefined,
+  lockedIds: ReadonlySet<string>,
+  chatId: string | undefined,
+): boolean {
+  if (chatId !== undefined && lockedIds.has(chatId)) return true;
+  return (pages ?? []).some(
+    (page) =>
+      page.lockedHidden === true || page.items.some((item) => lockedIds.has(item.message.chatId)),
+  );
+}
+
 /** My starred messages, in every chat or in one. */
 export function StarredScreen({ chatId }: { chatId?: string | undefined }) {
   const { t } = useTranslation();
   const me = useSession()?.user.id ?? '';
   const rows = useChats();
+  const unlocked = useChatsUnlocked();
+  const lockedIds = useHiddenLockedIds(rows);
   const stars = useInfiniteQuery({
-    queryKey: starsKey(chatId),
-    queryFn: ({ pageParam }) => starsApi.list(chatId, pageParam),
+    queryKey: starsKey(chatId, unlocked),
+    queryFn: ({ pageParam }) => starsApi.list(chatId, pageParam, unlocked),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) => last.nextCursor ?? undefined,
   });
@@ -97,7 +123,18 @@ export function StarredScreen({ chatId }: { chatId?: string | undefined }) {
   const names = new Map(
     (rows ?? []).map((row) => [row.id, toChatSummary(row, me, labels).name] as const),
   );
-  const pages = useMemo(() => stars.data?.pages.flatMap((page) => page.items), [stars.data]);
+  // Also here, not only on the server: an answer from before the chat was locked may still be cached.
+  // Nothing until my chats are known: before that, a locked chat would not look locked.
+  const pages = useMemo(
+    () =>
+      rows === undefined
+        ? undefined
+        : stars.data?.pages
+            .flatMap((page) => page.items)
+            .filter((item) => !lockedIds.has(item.message.chatId)),
+    [lockedIds, rows, stars.data],
+  );
+  const lockedHidden = hidesLocked(stars.data?.pages, lockedIds, chatId);
   const items = useWithoutExpired(pages, (item) => item.message.expiresAt) ?? [];
   // A star is told to the server a moment after it shows. When the queue moves, ask again.
   const db = useLocalDb();
@@ -116,13 +153,13 @@ export function StarredScreen({ chatId }: { chatId?: string | undefined }) {
           </Link>
         </Button>
         <h1 id="starred-title" className="text-xl font-bold tracking-tight">
-          {chatId
+          {chatId && !lockedIds.has(chatId)
             ? t('messages.starredIn', { name: names.get(chatId) ?? '' })
             : t('messages.starredTitle')}
         </h1>
       </header>
       <ScrollArea className="min-h-0 flex-1 px-2 pb-3">
-        {stars.isPending ? (
+        {stars.isPending || rows === undefined ? (
           <div role="status" aria-label={t('common.loading')} className="space-y-2 p-2">
             <Skeleton className="h-14 w-full" />
             <Skeleton className="h-14 w-full" />
@@ -136,7 +173,10 @@ export function StarredScreen({ chatId }: { chatId?: string | undefined }) {
             </Button>
           </div>
         ) : null}
-        {stars.isSuccess && items.length === 0 ? (
+        {lockedHidden ? (
+          <LockedHiddenNotice text={t('lock.hiddenStarred')} className="mx-auto mb-2 max-w-3xl" />
+        ) : null}
+        {stars.isSuccess && items.length === 0 && !lockedHidden ? (
           <p className="p-8 text-center text-sm text-text-muted">{t('messages.starredEmpty')}</p>
         ) : null}
         {items.length > 0 ? (

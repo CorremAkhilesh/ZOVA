@@ -4,8 +4,8 @@ import {
   chatParamsSchema,
   chatResponseSchema,
   createDirectChatBodySchema,
+  markChatReadResponseSchema,
   markReadBodySchema,
-  markReadResponseSchema,
   messageHistoryQuerySchema,
   messageHistoryResponseSchema,
   syncQuerySchema,
@@ -22,6 +22,7 @@ import {
 import { getHistory } from '../../chats/history.service.ts';
 import { markRead } from '../../chats/receipts.service.ts';
 import { syncSince } from '../../chats/sync.service.ts';
+import { unreadChatCount } from '../../push/gather.ts';
 
 /** Chats, history, read state and sync. Sending happens over the socket (`message:send`). */
 export const chatsRoutes: FastifyPluginAsyncZod = async (app) => {
@@ -103,10 +104,15 @@ export const chatsRoutes: FastifyPluginAsyncZod = async (app) => {
         summary: 'Move my read position forward (it never moves back)',
         params: chatParamsSchema,
         body: markReadBodySchema,
-        response: { 200: markReadResponseSchema },
+        response: { 200: markChatReadResponseSchema },
       },
     },
-    async (request) => markRead(app, currentUserId(request), request.params.id, request.body.seq),
+    async (request) => {
+      const userId = currentUserId(request);
+      const read = await markRead(app, userId, request.params.id, request.body.seq);
+      // Also the notification's "Mark as read": the service worker sets the app badge from this.
+      return { ...read, badge: await unreadChatCount(app.mongo, userId) };
+    },
   );
 
   app.get(

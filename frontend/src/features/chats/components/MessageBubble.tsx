@@ -2,7 +2,6 @@ import type { SystemEvent } from '@zuvo/protocol';
 import { Check, Mic } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/ui/avatar';
-import { useSession } from '@/features/auth/session';
 import { ExpiryMark, expiryRoom } from '@/features/disappearing/ExpiryMark';
 import { FormattedText } from '@/features/formatting/FormattedText';
 import { MessageInfoButton } from '@/features/groups/components/MessageInfoButton';
@@ -28,6 +27,7 @@ import { cn } from '@/lib/utils';
 import { formatClock } from '../chat-utils';
 import { senderColorClass } from '../sender-color';
 import { type ChatMessage, ME } from '../types';
+import { useMyId } from '../use-my-id';
 import { DeliveryTicks } from './DeliveryTicks';
 
 interface MessageBubbleProps {
@@ -152,7 +152,7 @@ function BubbleContent(props: {
 
 function SystemPill({ event }: { event: SystemEvent }) {
   const { t } = useTranslation();
-  const me = useSession()?.user.id ?? '';
+  const me = useMyId() ?? '';
   return (
     <p className="mx-auto mb-3 w-fit max-w-[90%] rounded-full bg-surface/80 px-3 py-1 text-center text-xs text-text-muted shadow-sm">
       {systemText(event, me, t)}

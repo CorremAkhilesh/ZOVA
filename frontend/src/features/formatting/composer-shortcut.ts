@@ -1,4 +1,5 @@
 import type { KeyboardEvent } from 'react';
+import { flushSync } from 'react-dom';
 import { wrapSelection } from './selection';
 
 const MARKERS: Record<string, string> = { b: '*', i: '_' };
@@ -17,8 +18,9 @@ export function formatShortcut(
   event.preventDefault();
   const element = event.currentTarget;
   const next = wrapSelection(element.value, element.selectionStart, element.selectionEnd, marker);
-  update(next.value);
-  // After React has written the new value.
-  requestAnimationFrame(() => element.setSelectionRange(next.start, next.end));
+  // Write the value now, then select: a later frame would land after the next key on a slow device
+  // (Ctrl+B, Ctrl+I gave "*hello*__" instead of "*_hello_*").
+  flushSync(() => update(next.value));
+  element.setSelectionRange(next.start, next.end);
   return true;
 }

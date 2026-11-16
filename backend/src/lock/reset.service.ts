@@ -3,6 +3,7 @@ import { OTP_MAX_ATTEMPTS, OTP_RESEND_COOLDOWN_SECONDS, OTP_TTL_SECONDS } from '
 import type { FastifyInstance } from 'fastify';
 import { AppError } from '../lib/errors.ts';
 import { lockResetEmail } from '../mail/templates/lock-reset-email.tsx';
+import { languageOf } from '../users/user-record.ts';
 import { requireUser } from '../users/users.service.ts';
 import {
   announceLock,
@@ -61,6 +62,7 @@ export async function requestPinReset(app: FastifyInstance, userId: string) {
     code,
     expiresAt,
     minutes: OTP_TTL_SECONDS / 60,
+    language: languageOf(user),
   });
   await app.emailDispatcher.dispatch(message, 'lock-reset');
   return { sent: true as const };

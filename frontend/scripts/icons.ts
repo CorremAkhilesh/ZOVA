@@ -9,6 +9,7 @@ import { chromium, type Page } from '@playwright/test';
 import { darkColors, lightColors } from '@zuvo/ui-tokens';
 import {
   APPLE_TOUCH_ICON,
+  BADGE_ICONS,
   ICONS_DIR,
   IOS_SPLASH_DEVICES,
   MANIFEST_ICONS,
@@ -31,6 +32,9 @@ const fullBleed = (glyphScale: number) => {
   const offset = 32 - 32 * glyphScale;
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">${GRADIENT}<rect width="64" height="64" fill="url(#g)"/><g transform="translate(${offset} ${offset}) scale(${glyphScale})">${GLYPH}</g></svg>`;
 };
+
+/** Monochrome badge: the glyph alone, white on transparent, cropped to fill the square. */
+const BADGE = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="14 14 36 36">${GLYPH}</svg>`;
 
 async function render(
   page: Page,
@@ -69,6 +73,17 @@ for (const icon of MANIFEST_ICONS) {
   );
 }
 
+for (const badge of BADGE_ICONS) {
+  await render(
+    page,
+    sized(BADGE, badge.size),
+    badge.size,
+    badge.size,
+    'transparent',
+    `${publicDir}${ICONS_DIR}/${badge.file}`,
+  );
+}
+
 // iOS rounds the corners itself and shows transparency as black, so: full bleed, opaque.
 await render(
   page,
@@ -98,5 +113,5 @@ for (const device of IOS_SPLASH_DEVICES) {
 
 await browser.close();
 process.stdout.write(
-  `Generated ${MANIFEST_ICONS.length + 2} icons and ${IOS_SPLASH_DEVICES.length * SPLASH_THEMES.length} splash screens.\n`,
+  `Generated ${MANIFEST_ICONS.length + BADGE_ICONS.length + 2} icons and ${IOS_SPLASH_DEVICES.length * SPLASH_THEMES.length} splash screens.\n`,
 );

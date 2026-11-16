@@ -26,7 +26,7 @@ function Chip(props: { label: string; count: number; selected: boolean; onSelect
           event.currentTarget.scrollIntoView({ inline: 'nearest', block: 'nearest' })
         }
         className={cn(
-          'flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1 text-sm font-medium whitespace-nowrap transition-colors',
+          'tap-target flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1 text-sm font-medium whitespace-nowrap transition-colors pointer-coarse:min-h-10',
           props.selected
             ? 'border-transparent bg-brand text-brand-foreground'
             : 'bg-surface text-text-muted hover:text-text',

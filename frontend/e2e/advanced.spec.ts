@@ -1,6 +1,7 @@
 import { expect, type Page, test } from '@playwright/test';
 import {
   createGroup,
+  messageMenu,
   newPerson,
   openChatWith,
   openFromList,
@@ -54,10 +55,7 @@ test('pinning a message shows it under the header, and a tap jumps to it', async
   await send(asha.page, 'agenda for friday');
   for (const n of [1, 2, 3]) await send(asha.page, `chat ${n}`);
 
-  const agenda = thread(asha.page, 'Bharat').getByText('agenda for friday', { exact: true });
-  await agenda.click({ button: 'right' });
-  await asha.page
-    .getByRole('menu', { name: 'Message actions' })
+  await (await messageMenu(asha.page, 'Bharat', 'agenda for friday'))
     .getByRole('menuitem', { name: 'Pin' })
     .click();
   const dialog = asha.page.getByRole('dialog', { name: 'Pin for everyone' });
@@ -129,8 +127,12 @@ test('"Toggle theme" runs from the command palette', async ({ browser }) => {
   const page = asha.page;
   const html = page.locator('html');
   const before = (await html.getAttribute('data-theme')) ?? 'light';
-  await page.keyboard.press('Control+k');
   const box = page.getByRole('combobox', { name: /Search chats/ });
+  // The dev server may still be loading the palette on the first press: press again until it opens.
+  await expect(async () => {
+    await page.keyboard.press('Control+k');
+    await expect(box).toBeVisible({ timeout: 3_000 });
+  }).toPass(SLOW);
   await box.fill('>togl thm');
   await expect(page.getByRole('option', { name: /Toggle theme/ })).toBeVisible();
   await box.press('Enter');

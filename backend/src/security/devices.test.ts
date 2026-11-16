@@ -32,7 +32,7 @@ describe('describeDevice', () => {
 
 describe('maskIp', () => {
   it('hides the host part of IPv4, IPv4-mapped and IPv6 addresses', () => {
-    expect(maskIp('103.201.140.17')).toBe('103.201.140.•••');
+    expect(maskIp('203.0.113.17')).toBe('203.0.113.•••');
     expect(maskIp('::ffff:10.0.0.9')).toBe('10.0.0.•••');
     expect(maskIp('2001:db8:85a3:0:0:8a2e:370:7334')).toBe('2001:db8:85a3:•••');
   });
