@@ -27,7 +27,7 @@ async function signInAdmin(page: Page) {
   if (await named.isVisible()) {
     await page.getByRole('textbox', { name: 'Your name' }).fill('E2E Admin');
     await expect(page.getByRole('textbox', { name: 'Username' })).not.toHaveValue('', SLOW);
-    await expect(page.getByText('Available')).toBeVisible(SLOW);
+    await expect(page.getByText('Available', { exact: true })).toBeVisible(SLOW);
     await page.getByRole('button', { name: 'Continue' }).click();
   }
   await expect(page).toHaveURL(/\/chats$/, SLOW);

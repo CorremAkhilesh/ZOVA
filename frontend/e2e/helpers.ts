@@ -51,7 +51,8 @@ export async function signUp(page: Page, name = 'E2E Tester', username?: string)
   // The username is suggested from the email; wait for it (and its availability check).
   await expect(page.getByRole('textbox', { name: 'Username' })).not.toHaveValue('', SLOW);
   if (username) await page.getByRole('textbox', { name: 'Username' }).fill(username);
-  await expect(page.getByText('Available')).toBeVisible(SLOW);
+  // Exact: "New version available" (the PWA update toast) can be on screen too (Firefox, CI run 82).
+  await expect(page.getByText('Available', { exact: true })).toBeVisible(SLOW);
   await page.getByRole('button', { name: 'Continue' }).click();
   await expect(page).toHaveURL(/\/chats$/, SLOW);
   return email;
