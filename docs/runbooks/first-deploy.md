@@ -1,5 +1,8 @@
 # First production deploy (shared company server)
 
+> **Status:** first production deploy done on 2026-11-16; Steps 1–8 verified. The backup cron runs
+> at 02:30 server time (UTC), which is 08:00 IST.
+
 The owner runs these steps once, by hand, over SSH (PuTTY). After that every merge into `main`
 deploys by itself (`.github/workflows/deploy.yml`). Design: `docs/adr/0009-production-hosting.md`.
 

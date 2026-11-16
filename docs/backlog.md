@@ -83,10 +83,21 @@ Known work that was decided on or deliberately left for later. Product scope liv
 
 ## Operations
 
-- **Weekly backup copy off the server**: options in `docs/runbooks/backups.md`, not built yet.
+- **Weekly backup copy off the server**: options in `docs/runbooks/backups.md`, not built yet
+  (restic to R2 or B2 recommended).
+- **Disk space on the shared server:** the disk was 74% used at the first deploy, and other apps share
+  it. The daily backup already emails the admins from 80% (`disk-alert`); add a check that runs more
+  often than once a day and warns at 85%, so a fast-filling disk is caught before the next backup.
+- **Rotate the GitHub Actions deploy key.** Its private key was once pasted into a chat. It is
+  `restrict`ed to the deploy command, but should still be replaced: new key on the server, then the
+  `VPS_SSH_KEY` secret.
+- **Tell the server admin:** reloading Nginx prints a "Too many open files" inotify warning. It is
+  harmless for Zuvo, but the server's inotify limits may be worth raising.
 
 ## Performance
 
+- **Measure mobile Lighthouse on `/chats` again on the live server**; the earlier figures came from
+  local builds.
 - **CI E2E is getting slower.** Run 38 (71edc1f, 2026-11-07) took 19:40 for the E2E job, against 13–16
   minutes for the runs just before it. Look at it in the performance step: the slowest specs per browser,
   the worker count, and whether the dev-server pass repeats flows the production pass already covers.
