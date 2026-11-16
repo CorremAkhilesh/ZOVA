@@ -8,6 +8,7 @@ import { i18n } from '@/lib/i18n';
 import { axe } from '@/test/axe';
 import { HttpResponse, http, server, sessionFixture } from '@/test/msw';
 import { DESKTOP_WIDTH, MOBILE_WIDTH, renderApp } from '@/test/render-app';
+import { version } from '../../../package.json';
 
 vi.setConfig({ testTimeout: 30_000 });
 
@@ -54,6 +55,14 @@ describe.each(PAGES)('$path', ({ path, en, hi }) => {
     const { container } = await renderApp(path, { width: DESKTOP_WIDTH });
     expect(await h1(hi)).toBeInTheDocument();
     expect(await axe(container)).toHaveNoViolations();
+  });
+});
+
+describe('/help/about', () => {
+  it('names the version and commit for support; "unknown" when the build had none', async () => {
+    // Tests are not a vite build: no commit is inlined, so the fallback shows.
+    await renderApp('/help/about', { width: DESKTOP_WIDTH });
+    expect(await screen.findByText(`Version ${version} (unknown)`)).toBeInTheDocument();
   });
 });
 

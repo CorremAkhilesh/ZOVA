@@ -53,6 +53,15 @@ echo "$ready"
 node -e 'const r = JSON.parse(process.argv[1]); if (r.status !== "ready") process.exit(1)' "$ready" \
   || fail "/v1/ready did not say ready"
 [ "$(curl -fsS http://127.0.0.1:7147/health)" = ok ] || fail "web /health"
+# The images name the commit they were built from (.git/HEAD through .dockerignore, "meta" stage).
+health="$(curl -fsS http://127.0.0.1:7148/v1/health)" || fail "/v1/health is not 200"
+echo "$health"
+want="${GITHUB_SHA:0:7}"
+node -e 'const h = JSON.parse(process.argv[1]); const w = process.argv[2];
+  if (!h.builtAt || (w ? h.commit !== w : !/^[0-9a-f]{7}$/.test(h.commit))) process.exit(1)' "$health" "$want"   || fail "/v1/health must name commit ${want:-<sha>} and a build time"
+commit="$(node -e 'console.log(JSON.parse(process.argv[1]).commit)' "$health")"
+compose exec -T web grep -rl "$commit" /usr/share/nginx/html/assets > /dev/null   || fail "the web app does not carry commit $commit (Help → About)"
+compose exec -T api sh -c 'ls -A /app | grep -x .git' > /dev/null && fail "the API image must not contain .git"
 curl -fsS http://127.0.0.1:7147/ | grep >/dev/null '<div id="root">' || fail "the app shell did not load"
 curl -fsS http://127.0.0.1:7147/chats | grep >/dev/null '<div id="root">' || fail "SPA routes must get the shell"
 code="$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:7147/assets/missing-abc123.js)"

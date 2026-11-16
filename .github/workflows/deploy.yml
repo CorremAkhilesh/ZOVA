@@ -123,6 +123,18 @@ jobs:
           curl -fsS --retry 5 --retry-delay 5 --retry-all-errors --max-time 15 -o /dev/null "$PUBLIC_URL/"
           echo "app and API answer on $PUBLIC_URL"
 
+      - name: Live commit is this one (${{ env.PUBLIC_URL }}/v1/health)
+        if: steps.secrets.outputs.ready == 'true'
+        run: |
+          health="$(curl -fsS --retry 5 --retry-delay 5 --retry-all-errors --max-time 15 "$PUBLIC_URL/v1/health")"
+          echo "$health"
+          commit="$(jq -r .commit <<< "$health")"
+          if [ "$commit" != "${GITHUB_SHA:0:7}" ]; then
+            echo "::error title=Live commit::$PUBLIC_URL runs $commit, expected ${GITHUB_SHA:0:7}"
+            exit 1
+          fi
+          echo "live: $commit (built $(jq -r .builtAt <<< "$health"))"
+
       - name: Remove the SSH key
         if: ${{ always() }}
         run: rm -f ~/.ssh/deploy_key

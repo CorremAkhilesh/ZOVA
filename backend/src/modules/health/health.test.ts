@@ -29,6 +29,17 @@ describe('GET /v1/health', () => {
     expect(res.headers['x-request-id']).toMatch(/^[0-9a-f-]{36}$/);
   });
 
+  it('names the running build: version, short commit (or "unknown") and build time', async () => {
+    const app = await start();
+    const body = healthResponseSchema.parse(
+      (await app.inject({ method: 'GET', url: '/v1/health' })).json(),
+    );
+    expect(body.version).toMatch(/^\d+\.\d+\.\d+/);
+    // Tests run from a git checkout: the commit comes from .git; there is no image, so no build time.
+    expect(body.commit).toMatch(/^([0-9a-f]{7}|unknown)$/);
+    expect(body.builtAt).toBeNull();
+  });
+
   it('sets security headers', async () => {
     const app = await start();
     const res = await app.inject({ method: 'GET', url: '/v1/health' });

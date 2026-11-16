@@ -4,6 +4,17 @@
 # NODE_ENV is never "test" here: built and run as production, so test-only routes are never registered.
 ARG NODE_IMAGE=node:24-alpine
 
+# Which commit this is (GET /v1/health, Help → About). Only .git/HEAD and branch refs are in the
+# context (.dockerignore), and only build-info.json leaves this stage. `.gi[t]` is a pattern, so a
+# context without .git still builds (commit "unknown"); the copy beside it keeps the pattern legal.
+FROM ${NODE_IMAGE} AS meta
+WORKDIR /meta
+COPY backend/package.json backend/
+COPY backend/scripts/build-info.ts backend/scripts/
+COPY backend/src/lib/git-commit.ts backend/src/lib/
+COPY backend/package.json .gi[t] git/
+RUN node backend/scripts/build-info.ts git build-info.json
+
 FROM ${NODE_IMAGE} AS build
 # No lifecycle scripts anywhere in the build (install and deploy): none is needed, and the root
 # `prepare` (lefthook install) needs git, which the image does not have.
@@ -29,6 +40,7 @@ FROM ${NODE_IMAGE} AS runtime
 ENV NODE_ENV=production
 WORKDIR /app
 COPY --from=build /out ./
+COPY --from=meta /meta/build-info.json ./build-info.json
 # Media lives in /data/uploads: a bind mount owned by 1000:1000 (= `node`), see deploy/scripts/setup-env.sh.
 RUN mkdir -p /data/uploads && chown node:node /data/uploads
 USER node

@@ -108,7 +108,8 @@ again and `nginx -t` + reload.
    `VPS_KNOWN_HOSTS` (`ssh-keyscan -p <SSH_PORT> -t ed25519 <SERVER_IP>`; its fingerprint must be
    `<HOST_KEY_FINGERPRINT>`).
 3. Until all five exist, the deploy job skips with a notice. After that, every merge to `main` runs
-   CI, then `correm-deploy zuvo <sha>`, then `https://zuvo.corremadvisory.com/v1/ready`.
+   CI, then `correm-deploy zuvo <sha>`, then `https://zuvo.corremadvisory.com/v1/ready`, then checks
+   that `https://zuvo.corremadvisory.com/v1/health` names that commit (`"commit": "<short sha>"`).
 
 ## 7. Backups
 

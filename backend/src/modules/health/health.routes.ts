@@ -1,5 +1,6 @@
 import { healthResponseSchema, readyResponseSchema } from '@zuvo/protocol';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
+import { getBuildInfo } from '../../lib/build-info.ts';
 import { APP_VERSION } from '../../lib/version.ts';
 import { checkReadiness } from './readiness.ts';
 
@@ -16,6 +17,7 @@ export const healthRoutes: FastifyPluginAsyncZod = async (app) => {
     async () => ({
       status: 'ok' as const,
       version: APP_VERSION,
+      ...getBuildInfo(),
       uptime: process.uptime(),
       timestamp: new Date().toISOString(),
     }),
