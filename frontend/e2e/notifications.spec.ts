@@ -66,7 +66,7 @@ test('on a phone: the same step, full screen', async ({ browser }) => {
   await shot(page, 'banner-phone');
   await page.goto('/settings/notifications');
   await expect(page.getByRole('heading', { name: 'Sounds' })).toBeVisible(SLOW);
-  await page.getByRole('radio', { name: 'Marimba' }).check();
+  await page.getByRole('radio', { name: 'Marimba' }).click();
   await expect(page.getByRole('radio', { name: 'Marimba' })).toBeChecked();
   await shot(page, 'sounds-phone');
   await context.close();

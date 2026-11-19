@@ -68,6 +68,9 @@ function Tones({
   onPick: (tone: MessageTone) => void;
 }) {
   const { t } = useTranslation();
+  // Shown chosen at once; the saved setting catches up (and wins if the save is refused).
+  const [picked, setPicked] = useState(settings.tone);
+  useEffect(() => setPicked(settings.tone), [settings.tone]);
   const preview = (tone: MessageTone) => {
     unlockAudio();
     playSound(tone, Math.max(settings.soundVolume, 20));
@@ -82,8 +85,9 @@ function Tones({
               type="radio"
               name="message-tone"
               value={tone}
-              checked={settings.tone === tone}
+              checked={picked === tone}
               onChange={() => {
+                setPicked(tone);
                 onPick(tone);
                 preview(tone);
               }}
