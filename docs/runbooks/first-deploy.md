@@ -91,6 +91,7 @@ redis, api and web `healthy`; backup and migrate `Exited (0)`), `curl -s 127.0.0
 2. Certificate first (the site file needs it): `sudo certbot certonly --nginx -d zuvo.corremadvisory.com`
 3. Site: `sudo install -m 644 /var/www/zuvo/deploy/nginx/zuvo.corremadvisory.com.conf /etc/nginx/sites-available/zuvo.corremadvisory.com`,
    symlink it into `sites-enabled`, then **`sudo nginx -t`** and only then `sudo systemctl reload nginx`.
+   A deploy never updates this copy: later changes to the site file follow `docs/runbooks/nginx-site.md`.
 4. Check: `curl -sI https://zuvo.corremadvisory.com/ | head -1` → `HTTP/2 200`;
    `sudo certbot renew --dry-run --cert-name zuvo.corremadvisory.com` → success.
 

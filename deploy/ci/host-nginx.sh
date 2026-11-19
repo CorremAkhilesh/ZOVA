@@ -5,8 +5,9 @@
 # would be. `c` is curl pointed at it.
 HOST=zuvo.corremadvisory.com
 
+# start_host_nginx [site file]: the repo's site file unless another is given.
 start_host_nginx() {
-  local le live
+  local site="${1:-$PWD/deploy/nginx/$HOST.conf}" le live
   le="$(mktemp -d)"
   live="$le/live/$HOST"
   mkdir -p "$live"
@@ -18,7 +19,7 @@ start_host_nginx() {
   chmod -R a+rX "$le"
   docker rm -f zuvo-host-nginx > /dev/null 2>&1 || true
   docker run -d --name zuvo-host-nginx --network host \
-    -v "$PWD/deploy/nginx/$HOST.conf:/etc/nginx/conf.d/default.conf:ro" \
+    -v "$site:/etc/nginx/conf.d/default.conf:ro" \
     -v "$PWD/infra/nginx/security-headers.conf:/etc/nginx/snippets/zuvo-security-headers.conf:ro" \
     -v "$le:/etc/letsencrypt:ro" nginx:1.24-alpine > /dev/null
   docker exec zuvo-host-nginx nginx -t || return 1

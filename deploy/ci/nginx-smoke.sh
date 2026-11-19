@@ -37,5 +37,19 @@ upgrade="$(c --http1.1 --max-time 3 -o /dev/null -w '%{http_code}' \
   -H "Sec-WebSocket-Key: $(openssl rand -base64 16)" -H "Origin: https://$HOST" \
   "https://$HOST/socket.io/?EIO=4&transport=websocket" || true)"
 [ "$upgrade" = 101 ] || fail "the WebSocket upgrade did not pass Nginx (got $upgrade)"
+echo "--- the route check used after every deploy (deploy.yml) passes on this site file"
+CURL_EXTRA="--resolve $HOST:443:127.0.0.1 -k" bash deploy/ci/live-routes.sh "https://$HOST" \
+  || fail "deploy/ci/live-routes.sh fails on the repo's site file"
+echo "--- ...and catches the Nov 2026 drift (location /v1/uploads/ answering POST /v1/uploads with a 301)"
+stale="$(mktemp --suffix=.conf)"
+sed 's#location /v1/uploads {#location /v1/uploads/ {#' "deploy/nginx/$HOST.conf" > "$stale"
+chmod a+r "$stale"
+grep -q 'location /v1/uploads/ {' "$stale" || fail "could not make the stale site file"
+start_host_nginx "$stale" || fail "nginx -t failed on the stale site file"
+if CURL_EXTRA="--resolve $HOST:443:127.0.0.1 -k" bash deploy/ci/live-routes.sh "https://$HOST" > /tmp/zuvo-stale.log; then
+  cat /tmp/zuvo-stale.log
+  fail "live-routes.sh did not notice a stale site file"
+fi
+grep 'FAIL POST /v1/uploads' /tmp/zuvo-stale.log || fail "live-routes.sh failed, but not on POST /v1/uploads"
 stop_host_nginx
 echo "host Nginx OK: HTTP/2, headers, cache rules, /v1, /socket.io"

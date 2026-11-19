@@ -135,6 +135,18 @@ jobs:
           fi
           echo "live: $commit (built $(jq -r .builtAt <<< "$health"))"
 
+      - uses: actions/checkout@v7
+        if: steps.secrets.outputs.ready == 'true'
+        with:
+          sparse-checkout: deploy/ci/live-routes.sh
+          sparse-checkout-cone-mode: false
+
+      # The server's Nginx site file is a copy a deploy never updates: this catches it drifting from
+      # deploy/nginx/zuvo.corremadvisory.com.conf (redirects, routes not reaching the API).
+      - name: Nginx routes on the live site (no redirects, every route reaches the API)
+        if: steps.secrets.outputs.ready == 'true'
+        run: bash deploy/ci/live-routes.sh "$PUBLIC_URL"
+
       - name: Remove the SSH key
         if: ${{ always() }}
         run: rm -f ~/.ssh/deploy_key
