@@ -279,6 +279,8 @@ jobs:
         run: $AS_ROOT bash deploy/ci/run.sh deploy/ci/prod-smoke.sh
       - name: Host Nginx site in front of it
         run: $AS_ROOT bash deploy/ci/run.sh deploy/ci/nginx-smoke.sh
+      - name: Real photo upload through the host Nginx (sign in, init, chunks, complete, message)
+        run: $AS_ROOT bash deploy/ci/run.sh deploy/ci/upload-smoke.sh
       - name: Backup, restore test and real restore
         run: $AS_ROOT bash deploy/ci/run.sh deploy/ci/backup-smoke.sh
       - name: Show the stack (on failure)
