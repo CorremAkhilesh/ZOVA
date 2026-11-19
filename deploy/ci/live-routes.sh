@@ -51,6 +51,17 @@ else
   failed=1
 fi
 
+# "Share to Zuvo" with no service worker yet: the web container sends it to /share?retry=1 (a static
+# server would answer 405). Served by the web container, so no API request id here.
+share="$(curl -sS -o /dev/null -D - --max-time 15 -X POST -F text=hi "${extra[@]}" "$base/share-target" | tr -d '\r' || true)"
+share_status="$(sed -n '1s/^HTTP[^ ]* \([0-9]*\).*/\1/p' <<< "$share")"
+if [ "$share_status" = 303 ] && grep -qi '^location: .*/share?retry=1$' <<< "$share"; then
+  echo "ok   POST /share-target -> 303 /share?retry=1"
+else
+  echo "FAIL POST /share-target: got ${share_status:-no answer}, want 303 to /share?retry=1"
+  failed=1
+fi
+
 if [ "$failed" -ne 0 ]; then
   echo "::error title=Nginx routes::The Nginx site in front of $base does not pass every API route through. Compare it with deploy/nginx/zuvo.corremadvisory.com.conf (docs/runbooks/nginx-site.md)."
   exit 1

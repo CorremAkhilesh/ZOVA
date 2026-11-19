@@ -1552,5 +1552,26 @@
       "Device details",
       "Last seen"
     ]
+  },
+  "share": {
+    "title": "Share to {{brand}}",
+    "cancel": "Cancel",
+    "preview": "What you are sharing",
+    "tooLarge": "Too large to send: the limit is {{limit}}.",
+    "chooseChats": "Choose chats",
+    "search": "Search chats",
+    "pickOne": "Choose a chat: the text waits in its message box.",
+    "picked": "{{count}} of {{max}} chats chosen",
+    "noChats": "No chats found.",
+    "caption": "Caption",
+    "send_one": "Send to {{count}} chat",
+    "send_other": "Send to {{count}} chats",
+    "openChat": "Open chat",
+    "sent_one": "Sending to {{count}} chat.",
+    "sent_other": "Sending to {{count}} chats.",
+    "sendFailed": "Couldn’t send. Check your connection and try again.",
+    "retry": "The share didn’t reach {{brand}}. Open {{brand}} once, then share again.",
+    "failed": "This share couldn’t be read. Try sharing again.",
+    "nothing": "Nothing to share here. Share a file, photo or text from another app."
   }
 }

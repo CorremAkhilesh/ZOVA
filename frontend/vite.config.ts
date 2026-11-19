@@ -86,6 +86,38 @@ export default defineConfig({
           type: 'image/png',
           purpose: icon.purpose,
         })),
+        // "Share to Zuvo" from other apps (Android, and desktop Chrome/Edge where supported). The
+        // service worker takes the post (src/sw/share); /share picks the chats.
+        share_target: {
+          action: '/share-target',
+          method: 'POST',
+          enctype: 'multipart/form-data',
+          params: {
+            title: 'title',
+            text: 'text',
+            url: 'url',
+            files: [
+              {
+                name: 'files',
+                accept: [
+                  'image/*',
+                  'video/*',
+                  'audio/*',
+                  'application/pdf',
+                  'application/msword',
+                  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                  'application/vnd.ms-excel',
+                  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                  'application/vnd.ms-powerpoint',
+                  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+                  'application/zip',
+                  'text/*',
+                  '*/*',
+                ],
+              },
+            ],
+          },
+        },
         shortcuts: [
           {
             name: 'New chat',

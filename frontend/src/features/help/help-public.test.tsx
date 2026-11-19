@@ -16,6 +16,7 @@ const PAGES = [
   ['/help', 'Help & About'],
   ['/help/install', 'Install the app'],
   ['/help/notifications', 'Notifications on every device'],
+  ['/help/share', /^Share to /],
   ['/help/faq', 'Common questions'],
   ['/help/privacy', 'Your privacy'],
   ['/help/contact', 'Contact us'],

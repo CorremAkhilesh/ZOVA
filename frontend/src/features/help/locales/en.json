@@ -27,6 +27,10 @@
     "notifications": {
       "title": "Notifications on every device",
       "hint": "Turn them on, fix blocked ones, and the {{brand}} tone on Android"
+    },
+    "share": {
+      "title": "Share to {{brand}}",
+      "hint": "Send files, photos and links from other apps"
     }
   },
   "install": {
@@ -244,6 +248,45 @@
         "Battery saver on Android can stop notifications: set {{brand}} or Chrome to “Unrestricted”.",
         "Muted chats and quiet hours stay silent on purpose; @mentions can still come through.",
         "Signing out stops notifications on that device."
+      ]
+    }
+  },
+  "share": {
+    "subtitle": "Send a file, photo, video or link from another app straight into a chat.",
+    "android": {
+      "title": "Android",
+      "steps": [
+        "Install {{brand}} from Chrome (Help → Install the app) and sign in once.",
+        "In Files, Gallery or any app, choose one or more files (or a link) and tap Share.",
+        "Pick {{brand}} in the list.",
+        "Choose up to 5 chats, add a caption if you like, and tap Send."
+      ]
+    },
+    "desktop": {
+      "title": "Windows and Mac (Chrome or Edge)",
+      "steps": [
+        "Install {{brand}} from Chrome or Edge (the install icon in the address bar) and sign in.",
+        "In an app with a Share button (the Windows share menu, or Share on a web page), choose {{brand}}.",
+        "Pick the chats and tap Send."
+      ],
+      "note": "Not every desktop app offers Share. You can always drag files into a chat, paste them, or use 📎."
+    },
+    "ios": {
+      "title": "iPhone and iPad",
+      "why": "Apple does not let web apps appear in the iPhone share list, so {{brand}} cannot show there. Send from inside {{brand}} instead:",
+      "steps": [
+        "Open the chat in {{brand}}.",
+        "Tap 📎, then Photos & videos, Camera or Document.",
+        "Choose the files and tap Send."
+      ]
+    },
+    "missing": {
+      "title": "{{brand}} is not in the share list?",
+      "points": [
+        "Android: close {{brand}} completely (swipe it away) and open it again once; the share list updates after that.",
+        "Still missing: uninstall {{brand}}, install it again from Chrome, and sign in. Your chats come back from the server.",
+        "Make sure you opened {{brand}} from its installed icon at least once.",
+        "Files can be at most 1 GB each."
       ]
     }
   }

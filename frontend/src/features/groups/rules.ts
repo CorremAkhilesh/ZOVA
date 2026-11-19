@@ -30,11 +30,14 @@ export const useNewGroup = create<{ isOpen: boolean; setOpen: (isOpen: boolean) 
 
 const PENDING_JOIN = 'zuvo.pending-join';
 
-/** Someone opened an invite link signed out: signing in carries on to it. */
-export function rememberJoinPath(pathname: string) {
-  if (!pathname.startsWith('/join/')) return;
+/**
+ * Someone opened an invite link, or shared something to the app, signed out: signing in carries
+ * on to it (`path` may include the query, as /share?id=… does).
+ */
+export function rememberJoinPath(path: string) {
+  if (!path.startsWith('/join/') && !path.startsWith('/share')) return;
   try {
-    sessionStorage.setItem(PENDING_JOIN, pathname);
+    sessionStorage.setItem(PENDING_JOIN, path);
   } catch {
     // Only means opening the link again after signing in.
   }

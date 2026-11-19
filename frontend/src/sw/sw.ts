@@ -8,6 +8,8 @@
  *   and there is no runtime caching of API data.
  * - Web Push (Step 18): shows notifications, handles their actions and keeps the subscription. The
  *   logic lives in ./push (tested there); this file only connects it to the worker's events.
+ * - "Share to Zuvo": the manifest's share target posts files and text to /share-target; they are
+ *   kept on this device (./share) and the window goes on to /share to pick chats.
  */
 import { clientsClaim, setCacheNameDetails } from 'workbox-core';
 import { enable as enableNavigationPreload } from 'workbox-navigation-preload';
@@ -25,6 +27,8 @@ import {
 import { workerLanguage } from './push/language';
 import { readPushJson } from './push/payload';
 import { swStrings } from './push/strings';
+import { handleShareTarget, SHARE_TARGET_PATH } from './share/handler';
+import { indexedDbShareStore } from './share/store';
 
 declare const self: ServiceWorkerGlobalScope & {
   __WB_MANIFEST: Array<{ url: string; revision: string | null }>;
@@ -36,6 +40,23 @@ const CACHE_PREFIX = 'zuvo';
 const NAVIGATION_TIMEOUT_MS = 4000;
 
 setCacheNameDetails({ prefix: CACHE_PREFIX, suffix: CACHE_VERSION });
+
+// First, before Workbox's routes: a share from another app (POST, so no other route takes it).
+self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+  if (event.request.method !== 'POST' || url.pathname !== SHARE_TARGET_PATH) return;
+  event.respondWith(
+    handleShareTarget(
+      {
+        store: indexedDbShareStore(),
+        now: () => Date.now(),
+        randomId: () => crypto.randomUUID(),
+        origin: self.location.origin,
+      },
+      event.request,
+    ),
+  );
+});
 
 precacheAndRoute(self.__WB_MANIFEST);
 cleanupOutdatedCaches();
