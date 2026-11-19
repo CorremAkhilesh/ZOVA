@@ -90,6 +90,15 @@
           }
         }
       }
+    },
+    {
+      "includes": ["deploy/ci/**"],
+      "linter": {
+        "rules": {
+          "complexity": { "noExcessiveCognitiveComplexity": "off" },
+          "suspicious": { "noConsole": "off", "noUndeclaredEnvVars": "off" }
+        }
+      }
     }
   ]
 }

@@ -6,26 +6,10 @@
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 fail() { echo "::error title=Host Nginx::$*"; docker logs zuvo-host-nginx 2>&1 | tail -n 30 || true; exit 1; }
-HOST=zuvo.corremadvisory.com
-le="$(mktemp -d)"
-live="$le/live/$HOST"
-mkdir -p "$live"
-openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj "/CN=$HOST" -addext "subjectAltName=DNS:$HOST" \
-  -keyout "$live/privkey.pem" -out "$live/fullchain.pem" 2> /dev/null
-openssl dhparam -dsaparam -out "$le/ssl-dhparams.pem" 2048 2> /dev/null
-# Stand-in for certbot's file (the real one sets protocols, ciphers and the session cache).
-printf 'ssl_protocols TLSv1.2 TLSv1.3;\nssl_session_cache shared:le_nginx_SSL:10m;\n' > "$le/options-ssl-nginx.conf"
-chmod -R a+rX "$le"
+# shellcheck source=deploy/ci/host-nginx.sh
+. deploy/ci/host-nginx.sh
+start_host_nginx || fail "nginx -t failed"
 
-docker rm -f zuvo-host-nginx > /dev/null 2>&1 || true
-docker run -d --name zuvo-host-nginx --network host \
-  -v "$PWD/deploy/nginx/$HOST.conf:/etc/nginx/conf.d/default.conf:ro" \
-  -v "$PWD/infra/nginx/security-headers.conf:/etc/nginx/snippets/zuvo-security-headers.conf:ro" \
-  -v "$le:/etc/letsencrypt:ro" nginx:1.24-alpine > /dev/null
-docker exec zuvo-host-nginx nginx -t || fail "nginx -t failed"
-sleep 1
-
-c() { curl -sS --resolve "$HOST:443:127.0.0.1" --resolve "$HOST:80:127.0.0.1" -k "$@"; }
 header() { c -H 'Accept-Encoding: gzip' -o /dev/null -D - "https://$HOST$1" | tr -d '\r' | grep -i "^$2:" | sed -n 1p | cut -d' ' -f2-; }
 
 [ "$(c -o /dev/null -w '%{http_version}' "https://$HOST/")" = 2 ] || fail "HTTP/2 is not served"
@@ -50,5 +34,5 @@ upgrade="$(c --http1.1 --max-time 3 -o /dev/null -w '%{http_code}' \
   -H "Sec-WebSocket-Key: $(openssl rand -base64 16)" -H "Origin: https://$HOST" \
   "https://$HOST/socket.io/?EIO=4&transport=websocket" || true)"
 [ "$upgrade" = 101 ] || fail "the WebSocket upgrade did not pass Nginx (got $upgrade)"
-docker rm -f zuvo-host-nginx > /dev/null
+stop_host_nginx
 echo "host Nginx OK: HTTP/2, headers, cache rules, /v1, /socket.io"
