@@ -17,7 +17,13 @@ export function EmojiPicker({ onPick }: { onPick: (emoji: string) => void }) {
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>
       <Popover.Trigger asChild>
-        <Button type="button" variant="ghost" size="icon" aria-label={t('conversation.emoji')}>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="size-11 shrink-0 rounded-full text-text-muted hover:text-text"
+          aria-label={t('conversation.emoji')}
+        >
           <Smile className="size-5" />
         </Button>
       </Popover.Trigger>

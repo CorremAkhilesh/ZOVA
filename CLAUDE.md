@@ -351,6 +351,9 @@ companies' apps: never touch their Nginx sites, containers, databases or ports.
   previous commit if unhealthy; then `https://zuvo.corremadvisory.com/v1/ready`, and `/v1/health` must
   name the merged commit. It skips (green) while the `VPS_*` secrets are missing. A push to `dev`
   never deploys.
+- **Host Nginx site file:** the server's copy is never updated by a deploy. Every deploy checks the
+  live routes with `deploy/ci/live-routes.sh` (no redirects; each route reaches the API), and a
+  change to `deploy/nginx/zuvo.corremadvisory.com.conf` is installed by hand: `docs/runbooks/nginx-site.md`.
 - **Which build is live:** `GET /v1/health` returns `version`, `commit` (short SHA, or `unknown`) and
   `builtAt`; Help → About shows "Version x.y.z (abc1234)". The images read the SHA from the detached
   `.git/HEAD` that `correm-deploy` checks out (`.dockerignore` lets in only HEAD and branch refs; a

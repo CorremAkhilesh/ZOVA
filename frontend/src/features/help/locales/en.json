@@ -178,7 +178,7 @@
     "subject": "Help with {{brand}}"
   },
   "about": {
-    "subtitle": "{{brand}} by {{company}}.",
+    "subtitle": "{{brand}} by {{company}}",
     "versionTitle": "Version",
     "version": "Version {{version}} ({{commit}})",
     "built": "Built on {{date}}",

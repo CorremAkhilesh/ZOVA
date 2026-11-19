@@ -49,7 +49,7 @@ export function MicButton(props: MicButtonProps) {
     <Button
       type="button"
       size="icon"
-      className="touch-none rounded-full"
+      className="size-12 touch-none rounded-full shadow-md"
       disabled={disabled}
       aria-label={t('conversation.voice')}
       onPointerDown={onPointerDown}

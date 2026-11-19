@@ -3,6 +3,7 @@ import { createRootRouteWithContext, Outlet } from '@tanstack/react-router';
 import { OfflineBanner } from '@/components/common/OfflineBanner';
 import { ErrorScreen, NotFound } from '@/components/common/StatusScreens';
 import { useLanguageSync } from '@/features/settings/use-language-sync';
+import { useKeyboardHeight } from '@/lib/use-keyboard-height';
 
 export interface RouterContext {
   queryClient: QueryClient;
@@ -24,9 +25,11 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 
 function RootLayout() {
   useLanguageSync();
+  useKeyboardHeight();
   return (
-    // Safe-area padding: notches, rounded corners and the translucent iOS status bar.
-    <div className="app-backdrop relative flex h-dvh flex-col overflow-hidden pt-[env(safe-area-inset-top)] pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)]">
+    // Safe-area padding: notches, rounded corners and the translucent iOS status bar. The height
+    // shrinks to what an on-screen keyboard leaves visible (lib/use-keyboard-height.ts).
+    <div className="app-backdrop relative flex h-[var(--app-height,100dvh)] flex-col overflow-hidden pt-[env(safe-area-inset-top)] pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)]">
       {/* Installed desktop app with window-controls-overlay: a draggable title-bar strip. */}
       <div aria-hidden className="titlebar-area" />
       <OfflineBanner />

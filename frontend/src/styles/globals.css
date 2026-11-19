@@ -186,6 +186,31 @@
   background-color: color-mix(in srgb, var(--color-text) 30%, transparent);
 }
 
+/*
+ * The composer's text field (features/chats/use-auto-grow.ts): no scrollbar until it is past six
+ * lines, then a thin one with no ▲▼ buttons (Windows draws them on native scrollbars).
+ */
+.composer-field {
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--color-text) 25%, transparent) transparent;
+}
+
+.composer-field::-webkit-scrollbar {
+  width: 6px;
+}
+
+.composer-field::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.composer-field::-webkit-scrollbar-thumb {
+  border-radius: 9999px;
+  background-color: color-mix(in srgb, var(--color-text) 25%, transparent);
+}
+
 /* Window Controls Overlay (installed desktop app): keep content clear of the window buttons. */
 .titlebar-area {
   height: env(titlebar-area-height, 0px);

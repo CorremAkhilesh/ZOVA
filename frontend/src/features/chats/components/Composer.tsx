@@ -4,7 +4,6 @@ import {
   type FormEvent,
   type KeyboardEvent,
   useEffect,
-  useLayoutEffect,
   useRef,
   useState,
 } from 'react';
@@ -14,6 +13,7 @@ import { FormattingHint } from '@/features/formatting/FormattingHint';
 import { ComposerLinkPreview } from '@/features/link-previews/LinkPreviewCard';
 import { useLinkPreviewDraft } from '@/features/link-previews/use-link-preview-draft';
 import { AttachMenu } from '@/features/media/components/AttachMenu';
+import { CameraButton } from '@/features/media/components/CameraButton';
 import { useMentionPicker } from '@/features/mentions/use-mention-picker';
 import { ComposerBanner } from '@/features/messages/components/ComposerBanner';
 import { useComposerActions } from '@/features/messages/use-composer-actions';
@@ -26,13 +26,12 @@ import { MicBlockedDialog, MicExplainDialog } from '@/features/voice/components/
 import { RecordingBar } from '@/features/voice/components/RecordingBar';
 import { useVoiceNote } from '@/features/voice/use-voice-note';
 import { useIsDesktop } from '@/lib/hooks';
-import { cn } from '@/lib/utils';
 import { TypingSender } from '../typing-sender';
+import { useAutoGrow } from '../use-auto-grow';
 import { useDraft } from '../use-draft';
+import { ComposerAction } from './ComposerAction';
+import { ComposerNotices } from './ComposerNotices';
 import { EmojiPicker } from './EmojiPicker';
-
-/** The counter appears this close to the limit. */
-const COUNTER_FROM = 200;
 
 interface ComposerProps {
   chatId: string;
@@ -67,14 +66,8 @@ export function Composer({ chatId, onSent, onFiles }: ComposerProps) {
   const poll = usePollComposer(chatId, onSent);
   const showHint = isDesktop && hasText && !recorder.active;
 
-  // Grows with the text, up to the field's max height.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `text` changes the content being measured
-  useLayoutEffect(() => {
-    const element = field.current;
-    if (!element) return;
-    element.style.height = 'auto';
-    element.style.height = `${element.scrollHeight}px`;
-  }, [text]);
+  // One line to six, then it scrolls inside (see use-auto-grow.ts).
+  useAutoGrow(field, text);
 
   function send() {
     if (!canSend) return;
@@ -114,9 +107,11 @@ export function Composer({ chatId, onSent, onFiles }: ComposerProps) {
     });
   }
 
+  const mode =
+    hasText || actions.editing ? 'send' : recorder.active && recorder.locked ? 'none' : 'mic';
   return (
     // Same horizontal padding and max width as the message column, so they line up.
-    <div className="glass border-t pt-2 pr-[max(0.75rem,env(safe-area-inset-right))] pb-[max(0.75rem,env(safe-area-inset-bottom))] pl-[max(0.75rem,env(safe-area-inset-left))] md:px-8">
+    <div className="glass border-t pt-2 pr-[max(0.75rem,env(safe-area-inset-right))] pb-[max(0.5rem,env(safe-area-inset-bottom))] pl-[max(0.75rem,env(safe-area-inset-left))] md:px-8">
       <div className="mx-auto max-w-3xl">
         <MicExplainDialog
           open={voice.explaining}
@@ -133,25 +128,8 @@ export function Composer({ chatId, onSent, onFiles }: ComposerProps) {
         {poll.dialog}
         <ComposerLinkPreview preview={link.preview} loading={link.loading} onRemove={link.remove} />
         {mention.picker}
-        {recorder.problem && recorder.problem !== 'blocked' ? (
-          <p role="status" className="mb-1 text-xs font-medium text-text-muted">
-            {t(`voice.problems.${recorder.problem}`)}
-          </p>
-        ) : null}
-        {remaining <= COUNTER_FROM ? (
-          <p
-            role="status"
-            className={cn(
-              'mb-1 text-right text-xs tabular-nums',
-              remaining < 0 ? 'font-semibold text-danger' : 'text-text-muted',
-            )}
-          >
-            {remaining < 0
-              ? t('conversation.tooLong', { count: -remaining })
-              : t('conversation.charsLeft', { count: remaining })}
-          </p>
-        ) : null}
-        <form className="flex items-end gap-1.5" onSubmit={onSubmit}>
+        <ComposerNotices textLength={text.length} problem={recorder.problem} />
+        <form className="flex items-end gap-2" onSubmit={onSubmit}>
           {recorder.active ? (
             <RecordingBar
               status={recorder.status}
@@ -166,9 +144,9 @@ export function Composer({ chatId, onSent, onFiles }: ComposerProps) {
               onSchedule={voice.finishForSchedule}
             />
           ) : (
-            <>
+            // One pill: emoji on the left, the text, then attach (and the camera on phones).
+            <div className="flex min-h-12 min-w-0 flex-1 items-end rounded-[1.5rem] border bg-surface px-0.5 shadow-xs transition-[border-color,box-shadow] focus-within:border-brand-text focus-within:ring-3 focus-within:ring-brand/20">
               <EmojiPicker onPick={insertEmoji} />
-              <AttachMenu onFiles={onFiles} onPoll={poll.open} />
               <label className="sr-only" htmlFor="composer-input">
                 {t('conversation.composerPlaceholder')}
               </label>
@@ -194,30 +172,38 @@ export function Composer({ chatId, onSent, onFiles }: ComposerProps) {
                 onKeyDown={onKeyDown}
                 aria-describedby={showHint ? 'composer-hint' : undefined}
                 placeholder={t('conversation.composerPlaceholder')}
-                className="max-h-36 min-h-10 flex-1 resize-none rounded-2xl border bg-surface px-4 py-2.5 text-[15px] text-text outline-none placeholder:text-text-muted focus-visible:border-brand-text focus-visible:ring-3 focus-visible:ring-brand/20"
+                className="composer-field block min-w-0 flex-1 resize-none self-center bg-transparent px-1 py-[11px] text-[15px] leading-[22px] text-text outline-none placeholder:text-text-muted"
               />
-            </>
+              <AttachMenu onFiles={onFiles} onPoll={poll.open} />
+              {/* WhatsApp-like: the camera makes room for the text once there is some. */}
+              {isDesktop || hasText ? null : <CameraButton onFiles={onFiles} />}
+            </div>
           )}
-          {hasText || actions.editing ? (
-            <SendButton
-              chatId={chatId}
-              disabled={!canSend}
-              takeDraft={() => (actions.editing ? null : { text, ...mention.payload(text) })}
-              onScheduled={() => update('')}
-            />
-          ) : recorder.active && recorder.locked ? null : (
-            <MicButton
-              disabled={client === null}
-              onClick={() => void voice.begin(true)}
-              onHoldStart={() => void voice.begin(false)}
-              onHoldEnd={recorder.finish}
-              onSlideCancel={recorder.cancel}
-              onSlideLock={recorder.lock}
-            />
-          )}
+          <ComposerAction
+            mode={mode}
+            holding={recorder.active && !recorder.locked && recorder.status === 'recording'}
+            send={
+              <SendButton
+                chatId={chatId}
+                disabled={!canSend}
+                takeDraft={() => (actions.editing ? null : { text, ...mention.payload(text) })}
+                onScheduled={() => update('')}
+              />
+            }
+            mic={
+              <MicButton
+                disabled={client === null}
+                onClick={() => void voice.begin(true)}
+                onHoldStart={() => void voice.begin(false)}
+                onHoldEnd={recorder.finish}
+                onSlideCancel={recorder.cancel}
+                onSlideLock={recorder.lock}
+              />
+            }
+          />
         </form>
         {/* Desktop only: phones have no keyboard shortcuts, and little room. */}
-        {showHint ? <FormattingHint id="composer-hint" className="mt-1 pl-24" /> : null}
+        {showHint ? <FormattingHint id="composer-hint" className="mt-1 pl-14" /> : null}
       </div>
     </div>
   );
