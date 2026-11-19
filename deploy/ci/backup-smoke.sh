@@ -51,7 +51,7 @@ ZUVO_RESTORE_CONFIRM="RESTORE zuvo_prod" bash deploy/scripts/restore.sh "$day"
   || fail "the real restore did not bring back the backup's data"
 [ -f "$ZUVO_DATA_DIR/uploads/ab/ci-file" ] || fail "the real restore did not bring back the uploads"
 for attempt in $(seq 1 30); do
-  curl -fsS -o /dev/null http://127.0.0.1:7148/v1/ready && break
+  curl -fsS -o /dev/null http://127.0.0.1:7156/v1/ready && break
   [ "$attempt" = 30 ] && fail "the API did not come back after the restore"
   sleep 2
 done

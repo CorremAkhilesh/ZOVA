@@ -14,7 +14,7 @@ deploys by itself (`.github/workflows/deploy.yml`). Design: `docs/adr/0009-produ
 | What              | Value                                                                      |
 | ----------------- | -------------------------------------------------------------------------- |
 | URL               | `https://zuvo.corremadvisory.com` (DNS already points at the server)       |
-| Ports (127.0.0.1) | `7147` web, `7148` API: free in the server's port plan                     |
+| Ports (127.0.0.1) | `7155` web, `7156` API: free in the server's port plan                     |
 | Code              | `/var/www/zuvo` (root-owned git checkout of `CorremAkhilesh/ZOVA`)         |
 | Env file          | `/var/www/zuvo/deploy/.env.prod` (600, from `deploy/scripts/setup-env.sh`) |
 | Data              | `/var/data/zuvo/db` (999), `/redis` (999:1000), `/uploads` (1000)          |
@@ -29,7 +29,7 @@ deploys by itself (`.github/workflows/deploy.yml`). Design: `docs/adr/0009-produ
 
 | Check                 | Command                                                                                 | Expected                        |
 | --------------------- | --------------------------------------------------------------------------------------- | ------------------------------- |
-| Ports free            | `sudo ss -ltnH '( sport = :7147 or sport = :7148 )' \| wc -l`                           | `0`                             |
+| Ports free            | `sudo ss -ltnH '( sport = :7155 or sport = :7156 )' \| wc -l`                           | `0`                             |
 | Disk                  | `df -h /var /var/lib/docker`                                                            | enough free space (media grows) |
 | Docker                | `sudo docker version --format '{{.Server.Version}}'; sudo docker compose version`       | a version each                  |
 | Nginx                 | `nginx -v; sudo nginx -t`                                                               | `nginx/1.24…`, `syntax is ok`   |
@@ -53,13 +53,13 @@ deploys by itself (`.github/workflows/deploy.yml`). Design: `docs/adr/0009-produ
    2 changed lines (the app lists) and 3 new lines before the `*)` case:
 
    ```bash
-     zuvo)        PROJECT=zuvo;            FE_PORT=7147; GW_PORT=7148; GW_HEALTH=/v1/ready   # Zuvo (not part of the suite)
+     zuvo)        PROJECT=zuvo;            FE_PORT=7155; GW_PORT=7156; GW_HEALTH=/v1/ready   # Zuvo (not part of the suite)
                   DIR=/var/www/zuvo
                   REMOTE=git@github-zuvo:CorremAkhilesh/ZOVA.git ;;
    ```
 
    Nothing else changes: the sudoers line, the other apps and the script's checks stay as they are.
-   Its port guard then allows only `127.0.0.1:7147/7148` for Zuvo. Copy the same lines into the
+   Its port guard then allows only `127.0.0.1:7155/7156` for Zuvo. Copy the same lines into the
    company's source copy of the script (`correm-platform`, `deploy/server/correm-deploy`) later.
 
 ## 3. Env file (once)
@@ -81,8 +81,8 @@ sudo /usr/local/bin/correm-deploy zuvo <40-hex sha of dev or main>
 
 The first build takes 5–10 minutes. Last line: `==== OK: zuvo is at <sha> and healthy`. Check
 `sudo docker compose -p zuvo -f /var/www/zuvo/deploy/docker-compose.prod.yml ps` (all `Up`, mongo,
-redis, api and web `healthy`; backup and migrate `Exited (0)`), `curl -s 127.0.0.1:7148/v1/ready`
-(`"status":"ready"`) and `curl -s 127.0.0.1:7147/health` (`ok`). Logs:
+redis, api and web `healthy`; backup and migrate `Exited (0)`), `curl -s 127.0.0.1:7156/v1/ready`
+(`"status":"ready"`) and `curl -s 127.0.0.1:7155/health` (`ok`). Logs:
 `sudo tail -n 80 /var/log/correm-deploy/zuvo.log`.
 
 ## 5. Nginx site + certificate

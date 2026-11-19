@@ -25,18 +25,19 @@ sed -i 's/^SMTP_HOST=.*/SMTP_HOST=smtp.invalid/' deploy/.env.prod
 grep -q '^NODE_ENV=production$' deploy/.env.prod || fail "NODE_ENV must be production"
 bash deploy/scripts/setup-env.sh | grep >/dev/null 'kept unchanged' || fail "a second setup-env run must change nothing"
 
-echo "--- compose config + the correm-deploy port guard (only 127.0.0.1:7147 and :7148)"
+echo "--- compose config + the correm-deploy port guard: exactly web 127.0.0.1:7155, api 127.0.0.1:7156"
 compose config --quiet
 compose config --format json | node -e '
   let s = ""; process.stdin.on("data", (d) => (s += d)).on("end", () => {
-    const bad = [];
+    const published = [];
     for (const [name, svc] of Object.entries(JSON.parse(s).services))
-      for (const p of svc.ports || [])
-        if (p.host_ip !== "127.0.0.1" || !["7147", "7148"].includes(String(p.published)))
-          bad.push(`${name} ${p.host_ip || "0.0.0.0"}:${p.published}`);
-    if (bad.length) { console.log("NOT ALLOWED: " + bad.join(", ")); process.exit(1); }
-    console.log("published ports OK");
-  });'
+      for (const p of svc.ports || []) published.push(`${name}=${p.host_ip || "0.0.0.0"}:${p.published}->${p.target}`);
+    const want = ["api=127.0.0.1:7156->4000", "web=127.0.0.1:7155->8080"];
+    if (JSON.stringify(published.sort()) !== JSON.stringify(want)) {
+      console.log("NOT ALLOWED: " + published.join(", ") + " (only " + want.join(", ") + ")"); process.exit(1);
+    }
+    console.log("published ports OK: " + published.join(", "));
+  });' || fail "published ports must be exactly web 127.0.0.1:7155 and api 127.0.0.1:7156"
 
 echo "--- build + up --wait (same flags as correm-deploy)"
 compose build
@@ -48,13 +49,13 @@ up_wait() {
 up_wait
 
 echo "--- checks"
-ready="$(curl -fsS http://127.0.0.1:7148/v1/ready)" || fail "/v1/ready is not 200"
+ready="$(curl -fsS http://127.0.0.1:7156/v1/ready)" || fail "/v1/ready is not 200"
 echo "$ready"
 node -e 'const r = JSON.parse(process.argv[1]); if (r.status !== "ready") process.exit(1)' "$ready" \
   || fail "/v1/ready did not say ready"
-[ "$(curl -fsS http://127.0.0.1:7147/health)" = ok ] || fail "web /health"
+[ "$(curl -fsS http://127.0.0.1:7155/health)" = ok ] || fail "web /health"
 # The images name the commit they were built from (.git/HEAD through .dockerignore, "meta" stage).
-health="$(curl -fsS http://127.0.0.1:7148/v1/health)" || fail "/v1/health is not 200"
+health="$(curl -fsS http://127.0.0.1:7156/v1/health)" || fail "/v1/health is not 200"
 echo "$health"
 want="${GITHUB_SHA:0:7}"
 node -e 'const h = JSON.parse(process.argv[1]); const w = process.argv[2];
@@ -62,11 +63,11 @@ node -e 'const h = JSON.parse(process.argv[1]); const w = process.argv[2];
 commit="$(node -e 'console.log(JSON.parse(process.argv[1]).commit)' "$health")"
 compose exec -T web grep -rl "$commit" /usr/share/nginx/html/assets > /dev/null   || fail "the web app does not carry commit $commit (Help → About)"
 compose exec -T api sh -c 'ls -A /app | grep -x .git' > /dev/null && fail "the API image must not contain .git"
-curl -fsS http://127.0.0.1:7147/ | grep >/dev/null '<div id="root">' || fail "the app shell did not load"
-curl -fsS http://127.0.0.1:7147/chats | grep >/dev/null '<div id="root">' || fail "SPA routes must get the shell"
-code="$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:7147/assets/missing-abc123.js)"
+curl -fsS http://127.0.0.1:7155/ | grep >/dev/null '<div id="root">' || fail "the app shell did not load"
+curl -fsS http://127.0.0.1:7155/chats | grep >/dev/null '<div id="root">' || fail "SPA routes must get the shell"
+code="$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:7155/assets/missing-abc123.js)"
 [ "$code" = 404 ] || fail "a missing asset must be 404 (got $code)"
-code="$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:7148/v1/test/outbox/latest)"
+code="$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:7156/v1/test/outbox/latest)"
 [ "$code" = 404 ] || fail "test-only routes must not exist in production (got $code)"
 compose logs migrate | grep -E >/dev/null 'Index changes applied|All indexes are in sync' || fail "migrate did not sync indexes"
 compose logs migrate | grep >/dev/null 'Database: zuvo_prod' || fail "migrate must use zuvo_prod"
@@ -75,9 +76,17 @@ for svc in api worker web redis; do
   [ "$(docker inspect -f '{{.Config.User}}' "zuvo-$svc-1")" != "" ] || fail "$svc runs as root"
 done
 compose logs api | grep >/dev/null 'Using MONGODB_DB=zuvo_prod' || fail "the API must log its database"
+# What is really published once running: mongo, redis, worker, backup and migrate publish nothing.
+ports="$(docker ps -a --filter label=com.docker.compose.project=zuvo --format '{{.Label "com.docker.compose.service"}} {{.Ports}}' | sort)"
+echo "$ports"
+[ "$(grep -oE '[0-9.]+:[0-9]+->[0-9]+/tcp' <<< "$ports" | sort -u | tr '
+' ' ')" = "127.0.0.1:7155->8080/tcp 127.0.0.1:7156->4000/tcp " ]   || fail "running containers must publish only 127.0.0.1:7155 (web) and 127.0.0.1:7156 (api)"
+for svc in mongo redis worker; do
+  if grep -E "^$svc .*->" <<< "$ports" > /dev/null; then fail "$svc must not publish a port"; fi
+done
 
 echo "--- a second deploy (correm-deploy runs up again): backup and migrate run again, API stays up"
 up_wait
 [ "$(ls "$ZUVO_BACKUP_DIR"/predeploy/zuvo-*.archive.gz | wc -l)" -ge 2 ] || fail "the second deploy made no backup"
-curl -fsS -o /dev/null http://127.0.0.1:7148/v1/ready || fail "/v1/ready after the second deploy"
+curl -fsS -o /dev/null http://127.0.0.1:7156/v1/ready || fail "/v1/ready after the second deploy"
 echo "production stack OK"
