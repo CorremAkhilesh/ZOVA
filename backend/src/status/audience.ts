@@ -4,7 +4,8 @@ import { Types } from 'mongoose';
 import { oid } from '../chats/chats.service.ts';
 import { registerStatusModels, type StatusDoc } from '../db/status-models.ts';
 import { blockedEitherWay } from '../moderation/blocks.service.ts';
-import { usersModel } from '../users/user-record.ts';
+import { isHiddenAdmin, seesAdmins } from '../users/hidden-admins.ts';
+import { type UserDoc, usersModel } from '../users/user-record.ts';
 
 export const statusModels = (app: FastifyInstance) => registerStatusModels(app.mongo);
 
@@ -57,15 +58,22 @@ export async function recipientsOf(
   ownerId: string,
   audience: StatusDoc['audience'],
 ): Promise<Types.ObjectId[]> {
-  const users = await usersModel(app)
+  const users = (await usersModel(app)
     .find(
       audience.mode === 'only'
         ? { _id: { $in: audience.userIds }, status: { $ne: 'deactivated' } }
         : { status: { $ne: 'deactivated' } },
     )
-    .select({ _id: 1 })
-    .lean();
+    .select({ _id: 1, email: 1, role: 1 })
+    .lean()) as Pick<UserDoc, '_id' | 'email' | 'role'>[];
+  // A hidden admin's status reaches admins only.
+  const owner = (await usersModel(app).findById(ownerId).select({ email: 1 }).lean()) as Pick<
+    UserDoc,
+    'email'
+  > | null;
+  const ownerHidden = owner !== null && isHiddenAdmin(app, owner);
   const candidates = users
+    .filter((user) => !ownerHidden || seesAdmins(user))
     .map((user) => user._id.toString())
     .filter((id) => id !== ownerId && audienceAllows(audience, id));
   const blocked = await blockedEitherWay(app, ownerId, candidates);

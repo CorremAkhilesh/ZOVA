@@ -9,6 +9,7 @@ import type { FastifyInstance } from 'fastify';
 import { Types } from 'mongoose';
 import { AppError } from '../lib/errors.ts';
 import { processAvatar } from '../users/avatar.ts';
+import { hiddenAmong } from '../users/hidden-admins.ts';
 import { type UserDoc, usersModel } from '../users/user-record.ts';
 import { chatModels, getChat, oid } from './chats.service.ts';
 import { defaultTimerOf } from './default-timer.ts';
@@ -23,12 +24,15 @@ import { assertAllowed, groupRules } from './group-permissions.ts';
 
 const GROUPS_PER_HOUR = 10;
 
-/** Only people who could sign in right now can be put in a group. */
-export async function requireActiveUsers(app: FastifyInstance, userIds: string[]) {
+/** Only people who could sign in right now, and whom `actorId` may see, can be put in a group. */
+export async function requireActiveUsers(app: FastifyInstance, actorId: string, userIds: string[]) {
   const users = (await usersModel(app)
     .find({ _id: { $in: userIds.map(oid) } })
-    .select({ status: 1 })
+    .select({ status: 1, email: 1 })
     .lean()) as UserDoc[];
+  if ((await hiddenAmong(app, actorId, users)).size > 0) {
+    throw new AppError('NOT_FOUND', 'User not found.');
+  }
   const active = users.filter((user) => user.status !== 'deactivated');
   if (active.length !== userIds.length) {
     throw new AppError('BAD_REQUEST', 'Someone in this list cannot be added.');
@@ -48,7 +52,7 @@ export async function createGroup(
   if (others.length + 1 > GROUP_MEMBERS_MAX) {
     throw new AppError('GROUP_FULL', `A group can have at most ${GROUP_MEMBERS_MAX} members.`);
   }
-  await requireActiveUsers(app, others);
+  await requireActiveUsers(app, userId, others);
   const name = await namesOf(app, [userId, ...others]);
   const timer = await defaultTimerOf(app, userId);
   const models = chatModels(app);

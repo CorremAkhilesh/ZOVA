@@ -3,6 +3,8 @@ import type { FastifyInstance } from 'fastify';
 import { type ClientSession, Types } from 'mongoose';
 import type { ChatMemberDoc, MessageDoc } from '../db/chat-models.ts';
 import { AppError } from '../lib/errors.ts';
+import { hiddenAmong } from '../users/hidden-admins.ts';
+import { type UserDoc, usersModel } from '../users/user-record.ts';
 import { chatModels } from './chats.service.ts';
 import { assertAllowed, groupRules } from './group-permissions.ts';
 
@@ -56,6 +58,14 @@ export async function checkMentions(
   const members = await ChatMember.find({ chatId, leftAt: null }).select({ userId: 1 }).lean();
   const others = members.map((member) => member.userId).filter((id) => !id.equals(sender.userId));
   const allowed = new Set(others.map(String));
+  if (sorted.length > 0) {
+    // A hidden admin cannot be mentioned by a normal member (they are not in the "@" list either).
+    const named = (await usersModel(app)
+      .find({ _id: { $in: sorted.map((mention) => new Types.ObjectId(mention.userId)) } })
+      .select({ email: 1 })
+      .lean()) as Pick<UserDoc, '_id' | 'email'>[];
+    for (const id of await hiddenAmong(app, sender.userId.toString(), named)) allowed.delete(id);
+  }
   if (sorted.some((mention) => !allowed.has(mention.userId))) {
     throw bad('You can only mention members of this group.');
   }

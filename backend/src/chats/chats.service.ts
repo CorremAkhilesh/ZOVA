@@ -4,6 +4,7 @@ import { Types } from 'mongoose';
 import { type ChatDoc, type ChatMemberDoc, registerChatModels } from '../db/chat-models.ts';
 import { AppError } from '../lib/errors.ts';
 import { blockersAmong } from '../moderation/blocks.service.ts';
+import { hiddenAmong } from '../users/hidden-admins.ts';
 import { privacyOf, toPublicProfile, type UserDoc, usersModel } from '../users/user-record.ts';
 import { NO_PEER, peerProgress, toSummary } from './chat-summary.ts';
 import { defaultTimerOf, timerFields } from './default-timer.ts';
@@ -176,6 +177,10 @@ export async function getOrCreateDirectChat(
   const find = () => Chat.findOne({ type: 'direct', pairKey }).lean();
 
   let chat = await find();
+  // Only an admin starts a chat with a hidden admin; a chat the admin started stays open to both.
+  if (!chat && (await hiddenAmong(app, userId, [other])).size > 0) {
+    throw new AppError('NOT_FOUND', 'User not found.');
+  }
   if (!chat) {
     // Starts with the creator's default timer, quietly: the header and each message show it.
     const timer = timerFields(await defaultTimerOf(app, userId));
