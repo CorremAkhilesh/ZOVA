@@ -45,7 +45,7 @@ test('the step after sign-in, "Later", then a banner that stays until notificati
   await expect(step).toBeVisible(SLOW);
   await shot(page, 'step-desktop');
   await step.getByRole('button', { name: 'Later' }).click();
-  const banner = page.getByRole('region', { name: 'Notifications' });
+  const banner = page.getByRole('region', { name: 'Notification reminder' });
   await expect(banner).toBeVisible(SLOW);
   await expect(banner.getByRole('button', { name: /^(Turn on|How to)$/ })).toBeVisible();
   await shot(page, 'banner-desktop');
@@ -62,7 +62,7 @@ test('on a phone: the same step, full screen', async ({ browser }) => {
   await expect(page.getByRole('dialog', { name: STEP })).toBeVisible(SLOW);
   await shot(page, 'step-phone');
   await page.getByRole('button', { name: 'Later' }).click();
-  await expect(page.getByRole('region', { name: 'Notifications' })).toBeVisible(SLOW);
+  await expect(page.getByRole('region', { name: 'Notification reminder' })).toBeVisible(SLOW);
   await shot(page, 'banner-phone');
   await page.goto('/settings/notifications');
   await expect(page.getByRole('heading', { name: 'Sounds' })).toBeVisible(SLOW);
@@ -98,7 +98,8 @@ test('admin: who has notifications off, and a reminder they receive', async ({ b
   await expect(list.getByText(asha.email)).toBeVisible();
   await shot(admin, 'admin-desktop');
 
-  await admin.getByRole('switch', { name: /Notifications OFF only/ }).check();
+  await admin.getByText('Notifications OFF only', { exact: true }).click();
+  await expect(admin.getByRole('switch', { name: /Notifications OFF only/ })).toBeChecked();
   await expect(list.getByText(asha.email)).toHaveCount(0);
   await expect(list.getByText(ravi.email)).toBeVisible();
   await admin.getByRole('checkbox', { name: `Select ${ravi.name}` }).check();

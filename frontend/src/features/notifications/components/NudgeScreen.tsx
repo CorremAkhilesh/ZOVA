@@ -105,7 +105,7 @@ export function NudgeScreen({ status, publicKey }: { status: PushStatus; publicK
         text={t('notifications.gate.deniedText', vars)}
       >
         <div className="rounded-2xl border bg-surface p-4 text-left">
-          <PermissionHelp problem="denied" />
+          <PermissionHelp problem="denied" stepsOnly />
         </div>
         <Button ref={primary} size="lg" className="w-full" onClick={() => permissionChanged()}>
           {t('notifications.gate.checkAgain')}

@@ -19,7 +19,7 @@ afterEach(() => {
 });
 
 const screenStep = (name: string | RegExp) => screen.findByRole('dialog', { name }, SLOW);
-const banner = () => screen.findByRole('region', { name: 'Notifications' }, SLOW);
+const banner = () => screen.findByRole('region', { name: 'Notification reminder' }, SLOW);
 
 describe('who gets nudged', () => {
   const device = { later: false, off: false, screenOpen: false };
@@ -54,7 +54,7 @@ describe('"Turn on notifications" after sign-in', () => {
       expect(api.calls.some((c) => c.path === '/v1/me/push/subscription')).toBe(true),
     );
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-    expect(screen.queryByRole('region', { name: 'Notifications' })).toBeNull();
+    expect(screen.queryByRole('region', { name: 'Notification reminder' })).toBeNull();
   });
 
   it('"Later" leaves a banner that cannot be closed, and its button turns them on', async () => {
@@ -69,7 +69,9 @@ describe('"Turn on notifications" after sign-in', () => {
     expect(localStorage.getItem(NUDGE_LATER_KEY)).not.toBeNull();
     expect(await axe(container)).toHaveNoViolations();
     await userEvent.setup().click(within(bar).getByRole('button', { name: 'Turn on' }));
-    await waitFor(() => expect(screen.queryByRole('region', { name: 'Notifications' })).toBeNull());
+    await waitFor(() =>
+      expect(screen.queryByRole('region', { name: 'Notification reminder' })).toBeNull(),
+    );
   });
 
   it('blocked: the steps for this browser, and the banner reopens them', async () => {
@@ -101,7 +103,7 @@ describe('"Turn on notifications" after sign-in', () => {
     await screen.findByRole('heading', { name: 'Chats' }, SLOW);
     await act(() => new Promise((resolve) => setTimeout(resolve, 300)));
     expect(screen.queryByRole('dialog')).toBeNull();
-    expect(screen.queryByRole('region', { name: 'Notifications' })).toBeNull();
+    expect(screen.queryByRole('region', { name: 'Notification reminder' })).toBeNull();
   });
 
   it('tells the server what this device can do (for Admin → Notifications)', async () => {

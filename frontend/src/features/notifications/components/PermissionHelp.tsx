@@ -4,9 +4,21 @@ import type { PushProblem } from '../status';
 import { browserFamily } from '../support';
 
 /** Why push cannot work here, and what to do about it. */
-export function PermissionHelp({ problem, titleId }: { problem: PushProblem; titleId?: string }) {
+export function PermissionHelp({
+  problem,
+  titleId,
+  stepsOnly = false,
+}: {
+  problem: PushProblem;
+  titleId?: string;
+  /** Only how to unblock (the screen around it already says what is wrong). */
+  stepsOnly?: boolean;
+}) {
   const { t } = useTranslation();
   const vars = { brand: brand.name };
+  if (problem === 'denied' && stepsOnly) {
+    return <p className="text-sm">{t(`notifications.help.${browserFamily()}`, vars)}</p>;
+  }
   if (problem === 'denied') {
     return (
       <div className="space-y-1 text-sm">

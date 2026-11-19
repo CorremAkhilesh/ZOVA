@@ -1155,7 +1155,7 @@
       "checkAgain": "I’ve allowed them"
     },
     "banner": {
-      "label": "Notifications",
+      "label": "Notification reminder",
       "ask": "Notifications are off. Turn them on so you don’t miss messages.",
       "off": "Notifications are off on this device.",
       "denied": "Your browser blocks notifications from {{brand}}.",
