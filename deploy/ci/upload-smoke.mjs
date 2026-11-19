@@ -6,14 +6,47 @@
 import { randomBytes } from 'node:crypto';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { deflateSync } from 'node:zlib';
 
 const ORIGIN = 'https://zuvo.corremadvisory.com';
 const EMAIL = `ci-upload-${Date.now()}@corremadvisory.com`;
-/** A valid 10×10 PNG: the server checks magic bytes and decodes pictures. */
-const PNG = Buffer.from(
-  'iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAIAAAACUFjqAAAAEklEQVR4nGNk+M+ABIwMDAwAFAoBAX1Nz8QAAAAASUVORK5CYII=',
-  'base64',
-);
+/** CRC-32 as PNG chunks use it. */
+function crc32(bytes) {
+  let crc = 0xffffffff;
+  for (const byte of bytes) {
+    crc ^= byte;
+    for (let bit = 0; bit < 8; bit += 1) crc = (crc >>> 1) ^ (0xedb88320 & -(crc & 1));
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+/** A real 32×32 RGB PNG (the server checks magic bytes and decodes pictures with sharp). */
+function makePng(size = 32) {
+  const chunk = (type, data) => {
+    const head = Buffer.alloc(4);
+    head.writeUInt32BE(data.length);
+    const body = Buffer.concat([Buffer.from(type, 'ascii'), data]);
+    const crc = Buffer.alloc(4);
+    crc.writeUInt32BE(crc32(body));
+    return Buffer.concat([head, body, crc]);
+  };
+  const header = Buffer.alloc(13);
+  header.writeUInt32BE(size, 0);
+  header.writeUInt32BE(size, 4);
+  header.set([8, 2, 0, 0, 0], 8);
+  const rows = [];
+  for (let y = 0; y < size; y += 1) {
+    rows.push(Buffer.from([0]));
+    for (let x = 0; x < size; x += 1) rows.push(Buffer.from([79, 70 + x * 4, 229 - y * 4]));
+  }
+  return Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    chunk('IHDR', header),
+    chunk('IDAT', deflateSync(Buffer.concat(rows))),
+    chunk('IEND', Buffer.alloc(0)),
+  ]);
+}
+const PNG = makePng();
 const cookies = new Map();
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -125,7 +158,7 @@ if (init.status !== 200) fail('POST /v1/uploads', `${init.status} ${init.text.sl
 const { uploadId } = init.data;
 if (!/^[0-9a-f]{24}$/.test(uploadId ?? '')) fail('POST /v1/uploads', `no upload id: ${init.text}`);
 let offset = (await expectOk('GET', `/v1/uploads/${uploadId}`)).offset;
-for (const chunk of [PNG.subarray(0, 40), PNG.subarray(40)]) {
+for (const chunk of [PNG.subarray(0, 100), PNG.subarray(100)]) {
   const state = await expectOk('PATCH', `/v1/uploads/${uploadId}`, {
     body: chunk,
     headers: { 'content-type': 'application/offset+octet-stream', 'upload-offset': String(offset) },
