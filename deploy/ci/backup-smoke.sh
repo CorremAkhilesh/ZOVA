@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # CI only: the daily backup, the restore TEST and a REAL restore against the running stack
-# (prod-smoke.sh). Proves the scripts in docs/runbooks/first-deploy.md work. sudo -E bash deploy/ci/backup-smoke.sh
+# (prod-smoke.sh). Proves the scripts in docs/runbooks/first-deploy.md work. Run as root by the job ($AS_ROOT).
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 : "${ZUVO_DATA_DIR:?}" "${ZUVO_BACKUP_DIR:?}"

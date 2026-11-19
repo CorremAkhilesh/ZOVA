@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # CI only (job "Production stack" in .github/workflows/ci.yml): deploys the production stack on the
 # runner exactly like correm-deploy does on the server, then checks it. Fake secrets, no real SMTP.
-#   sudo -E bash deploy/ci/prod-smoke.sh   (ZUVO_DATA_DIR and ZUVO_BACKUP_DIR set by the job)
+#   run as root by the job ($AS_ROOT passes ZUVO_DATA_DIR, ZUVO_BACKUP_DIR and GITHUB_SHA by name)
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 : "${ZUVO_DATA_DIR:?}" "${ZUVO_BACKUP_DIR:?}"
