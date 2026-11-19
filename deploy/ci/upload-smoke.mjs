@@ -184,8 +184,19 @@ const file = await fetch(new URL(url, ORIGIN), {
   headers: { cookie: [...cookies].map(([n, v]) => `${n}=${v}`).join('; ') },
 });
 const bytes = Buffer.from(await file.arrayBuffer());
-if (file.status !== 200 || !bytes.equals(PNG))
-  fail('download', `${file.status}, ${bytes.length} bytes`);
+// The server re-encodes pictures (metadata stripped), so the bytes differ: it must be a picture.
+const type = file.headers.get('content-type') ?? '';
+const picture = [
+  Buffer.from([0x89, 0x50, 0x4e, 0x47]),
+  Buffer.from([0xff, 0xd8, 0xff]),
+  Buffer.from('RIFF'),
+].some((magic) => bytes.subarray(0, magic.length).equals(magic));
+if (file.status !== 200 || !type.startsWith('image/') || !picture) {
+  fail(
+    'download',
+    `${file.status} ${type}, ${bytes.length} bytes, starts ${bytes.subarray(0, 4).toString('hex')}`,
+  );
+}
 console.log(
   `real upload OK: upload ${uploadId} -> media ${media.id} -> message ${ack.data.messageId}`,
 );
