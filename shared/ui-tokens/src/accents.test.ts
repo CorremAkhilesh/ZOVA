@@ -20,6 +20,11 @@ const PAIRS: Array<[text: AccentKey | ColorName, background: AccentKey | ColorNa
   ['bubbleOutgoingText', 'bubbleOutgoing'],
   ['bubbleOutgoingMeta', 'bubbleOutgoing'],
   ['bubbleOutgoingRead', 'bubbleOutgoing'],
+  // Inside an incoming bubble: its text, its time, and an @mention (accentText). In my own bubble a
+  // mention takes bubbleOutgoingText (globals.css, [data-bubble]), checked above.
+  ['bubbleIncomingText', 'bubbleIncoming'],
+  ['bubbleIncomingMeta', 'bubbleIncoming'],
+  ['accentText', 'bubbleIncoming'],
 ];
 
 const cases = ACCENT_NAMES.flatMap((accent) =>

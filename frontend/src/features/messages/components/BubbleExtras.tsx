@@ -6,8 +6,9 @@ import { useMyId } from '@/features/chats/use-my-id';
 import { useThumbnail } from '@/features/media/use-thumbnail';
 import { quoteText } from '@/features/polls/preview';
 import { cn } from '@/lib/utils';
-import { groupReactions } from '../rules';
+import { canAct, groupReactions } from '../rules';
 import { useMessageUi } from '../store';
+import type { useBubbleGestures } from '../use-bubble-gestures';
 
 export function ForwardedLabel({ message }: { message: ChatMessage }) {
   const { t } = useTranslation();
@@ -131,8 +132,9 @@ export function StarMark({ message }: { message: ChatMessage }) {
 }
 
 /** On a device with a mouse: reply, react, and everything else, next to the bubble. */
+/** Without `onReply` (a message not sent yet) only the ⋯ menu is offered. */
 export function HoverActions(props: {
-  onReply: () => void;
+  onReply?: (() => void) | undefined;
   onMenu: (x: number, y: number) => void;
 }) {
   const { t } = useTranslation();
@@ -144,20 +146,43 @@ export function HoverActions(props: {
   };
   return (
     <div className="flex items-center self-center opacity-0 transition-opacity group-hover/message:opacity-100 group-focus-within/message:opacity-100 pointer-coarse:hidden">
-      <button
-        type="button"
-        className={style}
-        aria-label={t('messages.reply')}
-        onClick={props.onReply}
-      >
-        <CornerUpLeft className="size-4" aria-hidden />
-      </button>
-      <button type="button" className={style} aria-label={t('messages.react')} onClick={atButton}>
-        <Smile className="size-4" aria-hidden />
-      </button>
+      {props.onReply ? (
+        <>
+          <button
+            type="button"
+            className={style}
+            aria-label={t('messages.reply')}
+            onClick={props.onReply}
+          >
+            <CornerUpLeft className="size-4" aria-hidden />
+          </button>
+          <button
+            type="button"
+            className={style}
+            aria-label={t('messages.react')}
+            onClick={atButton}
+          >
+            <Smile className="size-4" aria-hidden />
+          </button>
+        </>
+      ) : null}
       <button type="button" className={style} aria-label={t('messages.more')} onClick={atButton}>
         <MoreHorizontal className="size-4" aria-hidden />
       </button>
     </div>
+  );
+}
+
+/** Reply, react and ⋯ next to a bubble; a message not sent yet only has ⋯ (Retry, Delete). */
+export function BubbleHoverActions(props: {
+  message: ChatMessage;
+  gestures: Pick<ReturnType<typeof useBubbleGestures>, 'reply' | 'openMenu'>;
+}) {
+  const { message, gestures } = props;
+  return (
+    <HoverActions
+      onReply={canAct(message) ? gestures.reply : undefined}
+      onMenu={gestures.openMenu}
+    />
   );
 }

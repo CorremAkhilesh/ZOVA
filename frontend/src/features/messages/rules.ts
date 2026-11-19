@@ -31,6 +31,19 @@ export const deletesAsAdmin = (message: ChatMessage, chat: Pick<ChatSummary, 'gr
 export const canAct = (message: ChatMessage) =>
   Boolean(message.serverId && typeof message.seq === 'number') && !message.system;
 
+/**
+ * Mine and not on the server: still waiting (the clock) or "Not sent". Only this device has it, so
+ * its menu offers Retry and Delete (from this device) and nothing that needs the server.
+ */
+export const isUnsent = (message: ChatMessage) =>
+  message.authorId === ME &&
+  !message.serverId &&
+  Boolean(message.clientMsgId) &&
+  (message.status === 'failed' || message.status === 'pending');
+
+/** Whether right click, long press and the ⋯ button open the message menu. */
+export const canOpenMenu = (message: ChatMessage) => canAct(message) || isUnsent(message);
+
 export function toQuote(message: ChatMessage, me: string, myName: string): ReplyQuote | undefined {
   if (!message.serverId || typeof message.seq !== 'number') return undefined;
   const mine = message.authorId === ME;

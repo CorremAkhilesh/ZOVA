@@ -68,7 +68,9 @@ function withMentions(
             event.stopPropagation();
             onMention?.(userId);
           }}
-          className="rounded px-0.5 font-semibold text-accent-text hover:underline"
+          // The colour comes from the bubble it is in (globals.css, [data-bubble]): on my own,
+          // accent-coloured bubble an accent-coloured name could not be read (1.1:1, Nov 2026).
+          className="mention rounded px-0.5 font-semibold hover:underline"
         >
           {inner(part, partKey)}
         </button>

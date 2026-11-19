@@ -32,6 +32,8 @@ interface MessageUi {
   chatMenu: ChatMenuRequest | null;
   forwarding: ChatMessage[] | null;
   deleting: ChatMessage[] | null;
+  /** Deleted for me a moment ago: hidden while "Undo" is offered (see delete-actions.ts). */
+  hidden: string[];
   whoReacted: ChatMessage | null;
   /** Scroll to this position once the chat shows it. */
   jump: { chatId: string; seq: number } | null;
@@ -55,6 +57,7 @@ export const useMessageUi = create<MessageUi>((set, get) => ({
   chatMenu: null,
   forwarding: null,
   deleting: null,
+  hidden: [],
   whoReacted: null,
   jump: null,
 

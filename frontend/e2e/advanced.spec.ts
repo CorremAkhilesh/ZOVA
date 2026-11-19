@@ -16,9 +16,23 @@ test.use({ actionTimeout: 30_000 });
 
 const composer = (page: Page) => page.getByRole('textbox', { name: 'Write a message' });
 
-/** The chat list, wherever the person is: on a phone it is a screen of its own. */
+/**
+ * The chat list, wherever the person is: on a phone it is a screen of its own. Firefox aborts a
+ * page.goto that meets the app's own navigation (a chat still opening: NS_BINDING_ABORTED), which
+ * made this test flaky there; it waits for the chat to settle and tries once more if so.
+ */
 async function toList(page: Page) {
-  await page.goto('/chats');
+  if (/\/chats\/./.test(page.url())) {
+    await expect(composer(page).or(page.getByRole('heading', { name: 'Chats', exact: true })))
+      .toBeVisible(SLOW)
+      .catch(() => undefined);
+  }
+  try {
+    await page.goto('/chats');
+  } catch (error) {
+    if (!/NS_BINDING_ABORTED|frame was detached/.test(String(error))) throw error;
+    await page.goto('/chats');
+  }
   await expect(page.getByRole('heading', { name: 'Chats', exact: true })).toBeVisible(SLOW);
 }
 

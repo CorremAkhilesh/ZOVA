@@ -125,7 +125,12 @@ export function MessageList({
   const content = useRef<HTMLOListElement>(null);
   const stick = useRef(true);
   const bottom = useBottomPin(viewport, content, stick);
-  const rows = useMemo(() => toRows(buildTimeline(messages)), [messages]);
+  // Deleted for me a moment ago: hidden while "Undo" is offered (messages/delete-actions.ts).
+  const hidden = useMessageUi((state) => state.hidden);
+  const rows = useMemo(() => {
+    const shown = hidden.length ? messages.filter((m) => !hidden.includes(m.id)) : messages;
+    return toRows(buildTimeline(shown));
+  }, [messages, hidden]);
 
   const virtualizer = useVirtualizer({
     count: rows.length,

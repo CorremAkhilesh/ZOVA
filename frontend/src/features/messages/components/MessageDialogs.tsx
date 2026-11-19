@@ -17,7 +17,8 @@ import { LockedHiddenNotice } from '@/features/lock/components/LockedHiddenNotic
 import { useSyncStore } from '@/features/sync/store';
 import { cn } from '@/lib/utils';
 import { uuidv7 } from '@/lib/uuid';
-import { canDeleteForEveryone, deletesAsAdmin, forwardAction, targetOf } from '../rules';
+import { deleteForEveryone, deleteForMeWithUndo, discardUnsent } from '../delete-actions';
+import { canDeleteForEveryone, forwardAction, isUnsent, targetOf } from '../rules';
 import { useMessageUi } from '../store';
 
 const mayWrite = (chat: ChatSummary) =>
@@ -125,17 +126,11 @@ function DeleteDialog({ messages, chat }: { messages: ChatMessage[]; chat: ChatS
   const { t } = useTranslation();
   const set = useMessageUi((state) => state.set);
   const close = () => set({ deleting: null });
-  const forEveryone = messages.every((message) => canDeleteForEveryone(message, chat));
-  const remove = (scope: 'me' | 'everyone') => {
-    const { client } = useSyncStore.getState();
-    for (const message of messages) {
-      void client?.act({
-        type: 'delete',
-        ...targetOf(message),
-        scope,
-        ...(scope === 'everyone' && deletesAsAdmin(message, chat) ? { asAdmin: true } : {}),
-      });
-    }
+  // Never sent: there is no one else to delete it for, only this device.
+  const unsent = messages.every(isUnsent);
+  const forEveryone = !unsent && messages.every((message) => canDeleteForEveryone(message, chat));
+  const done = (act: (items: ChatMessage[]) => void) => {
+    act(messages);
     useMessageUi.getState().stopSelecting();
     close();
   };
@@ -143,17 +138,30 @@ function DeleteDialog({ messages, chat }: { messages: ChatMessage[]; chat: ChatS
     <Dialog open onOpenChange={(open) => (open ? undefined : close())}>
       <DialogContent
         title={t('messages.deleteTitle', { count: messages.length })}
+        description={
+          unsent ? t('messages.deleteUnsentHint', { count: messages.length }) : undefined
+        }
         className="max-w-sm"
       >
         <div className="flex flex-col gap-2">
+          {unsent ? (
+            <Button variant="danger" onClick={() => done(discardUnsent)}>
+              {t('messages.delete')}
+            </Button>
+          ) : null}
           {forEveryone ? (
-            <Button variant="danger" onClick={() => remove('everyone')}>
+            <Button
+              variant="danger"
+              onClick={() => done((items) => deleteForEveryone(items, chat))}
+            >
               {t('messages.deleteEveryone')}
             </Button>
           ) : null}
-          <Button variant="outline" onClick={() => remove('me')}>
-            {t('messages.deleteMe')}
-          </Button>
+          {unsent ? null : (
+            <Button variant="outline" onClick={() => done(deleteForMeWithUndo)}>
+              {t('messages.deleteMe')}
+            </Button>
+          )}
           <Button variant="ghost" onClick={close}>
             {t('common.cancel')}
           </Button>

@@ -211,6 +211,22 @@
   background-color: color-mix(in srgb, var(--color-text) 25%, transparent);
 }
 
+/*
+ * @mentions in message text. Their colour depends on the bubble: the accent on an incoming bubble,
+ * and the bubble's own text colour (underlined, so it still stands out) on my outgoing bubble, which
+ * is itself the accent colour. Every pair is AA: shared/ui-tokens/src/accents.test.ts.
+ */
+.mention {
+  color: var(--color-accent-text);
+}
+
+[data-bubble="out"] .mention {
+  color: var(--color-bubble-outgoing-text);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
 /* Window Controls Overlay (installed desktop app): keep content clear of the window buttons. */
 .titlebar-area {
   height: env(titlebar-area-height, 0px);

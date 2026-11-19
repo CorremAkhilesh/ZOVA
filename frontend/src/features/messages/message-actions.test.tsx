@@ -1,6 +1,6 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { axe } from '@/test/axe';
 import { chatFixture, ME_ID, messageFixture } from '@/test/chat-fixtures';
 import { HttpResponse, http, server } from '@/test/msw';
@@ -9,6 +9,8 @@ import { seedLocal } from '@/test/seed';
 import { useMessageUi } from './store';
 
 const SLOW = { timeout: 15_000 };
+// Steps wait up to SLOW, so a test needs more than the default 5 s when the whole suite runs at once.
+vi.setConfig({ testTimeout: 30_000 });
 const OTHER = 'u-riya';
 let requests: Array<{ method: string; path: string; body: unknown }>;
 
