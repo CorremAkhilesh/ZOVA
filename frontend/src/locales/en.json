@@ -1189,7 +1189,8 @@
       "ios": "Add {{brand}} to your Home Screen to get notifications.",
       "turnOn": "Turn on",
       "howTo": "How to"
-    }
+    },
+    "dismiss": "Dismiss"
   },
   "lock": {
     "settingsTitle": "Chat lock",

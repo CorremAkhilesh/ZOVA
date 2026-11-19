@@ -1,7 +1,8 @@
 import { useNavigate, useRouterState } from '@tanstack/react-router';
 import type { Message, PushSettings } from '@zuvo/protocol';
-import { MessageCircle } from 'lucide-react';
+import { MessageCircle, X } from 'lucide-react';
 import { useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { previewText } from '@/features/chats/view';
 import { toPlainText } from '@/features/formatting/parse';
@@ -16,7 +17,7 @@ import { chosenSounds, setSoundSettings, soundForIncoming } from './app-sounds';
 import { installAudioUnlock } from './sound';
 import { currentWindowState, onIncomingMessage } from './window-state';
 
-const TOAST_MS = 5000;
+const TOAST_MS = 4000;
 /** A brand-new chat arrives with its first message: give the sync a moment to store it. */
 const CHAT_WAIT_MS = 500;
 
@@ -42,23 +43,36 @@ export function messagePreview(message: Message): string {
   return previewText({ type: message.type, preview }, labels);
 }
 
-function AlertToast({ alert, onOpen }: { alert: InAppAlert; onOpen: () => void }) {
+/** A tap opens the chat; × (or a swipe) sends it away. */
+function AlertToast(props: { alert: InAppAlert; onOpen: () => void; onClose: () => void }) {
+  const { alert, onOpen, onClose } = props;
+  const { t } = useTranslation();
   return (
-    <button
-      type="button"
-      onClick={onOpen}
-      className="flex w-full items-start gap-3 rounded-2xl border bg-surface p-3 text-left shadow-lg hover:bg-background"
-    >
-      <span className="rounded-full bg-brand-subtle p-2 text-brand-text">
-        <MessageCircle className="size-4" aria-hidden />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block truncate font-semibold">{alert.title}</span>
-        {alert.body ? (
-          <span className="block truncate text-sm text-text-muted">{alert.body}</span>
-        ) : null}
-      </span>
-    </button>
+    <div className="relative w-full">
+      <button
+        type="button"
+        onClick={onOpen}
+        className="flex w-full items-start gap-3 rounded-2xl border bg-surface p-3 pr-11 text-left shadow-lg hover:bg-background"
+      >
+        <span className="rounded-full bg-brand-subtle p-2 text-brand-text">
+          <MessageCircle className="size-4" aria-hidden />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate font-semibold">{alert.title}</span>
+          {alert.body ? (
+            <span className="block truncate text-sm text-text-muted">{alert.body}</span>
+          ) : null}
+        </span>
+      </button>
+      <button
+        type="button"
+        aria-label={t('notifications.dismiss')}
+        onClick={onClose}
+        className="absolute top-1.5 right-1.5 flex size-8 items-center justify-center rounded-full text-text-muted hover:bg-background hover:text-text"
+      >
+        <X className="size-4" aria-hidden />
+      </button>
+    </div>
   );
 }
 
@@ -120,10 +134,13 @@ export function useInAppAlerts(): void {
             toast.dismiss(id);
             void navigate({ to: '/chats/$chatId', params: { chatId: alert.chatId } });
           };
-          toast.custom(() => <AlertToast alert={alert} onOpen={open} />, {
-            id,
-            duration: TOAST_MS,
-          });
+          toast.custom(
+            () => <AlertToast alert={alert} onOpen={open} onClose={() => toast.dismiss(id)} />,
+            {
+              id,
+              duration: TOAST_MS,
+            },
+          );
         });
       }),
     [navigate],

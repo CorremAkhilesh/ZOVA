@@ -65,8 +65,7 @@ for (const width of [1366, 375] as const) {
     expect(sideways).toBe(false);
 
     // Info: Ravi with his about; me first as the owner.
-    // A toast may sit over the header on a phone: open info the way a keyboard user would.
-    await asha.page.locator('[data-info-toggle]').press('Enter');
+    await asha.page.locator('[data-info-toggle]').click();
     const members = asha.page.getByRole('list', { name: 'Members' });
     await expect(members.getByText('Finance · Mumbai')).toBeVisible(SLOW);
     await expect(members.getByRole('listitem').first()).toContainText('You');

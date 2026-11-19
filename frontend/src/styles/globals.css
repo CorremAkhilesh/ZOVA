@@ -303,3 +303,12 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* Toasts: only a toast itself takes taps; the space around and between them passes them on, so
+   nothing behind (the composer, buttons) is ever blocked by an empty part of the toast area. */
+[data-sonner-toaster] {
+  pointer-events: none;
+}
+[data-sonner-toaster] [data-sonner-toast] {
+  pointer-events: auto;
+}
