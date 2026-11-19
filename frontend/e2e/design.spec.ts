@@ -27,13 +27,17 @@ for (const width of [1366, 375] as const) {
   test(`a group conversation at ${width} px`, async ({ browser }) => {
     const asha = await newPerson(browser, 'Asha');
     const ravi = await newPerson(browser, 'Ravi');
+    // Before the group exists, so the member list loads with it.
+    const about = await ravi.page.request.patch('/v1/me/profile', {
+      data: { about: 'Finance · Mumbai' },
+    });
+    expect(about.ok()).toBe(true);
     await asha.page.setViewportSize({ width, height: width === 375 ? 812 : 768 });
     await asha.page.goto('/chats');
     const name = `Design ${width}`;
     await createGroup(asha.page, name, [ravi]);
     const chatId = new URL(asha.page.url()).pathname.split('/').at(-1) ?? '';
     for (let i = 0; i < 3; i++) await setPhoto(asha.page, chatId);
-    await ravi.page.request.patch('/v1/me/profile', { data: { about: 'Finance · Mumbai' } });
 
     await openFromList(ravi.page, name);
     for (const text of ['one', 'two', LINK, LONG]) await send(ravi.page, text);
