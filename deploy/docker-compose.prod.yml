@@ -7,7 +7,7 @@
 # migrate (db:sync-indexes on zuvo_prod only) → api + worker. The old API keeps serving until then.
 #
 # Shared-server rules (docs/runbooks/first-deploy.md):
-# - Published ports ONLY on 127.0.0.1 and only 7147 (web) and 7148 (API): Docker bypasses ufw, and
+# - Published ports ONLY on 127.0.0.1 and only 7155 (web) and 7156 (API): Docker bypasses ufw, and
 #   correm-deploy refuses anything else. MongoDB and Redis are never published.
 # - Data lives on the host in bind mounts under /var/data/zuvo/{db,redis,uploads}. Never `down -v`.
 # - Every service has CPU/memory limits and rotated logs, so Zuvo can never starve the other apps.
@@ -147,7 +147,7 @@ services:
     volumes:
       - ${ZUVO_DATA_DIR:-/var/data/zuvo}/uploads:/data/uploads
     ports:
-      - 127.0.0.1:7148:4000
+      - 127.0.0.1:7156:4000
     depends_on:
       mongo: { condition: service_healthy }
       redis: { condition: service_healthy }
@@ -200,7 +200,7 @@ services:
     image: zuvo-web:latest
     restart: unless-stopped
     ports:
-      - 127.0.0.1:7147:8080
+      - 127.0.0.1:7155:8080
     <<: *hardened
     deploy:
       resources:

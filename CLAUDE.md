@@ -318,7 +318,7 @@ companies' apps: never touch their Nginx sites, containers, databases or ports.
 | ------- | -------------------------------------------------------------------------------------- |
 | Origin  | `https://zuvo.corremadvisory.com`: app at `/`, API at `/v1`, realtime at `/socket.io`  |
 | Proxy   | Host Nginx, HTTP/2, Certbot: `deploy/nginx/zuvo.corremadvisory.com.conf`               |
-| Ports   | `127.0.0.1:7147` web, `127.0.0.1:7148` API. Nothing else published (Docker skips ufw)  |
+| Ports   | `127.0.0.1:7155` web, `127.0.0.1:7156` API. Nothing else published (Docker skips ufw)  |
 | Compose | project `zuvo`, `deploy/docker-compose.prod.yml`, code in `/var/www/zuvo` (root-owned) |
 | Env     | `/var/www/zuvo/deploy/.env.prod` (600), created once by `deploy/scripts/setup-env.sh`  |
 | Data    | `/var/data/zuvo/{db,redis,uploads}` (bind mounts). Never `docker compose down -v`      |
@@ -347,7 +347,7 @@ companies' apps: never touch their Nginx sites, containers, databases or ports.
 - **Deploy:** merge `dev` → `main` (**only when the owner says so**) → `.github/workflows/deploy.yml`
   runs CI on that commit, then over SSH `sudo -n /usr/local/bin/correm-deploy zuvo <sha>`:
   fetch → build → `up -d --wait` (pre-deploy `mongodump` → `db:sync-indexes --expect-db zuvo_prod` →
-  api/worker) → health on `127.0.0.1:7148/v1/ready` and `:7147/health` → automatic rollback to the
+  api/worker) → health on `127.0.0.1:7156/v1/ready` and `:7155/health` → automatic rollback to the
   previous commit if unhealthy; then `https://zuvo.corremadvisory.com/v1/ready`, and `/v1/health` must
   name the merged commit. It skips (green) while the `VPS_*` secrets are missing. A push to `dev`
   never deploys.

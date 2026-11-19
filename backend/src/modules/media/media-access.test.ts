@@ -67,6 +67,15 @@ describe('authorization', () => {
     expect(state.statusCode).toBe(404);
   });
 
+  it('refuses an empty or malformed upload id with 400, never a lookup (production bug)', async () => {
+    const who = await person();
+    for (const url of ['/v1/uploads/', '/v1/uploads/undefined', '/v1/uploads/%20']) {
+      const res = await app().inject({ method: 'GET', url, headers: headers(who.cookie) });
+      expect(res.statusCode, url).toBe(400);
+      expect(res.json()).toMatchObject({ code: 'VALIDATION_FAILED' });
+    }
+  });
+
   it('lets chat members download, and nobody else', async () => {
     const { alice, bob, chatId } = await chatOf();
     const stranger = await person();

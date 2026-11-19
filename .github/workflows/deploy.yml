@@ -3,7 +3,7 @@
 #   2. deploy - over SSH as the `deploy` user, runs the server's root-owned deploy script:
 #                 sudo -n /usr/local/bin/correm-deploy zuvo <sha>
 #               It fetches the commit, builds the images, starts the stack (backup → sync indexes →
-#               api/worker), checks 127.0.0.1:7148/v1/ready + 127.0.0.1:7147/health and rolls back to
+#               api/worker), checks 127.0.0.1:7156/v1/ready + 127.0.0.1:7155/health and rolls back to
 #               the previous commit when anything fails. Then the public check below.
 #
 # GitHub environment "production". Repository (or environment) secrets, same names as the other apps:

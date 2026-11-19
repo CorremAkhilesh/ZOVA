@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import type { ChatMessage } from '@/features/chats/types';
-import { useSyncStore } from '@/features/sync/store';
+import { FileLostNotice } from './FileLostNotice';
 
 const LINE = 'mt-0.5 block w-full text-right text-xs';
 
@@ -12,7 +12,6 @@ interface UploadNoticeProps {
 /** Under the bubble: what the person has to do, or know, about a message still on this device. */
 export function UploadNotice({ message, onRetry }: UploadNoticeProps) {
   const { t } = useTranslation();
-  const client = useSyncStore((state) => state.client);
   const { clientMsgId, status, failReason, heldInTab } = message;
 
   if (status === 'pending' && heldInTab) {
@@ -24,15 +23,7 @@ export function UploadNotice({ message, onRetry }: UploadNoticeProps) {
   }
   if (status !== 'failed' || !clientMsgId) return null;
   if (failReason === 'fileLost') {
-    return (
-      <button
-        type="button"
-        onClick={() => void client?.cancelMedia(clientMsgId)}
-        className={`${LINE} font-semibold text-danger`}
-      >
-        {t('media.fileLost')}
-      </button>
-    );
+    return <FileLostNotice chatId={message.chatId} clientMsgId={clientMsgId} />;
   }
   return (
     <>

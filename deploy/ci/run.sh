@@ -2,7 +2,7 @@
 # CI only: runs one smoke script and, when it fails, repeats the important lines of its output as ONE
 # error annotation (annotations are readable on the run page and through the public API, logs are
 # not): the "=== WHY" section the script prints on failure, else the last 40 lines without Docker
-# progress noise. Usage: sudo -E env "PATH=$PATH" bash deploy/ci/run.sh deploy/ci/prod-smoke.sh
+# progress noise. Usage (in the job): $AS_ROOT bash deploy/ci/run.sh deploy/ci/prod-smoke.sh
 set -uo pipefail
 log="$(mktemp)"
 bash "$1" 2>&1 | tee "$log"

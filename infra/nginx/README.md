@@ -24,7 +24,7 @@ headers anywhere else in the Nginx config.
 ## Including it
 
 The production site file is [`deploy/nginx/zuvo.corremadvisory.com.conf`](../../deploy/nginx/zuvo.corremadvisory.com.conf):
-`/` goes to the web container (`127.0.0.1:7147`), `/v1/` and `/socket.io/` to the API (`127.0.0.1:7148`).
+`/` goes to the web container (`127.0.0.1:7155`), `/v1/` and `/socket.io/` to the API (`127.0.0.1:7156`).
 It includes this file as `/etc/nginx/snippets/zuvo-security-headers.conf` in every app location.
 Install and update steps: `docs/runbooks/first-deploy.md` step 5. CI runs that exact site file in
 `nginx:1.24` and checks the headers (`deploy/ci/nginx-smoke.sh`).

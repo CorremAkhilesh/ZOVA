@@ -1,4 +1,5 @@
-import { apiErrorSchema } from '@zuvo/protocol';
+import { Writable } from 'node:stream';
+import { apiErrorSchema, uploadParamsSchema } from '@zuvo/protocol';
 import Fastify from 'fastify';
 import {
   serializerCompiler,
@@ -8,7 +9,7 @@ import {
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { AppError } from '../lib/errors.ts';
-import { errorHandlerPlugin, toErrorResponse } from './error-handler.ts';
+import { errorHandlerPlugin, invalidFields, toErrorResponse } from './error-handler.ts';
 
 describe('toErrorResponse', () => {
   it('passes AppError code, message and details through', () => {
@@ -114,5 +115,51 @@ describe('error handler plugin', () => {
     });
     expect(res.statusCode).toBe(400);
     expect(apiErrorSchema.parse(res.json()).code).toBe('BAD_REQUEST');
+  });
+});
+
+describe('logging a validation failure', () => {
+  const lines: Record<string, unknown>[] = [];
+  const stream = new Writable({
+    write(chunk, _encoding, done) {
+      lines.push(JSON.parse(String(chunk)));
+      done();
+    },
+  });
+  const app = Fastify({ logger: { level: 'info', stream } }).withTypeProvider<ZodTypeProvider>();
+
+  beforeAll(async () => {
+    app.setValidatorCompiler(validatorCompiler);
+    app.setSerializerCompiler(serializerCompiler);
+    await app.register(errorHandlerPlugin);
+    app.get('/v1/uploads/:id', { schema: { params: uploadParamsSchema } }, async () => ({}));
+    app.post(
+      '/echo',
+      { schema: { body: z.object({ name: z.string().min(2), email: z.email() }) } },
+      async (req) => req.body,
+    );
+    await app.ready();
+  });
+  afterAll(() => app.close());
+
+  const failure = () => lines.find((line) => line.code === 'VALIDATION_FAILED');
+
+  it('an empty upload id: 400, and the log names the route and the field', async () => {
+    lines.length = 0;
+    const res = await app.inject({ method: 'GET', url: '/v1/uploads/' });
+    expect(res.statusCode).toBe(400);
+    expect(failure()).toMatchObject({ route: '/v1/uploads/:id', fields: ['params/id'] });
+  });
+
+  it('names body fields by path, and never logs their values', async () => {
+    lines.length = 0;
+    const payload = { name: 'x', email: 'private.person at example' };
+    await app.inject({ method: 'POST', url: '/echo', payload });
+    expect(failure()?.fields).toEqual(['body/name', 'body/email']);
+    expect(JSON.stringify(lines)).not.toContain('private.person');
+  });
+
+  it('has nothing to name for other errors', () => {
+    expect(invalidFields(new Error('x'))).toEqual([]);
   });
 });

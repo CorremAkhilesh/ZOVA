@@ -17,8 +17,8 @@ Zuvo runs in production on the company's existing Ubuntu server, which already h
   using Atlas (`zuvo_dev<N>`), and tests keep using `mongodb-memory-server`.
 - **Own Redis in Docker** (password, `noeviction`, append-only file), never published.
 - **Docker Compose project `zuvo`** (`deploy/docker-compose.prod.yml`): mongo, redis, a pre-deploy
-  `backup` and a `migrate` (index sync) one-shot, api, worker, web. Only `127.0.0.1:7147` (web) and
-  `127.0.0.1:7148` (API) are published. Data lives in host folders under `/var/data/zuvo`.
+  `backup` and a `migrate` (index sync) one-shot, api, worker, web. Only `127.0.0.1:7155` (web) and
+  `127.0.0.1:7156` (API) are published. Data lives in host folders under `/var/data/zuvo`.
 - **Deploys go through the server's `correm-deploy` script** (root-owned, run by the `deploy` user
   through sudo), the same as the other company apps: fetch the commit, build, start, health check,
   roll back to the previous commit on failure. GitHub Actions only calls it over SSH from `main`.

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # CI only: the daily backup, the restore TEST and a REAL restore against the running stack
-# (prod-smoke.sh). Proves the scripts in docs/runbooks/first-deploy.md work. sudo -E bash deploy/ci/backup-smoke.sh
+# (prod-smoke.sh). Proves the scripts in docs/runbooks/first-deploy.md work. Run as root by the job ($AS_ROOT).
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 : "${ZUVO_DATA_DIR:?}" "${ZUVO_BACKUP_DIR:?}"
@@ -51,7 +51,7 @@ ZUVO_RESTORE_CONFIRM="RESTORE zuvo_prod" bash deploy/scripts/restore.sh "$day"
   || fail "the real restore did not bring back the backup's data"
 [ -f "$ZUVO_DATA_DIR/uploads/ab/ci-file" ] || fail "the real restore did not bring back the uploads"
 for attempt in $(seq 1 30); do
-  curl -fsS -o /dev/null http://127.0.0.1:7148/v1/ready && break
+  curl -fsS -o /dev/null http://127.0.0.1:7156/v1/ready && break
   [ "$attempt" = 30 ] && fail "the API did not come back after the restore"
   sleep 2
 done
