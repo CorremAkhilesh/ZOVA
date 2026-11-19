@@ -24,6 +24,15 @@ describe('message:send with polls and view once', () => {
     expect(sendMessagePayloadSchema.safeParse(base).success).toBe(false);
   });
 
+  it('takes a shared file by reference, with a caption, but never alongside other media', () => {
+    const sharedMediaId = '6aea9e7492c525fa72210c67';
+    const parse = (body: object) => sendMessagePayloadSchema.safeParse({ ...base, ...body });
+    expect(parse({ sharedMediaId, caption: 'fyi' }).success).toBe(true);
+    expect(parse({ sharedMediaId, mediaIds: [sharedMediaId] }).success).toBe(false);
+    expect(parse({ sharedMediaId, text: 'hi' }).success).toBe(false);
+    expect(parse({ sharedMediaId, viewOnce: true }).success).toBe(false);
+  });
+
   it('allows view once only on media', () => {
     expect(
       sendMessagePayloadSchema.safeParse({ ...base, mediaIds: [chatId], viewOnce: true }).success,

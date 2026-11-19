@@ -92,12 +92,18 @@ describe('Share to the app', () => {
     if (!client) throw new Error('no client');
     const sendMedia = vi.spyOn(client, 'sendMedia').mockResolvedValue(undefined);
     await user.click(screen.getByRole('button', { name: 'Send to 5 chats' }));
-    await waitFor(() => expect(sendMedia).toHaveBeenCalledTimes(10));
+    // Each file once (on the first chat); the other four chats get it by reference.
+    await waitFor(() => expect(sendMedia).toHaveBeenCalledTimes(2));
     expect(sendMedia.mock.calls[0]?.[0]).toMatchObject({
       chatId: 'c0',
+      alsoTo: ['c1', 'c2', 'c3', 'c4'],
       caption: 'Q4 plan\nhttps://docs.example.test/q4',
     });
-    expect(sendMedia.mock.calls[1]?.[0]).toMatchObject({ chatId: 'c0', caption: '' });
+    expect(sendMedia.mock.calls[1]?.[0]).toMatchObject({
+      chatId: 'c0',
+      alsoTo: ['c1', 'c2', 'c3', 'c4'],
+      caption: '',
+    });
     await waitFor(() => expect(shares.has('s1')).toBe(false));
   });
 

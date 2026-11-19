@@ -2,6 +2,7 @@ import { UPLOAD_CHUNK_MAX_BYTES, uploadParamsSchema } from '@zuvo/protocol';
 import { heldByAnotherTab, heldFile, releaseFile } from '@/features/sync/held-files';
 import type { LocalDb, OutboxRow, UploadFailReason } from '@/features/sync/local-db';
 import type { Outbox } from '@/features/sync/outbox';
+import { sharesOf } from '@/features/sync/outbox-share';
 import { asBlob } from '@/features/sync/stored-bytes';
 import { ApiClientError } from '@/lib/api-client';
 import type { MediaApi } from './api';
@@ -130,7 +131,8 @@ export class MediaUploader {
   /** The first file this tab can upload. One whose tab has closed is gone, and is marked so. */
   private async nextUpload(rows: OutboxRow[]): Promise<OutboxRow | undefined> {
     for (const row of rows) {
-      if (!row.media || row.mediaId) continue;
+      // A shared copy follows its source's upload: nothing of its own to send.
+      if (!row.media || row.mediaId || row.shareOf) continue;
       if (!row.heldInTab || heldFile(row.clientMsgId)) return row;
       if (!(await heldByAnotherTab(row.clientMsgId))) {
         await this.options.outbox.markFailed(row, 'fileLost');
@@ -216,6 +218,7 @@ export class MediaUploader {
     const start = await this.startOrResume(row, stored.poster && asBlob(stored.poster));
     const { uploadId } = start;
     let { offset } = start;
+    const shares = await sharesOf(db, row.clientMsgId);
     while (offset < info.size) {
       if (signal.aborted) return;
       const chunk = file.slice(offset, offset + chunkBytes);
@@ -224,6 +227,10 @@ export class MediaUploader {
         // Also tells other tabs that this one is still at it.
         if (row.n !== undefined) await db.outbox.update(row.n, { queuedAt: Date.now() });
         await db.messages.update(key, { uploadedBytes: offset });
+        // One file, one progress: the chats sharing it show the same.
+        for (const share of shares) {
+          await db.messages.update(`${me}:${share.clientMsgId}`, { uploadedBytes: offset });
+        }
       });
     }
     const media = await api.complete(uploadId);
@@ -232,6 +239,11 @@ export class MediaUploader {
         await db.outbox.update(row.n, { mediaId: media.id, heldInTab: false });
       }
       await db.messages.update(key, { media, heldInTab: false });
+      // The other chats sharing this file can go now, by reference: nothing uploads again.
+      for (const share of await sharesOf(db, row.clientMsgId)) {
+        if (share.n !== undefined) await db.outbox.update(share.n, { mediaId: media.id });
+        await db.messages.update(`${me}:${share.clientMsgId}`, { media });
+      }
     });
     releaseFile(row.clientMsgId);
   }

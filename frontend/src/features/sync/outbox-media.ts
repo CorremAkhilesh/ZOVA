@@ -19,6 +19,7 @@ import {
   type OutboxRow,
   PENDING_ORDER_BASE,
 } from './local-db';
+import { writeShareRows } from './outbox-share';
 import { isQuotaError, mustHold, toStorable } from './stored-bytes';
 
 /** The same line the server will write for the chat list. */
@@ -31,28 +32,36 @@ function previewOf(info: CreateUploadBody, caption: string): string {
 }
 
 export const toPayload = (row: OutboxRow): SendMessagePayload =>
-  row.media
+  row.shareOf
     ? {
         chatId: row.chatId,
         clientMsgId: row.clientMsgId,
-        mediaIds: [row.mediaId ?? ''],
-        ...(row.replyTo ? { replyTo: row.replyTo } : {}),
+        sharedMediaId: row.mediaId ?? '',
         ...(row.text ? { caption: row.text } : {}),
         ...(row.albumId ? { albumId: row.albumId } : {}),
-        ...(row.viewOnce ? { viewOnce: true } : {}),
       }
-    : row.poll
-      ? { chatId: row.chatId, clientMsgId: row.clientMsgId, poll: row.poll }
-      : {
+    : row.media
+      ? {
           chatId: row.chatId,
           clientMsgId: row.clientMsgId,
-          text: row.text,
+          mediaIds: [row.mediaId ?? ''],
           ...(row.replyTo ? { replyTo: row.replyTo } : {}),
-          ...(row.linkPreviewId ? { linkPreviewId: row.linkPreviewId } : {}),
-          ...(row.mentions?.length ? { mentions: row.mentions } : {}),
-          ...(row.mentionsEveryone ? { mentionsEveryone: true } : {}),
-          ...(row.statusId ? { statusId: row.statusId } : {}),
-        };
+          ...(row.text ? { caption: row.text } : {}),
+          ...(row.albumId ? { albumId: row.albumId } : {}),
+          ...(row.viewOnce ? { viewOnce: true } : {}),
+        }
+      : row.poll
+        ? { chatId: row.chatId, clientMsgId: row.clientMsgId, poll: row.poll }
+        : {
+            chatId: row.chatId,
+            clientMsgId: row.clientMsgId,
+            text: row.text,
+            ...(row.replyTo ? { replyTo: row.replyTo } : {}),
+            ...(row.linkPreviewId ? { linkPreviewId: row.linkPreviewId } : {}),
+            ...(row.mentions?.length ? { mentions: row.mentions } : {}),
+            ...(row.mentionsEveryone ? { mentionsEveryone: true } : {}),
+            ...(row.statusId ? { statusId: row.statusId } : {}),
+          };
 
 /** A preview the sender looked up for a link in the text, sent along with it. */
 export interface AttachedPreview {
@@ -110,6 +119,8 @@ export interface EnqueueMedia {
   replyTo?: ReplyQuote | null | undefined;
   /** A photo or video the others can open once. */
   viewOnce?: boolean | undefined;
+  /** Other chats that get the same file, uploaded only once (see outbox-share.ts). */
+  alsoTo?: string[] | undefined;
 }
 
 type Preview = (
@@ -221,6 +232,17 @@ async function writeRows(
       preview: text.slice(0, MESSAGE_PREVIEW_MAX),
       createdAt,
     });
+    if (input.alsoTo?.length) {
+      await writeShareRows(db, me, {
+        sourceClientMsgId: clientMsgId,
+        chatIds: input.alsoTo,
+        caption,
+        info,
+        albumId,
+        preview,
+        previewText: text,
+      });
+    }
   });
 }
 

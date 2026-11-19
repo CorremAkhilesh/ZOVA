@@ -10,6 +10,7 @@ import type { ClientSession, Types } from 'mongoose';
 import type { ChatDoc, ChatMemberDoc, MessageDoc, StoredPoll } from '../db/chat-models.ts';
 import { AppError } from '../lib/errors.ts';
 import { attachMedia, toMediaInfo } from '../media/media.service.ts';
+import { shareOwnMedia } from '../media/media-share.ts';
 import { assertNotBlocked } from '../moderation/blocks.service.ts';
 import { hiddenAmong } from '../users/hidden-admins.ts';
 import { type UserDoc, usersModel } from '../users/user-record.ts';
@@ -76,6 +77,15 @@ export async function attachIfAny(
 ): Promise<MediaInfo | null> {
   const { mediaId } = input;
   return mediaId ? toMediaInfo(await attachMedia(app, session, { ...input, mediaId })) : null;
+}
+
+/** The same file again, by reference (see shareOwnMedia). */
+export async function shareMedia(
+  app: FastifyInstance,
+  session: ClientSession,
+  input: { mediaId: string; userId: string; chatId: string; messageId: Types.ObjectId },
+): Promise<MediaInfo> {
+  return toMediaInfo(await shareOwnMedia(app, session, input));
 }
 
 export const typeOf = (media: MediaInfo | null) => media?.kind ?? 'text';

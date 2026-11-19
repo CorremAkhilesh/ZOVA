@@ -21,6 +21,7 @@ import {
   extrasOf,
   findOriginal,
   kindFields,
+  shareMedia,
   typeOf,
 } from './send-rules.ts';
 import { senderNameOf } from './sender-name.ts';
@@ -41,6 +42,8 @@ export interface SendInput {
   replyTo?: { chatId: string; messageId: string } | undefined;
   /** A copy of another message: its file is shared, not attached again. */
   forward?: { media: MediaInfo | null; type: MessageDoc['type']; count: number };
+  /** A file of mine already uploaded (for another chat): sent by reference, not attached again. */
+  sharedMediaId?: string | undefined;
   /** A preview the sender looked up for a link in `text`. */
   linkPreviewId?: string | undefined;
   /** Groups: who the text names, and "@everyone". */
@@ -99,7 +102,14 @@ export async function sendMessage(app: FastifyInstance, input: SendInput): Promi
         // A forwarded copy shares the file it came with: nothing to attach.
         const media = forward
           ? forward.media
-          : await attachIfAny(app, session, { mediaId, userId, chatId, messageId: id });
+          : input.sharedMediaId
+            ? await shareMedia(app, session, {
+                mediaId: input.sharedMediaId,
+                userId,
+                chatId,
+                messageId: id,
+              })
+            : await attachIfAny(app, session, { mediaId, userId, chatId, messageId: id });
         assertKindAllowed(chat, input, media);
         const type = input.poll ? 'poll' : (forward?.type ?? typeOf(media));
         const expiresAt = expiryFor(chat.disappearing, now);

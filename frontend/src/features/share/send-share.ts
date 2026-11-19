@@ -20,8 +20,10 @@ const asFile = (shared: SharedFile) =>
     : new File([shared.blob], shared.name, { type: shared.type });
 
 /**
- * Sends the shared files to each chat through the outbox (resumable uploads, progress in the chat):
- * pictures and videos together as an album, the caption on the first file.
+ * Sends the shared files to the chosen chats through the outbox: each file uploads ONCE (resumable,
+ * one progress), on the first chat's message; the other chats get the same file by reference as soon
+ * as it is up (outbox-share.ts), each sending and retrying on its own. Pictures and videos together
+ * as an album, the caption on the first file.
  */
 export async function sendSharedFiles(input: {
   client: Pick<SyncClient, 'sendMedia'>;
@@ -31,19 +33,20 @@ export async function sendSharedFiles(input: {
 }): Promise<void> {
   const prepared = await Promise.all(input.files.map((file) => prepareFile(asFile(file), false)));
   const visual = prepared.filter((file) => file.kind === 'image' || file.kind === 'video');
-  for (const chatId of input.chatIds) {
-    const albumId = visual.length > 1 ? uuidv7() : undefined;
-    for (const [index, file] of prepared.entries()) {
-      const isVisual = file.kind === 'image' || file.kind === 'video';
-      await input.client.sendMedia({
-        chatId,
-        caption: index === 0 ? input.caption.trim() : '',
-        file: file.file,
-        poster: file.poster,
-        albumId: isVisual ? albumId : undefined,
-        info: toUploadInfo(file),
-      });
-    }
+  const [first, ...others] = input.chatIds;
+  if (!first) return;
+  const albumId = visual.length > 1 ? uuidv7() : undefined;
+  for (const [index, file] of prepared.entries()) {
+    const isVisual = file.kind === 'image' || file.kind === 'video';
+    await input.client.sendMedia({
+      chatId: first,
+      alsoTo: others,
+      caption: index === 0 ? input.caption.trim() : '',
+      file: file.file,
+      poster: file.poster,
+      albumId: isVisual ? albumId : undefined,
+      info: toUploadInfo(file),
+    });
   }
 }
 

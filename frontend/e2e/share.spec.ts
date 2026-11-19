@@ -29,6 +29,13 @@ test('two files and text shared from another app reach two chats', async ({
   }
   await asha.page.goto('/chats');
   await waitForActiveServiceWorker(asha.page);
+  // Every upload session Asha's app starts: each file must go up once, whatever the chat count.
+  const uploads: string[] = [];
+  asha.page.on('request', (request) => {
+    if (request.method() === 'POST' && new URL(request.url()).pathname === '/v1/uploads') {
+      uploads.push(request.url());
+    }
+  });
 
   // What Android or Windows posts when someone picks the app in their share list.
   await asha.page.evaluate(() => {
@@ -69,11 +76,14 @@ test('two files and text shared from another app reach two chats', async ({
     await other.page.goto('/chats');
     await openFromList(other.page, 'Asha');
     const messages = thread(other.page, 'Asha');
-    // Four uploads go one after another (two files to each chat): give slow runners time.
+    // Uploads go one after another: give slow runners time.
     await expect(messages.getByText('budget.pdf')).toBeVisible(UPLOADS);
     await expect(messages.getByText('notes.txt')).toBeVisible(UPLOADS);
     await expect(messages.getByText('From the Files app')).toBeVisible(UPLOADS);
   }
+
+  // Two files, two chats: two uploads (not four).
+  expect(uploads).toHaveLength(2);
 
   await asha.context.close();
   await bharat.context.close();
