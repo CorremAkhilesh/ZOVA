@@ -1,4 +1,4 @@
-import { Loader2, Pause, Play, SendHorizontal, Trash2 } from 'lucide-react';
+import { ChevronLeft, Loader2, Pause, Play, SendHorizontal, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { formatDuration } from '@/features/media/process';
@@ -28,7 +28,7 @@ export function RecordingBar(props: RecordingBarProps) {
   const asking = status === 'asking';
   const remaining = Math.max(0, Math.ceil((maxMs - elapsedMs) / 1000));
   return (
-    <div className="flex min-h-10 min-w-0 flex-1 items-center gap-2 rounded-2xl border bg-surface px-2 py-1">
+    <div className="flex min-h-12 min-w-0 flex-1 items-center gap-2 rounded-[1.5rem] border bg-surface px-3 py-1 shadow-xs">
       {locked ? (
         <Button
           type="button"
@@ -66,9 +66,23 @@ export function RecordingBar(props: RecordingBarProps) {
           ))}
         </span>
       ) : (
-        <span className="min-w-0 flex-1 truncate text-sm text-text-muted">
-          {t('voice.slideHint')}
-        </span>
+        <>
+          {/* Holding: a short live waveform, then the way out (slide left) or to keep going (up). */}
+          <span aria-hidden className="flex h-6 shrink-0 items-center gap-[2px]">
+            {levels.slice(-10).map((level, index) => (
+              <span
+                // biome-ignore lint/suspicious/noArrayIndexKey: bars only ever scroll by
+                key={index}
+                style={{ height: barHeight(level) }}
+                className="w-[3px] rounded-full bg-brand"
+              />
+            ))}
+          </span>
+          <span className="flex min-w-0 flex-1 items-center gap-1 truncate text-sm text-text-muted">
+            <ChevronLeft aria-hidden className="size-4 shrink-0 motion-safe:animate-pulse" />
+            <span className="truncate">{t('voice.slideHint')}</span>
+          </span>
+        </>
       )}
       {status === 'atLimit' ? (
         <p role="status" className="shrink-0 text-xs font-semibold text-danger">
@@ -110,7 +124,7 @@ export function RecordingBar(props: RecordingBarProps) {
             <Button
               type="button"
               size="icon"
-              className="rounded-full"
+              className="size-11 rounded-full"
               disabled={asking}
               aria-label={t('voice.send')}
               {...trigger}

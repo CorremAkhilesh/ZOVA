@@ -1,4 +1,5 @@
 import { Pencil, Reply, X } from 'lucide-react';
+import { m } from 'motion/react';
 import { useTranslation } from 'react-i18next';
 import { useSession } from '@/features/auth/session';
 import { quoteText } from '@/features/polls/preview';
@@ -16,7 +17,14 @@ export function ComposerBanner({ chatId }: { chatId: string }) {
   const who = quote?.senderId === me ? t('chats.you') : quote?.senderName;
   const Icon = editing ? Pencil : Reply;
   return (
-    <div className="mb-1.5 flex items-center gap-2 rounded-xl border-l-4 border-brand bg-surface px-3 py-1.5 text-sm">
+    // Right above the composer pill; slides in (a fade only with reduced motion).
+    <m.div
+      key={editing ? 'edit' : 'reply'}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.15, ease: 'easeOut' }}
+      className="mb-1.5 flex items-center gap-2 rounded-2xl border border-l-4 border-l-brand bg-surface px-3 py-1.5 text-sm shadow-xs"
+    >
       <Icon className="size-4 shrink-0 text-brand-text" aria-hidden />
       <div className="min-w-0 flex-1">
         <p className="truncate text-xs font-semibold text-brand-text">
@@ -38,6 +46,6 @@ export function ComposerBanner({ chatId }: { chatId: string }) {
       >
         <X className="size-4" aria-hidden />
       </button>
-    </div>
+    </m.div>
   );
 }

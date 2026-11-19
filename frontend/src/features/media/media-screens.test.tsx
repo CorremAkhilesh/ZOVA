@@ -191,7 +191,7 @@ describe('bubbles', () => {
     await waitFor(async () => expect(await db.messages.count()).toBe(0));
   });
 
-  it('enables attach, with Camera on phones only', async () => {
+  it('enables attach; the camera is its own composer button, on phones only', async () => {
     const user = userEvent.setup();
     const { unmount } = await open([photo(1, 'p1')]);
     await user.click(screen.getByRole('button', { name: 'Attach a file' }));
@@ -201,8 +201,10 @@ describe('bubbles', () => {
     unmount();
 
     await renderApp('/chats/c1', { width: MOBILE_WIDTH });
-    await user.click(await screen.findByRole('button', { name: 'Attach a file' }));
     expect(await screen.findByRole('button', { name: 'Camera' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Attach a file' }));
+    const menu = await screen.findByRole('dialog', { name: 'Attach a file' });
+    expect(within(menu).queryByRole('button', { name: 'Camera' })).not.toBeInTheDocument();
   });
 
   it('opens the preview sheet from a pasted image', async () => {

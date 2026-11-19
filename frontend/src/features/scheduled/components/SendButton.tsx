@@ -34,7 +34,7 @@ export function SendButton({ chatId, disabled, takeDraft, onScheduled }: SendBut
           <Button
             type="submit"
             size="icon"
-            className="rounded-full"
+            className="size-12 rounded-full shadow-md"
             disabled={disabled}
             aria-label={t('conversation.send')}
             {...trigger}
