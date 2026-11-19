@@ -102,7 +102,12 @@ test('admin: who has notifications off, and a reminder they receive', async ({ b
   await expect(admin.getByRole('switch', { name: /Notifications OFF only/ })).toBeChecked();
   await expect(list.getByText(asha.email)).toHaveCount(0);
   await expect(list.getByText(ravi.email)).toBeVisible();
-  await admin.getByRole('checkbox', { name: `Select ${ravi.name}` }).check();
+  // Other tests make people called Ravi too: pick the row by its unique email.
+  await list
+    .getByRole('listitem')
+    .filter({ hasText: ravi.email })
+    .getByRole('checkbox', { name: `Select ${ravi.name}` })
+    .check();
   await admin.getByRole('button', { name: 'Remind (1)' }).click();
   await expect(admin.getByText('Reminder sent to 1 person.')).toBeVisible(SLOW);
 

@@ -1,3 +1,4 @@
+import { brand } from '@zuvo/config';
 import { WALLPAPER_COLORS, WALLPAPER_PATTERNS, type Wallpaper } from '@zuvo/protocol';
 import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -45,7 +46,7 @@ export function WallpaperPicker(props: {
               <WallpaperTile
                 key={id}
                 name={name}
-                label={t(`appearance.pattern.${id}`)}
+                label={t(`appearance.pattern.${id}`, { brand: brand.name })}
                 checked={sameWallpaper(value, wallpaper)}
                 onSelect={() => onChange(wallpaper)}
                 style={preview(wallpaper)}

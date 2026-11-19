@@ -22,7 +22,26 @@ const INK: Record<ResolvedTheme, { color: string; opacity: number }> = {
   dark: { color: '#E8EAF6', opacity: 0.07 },
 };
 
+/**
+ * The Zuvo doodle: our own drawing (outline chat bubbles, a double tick, a bell, a paper plane,
+ * sparkles and dots), scattered on a 160 px tile. Nothing taken from any other app.
+ */
+const ZUVO_DOODLE = [
+  '<g fill="none" stroke="C" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">',
+  '<path d="M14 18h22a5 5 0 0 1 5 5v9a5 5 0 0 1-5 5H24l-6 5v-5h-4a5 5 0 0 1-5-5v-9a5 5 0 0 1 5-5z"/>',
+  '<path d="M96 22l5 5 9-10M104 27l9-10"/>',
+  '<path d="M128 70a8 8 0 0 0-16 0c0 9-4 11-4 11h24s-4-2-4-11M118 86a2.5 2.5 0 0 0 4 0"/>',
+  '<path d="M30 100l26-11-9 25-4-10-13-4zM43 104l13-15"/>',
+  '<path d="M96 120h18a4 4 0 0 1 4 4v7a4 4 0 0 1-4 4h-4l5 5-9-5h-10a4 4 0 0 1-4-4v-7a4 4 0 0 1 4-4z"/>',
+  '<path d="M70 50v8M66 54h8M146 138v6M143 141h6M20 140v6M17 143h6"/>',
+  '</g>',
+  '<circle cx="60" cy="20" r="1.6" fill="C"/><circle cx="150" cy="30" r="1.2" fill="C"/>',
+  '<circle cx="88" cy="88" r="1.4" fill="C"/><circle cx="12" cy="74" r="1.2" fill="C"/>',
+  '<circle cx="76" cy="148" r="1.6" fill="C"/>',
+].join('');
+
 const SHAPES: Record<Exclude<PatternId, 'none'>, { size: number; body: string }> = {
+  zuvo: { size: 160, body: ZUVO_DOODLE },
   dots: { size: 22, body: '<circle cx="11" cy="11" r="1.1" fill="C"/>' },
   grid: { size: 24, body: '<path d="M24 .5H.5V24" fill="none" stroke="C"/>' },
   waves: {
@@ -44,7 +63,9 @@ export function patternImage(id: PatternId, theme: ResolvedTheme): string | null
   if (id === 'none') return null;
   const { size, body } = SHAPES[id];
   const ink = INK[theme];
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}"><g opacity="${ink.opacity}">${body.replaceAll('"C"', `"${ink.color}"`)}</g></svg>`;
+  // The doodle has more lines than the small patterns: a lighter touch keeps it a whisper.
+  const opacity = id === 'zuvo' ? ink.opacity * 0.65 : ink.opacity;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}"><g opacity="${opacity}">${body.replaceAll('"C"', `"${ink.color}"`)}</g></svg>`;
   return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
 }
 

@@ -165,7 +165,7 @@ export const ChatListItem = memo(function ChatListItem({
         to="/chats/$chatId"
         params={{ chatId: chat.id }}
         className={cn(
-          'group flex items-center gap-3 rounded-xl px-3 py-2.5 outline-none transition-colors',
+          'group flex min-h-[72px] items-center gap-3 rounded-lg px-3 py-2.5 outline-none transition-colors',
           'hover:bg-background focus-visible:bg-background',
           'data-[status=active]:bg-brand-subtle',
         )}
@@ -173,7 +173,14 @@ export const ChatListItem = memo(function ChatListItem({
         <ChatAvatar chat={chat} online={online} />
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline justify-between gap-2">
-            <span className="truncate font-semibold text-text">{chat.name}</span>
+            <span
+              className={cn(
+                'truncate text-[15.5px] text-text',
+                chat.unread > 0 && !chat.muted ? 'font-semibold' : 'font-medium',
+              )}
+            >
+              {chat.name}
+            </span>
             <span
               className={cn(
                 'shrink-0 text-xs',

@@ -148,7 +148,7 @@ describe('wallpaper pictures', () => {
     expect(removed.statusCode).toBe(200);
     expect(wallpaperImagesResponseSchema.parse(removed.json()).images).toEqual([other]);
     const appearance = (await call(asha, 'GET', '/v1/me/appearance')).json().appearance;
-    expect(appearance.wallpaper).toEqual({ kind: 'pattern', id: 'dots' });
+    expect(appearance.wallpaper).toEqual({ kind: 'pattern', id: 'zuvo' });
     expect((await call(asha, 'GET', `/v1/chats/${first}`)).json().chat.wallpaper).toBeNull();
     expect((await call(asha, 'GET', `/v1/chats/${second}`)).json().chat.wallpaper).toEqual({
       kind: 'image',
