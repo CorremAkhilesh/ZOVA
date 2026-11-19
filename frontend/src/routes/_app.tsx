@@ -10,6 +10,7 @@ import { rememberJoinPath } from '@/features/groups/rules';
 import { LockHost } from '@/features/lock/components/LockHost';
 import { MentionProfileHost } from '@/features/mentions/mention-marks';
 import { ModerationHost } from '@/features/moderation/components/ModerationHost';
+import { NotificationsNudge } from '@/features/notifications/components/NotificationsNudge';
 import { NotificationsHost } from '@/features/notifications/NotificationsHost';
 import { SearchHost } from '@/features/search/components/SearchHost';
 import { useSyncClient } from '@/features/sync/use-sync-client';
@@ -71,6 +72,7 @@ function AppShell() {
         {hosts}
         <AppRail />
         <main className="flex min-w-0 flex-1 flex-col">
+          <NotificationsNudge />
           <SessionGate />
           <MiniPlayer />
           <div className="min-h-0 flex-1">
@@ -84,6 +86,7 @@ function AppShell() {
     <div className="flex h-full flex-col">
       {hosts}
       <main className="glass flex min-h-0 flex-1 flex-col">
+        <NotificationsNudge />
         <SessionGate />
         <MiniPlayer />
         <div className="min-h-0 flex-1">

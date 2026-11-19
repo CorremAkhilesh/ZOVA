@@ -35,7 +35,30 @@ export async function readOtp(page: Page, email: string, previousSubject = ''): 
 /** Auth calls can be slow when many browsers run in parallel against the in-memory test API. */
 const SLOW = { timeout: 20_000 };
 
+/**
+ * Keeps the "Turn on notifications" step and banner away (nudge.ts NUDGE_OFF_KEY): they would cover
+ * the screens most tests look at. notifications.spec.ts tests them on purpose, without this.
+ */
+const nudgeQuieted = new WeakSet<Page>();
+export async function quietNotificationNudge(page: Page): Promise<void> {
+  if (nudgeQuieted.has(page)) return;
+  nudgeQuieted.add(page);
+  await page.addInitScript(() => {
+    try {
+      localStorage.setItem('zuvo.push.nudge-off', '1');
+    } catch {
+      // No storage: the step may show.
+    }
+  });
+}
+
+/** This page shows the step and banner as a real person sees them (notifications.spec.ts). */
+export function allowNotificationNudge(page: Page): void {
+  nudgeQuieted.add(page);
+}
+
 export async function signUp(page: Page, name = 'E2E Tester', username?: string): Promise<string> {
+  await quietNotificationNudge(page);
   const email = uniqueEmail();
   await page.goto('/');
   await page.getByRole('textbox', { name: 'Work email' }).fill(email);
@@ -68,6 +91,7 @@ export async function signUpByApi(
   name: string,
   username = `${name.replace(/[^a-z]/gi, '').toLowerCase()}${Math.random().toString(36).slice(2, 12)}`,
 ): Promise<string> {
+  await quietNotificationNudge(page);
   const email = uniqueEmail();
   const origin = new URL(String(test.info().project.use.baseURL)).origin;
   const post = async (url: string, method: 'POST' | 'PATCH' | 'PUT', data: object) => {
@@ -88,6 +112,7 @@ export async function signUpByApi(
 
 /** Signs an existing account in on another device (lifting the test API's resend cooldown). */
 export async function signIn(page: Page, email: string): Promise<void> {
+  await quietNotificationNudge(page);
   await page.request.post('/v1/test/reset-otp-limits', { data: { email } });
   const before = await latestSubject(page, email);
   await page.goto('/');

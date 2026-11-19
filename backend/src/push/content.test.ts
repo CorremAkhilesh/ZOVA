@@ -75,7 +75,7 @@ describe('buildMessagePayload', () => {
   });
 
   it.each([
-    ['preview off', { settings: { showPreview: false, sound: true } }],
+    ['preview off', { settings: { ...DEFAULT_PUSH_SETTINGS, showPreview: false, sound: true } }],
     ['a locked chat', { chatLocked: true }],
     ['app lock', { appLock: true }],
   ])('never contains the text or who sent it with %s', (_, overrides) => {
@@ -123,7 +123,9 @@ describe('buildMessagePayload', () => {
   });
 
   it('is silent when sound is off', () => {
-    expect(build({ settings: { showPreview: true, sound: false } }).silent).toBe(true);
+    expect(
+      build({ settings: { ...DEFAULT_PUSH_SETTINGS, showPreview: true, sound: false } }).silent,
+    ).toBe(true);
   });
 
   it('speaks Hindi to someone who chose it', () => {
@@ -147,7 +149,11 @@ describe('buildMessagePayload', () => {
 
 describe('buildTestPayload', () => {
   it('is a small test notification in the person’s language', () => {
-    const payload = buildTestPayload({ showPreview: true, sound: false }, 'en', NOW);
+    const payload = buildTestPayload(
+      { ...DEFAULT_PUSH_SETTINGS, showPreview: true, sound: false },
+      'en',
+      NOW,
+    );
     expect(pushPayloadSchema.parse(payload)).toEqual({
       kind: 'test',
       v: 1,

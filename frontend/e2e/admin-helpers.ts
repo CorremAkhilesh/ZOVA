@@ -1,10 +1,11 @@
 import { expect, type Page } from '@playwright/test';
-import { readOtp, SLOW } from './helpers';
+import { quietNotificationNudge, readOtp, SLOW } from './helpers';
 
 /** The E2E server's admin (ADMIN_EMAILS). Several tests and browsers may sign in at once. */
 export const ADMIN = 'e2e.admin@corremadvisory.com';
 
 export async function signInAdmin(page: Page) {
+  await quietNotificationNudge(page);
   await page.request.post('/v1/test/reset-otp-limits', { data: { email: ADMIN } });
   const before = await page.request
     .get(`/v1/test/outbox/latest?to=${encodeURIComponent(ADMIN)}`)

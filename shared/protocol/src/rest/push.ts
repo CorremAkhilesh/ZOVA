@@ -30,19 +30,73 @@ export type PushSubscriptionBody = z.infer<typeof pushSubscriptionBodySchema>;
 /** DELETE /v1/me/push/subscription: this device stops receiving pushes. */
 export const pushUnsubscribeBodySchema = z.object({ endpoint: z.url().max(2048) });
 
-/** My notification settings, the same on every device. */
+/** The tones a new message can play (frontend/public/sounds/<tone>.wav, made by our own script). */
+export const MESSAGE_TONES = ['chime', 'bubble', 'marimba', 'glass'] as const;
+export const messageToneSchema = z.enum(MESSAGE_TONES);
+export type MessageTone = z.infer<typeof messageToneSchema>;
+export const SOUND_VOLUME_DEFAULT = 70;
+
+/**
+ * My notification settings, the same on every device. Everything starts on: an account that never
+ * changed anything has nothing stored and reads the defaults (that is the "default on" migration).
+ */
 export const pushSettingsSchema = z.object({
   /** Show the sender and text. Off: "New message" only. Locked chats and app lock never show it. */
   showPreview: z.boolean().default(true),
-  /** Sound for notifications and in-app toasts. Quiet hours silence it anyway. */
+  /** All sounds (in-app; a push asks the OS for its own sound). Quiet hours silence them anyway. */
   sound: z.boolean().default(true),
+  /** 0–100. */
+  soundVolume: z.number().int().min(0).max(100).default(SOUND_VOLUME_DEFAULT),
+  /** The new-message tone. */
+  tone: messageToneSchema.default('chime'),
+  /** Each kind of sound on its own. */
+  soundMessages: z.boolean().default(true),
+  soundMentions: z.boolean().default(true),
+  /** The soft "swoosh" when I send. */
+  soundSent: z.boolean().default(true),
+  /** The quiet "tick" for a message in the chat on screen. */
+  soundOpenChat: z.boolean().default(true),
 });
 export type PushSettings = z.infer<typeof pushSettingsSchema>;
-export const DEFAULT_PUSH_SETTINGS: PushSettings = { showPreview: true, sound: true };
+export const DEFAULT_PUSH_SETTINGS: PushSettings = {
+  showPreview: true,
+  sound: true,
+  soundVolume: SOUND_VOLUME_DEFAULT,
+  tone: 'chime',
+  soundMessages: true,
+  soundMentions: true,
+  soundSent: true,
+  soundOpenChat: true,
+};
 /** PUT /v1/me/push/settings: only what was sent changes (no defaults, so nothing else is reset). */
 export const updatePushSettingsBodySchema = z
-  .object({ showPreview: z.boolean(), sound: z.boolean() })
+  .object({
+    showPreview: z.boolean(),
+    sound: z.boolean(),
+    soundVolume: z.number().int().min(0).max(100),
+    tone: messageToneSchema,
+    soundMessages: z.boolean(),
+    soundMentions: z.boolean(),
+    soundSent: z.boolean(),
+    soundOpenChat: z.boolean(),
+  })
   .partial();
+export type UpdatePushSettings = z.infer<typeof updatePushSettingsBodySchema>;
+
+/**
+ * PUT /v1/me/push/client: what this device can do, so an admin can see who will miss messages.
+ * Kept on the session (device); gone with it.
+ */
+export const pushPermissionSchema = z.enum(['granted', 'denied', 'default', 'unsupported']);
+export const pushClientBodySchema = z.object({
+  permission: pushPermissionSchema,
+  /** Opened from the installed app (display-mode standalone), not a browser tab. */
+  installed: z.boolean(),
+  /** Push turned on for this device in the app. */
+  enabled: z.boolean(),
+});
+export type PushClientReport = z.infer<typeof pushClientBodySchema>;
+export const pushClientResponseSchema = z.object({ ok: z.literal(true) });
 
 /** A device of mine with push turned on. */
 export const pushDeviceSchema = z.object({

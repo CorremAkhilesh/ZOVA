@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router';
 import {
+  BellRing,
   ChevronRight,
   CircleHelp,
   Download,
@@ -11,10 +12,17 @@ import {
 import { useHelpText } from '../content';
 import { HelpPage } from './HelpPage';
 
-type HelpPath = '/help/install' | '/help/faq' | '/help/privacy' | '/help/contact' | '/help/about';
+type HelpPath =
+  | '/help/install'
+  | '/help/notifications'
+  | '/help/faq'
+  | '/help/privacy'
+  | '/help/contact'
+  | '/help/about';
 
 const TOPICS: readonly { to: HelpPath; key: string; icon: LucideIcon }[] = [
   { to: '/help/install', key: 'install', icon: Download },
+  { to: '/help/notifications', key: 'notifications', icon: BellRing },
   { to: '/help/faq', key: 'faq', icon: CircleHelp },
   { to: '/help/privacy', key: 'privacy', icon: ShieldCheck },
   { to: '/help/contact', key: 'contact', icon: Mail },

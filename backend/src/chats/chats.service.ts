@@ -8,6 +8,7 @@ import { hiddenAmong } from '../users/hidden-admins.ts';
 import { privacyOf, toPublicProfile, type UserDoc, usersModel } from '../users/user-record.ts';
 import { NO_PEER, peerProgress, toSummary } from './chat-summary.ts';
 import { defaultTimerOf, timerFields } from './default-timer.ts';
+import { hiddenMemberCounts } from './hidden-members.ts';
 import { logUpdates } from './updates.ts';
 
 export const chatModels = (app: FastifyInstance) => registerChatModels(app.mongo);
@@ -59,6 +60,11 @@ export async function buildSummaries(
     ? ((await usersModel(app).findById(viewerId).select({ privacy: 1 }).lean()) as UserDoc | null)
     : null;
   const seesReads = viewer ? privacyOf(viewer).readReceipts : true;
+  const hiddenMembers = await hiddenMemberCounts(
+    app,
+    viewerId,
+    chats.filter((chat) => chat.type === 'group').map((chat) => chat._id),
+  );
   const otherByChat = new Map(others.map((other) => [other.chatId.toString(), other]));
 
   return rows.flatMap((row) => {
@@ -79,7 +85,7 @@ export async function buildSummaries(
     const profile = person
       ? toPublicProfile(person, viewerId, { blockedViewer: blockers.has(person._id.toString()) })
       : null;
-    return [toSummary(chat, row, profile, progress)];
+    return [toSummary(chat, row, profile, progress, hiddenMembers.get(chat._id.toString()) ?? 0)];
   });
 }
 

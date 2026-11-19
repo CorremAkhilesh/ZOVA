@@ -36,6 +36,7 @@ export function toSummary(
   member: ChatMemberDoc,
   otherUser: ChatSummary['otherUser'],
   peer: PeerProgress,
+  hiddenMembers = 0,
 ): ChatSummary {
   const seq = member.leftSeq ?? chat.seq;
   const last = shownLast(chat, member);
@@ -44,7 +45,7 @@ export function toSummary(
     type: chat.type,
     seq,
     otherUser,
-    group: chat.type === 'group' ? groupView(chat, member) : null,
+    group: chat.type === 'group' ? groupView(chat, member, hiddenMembers) : null,
     lastMessage: last ? toLastMessage(last) : null,
     lastReadSeq: member.lastReadSeq,
     unreadCount: Math.max(0, seq - member.lastReadSeq),

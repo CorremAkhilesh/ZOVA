@@ -6,6 +6,9 @@ export const NOTIFICATION_ICON = '/icons/icon-192.png';
 /** Android shows the badge as a white silhouette: the monochrome glyph (BADGE_ICONS). */
 export const NOTIFICATION_BADGE = '/icons/badge-96.png';
 
+/** A message on Android: two short buzzes (none for a silent one). */
+export const VIBRATE_PATTERN = [120, 80, 120];
+
 export const ACTION_READ = 'read';
 export const ACTION_REPLY = 'reply';
 
@@ -21,6 +24,8 @@ export interface RichNotificationOptions extends NotificationOptions {
   actions?: NotificationAction[];
   renotify?: boolean;
   timestamp?: number;
+  /** Android: buzz-pause-buzz. Ignored by desktop browsers and iOS. */
+  vibrate?: number[];
 }
 
 /** What a click needs: kept on the notification. */
@@ -81,6 +86,7 @@ export function notificationFor(
     silent: payload.silent,
     // Alert again for a newer message in the same chat; a silent one must not (browsers refuse both).
     renotify: can.replacing && !payload.silent,
+    ...(payload.silent ? {} : { vibrate: VIBRATE_PATTERN }),
   };
   if (payload.kind === 'test') {
     const data: NotificationData = { kind: 'test', url: '/settings/notifications' };

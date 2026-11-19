@@ -1,3 +1,4 @@
+export * from './admin-notifications.ts';
 export * from './appearance.ts';
 export * from './auth.ts';
 export * from './chat-extras.ts';

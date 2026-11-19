@@ -76,6 +76,8 @@ export const auditActionSchema = z.enum([
   'report.resolve',
   /** An admin removed a reported status. Target: its owner. */
   'status.remove',
+  /** An admin sent the "turn on notifications" reminder. Target: the person reminded. */
+  'notifications.remind',
 ]);
 export const auditLogEntrySchema = z.object({
   id: z.string(),

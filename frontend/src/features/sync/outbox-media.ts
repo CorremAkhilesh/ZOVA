@@ -9,6 +9,7 @@ import {
   type SendMessagePayload,
   type StatusReply,
 } from '@zuvo/protocol';
+import { soundForSent } from '@/features/notifications/app-sounds';
 import { uuidv7 } from '@/lib/uuid';
 import { holdFile, releaseFile } from './held-files';
 import {
@@ -129,6 +130,7 @@ export async function storeMedia(
 ): Promise<string> {
   const { file, poster } = input;
   const clientMsgId = uuidv7();
+  soundForSent();
   if (!(await mustHold(db, file.size))) {
     try {
       const keep: FileRow = { clientMsgId, file: await toStorable(db, file) };

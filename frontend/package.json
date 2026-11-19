@@ -14,6 +14,7 @@
     "test:e2e": "vite build && playwright test",
     "clean": "rimraf dist coverage .turbo playwright-report test-results",
     "icons": "node scripts/icons.ts",
+    "sounds": "node scripts/make-sounds.ts",
     "pwa:screenshots": "node scripts/pwa-screenshots.ts",
     "size": "node scripts/check-bundle-size.ts",
     "perf": "playwright test -c perf/playwright.perf.config.ts",

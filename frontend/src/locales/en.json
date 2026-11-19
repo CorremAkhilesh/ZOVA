@@ -554,7 +554,9 @@
       "user.promote": "{{actor}} made {{target}} an admin",
       "user.demote": "{{actor}} removed admin from {{target}}",
       "report.view": "{{actor}} viewed a report about {{target}}",
-      "report.resolve": "{{actor}} resolved a report about {{target}}"
+      "report.resolve": "{{actor}} resolved a report about {{target}}",
+      "status.remove": "{{actor}} removed a status of {{target}}",
+      "notifications.remind": "{{actor}} reminded {{target}} to turn on notifications"
     },
     "storageUsed": "Storage used: {{size}}"
   },
@@ -1102,7 +1104,7 @@
       "preview": "Show message preview",
       "previewHint": "Show the sender and text. Off: just “New message”. Locked chats never show them.",
       "sound": "Sound",
-      "soundHint": "Play a sound for new messages. Quiet hours keep it silent.",
+      "soundHint": "Sounds while the app is open. Muted chats and quiet hours stay silent.",
       "testHint": "Check that notifications reach your devices.",
       "test": "Send test notification",
       "testSending": "Sending…",
@@ -1119,6 +1121,47 @@
       "removeLabel": "Stop notifications on {{name}}",
       "removed": "That device won’t get notifications any more.",
       "removeFailed": "Couldn’t remove that device. Try again."
+    },
+    "sounds": {
+      "title": "Sounds",
+      "volume": "Volume",
+      "tone": "New message tone",
+      "tones": {
+        "chime": "{{brand}} chime",
+        "bubble": "Bubble",
+        "marimba": "Marimba",
+        "glass": "Glass"
+      },
+      "preview": "Play {{tone}}",
+      "soundMessages": "New messages",
+      "soundMessagesHint": "Your tone, for a message in another chat.",
+      "soundMentions": "Mentions",
+      "soundMentionsHint": "A different sound when someone @mentions you.",
+      "soundSent": "Sending",
+      "soundSentHint": "A soft swoosh when you send a message.",
+      "soundOpenChat": "Chat on screen",
+      "soundOpenChatHint": "A quiet tick for a new message in the chat you have open."
+    },
+    "gate": {
+      "title": "Turn on notifications",
+      "text": "The team talks on {{brand}}. Turn on notifications so you never miss a message, even when the app is closed.",
+      "turnOn": "Turn on notifications",
+      "later": "Later",
+      "iosText": "On iPhone and iPad, notifications only work in the installed app. Add {{brand}} to your Home Screen, open it from there, and turn notifications on.",
+      "iosStep1": "Tap the Share button in Safari.",
+      "iosStep2": "Choose “Add to Home Screen”, then Add.",
+      "iosStep3": "Open {{brand}} from the new icon and turn on notifications.",
+      "deniedText": "Your browser is blocking notifications from {{brand}}, so you would miss messages. Allow them again:",
+      "checkAgain": "I’ve allowed them"
+    },
+    "banner": {
+      "label": "Notifications",
+      "ask": "Notifications are off. Turn them on so you don’t miss messages.",
+      "off": "Notifications are off on this device.",
+      "denied": "Your browser blocks notifications from {{brand}}.",
+      "ios": "Add {{brand}} to your Home Screen to get notifications.",
+      "turnOn": "Turn on",
+      "howTo": "How to"
     }
   },
   "lock": {
@@ -1432,5 +1475,54 @@
     "privacySearch": "Find colleagues",
     "privacyResults": "Colleagues",
     "privacyFailed": "Couldn’t save your status privacy."
+  },
+  "adminPush": {
+    "title": "Notifications",
+    "subtitle": "Who gets notified, on which devices.",
+    "menuHint": "Devices, push on or off, reminders",
+    "summary_one": "{{count}} person · {{off}} without notifications",
+    "summary_other": "{{count}} people · {{off}} without notifications",
+    "onlyOff": "Notifications OFF only",
+    "onlyOffHint": "People with no device that gets notifications.",
+    "selectShown": "Select all shown",
+    "remind": "Remind ({{count}})",
+    "reminded_one": "Reminder sent to {{count}} person.",
+    "reminded_other": "Reminder sent to {{count}} people.",
+    "remindFailed": "Couldn’t send the reminder. Try again.",
+    "export": "Export CSV",
+    "allOn": "Everyone has notifications on.",
+    "empty": "No one here yet.",
+    "listLabel": "People and their devices",
+    "on": "ON",
+    "off": "OFF",
+    "app": "Installed app",
+    "browser": "Browser",
+    "unknownWhere": "Not reported",
+    "pushOn": "push on",
+    "pushOff": "push off",
+    "blocked": "blocked in browser",
+    "active": "active {{when}}",
+    "lastSeen": "Last seen {{when}}",
+    "neverSeen": "Not seen yet",
+    "noDevices": "Not signed in on any device.",
+    "devicesOf": "Devices of {{name}}",
+    "select": "Select {{name}}",
+    "platforms": {
+      "android": "Android",
+      "iphone": "iPhone",
+      "windows": "Windows",
+      "mac": "Mac",
+      "linux": "Linux",
+      "other": "Other"
+    },
+    "csvHeader": [
+      "Name",
+      "Email",
+      "Username",
+      "Notifications",
+      "Devices",
+      "Device details",
+      "Last seen"
+    ]
   }
 }

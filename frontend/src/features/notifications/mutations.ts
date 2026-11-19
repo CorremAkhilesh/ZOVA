@@ -1,10 +1,10 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import type { PushSettings, PushState } from '@zuvo/protocol';
+import type { PushSettings, PushState, UpdatePushSettings } from '@zuvo/protocol';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { PUSH_KEY, pushApi } from './api';
 
-/** Preview and sound: shown at once, undone if the server refuses. The same on all my devices. */
+/** Preview and sounds: shown at once, undone if the server refuses. The same on all my devices. */
 export function useSavePushSettings() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -13,10 +13,13 @@ export function useSavePushSettings() {
       state ? { ...state, settings } : state,
     );
   return useMutation({
-    mutationFn: (changes: Partial<PushSettings>) => pushApi.saveSettings(changes),
+    mutationFn: (changes: UpdatePushSettings) => pushApi.saveSettings(changes),
     onMutate: (changes) => {
       const before = queryClient.getQueryData<PushState>(PUSH_KEY)?.settings;
-      if (before) write({ ...before, ...changes });
+      const given = Object.fromEntries(
+        Object.entries(changes).filter(([, value]) => value !== undefined),
+      ) as Partial<PushSettings>;
+      if (before) write({ ...before, ...given });
       return { before };
     },
     onSuccess: (saved) => {

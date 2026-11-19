@@ -60,4 +60,27 @@ describe('Web Push queries use indexes', () => {
       AuthSession.find({ _id: { $in: [id(), id()] }, expiresAt: { $gt: new Date() } }),
     );
   });
+
+  it('Admin → Notifications: people by _id, their sessions, subscriptions; hidden admins', async () => {
+    const { AuthSession, AuthUser } = registerAuthModels(db.connection);
+    await expectIndexedQuery(
+      AuthUser.find({ status: { $ne: 'deactivated' }, _id: { $gt: id() } })
+        .sort({ _id: 1 })
+        .limit(51),
+    );
+    await expectIndexedQuery(
+      AuthSession.find({ userId: { $in: [id(), id()] }, expiresAt: { $gt: new Date() } }).sort({
+        expiresAt: -1,
+      }),
+    );
+    await expectIndexedQuery(AuthSession.find({ _id: id() }));
+    const { PushSubscription } = registerPushModels(db.connection);
+    await expectIndexedQuery(PushSubscription.find({ userId: { $in: [id(), id()] } }));
+    // hidden-members.ts: the ADMIN_EMAILS accounts, and which of them are in these groups.
+    await expectIndexedQuery(AuthUser.find({ email: { $in: ['a@corremadvisory.com'] } }));
+    const { ChatMember } = registerChatModels(db.connection);
+    await expectIndexedQuery(
+      ChatMember.find({ chatId: { $in: [id(), id()] }, userId: { $in: [id()] }, leftAt: null }),
+    );
+  });
 });

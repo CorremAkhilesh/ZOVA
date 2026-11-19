@@ -6,6 +6,7 @@ import { Switch } from '@/features/quiet-hours/components/Switch';
 import { SettingsSection } from '@/features/settings/SettingsPage';
 import { usePushState } from '../api';
 import { useSavePushSettings, useSendTestPush } from '../mutations';
+import { NotificationSounds } from './NotificationSounds';
 import { PushDevices } from './PushDevices';
 import { ThisDevicePush } from './ThisDevicePush';
 
@@ -49,12 +50,6 @@ export default function PushSettings() {
           checked={settings.showPreview}
           onChange={(showPreview) => save.mutate({ showPreview })}
         />
-        <Switch
-          label={t('notifications.settings.sound')}
-          hint={t('notifications.settings.soundHint')}
-          checked={settings.sound}
-          onChange={(sound) => save.mutate({ sound })}
-        />
         {publicKey ? (
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm text-text-muted">{t('notifications.settings.testHint')}</p>
@@ -67,6 +62,7 @@ export default function PushSettings() {
           </div>
         ) : null}
       </SettingsSection>
+      <NotificationSounds settings={settings} onSave={(changes) => save.mutate(changes)} />
       <PushDevices devices={devices} />
     </>
   );

@@ -412,16 +412,25 @@ for the dark theme. `PUT /v1/chats/:id/wallpaper` sets one chat's own wallpaper.
 
 Web Push (Step 18, `docs/adr/0008-web-push.md`). Schemas: `shared/protocol/src/rest/push.ts`.
 
-| Endpoint                          | Purpose                                                                 |
-| --------------------------------- | ----------------------------------------------------------------------- |
-| `GET /v1/me/push`                 | `{ publicKey, settings, devices }`; `publicKey` null: push is off here  |
-| `PUT /v1/me/push/subscription`    | This device's `PushSubscription.toJSON()` (https only) → `{ device }`   |
-| `DELETE /v1/me/push/subscription` | `{ endpoint }`, mine only → `{ removed }`                               |
-| `DELETE /v1/me/push/devices/:id`  | One of my devices (someone else's is 404) → `{ removed }`               |
-| `PUT /v1/me/push/settings`        | `{ showPreview?, sound? }`, only what is sent → `{ settings }`          |
-| `POST /v1/me/push/test`           | A `test` push to this device's subscriptions → `{ sent }`               |
-| `POST /v1/chats/:id/read`         | The notification's "Mark as read" (same as `read:update`), plus `badge` |
-| `POST /v1/chats/:id/reply`        | Inline "Reply": `{ clientMsgId, text }`, every send rule → the send ack |
+| Endpoint                              | Purpose                                                                                                                                         |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /v1/me/push`                     | `{ publicKey, settings, devices }`; `publicKey` null: push is off here                                                                          |
+| `PUT /v1/me/push/subscription`        | This device's `PushSubscription.toJSON()` (https only) → `{ device }`                                                                           |
+| `DELETE /v1/me/push/subscription`     | `{ endpoint }`, mine only → `{ removed }`                                                                                                       |
+| `DELETE /v1/me/push/devices/:id`      | One of my devices (someone else's is 404) → `{ removed }`                                                                                       |
+| `PUT /v1/me/push/settings`            | `{ showPreview?, sound?, soundVolume?, tone?, soundMessages?, soundMentions?, soundSent?, soundOpenChat? }`, only what is sent → `{ settings }` |
+| `PUT /v1/me/push/client`              | `{ permission, installed, enabled }` for this device (session) → `{ ok }`                                                                       |
+| `GET /v1/admin/notifications`         | Admin: active people, their devices, push on/off per device (cursor)                                                                            |
+| `POST /v1/admin/notifications/remind` | Admin: `{ userIds }` (≤ 100) get a 1:1 message with the steps, audited → `{ sent }`                                                             |
+| `POST /v1/me/push/test`               | A `test` push to this device's subscriptions → `{ sent }`                                                                                       |
+| `POST /v1/chats/:id/read`             | The notification's "Mark as read" (same as `read:update`), plus `badge`                                                                         |
+| `POST /v1/chats/:id/reply`            | Inline "Reply": `{ clientMsgId, text }`, every send rule → the send ack                                                                         |
+
+Settings default to on: whatever an account never set reads its default (`toPushSettings`), so old
+accounts get the new sounds on with no migration, and chat mutes are never touched. In-app sounds,
+the "Turn on notifications" step and the banner: `docs/sounds.md` and
+`frontend/src/features/notifications/nudge.ts`. On Android a push vibrates (buzz, pause, buzz) unless
+it is silent.
 
 A subscription belongs to the **session** that registered it (one per device; a new endpoint replaces
 the old one, and an endpoint signed in by someone else moves to them). It is deleted when the session

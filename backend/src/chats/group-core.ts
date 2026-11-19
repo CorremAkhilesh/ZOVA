@@ -6,6 +6,7 @@ import type { ChatDoc, ChatMemberDoc, LastMessageSnapshot, MessageDoc } from '..
 import { AppError } from '../lib/errors.ts';
 import { type UserDoc, usersModel } from '../users/user-record.ts';
 import { chatModels, oid, requireMember } from './chats.service.ts';
+import { hiddenCountsByMember } from './hidden-members.ts';
 import { toLastMessage, toMessage } from './message-format.ts';
 import { visiblePins } from './pin-view.ts';
 import { logUpdates } from './updates.ts';
@@ -21,14 +22,16 @@ export const photoUrls = (chat: Pick<ChatDoc, '_id' | 'group'>) => {
 };
 
 /** A group as this member sees it. Someone who left sees it as it was when they left. */
-export function groupView(chat: ChatDoc, member: ChatMemberDoc): GroupInfo {
+export function groupView(chat: ChatDoc, member: ChatMemberDoc, hiddenMembers = 0): GroupInfo {
   const { group } = chat;
+  // A hidden admin who is a member is not counted for a normal member (hidden-members.ts).
+  const count = Math.max(1, (group?.memberCount ?? 0) - hiddenMembers);
   const frozen = member.leftAt ? member.leftView?.group : undefined;
   return {
     name: frozen?.name ?? group?.name ?? '',
     description: frozen?.description ?? group?.description ?? '',
     photo: frozen ? frozen.photo : photoUrls(chat),
-    memberCount: frozen?.memberCount ?? group?.memberCount ?? 0,
+    memberCount: frozen?.memberCount ?? (group ? count : 0),
     settings: { ...DEFAULT_GROUP_SETTINGS, ...group?.settings },
     myRole: member.role,
     active: member.leftAt === null,
@@ -62,6 +65,8 @@ export interface StoredSystemMessage {
   lastMessage: LastMessageSnapshot;
   members: ChatMemberDoc[];
   cursors: Map<string, string>;
+  /** Hidden admins each member must not count (see hidden-members.ts). */
+  hiddenCounts: Map<string, number>;
 }
 
 interface AppendOptions {
@@ -142,12 +147,13 @@ export async function appendSystemMessage(
   );
   const chat = await models.Chat.findById(chatId).session(session).lean();
   if (!chat) throw new AppError('NOT_FOUND', 'Group not found.');
-  return { doc, chat, lastMessage, members, cursors };
+  const hiddenCounts = await hiddenCountsByMember(app, members);
+  return { doc, chat, lastMessage, members, cursors, hiddenCounts };
 }
 
 /** After commit: every member hears about the message, and the group as they now see it. */
 export function deliverSystemMessage(app: FastifyInstance, stored: StoredSystemMessage) {
-  const { doc, chat, lastMessage, members, cursors } = stored;
+  const { doc, chat, lastMessage, members, cursors, hiddenCounts } = stored;
   for (const member of members) {
     const viewerId = member.userId.toString();
     const cursor = cursors.get(viewerId) ?? '0';
@@ -162,7 +168,9 @@ export function deliverSystemMessage(app: FastifyInstance, stored: StoredSystemM
       unreadCount: Math.max(0, message.seq - member.lastReadSeq),
       lastActivityAt: message.createdAt,
       // System messages also announce pins in 1:1 chats, which have no group to show.
-      ...(chat.type === 'group' ? { group: groupView(chat, member) } : {}),
+      ...(chat.type === 'group'
+        ? { group: groupView(chat, member, hiddenCounts.get(viewerId) ?? 0) }
+        : {}),
       pins: visiblePins(chat.pins, member),
       disappearing: chat.disappearing ?? 'off',
       cursor,

@@ -1,6 +1,6 @@
 import { pushPayloadSchema } from '@zuvo/protocol';
 import { describe, expect, it } from 'vitest';
-import { notificationFor, readNotificationData } from './notification';
+import { notificationFor, readNotificationData, VIBRATE_PATTERN } from './notification';
 import { parsePushPayload, readPushJson } from './payload';
 import { swStrings } from './strings';
 import { CHAT, KEY, message } from './test-fixtures';
@@ -80,6 +80,15 @@ describe('notificationFor', () => {
       swStrings('en'),
     );
     expect(silent.options).toMatchObject({ silent: true, renotify: false });
+  });
+
+  it('vibrates on Android (buzz, pause, buzz), but never for a silent one', () => {
+    expect(notificationFor(message(), can, swStrings('en')).options.vibrate).toEqual(
+      VIBRATE_PATTERN,
+    );
+    expect(
+      notificationFor(message({ silent: true }), can, swStrings('en')).options.vibrate,
+    ).toBeUndefined();
   });
 
   it('offers Reply only where text replies work, and never for hidden chats', () => {

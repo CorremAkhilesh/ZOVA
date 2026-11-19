@@ -2,7 +2,6 @@ import { act, cleanup, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { useInstallStore } from '@/features/install/install-store';
-import { PUSH_CARD_DISMISSED_KEY, usePushPrefs } from '@/features/notifications/prefs';
 import {
   installPushBrowser,
   restorePushBrowser,
@@ -49,7 +48,6 @@ async function openChats() {
   return app;
 }
 const installBar = () => screen.findByRole('complementary', { name: /^Install the app/ }, SLOW);
-const pushBar = () => screen.findByRole('complementary', { name: /Get notified/ }, SLOW);
 const wait = (ms: number) => act(() => new Promise((resolve) => setTimeout(resolve, ms)));
 
 describe('chat list promo bar', () => {
@@ -76,30 +74,14 @@ describe('chat list promo bar', () => {
     });
   });
 
-  it('never shows both: notifications first, and nothing replaces them this visit', async () => {
+  it('only ever offers the install: notifications have their own step and banner', async () => {
     servePush();
     installPushBrowser({ permission: 'default' });
-    await openChats();
-    firePrompt();
-    await pushBar();
-    expect(screen.getAllByTestId('promo-bar')).toHaveLength(1);
-    expect(screen.queryByRole('complementary', { name: /^Install the app/ })).toBeNull();
-
-    await userEvent.setup().click(screen.getByRole('button', { name: 'Not now' }));
-    await wait(PROMO_DELAY_MS + 300);
-    expect(screen.queryByTestId('promo-bar')).toBeNull();
-    expect(localStorage.getItem(PUSH_CARD_DISMISSED_KEY)).toBe('1');
-  });
-
-  it('on a later visit with notifications dismissed, offers the install', async () => {
-    servePush();
-    installPushBrowser({ permission: 'default' });
-    localStorage.setItem(PUSH_CARD_DISMISSED_KEY, '1');
-    usePushPrefs.getState().reload();
     await openChats();
     firePrompt();
     expect(await installBar()).toBeInTheDocument();
     expect(screen.getAllByTestId('promo-bar')).toHaveLength(1);
+    expect(screen.queryByRole('complementary', { name: /Get notified/ })).toBeNull();
   });
 
   it('lies over the list: out of flow, after the list, nothing before it moves', async () => {

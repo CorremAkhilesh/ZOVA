@@ -7,6 +7,7 @@ import {
   type SendMessageAck,
   type SendMessagePayload,
 } from '@zuvo/protocol';
+import { soundForSent } from '@/features/notifications/app-sounds';
 import { uuidv7 } from '@/lib/uuid';
 import { mergeChat } from './apply';
 import type { LocalDb, OutboxRow, UploadFailReason } from './local-db';
@@ -115,6 +116,7 @@ export class Outbox {
         createdAt,
       });
     });
+    soundForSent();
     void this.flush();
     return clientMsgId;
   }
