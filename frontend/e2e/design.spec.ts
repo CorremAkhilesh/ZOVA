@@ -43,9 +43,10 @@ for (const width of [1366, 375] as const) {
     // Three photo changes: one line with a count.
     await expect(list.getByText('You changed the group photo (3)')).toBeVisible(SLOW);
     // The long message folds; "Read more" opens it.
-    await expect(list.getByText(/Note 15:/)).toBeVisible(SLOW);
+    const readMore = list.getByRole('button', { name: 'Read more' });
+    await expect(readMore).toBeVisible(SLOW);
     await expect(list.getByText(/Note 25:/)).toHaveCount(0);
-    await list.getByRole('button', { name: 'Read more' }).click();
+    await readMore.click();
     await expect(list.getByText(/Note 25:/)).toBeVisible();
     // Ravi's run: tight gaps inside it.
     const gap = await asha.page.evaluate(() => {
