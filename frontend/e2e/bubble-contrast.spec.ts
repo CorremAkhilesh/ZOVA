@@ -124,8 +124,11 @@ async function contrastProblems(page: Page): Promise<Problem[]> {
 test('every bubble is readable in light and dark with every accent (axe color-contrast)', async ({
   browser,
   browserName,
+  isMobile,
 }) => {
   test.skip(browserName !== 'chromium', 'Colours are the same in every browser; one is enough');
+  // The same colours on a phone; the desktop layout gives the right-click menu this test uses.
+  test.skip(isMobile, 'Colours do not depend on the viewport');
   const asha = await newPerson(browser, 'Asha');
   const bharat = await newPerson(browser, 'Bharat');
   await createGroup(asha.page, GROUP, [bharat]);
