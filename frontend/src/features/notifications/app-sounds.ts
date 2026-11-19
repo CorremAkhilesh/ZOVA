@@ -9,6 +9,7 @@ import {
   SOUND_GAP_MS,
   sentSound,
 } from './sound-rules';
+import type { SoundName } from './sounds/synth';
 
 /**
  * The sounds while the app is open: a new message, an @mention, the quiet tick in the chat on screen,
@@ -18,6 +19,13 @@ import {
 let settings: PushSettings = DEFAULT_PUSH_SETTINGS;
 const incomingGate = createSoundGate(SOUND_GAP_MS);
 const sentGate = createSoundGate(SENT_GAP_MS);
+
+/** The sounds my settings can play: loaded on the first click, so they play at once. */
+export function chosenSounds(): SoundName[] {
+  const names: SoundName[] = [settings.tone, settings.mentionTone, settings.tickTone];
+  if (settings.sentTone !== 'off') names.push(settings.sentTone);
+  return names;
+}
 
 export function setSoundSettings(next: PushSettings | undefined) {
   settings = next ?? DEFAULT_PUSH_SETTINGS;

@@ -6,6 +6,7 @@ import {
   pushSettingsSchema,
   pushSubscriptionBodySchema,
   pushTagFor,
+  SENT_TONES,
   updatePushSettingsBodySchema,
 } from './push.ts';
 
@@ -31,6 +32,17 @@ describe('push', () => {
     expect(updatePushSettingsBodySchema.parse({ sound: false })).toEqual({ sound: false });
     expect(updatePushSettingsBodySchema.safeParse({ tone: 'horn' }).success).toBe(false);
     expect(updatePushSettingsBodySchema.safeParse({ soundVolume: 101 }).success).toBe(false);
+    // Sending: Droplet C unless chosen otherwise; the soft versions are choices, never the default.
+    expect(DEFAULT_PUSH_SETTINGS).toMatchObject({
+      sentTone: 'droplet-c',
+      tone: 'chime',
+      mentionTone: 'mention',
+      tickTone: 'tick',
+    });
+    expect(SENT_TONES).toEqual(['droplet-c', 'droplet-a', 'droplet-b', 'swoosh', 'off']);
+    expect(updatePushSettingsBodySchema.safeParse({ sentTone: 'off' }).success).toBe(true);
+    expect(updatePushSettingsBodySchema.safeParse({ sentTone: 'plop' }).success).toBe(false);
+    expect(updatePushSettingsBodySchema.safeParse({ tone: 'chime-soft' }).success).toBe(true);
   });
 
   it('reads the payloads the service worker gets', () => {

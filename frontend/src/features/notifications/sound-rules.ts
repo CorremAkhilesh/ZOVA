@@ -43,14 +43,15 @@ export function incomingSound(message: Message, ctx: SoundContext): SoundName | 
   if (!settings.sound || !ctx.visible || !worthASound(message, ctx)) return null;
   const mentioned = mentionsMe(message, ctx.me);
   if (!ctx.quietAllows({ chatId: message.chatId, mentionsMe: mentioned })) return null;
-  if (message.chatId === ctx.openChatId) return settings.soundOpenChat ? 'tick' : null;
-  if (mentioned) return settings.soundMentions ? 'mention' : null;
+  if (message.chatId === ctx.openChatId) return settings.soundOpenChat ? settings.tickTone : null;
+  if (mentioned) return settings.soundMentions ? settings.mentionTone : null;
   return settings.soundMessages ? settings.tone : null;
 }
 
-/** The swoosh after I send, unless sounds or that kind are off, or quiet hours are on. */
+/** The sound after I send (a droplet by default), unless it or all sounds are off, or quiet hours. */
 export function sentSound(settings: PushSettings, quiet: boolean): SoundName | null {
-  return settings.sound && settings.soundSent && !quiet ? 'sent' : null;
+  if (!settings.sound || quiet || settings.sentTone === 'off') return null;
+  return settings.sentTone;
 }
 
 /**
@@ -61,7 +62,7 @@ export function createSoundGate(gapMs: number) {
   let last = Number.NEGATIVE_INFINITY;
   let lastWasMention = false;
   return (sound: SoundName, now: number = Date.now()): boolean => {
-    const mention = sound === 'mention';
+    const mention = sound === 'mention' || sound === 'mention-soft';
     const open = now - last >= gapMs || (mention && !lastWasMention);
     if (!open) return false;
     last = now;

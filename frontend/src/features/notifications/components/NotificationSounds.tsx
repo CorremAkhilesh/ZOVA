@@ -1,23 +1,20 @@
-import { brand } from '@zuvo/config';
 import {
+  MENTION_TONES,
   MESSAGE_TONES,
-  type MessageTone,
   type PushSettings,
+  SENT_TONES,
+  TICK_TONES,
   type UpdatePushSettings,
 } from '@zuvo/protocol';
-import { Play } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button } from '@/components/ui/button';
 import { Switch } from '@/features/quiet-hours/components/Switch';
 import { SettingsSection } from '@/features/settings/SettingsPage';
 import { cn } from '@/lib/utils';
-import { playSound, unlockAudio } from '../sound';
+import { SoundChoice } from './SoundChoice';
 
 /** The slider saves this long after it stops moving: one request, not one per step. */
 const VOLUME_SAVE_MS = 400;
-
-const KINDS = ['soundMessages', 'soundMentions', 'soundSent', 'soundOpenChat'] as const;
 
 function Volume({
   value,
@@ -58,60 +55,6 @@ function Volume({
   );
 }
 
-function Tones({
-  settings,
-  disabled,
-  onPick,
-}: {
-  settings: PushSettings;
-  disabled: boolean;
-  onPick: (tone: MessageTone) => void;
-}) {
-  const { t } = useTranslation();
-  // Shown chosen at once; the saved setting catches up (and wins if the save is refused).
-  const [picked, setPicked] = useState(settings.tone);
-  useEffect(() => setPicked(settings.tone), [settings.tone]);
-  const preview = (tone: MessageTone) => {
-    unlockAudio();
-    playSound(tone, Math.max(settings.soundVolume, 20));
-  };
-  return (
-    <fieldset disabled={disabled} className={cn('space-y-2', disabled && 'opacity-60')}>
-      <legend className="mb-2 font-medium">{t('notifications.sounds.tone')}</legend>
-      {MESSAGE_TONES.map((tone) => (
-        <div key={tone} className="flex items-center gap-3 rounded-xl border px-3 py-2">
-          <label className="flex flex-1 cursor-pointer items-center gap-3">
-            <input
-              type="radio"
-              name="message-tone"
-              value={tone}
-              checked={picked === tone}
-              onChange={() => {
-                setPicked(tone);
-                onPick(tone);
-                preview(tone);
-              }}
-              className="size-4 accent-brand"
-            />
-            <span>{t(`notifications.sounds.tones.${tone}`, { brand: brand.name })}</span>
-          </label>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            aria-label={t('notifications.sounds.preview', {
-              tone: t(`notifications.sounds.tones.${tone}`, { brand: brand.name }),
-            })}
-            onClick={() => preview(tone)}
-          >
-            <Play className="size-4" aria-hidden />
-          </Button>
-        </div>
-      ))}
-    </fieldset>
-  );
-}
-
 /** Settings → Notifications → Sounds: on/off, volume, the message tone, and each kind on its own. */
 export function NotificationSounds({
   settings,
@@ -135,17 +78,59 @@ export function NotificationSounds({
         disabled={off}
         onSave={(soundVolume) => onSave({ soundVolume })}
       />
-      <Tones settings={settings} disabled={off} onPick={(tone) => onSave({ tone })} />
-      {KINDS.map((kind) => (
-        <Switch
-          key={kind}
-          label={t(`notifications.sounds.${kind}`)}
-          hint={t(`notifications.sounds.${kind}Hint`)}
-          checked={settings[kind]}
-          disabled={off}
-          onChange={(on) => onSave({ [kind]: on })}
-        />
-      ))}
+      <Switch
+        label={t('notifications.sounds.soundMessages')}
+        hint={t('notifications.sounds.soundMessagesHint')}
+        checked={settings.soundMessages}
+        disabled={off}
+        onChange={(soundMessages) => onSave({ soundMessages })}
+      />
+      <SoundChoice
+        legend={t('notifications.sounds.tone')}
+        options={MESSAGE_TONES}
+        value={settings.tone}
+        volume={settings.soundVolume}
+        disabled={off || !settings.soundMessages}
+        onPick={(tone) => onSave({ tone })}
+      />
+      <Switch
+        label={t('notifications.sounds.soundMentions')}
+        hint={t('notifications.sounds.soundMentionsHint')}
+        checked={settings.soundMentions}
+        disabled={off}
+        onChange={(soundMentions) => onSave({ soundMentions })}
+      />
+      <SoundChoice
+        legend={t('notifications.sounds.mentionTone')}
+        options={MENTION_TONES}
+        value={settings.mentionTone}
+        volume={settings.soundVolume}
+        disabled={off || !settings.soundMentions}
+        onPick={(mentionTone) => onSave({ mentionTone })}
+      />
+      <SoundChoice
+        legend={t('notifications.sounds.sentTone')}
+        options={SENT_TONES}
+        value={settings.sentTone}
+        volume={settings.soundVolume}
+        disabled={off}
+        onPick={(sentTone) => onSave({ sentTone })}
+      />
+      <Switch
+        label={t('notifications.sounds.soundOpenChat')}
+        hint={t('notifications.sounds.soundOpenChatHint')}
+        checked={settings.soundOpenChat}
+        disabled={off}
+        onChange={(soundOpenChat) => onSave({ soundOpenChat })}
+      />
+      <SoundChoice
+        legend={t('notifications.sounds.tickTone')}
+        options={TICK_TONES}
+        value={settings.tickTone}
+        volume={settings.soundVolume}
+        disabled={off || !settings.soundOpenChat}
+        onPick={(tickTone) => onSave({ tickTone })}
+      />
     </SettingsSection>
   );
 }

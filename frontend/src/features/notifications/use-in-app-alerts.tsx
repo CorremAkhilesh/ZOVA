@@ -12,7 +12,7 @@ import { getUserDb, type LocalDb } from '@/features/sync/local-db';
 import { i18n } from '@/lib/i18n';
 import { type InAppAlert, inAppAlert } from './alert-rules';
 import { usePushState } from './api';
-import { setSoundSettings, soundForIncoming } from './app-sounds';
+import { chosenSounds, setSoundSettings, soundForIncoming } from './app-sounds';
 import { installAudioUnlock } from './sound';
 import { currentWindowState, onIncomingMessage } from './window-state';
 
@@ -108,7 +108,7 @@ export function useInAppAlerts(): void {
   setSoundSettings(settings);
 
   // Browsers allow audio only after a click or key press: unlock (and load the sounds) on the first.
-  useEffect(() => installAudioUnlock(), []);
+  useEffect(() => installAudioUnlock(chosenSounds), []);
 
   useEffect(
     () =>
