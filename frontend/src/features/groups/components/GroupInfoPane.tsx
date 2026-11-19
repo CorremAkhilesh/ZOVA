@@ -1,165 +1,42 @@
-import { useMutation } from '@tanstack/react-query';
 import {
   AVATAR_MIME_TYPES,
   GROUP_DESCRIPTION_MAX,
   GROUP_NAME_MAX,
   type GroupInfo,
-  type GroupSettings,
 } from '@zuvo/protocol';
-import { Camera, Check, LogOut, Pencil } from 'lucide-react';
+import { ArrowLeft, Camera, LogOut } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/dialog';
-import { authErrorMessage } from '@/features/auth/errors';
 import { useSession } from '@/features/auth/session';
 import { ChatAvatar } from '@/features/chats/components/ChatAvatar';
-import { useLocalDb } from '@/features/chats/queries';
 import type { ChatSummary } from '@/features/chats/types';
 import { DisappearingRow } from '@/features/disappearing/DisappearingRow';
 import { ChatGallery } from '@/features/media/components/ChatGallery';
-import { applyChats } from '@/features/sync/apply';
 import type { ChatRow } from '@/features/sync/local-db';
 import { groupsApi } from '../api';
 import { useGroupMembers } from '../queries';
 import { groupAbilities } from '../rules';
+import { EditableText, GroupSettingsSection, useChange } from './GroupInfoEdit';
+import {
+  InfoActions,
+  InfoCard,
+  InfoRow,
+  InfoShortcuts,
+  MediaSummary,
+  ReportGroupRow,
+} from './GroupInfoParts';
 import { GroupInviteSection } from './GroupInviteSection';
 import { GroupMembersSection } from './GroupMembersSection';
-
-/** Saves the answer straight away, so this screen and the chat list change at once. */
-function useChange(chatId: string) {
-  const { t } = useTranslation();
-  const db = useLocalDb();
-  return useMutation({
-    mutationFn: (work: () => ReturnType<typeof groupsApi.leave>) => work(),
-    onSuccess: async (chat) => {
-      if (db) await applyChats(db, [chat]);
-    },
-    onError: (error) => toast.error(authErrorMessage(error, t)),
-    mutationKey: ['group-change', chatId],
-  });
-}
-
-function EditableText(props: {
-  value: string;
-  placeholder: string;
-  label: string;
-  maxLength: number;
-  canEdit: boolean;
-  onSave: (value: string) => void;
-  required?: boolean;
-  className?: string;
-}) {
-  const { t } = useTranslation();
-  const { value, placeholder, label, maxLength, canEdit, onSave, required, className } = props;
-  const [draft, setDraft] = useState<string | null>(null);
-  if (draft === null) {
-    return (
-      <div className="flex items-center justify-center gap-1">
-        <p className={className}>{value || placeholder}</p>
-        {canEdit ? (
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label={t('groups.edit', { what: label })}
-            onClick={() => setDraft(value)}
-          >
-            <Pencil className="size-3.5" />
-          </Button>
-        ) : null}
-      </div>
-    );
-  }
-  const save = () => {
-    const next = draft.trim();
-    setDraft(null);
-    if (next !== value && (next || !required)) onSave(next);
-  };
-  return (
-    <form
-      className="flex w-full items-center gap-1"
-      onSubmit={(event) => {
-        event.preventDefault();
-        save();
-      }}
-    >
-      <input
-        aria-label={label}
-        value={draft}
-        maxLength={maxLength}
-        onChange={(event) => setDraft(event.target.value)}
-        // biome-ignore lint/a11y/noAutofocus: the person just asked to edit this
-        autoFocus
-        className="min-w-0 flex-1 rounded-lg border bg-surface px-2 py-1 text-sm"
-      />
-      <Button type="submit" variant="ghost" size="icon-sm" aria-label={t('groups.save')}>
-        <Check className="size-4" />
-      </Button>
-    </form>
-  );
-}
-
-const SETTING_KEYS = [
-  'editInfo',
-  'sendMessages',
-  'addMembers',
-  'pinMessages',
-  'disappearing',
-] as const;
-
-function GroupSettingsSection(props: { chatId: string; group: GroupInfo }) {
-  const { t } = useTranslation();
-  const { chatId, group } = props;
-  const change = useChange(chatId);
-  return (
-    <section aria-label={t('groups.settingsTitle')} className="space-y-2 px-4 py-3">
-      <h3 className="text-sm font-semibold">{t('groups.settingsTitle')}</h3>
-      {SETTING_KEYS.map((key) => (
-        <label key={key} className="flex items-center justify-between gap-2 text-sm">
-          {key === 'disappearing' ? t('disappearing.title') : t(`groups.settings.${key}`)}
-          <select
-            value={group.settings[key]}
-            onChange={(event) => {
-              // Read now: a controlled select goes back to its old value until the answer arrives.
-              const value = event.target.value as GroupSettings[typeof key];
-              change.mutate(() => groupsApi.updateSettings(chatId, { [key]: value }));
-            }}
-            className="rounded-lg border bg-surface px-2 py-1 text-sm"
-          >
-            <option value="all">{t('groups.settings.all')}</option>
-            <option value="admins">{t('groups.settings.admins')}</option>
-          </select>
-        </label>
-      ))}
-      <label className="flex items-center justify-between gap-2 text-sm">
-        {t('groups.settings.mentionEveryone')}
-        <select
-          value={group.settings.mentionEveryone}
-          onChange={(event) => {
-            const value = event.target.value as GroupSettings['mentionEveryone'];
-            change.mutate(() => groupsApi.updateSettings(chatId, { mentionEveryone: value }));
-          }}
-          className="rounded-lg border bg-surface px-2 py-1 text-sm"
-        >
-          <option value="admins">{t('groups.settings.admins')}</option>
-          <option value="off">{t('groups.settings.nobody')}</option>
-        </select>
-      </label>
-    </section>
-  );
-}
 
 function ExitGroup({ chatId }: { chatId: string }) {
   const { t } = useTranslation();
   const [asking, setAsking] = useState(false);
   const change = useChange(chatId);
   return (
-    <div className="px-4 py-3">
-      <Button variant="danger-outline" className="w-full" onClick={() => setAsking(true)}>
-        <LogOut className="size-4" aria-hidden />
-        {t('groups.exit')}
-      </Button>
+    <>
+      <InfoRow icon={LogOut} label={t('groups.exit')} danger onClick={() => setAsking(true)} />
       <ConfirmDialog
         open={asking}
         onOpenChange={setAsking}
@@ -172,11 +49,40 @@ function ExitGroup({ chatId }: { chatId: string }) {
           change.mutate(() => groupsApi.leave(chatId), { onSettled: () => setAsking(false) })
         }
       />
+    </>
+  );
+}
+
+/** The full "Media, links and docs", with a way back. */
+function GalleryView(props: {
+  chatId: string;
+  onBack: () => void;
+  onOpenMedia: (id: string) => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex items-center gap-2 px-3 py-2">
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label={t('conversation.back')}
+          onClick={props.onBack}
+        >
+          <ArrowLeft className="size-5" aria-hidden />
+        </Button>
+        <h3 className="font-semibold">{t('info.mediaLinksDocs')}</h3>
+      </div>
+      <ChatGallery chatId={props.chatId} onOpen={props.onOpenMedia} />
     </div>
   );
 }
 
-/** Everything about a group, offering only what this person may do. */
+/**
+ * Everything about a group, offering only what this person may do: photo and name, "Group · N
+ * members", Add and Search, the description, media, starred and mute, disappearing messages, the
+ * members, invite link and settings (admins), then Exit and Report in red.
+ */
 export function GroupInfoBody(props: {
   row: ChatRow;
   chat: ChatSummary;
@@ -189,14 +95,21 @@ export function GroupInfoBody(props: {
   const me = useSession()?.user.id ?? '';
   const members = useGroupMembers(row);
   const change = useChange(row.id);
+  const [adding, setAdding] = useState(false);
+  const [gallery, setGallery] = useState(false);
+  if (gallery) {
+    return (
+      <GalleryView chatId={row.id} onBack={() => setGallery(false)} onOpenMedia={onOpenMedia} />
+    );
+  }
   return (
-    <div className="min-h-0 flex-1 divide-y overflow-y-auto">
-      <div className="flex flex-col items-center gap-2 px-4 py-6 text-center">
+    <div className="min-h-0 flex-1 space-y-2 overflow-y-auto bg-background">
+      <InfoCard className="flex flex-col items-center gap-2 px-4 pt-6 pb-4 text-center">
         <div className="relative">
-          <ChatAvatar chat={chat} className="size-24 text-2xl" />
+          <ChatAvatar chat={chat} className="size-32 text-3xl md:size-40" />
           {abilities.editInfo ? (
-            <label className="absolute right-0 bottom-0 flex size-8 cursor-pointer items-center justify-center rounded-full bg-brand text-brand-foreground">
-              <Camera className="size-4" aria-hidden />
+            <label className="absolute right-1 bottom-1 flex size-10 cursor-pointer items-center justify-center rounded-full bg-brand text-brand-foreground shadow">
+              <Camera className="size-5" aria-hidden />
               <span className="sr-only">{t('groups.changePhoto')}</span>
               <input
                 type="file"
@@ -217,29 +130,70 @@ export function GroupInfoBody(props: {
           maxLength={GROUP_NAME_MAX}
           canEdit={abilities.editInfo}
           required
-          className="text-lg font-semibold"
+          className="text-xl font-semibold"
           onSave={(name) => change.mutate(() => groupsApi.update(row.id, { name }))}
         />
+        <p className="text-sm text-text-muted">
+          {t('info.groupMembers', { count: group.memberCount })}
+        </p>
+        {group.active ? (
+          <div className="pt-2">
+            <InfoActions
+              chatId={row.id}
+              canAdd={abilities.addMembers}
+              onAdd={() => setAdding(true)}
+            />
+          </div>
+        ) : null}
+      </InfoCard>
+      <InfoCard className="px-5 py-3">
         <EditableText
           value={group.description}
-          placeholder={abilities.editInfo ? t('groups.addDescription') : ''}
+          placeholder={abilities.editInfo ? t('groups.addDescription') : t('info.noDescription')}
           label={t('groups.description')}
           maxLength={GROUP_DESCRIPTION_MAX}
           canEdit={abilities.editInfo}
           className="text-sm text-text-muted"
           onSave={(description) => change.mutate(() => groupsApi.update(row.id, { description }))}
         />
-      </div>
+      </InfoCard>
+      <MediaSummary
+        chatId={row.id}
+        onOpenGallery={() => setGallery(true)}
+        onOpenMedia={onOpenMedia}
+      />
+      <InfoShortcuts chatId={row.id} muted={chat.muted} />
       {group.active ? (
-        <GroupMembersSection chatId={row.id} group={group} members={members} me={me} />
+        <InfoCard>
+          <DisappearingRow chat={row} />
+        </InfoCard>
       ) : null}
-      {group.active ? <DisappearingRow chat={row} /> : null}
-      {abilities.manage ? <GroupInviteSection chatId={row.id} /> : null}
-      {abilities.manage ? <GroupSettingsSection chatId={row.id} group={group} /> : null}
-      <div className="flex h-72 flex-col">
-        <ChatGallery chatId={row.id} onOpen={onOpenMedia} />
-      </div>
-      {group.active ? <ExitGroup chatId={row.id} /> : null}
+      {group.active ? (
+        <InfoCard>
+          <GroupMembersSection
+            chatId={row.id}
+            group={group}
+            members={members}
+            me={me}
+            adding={adding}
+            onAdding={setAdding}
+          />
+        </InfoCard>
+      ) : null}
+      {abilities.manage ? (
+        <InfoCard>
+          <GroupInviteSection chatId={row.id} />
+        </InfoCard>
+      ) : null}
+      {abilities.manage ? (
+        <InfoCard>
+          <GroupSettingsSection chatId={row.id} group={group} />
+        </InfoCard>
+      ) : null}
+      <InfoCard className="mb-6">
+        {group.active ? <ExitGroup chatId={row.id} /> : null}
+        <ReportGroupRow chatId={row.id} name={group.name} />
+      </InfoCard>
     </div>
   );
 }

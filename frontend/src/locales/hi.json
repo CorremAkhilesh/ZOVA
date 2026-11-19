@@ -77,7 +77,9 @@
     "newMessageNoText": "{{name}} का नया मैसेज",
     "lastSeenToday": "आज {{time}} पर ऑनलाइन थे",
     "lastSeenYesterday": "कल {{time}} पर ऑनलाइन थे",
-    "lastSeenDate": "{{date}} को ऑनलाइन थे"
+    "lastSeenDate": "{{date}} को ऑनलाइन थे",
+    "jumpToLatestCount_one": "नवीनतम पर जाएँ, {{count}} नया मैसेज",
+    "jumpToLatestCount_other": "नवीनतम पर जाएँ, {{count}} नए मैसेज"
   },
   "empty": {
     "title": "कोई चैट चुनें",
@@ -87,7 +89,15 @@
     "media": "फ़ोटो, लिंक और डॉक्यूमेंट",
     "notifications": "नोटिफ़िकेशन",
     "starred": "स्टार किए गए मैसेज",
-    "about": "अबाउट"
+    "about": "अबाउट",
+    "search": "खोजें",
+    "mediaLinksDocs": "मीडिया, लिंक और डॉक्स",
+    "groupMembers_one": "ग्रुप · {{count}} सदस्य",
+    "groupMembers_other": "ग्रुप · {{count}} सदस्य",
+    "noDescription": "कोई विवरण नहीं",
+    "mute": "नोटिफ़िकेशन म्यूट करें",
+    "reportGroup": "ग्रुप की रिपोर्ट करें",
+    "groupInfo": "ग्रुप की जानकारी"
   },
   "settings": {
     "title": "सेटिंग्स",
@@ -814,6 +824,10 @@
       "owner_changed": "{{actor}} ने {{targets}} को ओनर बनाया",
       "pinned": "{{actor}} ने एक मैसेज पिन किया",
       "owner_auto": "{{targets}} अब ओनर हैं"
+    },
+    "roleBadge": {
+      "owner": "मालिक",
+      "admin": "ग्रुप एडमिन"
     }
   },
   "messages": {
@@ -897,7 +911,8 @@
     "starredEmpty": "अभी कोई मैसेज स्टार नहीं किया गया। किसी मैसेज के मेन्यू में ‘स्टार करें’ चुनें।",
     "starredFailed": "स्टार किए गए मैसेज लोड नहीं हो सके।",
     "openStarred": "यह मैसेज {{name}} में खोलें",
-    "backToChats": "चैट पर वापस"
+    "backToChats": "चैट पर वापस",
+    "readMore": "और पढ़ें"
   },
   "formatting": {
     "copy": "कॉपी करें",
@@ -984,7 +999,8 @@
       "waves": "लहरें",
       "leaves": "पत्तियाँ",
       "confetti": "कॉन्फ़ेटी",
-      "none": "सादा"
+      "none": "सादा",
+      "zuvo": "{{brand}} डूडल"
     },
     "color": {
       "mist": "धुंध",

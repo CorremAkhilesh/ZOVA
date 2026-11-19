@@ -1,5 +1,6 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { brand } from '@zuvo/config';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { prepareImage } from '@/features/media/process';
 import { useMessageUi } from '@/features/messages/store';
@@ -46,7 +47,8 @@ describe('default wallpaper', () => {
     const api = serveAppearance();
     const user = userEvent.setup();
     const { container } = await openSettings();
-    expect(screen.getByRole('radio', { name: 'Dots' })).toBeChecked();
+    // The default is our own doodle.
+    expect(screen.getByRole('radio', { name: `${brand.name} doodle` })).toBeChecked();
     expect(
       await screen.findByText('No pictures yet. Upload one to use it as a wallpaper.'),
     ).toBeInTheDocument();
@@ -151,7 +153,7 @@ describe('a chat’s own wallpaper', () => {
     await seedLocal([chatFixture({ id: 'c1', seq: 0, lastActivityAt: new Date().toISOString() })]);
     const { container } = await renderApp('/chats/c1', { width: DESKTOP_WIDTH });
     const wallpaper = await screen.findByTestId('chat-wallpaper', {}, SLOW);
-    expect(wallpaper).toHaveAttribute('data-wallpaper', 'pattern:dots');
+    expect(wallpaper).toHaveAttribute('data-wallpaper', 'pattern:zuvo');
 
     fireEvent.contextMenu(await screen.findByRole('link', { name: /Asha Verma/ }, SLOW));
     const menu = await screen.findByRole('menu', { name: 'Actions for Asha Verma' });
@@ -164,7 +166,7 @@ describe('a chat’s own wallpaper', () => {
     await user.click(within(dialog).getByRole('radio', { name: 'Blush' }));
     await waitFor(() => expect(wallpaper).toHaveAttribute('data-wallpaper', 'color:blush'));
     await user.click(within(dialog).getByRole('radio', { name: 'Use default' }));
-    await waitFor(() => expect(wallpaper).toHaveAttribute('data-wallpaper', 'pattern:dots'));
+    await waitFor(() => expect(wallpaper).toHaveAttribute('data-wallpaper', 'pattern:zuvo'));
     expect(api.requests).toEqual([
       {
         method: 'PUT',

@@ -5,7 +5,16 @@ const idSchema = z.string().regex(/^[0-9a-f]{24}$/, 'Invalid id');
 
 /** Six accents, each checked for AA contrast in light and dark (see @zuvo/ui-tokens). */
 export const accentSchema = z.enum(['indigo', 'teal', 'violet', 'rose', 'amber', 'sky']);
-export const WALLPAPER_PATTERNS = ['dots', 'grid', 'waves', 'leaves', 'confetti', 'none'] as const;
+/** `zuvo`: the app's own doodle (chat bubbles, ticks, bells, sparkles), the default. */
+export const WALLPAPER_PATTERNS = [
+  'zuvo',
+  'dots',
+  'grid',
+  'waves',
+  'leaves',
+  'confetti',
+  'none',
+] as const;
 export const WALLPAPER_COLORS = ['mist', 'sand', 'sage', 'blush', 'sky', 'slate'] as const;
 export const WALLPAPER_MAX_BYTES = 10 * 1024 * 1024;
 /** Each person keeps at most this many of their own pictures. */
@@ -28,7 +37,7 @@ export const appearanceSchema = z.object({
 });
 export const DEFAULT_APPEARANCE: Appearance = {
   accent: 'indigo',
-  wallpaper: { kind: 'pattern', id: 'dots' },
+  wallpaper: { kind: 'pattern', id: 'zuvo' },
   dim: 30,
 };
 

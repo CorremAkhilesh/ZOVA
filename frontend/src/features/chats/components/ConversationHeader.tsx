@@ -1,9 +1,8 @@
 import { Link } from '@tanstack/react-router';
 import type { GroupMember } from '@zuvo/protocol';
-import { ArrowLeft, Info, Phone, Search, Video } from 'lucide-react';
+import { ArrowLeft, Info, Search } from 'lucide-react';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ComingSoonButton } from '@/components/common/ComingSoonButton';
 import { Button } from '@/components/ui/button';
 import { useSession } from '@/features/auth/session';
 import { ConnectionStatus } from '@/features/connection/ConnectionStatus';
@@ -123,16 +122,11 @@ export function ConversationHeader({
       <span aria-live="polite" className="sr-only">
         {typing ? group.typingLabel || `${chat.name}: ${t('conversation.typing')}` : ''}
       </span>
-      <div className="flex items-center">
+      <div className="flex items-center gap-0.5">
         <DisappearingBadge timer={chat.disappearing} />
         {/* On phones the chat list, which also shows it, is hidden while a chat is open. */}
         {showBack ? <ConnectionStatus /> : null}
-        <ComingSoonButton
-          label={t('placeholder.callsTitle')}
-          icon={Video}
-          className="hidden sm:inline-flex"
-        />
-        <ComingSoonButton label={t('nav.calls')} icon={Phone} className="hidden sm:inline-flex" />
+        {/* Voice and video call buttons come back with the calls feature. */}
         <ScheduledButton chatId={chat.id} />
         <Button
           variant="ghost"

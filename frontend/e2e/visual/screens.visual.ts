@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import {
@@ -12,7 +12,10 @@ import { SLOW } from '../helpers';
 import { GROUP_NAME, type Seeded, seed } from './seed';
 
 const OUT = new URL('../../test-results/visual/', import.meta.url);
-const AXE = createRequire(import.meta.url).resolve('axe-core/axe.min.js');
+const AXE_SOURCE = readFileSync(
+  createRequire(import.meta.url).resolve('axe-core/axe.min.js'),
+  'utf8',
+);
 
 type Theme = 'light' | 'dark';
 interface Viewport {
@@ -25,12 +28,12 @@ const VIEWPORTS: Viewport[] = [
   { name: 'desktop1366', options: { viewport: { width: 1366, height: 768 } } },
   {
     name: 'tablet',
-    options: { viewport: { width: 820, height: 1180 }, hasTouch: true, isMobile: true },
+    options: { viewport: { width: 768, height: 1024 }, hasTouch: true, isMobile: true },
   },
   {
     name: 'phone',
     options: {
-      viewport: { width: 390, height: 844 },
+      viewport: { width: 375, height: 812 },
       deviceScaleFactor: 2,
       hasTouch: true,
       isMobile: true,
@@ -46,6 +49,11 @@ interface Violation {
   targets: string[];
 }
 const violations: Violation[] = [];
+/**
+ * DESIGN_OUT=<folder>: the design review set only (chat list, group chat, group info), each also
+ * copied there as <viewport>-<theme>-<screen>.png.
+ */
+const DESIGN_OUT = process.env.DESIGN_OUT;
 const shots: string[] = [];
 
 async function settle(page: Page) {
@@ -56,9 +64,12 @@ async function settle(page: Page) {
 /** Screenshot + axe (every rule, contrast included) for one screen. */
 async function shoot(page: Page, name: string) {
   await settle(page);
-  await page.screenshot({ path: fileURLToPath(new URL(`${name}.png`, OUT)), fullPage: true });
+  const path = fileURLToPath(new URL(`${name}.png`, OUT));
+  await page.screenshot({ path, fullPage: true });
+  if (DESIGN_OUT) copyFileSync(path, `${DESIGN_OUT}/${name}.png`);
   shots.push(`frontend/test-results/visual/${name}.png`);
-  await page.addScriptTag({ path: AXE });
+  // The app's CSP blocks inline script tags: run axe's source in the page instead.
+  await page.evaluate(AXE_SOURCE);
   const result = await page.evaluate(async () => {
     // biome-ignore lint/suspicious/noExplicitAny: axe is injected as a global script
     const axe = (window as any).axe;
@@ -123,9 +134,11 @@ async function shootAll(page: Page, prefix: string, data: Seeded, hindi = false)
   await expect(page.getByRole('link', { name: /Quarterly/ })).toBeVisible(SLOW);
   await shoot(page, `${prefix}-chat-list`);
 
-  await page.goto(`/chats/${data.directId}`);
-  await expect(page.getByRole('textbox').last()).toBeVisible(SLOW);
-  await shoot(page, `${prefix}-conversation`);
+  if (!DESIGN_OUT) {
+    await page.goto(`/chats/${data.directId}`);
+    await expect(page.getByRole('textbox').last()).toBeVisible(SLOW);
+    await shoot(page, `${prefix}-conversation`);
+  }
 
   await page.goto(`/chats/${data.groupId}`);
   await expect(page.getByRole('heading', { name: GROUP_NAME }).first()).toBeAttached(SLOW);
@@ -133,6 +146,7 @@ async function shootAll(page: Page, prefix: string, data: Seeded, hindi = false)
   await chatInfo(page);
   await shoot(page, `${prefix}-group-info`);
   await page.keyboard.press('Escape');
+  if (DESIGN_OUT) return;
 
   await page.goto('/settings');
   await shoot(page, `${prefix}-settings`);
@@ -174,6 +188,12 @@ test('visual sanity: key screens in every viewport and theme, axe on each', asyn
   for (const vp of VIEWPORTS) {
     if (only && !only.includes(vp.name)) continue;
     for (const theme of ['light', 'dark'] as Theme[]) {
+      if (DESIGN_OUT) {
+        const context = await signedIn(browser, vp, theme, state);
+        await shootAll(await context.newPage(), `${vp.name}-${theme}`, data);
+        await context.close();
+        continue;
+      }
       const welcome = await browser.newContext({
         ...vp.options,
         colorScheme: theme,
@@ -193,7 +213,7 @@ test('visual sanity: key screens in every viewport and theme, axe on each', asyn
 
   // Hindi on a phone, light and dark.
   const phone = VIEWPORTS.find((vp) => vp.name === 'phone') as Viewport;
-  if (!only || only.includes('hindi')) {
+  if (!DESIGN_OUT && (!only || only.includes('hindi'))) {
     for (const theme of ['light', 'dark'] as Theme[]) {
       const context = await signedIn(browser, phone, theme, state);
       const page = await context.newPage();

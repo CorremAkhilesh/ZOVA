@@ -1,5 +1,6 @@
 import { type Browser, expect, type Page } from '@playwright/test';
 import { createGroup, openChatWith, openFromList, type Person, send } from '../chat-helpers';
+import { PHOTO_96 } from '../fixtures';
 import { SLOW, signUp } from '../helpers';
 
 /** A small valid PNG. */
@@ -17,6 +18,28 @@ const LONG_MESSAGE = [
   'Second, please send your team targets by Friday evening; I will merge them into the shared sheet and circulate a summary.',
   'Reference: INV-2026-11-000000000000000000000000000000000000000000000042-FINAL-REVISED-v3',
 ].join('\n\n');
+
+/** About 25 lines: long enough for "Read more". */
+const VERY_LONG = Array.from(
+  { length: 25 },
+  (_, i) =>
+    `${i + 1}. Line ${i + 1} of the travel policy notes, kept here so nobody has to search mail.`,
+).join('\n');
+const LONG_LINK =
+  'Draft is here: https://docs.corremadvisory.com/finance/quarterly-planning/2026/q4/budget-review-final-version-with-comments-from-the-auditors-and-legal-team?tab=summary&view=full';
+
+/** A group photo change, as the app does it (multipart "file"). */
+async function setGroupPhoto(page: Page, chatId: string) {
+  const response = await page.request.post(`/v1/chats/${chatId}/group/photo`, {
+    multipart: { file: { name: 'team.png', mimeType: 'image/png', buffer: PHOTO_96 } },
+  });
+  expect(response.ok(), await response.text()).toBe(true);
+}
+
+async function setAbout(person: Person, about: string) {
+  const response = await person.page.request.patch('/v1/me/profile', { data: { about } });
+  expect(response.ok()).toBe(true);
+}
 
 const HINDI_MESSAGE = 'नमस्ते! कल की मीटिंग 11 बजे है। कृपया अपनी रिपोर्ट आज शाम तक भेज दें। 🙏';
 
@@ -95,6 +118,17 @@ export async function seed(browser: Browser): Promise<Seeded> {
   await sendPoll(asha.page);
   await openFromList(chitra.page, 'Quarterly');
   await send(chitra.page, 'Thanks Asha! I vote for the terrace 😄');
+  await send(chitra.page, 'Also, can we start at 10 instead of 9?');
+  await send(chitra.page, 'Traffic on Monday mornings is terrible.');
+  // Three photo changes in a row: one line, "(3)".
+  for (let i = 0; i < 3; i++) await setGroupPhoto(asha.page, groupId);
+  await openFromList(bharat.page, 'Quarterly');
+  await send(bharat.page, 'Agreed on 10.');
+  await send(bharat.page, LONG_LINK);
+  await send(bharat.page, VERY_LONG);
+  await send(asha.page, 'Perfect, 10 it is. I will update the invite.');
+  await setAbout(bharat, 'Finance lead · Mumbai');
+  await setAbout(chitra, 'Operations · out on Fridays');
 
   await bharat.context.close();
   await chitra.context.close();

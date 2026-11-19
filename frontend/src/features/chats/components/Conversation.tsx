@@ -1,8 +1,7 @@
 import type { PublicProfile } from '@zuvo/protocol';
-import { ArrowDown, Bookmark, Loader2, MessagesSquare } from 'lucide-react';
+import { Bookmark, ChevronDown, Loader2, MessagesSquare } from 'lucide-react';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, FULL_SCREEN_ON_PHONE } from '@/components/ui/dialog';
 import { ChatWallpaper } from '@/features/appearance/components/ChatWallpaper';
 import { useSession } from '@/features/auth/session';
@@ -72,20 +71,25 @@ function OlderStatus(props: { loading: boolean; failed: boolean; onRetry: () => 
   );
 }
 
+/** A small round button, bottom right, with how many new messages wait below. */
 function JumpToLatest({ count, onJump }: { count: number; onJump: () => void }) {
   const { t } = useTranslation();
   return (
-    <Button
-      variant="outline"
+    <button
+      type="button"
       onClick={onJump}
-      className="absolute right-4 bottom-4 rounded-full shadow-md"
+      aria-label={
+        count > 0 ? t('conversation.jumpToLatestCount', { count }) : t('conversation.jumpToLatest')
+      }
+      className="absolute right-3 bottom-3 z-10 flex size-11 items-center justify-center rounded-full border bg-surface text-text-muted shadow-md transition-colors hover:text-text"
     >
-      <ArrowDown className="size-4" aria-hidden />
-      {t('conversation.jumpToLatest')}
+      <ChevronDown className="size-6" aria-hidden />
       {count > 0 ? (
-        <span className="rounded-full bg-brand px-1.5 text-xs text-brand-foreground">{count}</span>
+        <span className="absolute -top-1.5 -right-1 min-w-5 rounded-full bg-accent px-1.5 text-center text-[11px] font-semibold leading-5 text-accent-foreground">
+          {count > 99 ? '99+' : count}
+        </span>
       ) : null}
-    </Button>
+    </button>
   );
 }
 

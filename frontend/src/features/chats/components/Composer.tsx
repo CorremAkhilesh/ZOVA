@@ -110,9 +110,9 @@ export function Composer({ chatId, onSent, onFiles }: ComposerProps) {
   const mode =
     hasText || actions.editing ? 'send' : recorder.active && recorder.locked ? 'none' : 'mic';
   return (
-    // Same horizontal padding and max width as the message column, so they line up.
-    <div className="glass border-t pt-2 pr-[max(0.75rem,env(safe-area-inset-right))] pb-[max(0.5rem,env(safe-area-inset-bottom))] pl-[max(0.75rem,env(safe-area-inset-left))] md:px-8">
-      <div className="mx-auto max-w-3xl">
+    // Same side padding as the message column, so the box lines up with the bubbles.
+    <div className="glass border-t pt-2 pr-[max(0.75rem,env(safe-area-inset-right))] pb-[max(0.5rem,env(safe-area-inset-bottom))] pl-[max(0.75rem,env(safe-area-inset-left))] md:px-[4%] xl:px-[6%]">
+      <div className="w-full">
         <MicExplainDialog
           open={voice.explaining}
           onAllow={voice.allowMic}

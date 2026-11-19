@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { buildTimeline } from '../chat-utils';
 import { type ChatMessage, ME } from '../types';
@@ -64,16 +64,17 @@ describe('group conversation rendering', () => {
     expect(first?.className).toBe(second?.className);
   });
 
-  it('puts the tail and the avatar only on the last bubble of a group', () => {
+  it('puts the tail on the first bubble of a run and the avatar on the last', () => {
     const thread = renderThread(GROUP, true);
     const item = (text: string) => {
       const found = thread.getByText(text).closest('li');
       if (!found) throw new Error(`no bubble for ${text}`);
       return within(found);
     };
-    expect(item('riya 1').queryByTestId('bubble-tail')).not.toBeInTheDocument();
+    expect(item('riya 1').getByTestId('bubble-tail')).toBeInTheDocument();
     expect(item('riya 1').queryByText('RS')).not.toBeInTheDocument();
-    expect(item('riya 3').getByTestId('bubble-tail')).toBeInTheDocument();
+    expect(item('riya 2').queryByTestId('bubble-tail')).not.toBeInTheDocument();
+    expect(item('riya 3').queryByTestId('bubble-tail')).not.toBeInTheDocument();
     expect(item('riya 3').getByText('RS')).toBeInTheDocument();
   });
 
@@ -81,5 +82,21 @@ describe('group conversation rendering', () => {
     const thread = renderThread(GROUP.slice(0, 2), false);
     expect(screen.getByRole('list').querySelectorAll('[class*="text-sender"]')).toHaveLength(0);
     expect(thread.queryByText('RS')).not.toBeInTheDocument();
+  });
+
+  it('keeps one sender’s run close (2 px) and gives a new sender room (10 px)', () => {
+    const thread = renderThread(GROUP, true);
+    const row = (text: string) => thread.getByText(text).closest('[class*="group/message"]');
+    expect(row('riya 1')?.className).toContain('mb-0.5');
+    expect(row('riya 3')?.className).toContain('mb-2.5');
+  });
+
+  it('a very long message shows its start and "Read more", then all of it', async () => {
+    const long = Array.from({ length: 25 }, (_, i) => `line ${i + 1}`).join('\n');
+    const thread = renderThread([{ ...message('long', 'riya', 'Riya Sen', 0), text: long }], true);
+    expect(thread.queryByText(/line 25/)).not.toBeInTheDocument();
+    fireEvent.click(thread.getByRole('button', { name: 'Read more' }));
+    expect(await thread.findByText(/line 25/)).toBeInTheDocument();
+    expect(thread.queryByRole('button', { name: 'Read more' })).not.toBeInTheDocument();
   });
 });

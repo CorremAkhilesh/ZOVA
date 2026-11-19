@@ -185,6 +185,28 @@ describe('the info pane', () => {
     expect(await axe(container)).toHaveNoViolations();
   });
 
+  it('reads like a profile: members, actions, media, starred, mute, then exit and report', async () => {
+    const user = userEvent.setup();
+    await openGroup(group({ myRole: 'owner' }));
+    const pane = await openInfo(user);
+    expect(within(pane).getByRole('heading', { name: 'Group info' })).toBeInTheDocument();
+    expect(within(pane).getByText('Group · 3 members')).toBeInTheDocument();
+    expect(within(pane).getByRole('button', { name: 'Search' })).toBeInTheDocument();
+    expect(within(pane).getByRole('button', { name: /Media, links and docs/ })).toBeInTheDocument();
+    expect(within(pane).getByRole('link', { name: 'Starred messages' })).toBeInTheDocument();
+    expect(within(pane).getByRole('switch', { name: /Mute notifications/ })).toBeInTheDocument();
+    expect(within(pane).getByRole('button', { name: 'Report group' })).toBeInTheDocument();
+    // You first, then the owner and admins, then everyone else; each with their about and a role.
+    const list = await within(pane).findByRole('list', { name: 'Members' });
+    const rows = within(list).getAllByRole('listitem');
+    expect(rows.map((row) => row.textContent)).toEqual([
+      expect.stringMatching(/You.*Owner$/),
+      expect.stringMatching(/Riya.*On it.*Group admin$/),
+      expect.stringMatching(/Vikram.*On it$/),
+    ]);
+    expect(within(rows[0] as HTMLElement).getByText('Owner')).toBeInTheDocument();
+  });
+
   it('an admin cannot change roles, or remove another admin', async () => {
     const user = userEvent.setup();
     await openGroup(group({ myRole: 'admin' }));

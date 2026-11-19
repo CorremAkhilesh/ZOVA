@@ -77,7 +77,9 @@
     "newMessageNoText": "New message from {{name}}",
     "lastSeenToday": "last seen today at {{time}}",
     "lastSeenYesterday": "last seen yesterday at {{time}}",
-    "lastSeenDate": "last seen {{date}}"
+    "lastSeenDate": "last seen {{date}}",
+    "jumpToLatestCount_one": "Jump to latest, {{count}} new message",
+    "jumpToLatestCount_other": "Jump to latest, {{count}} new messages"
   },
   "empty": {
     "title": "Pick a conversation",
@@ -87,7 +89,15 @@
     "media": "Media, links and docs",
     "notifications": "Notifications",
     "starred": "Starred messages",
-    "about": "About"
+    "about": "About",
+    "search": "Search",
+    "mediaLinksDocs": "Media, links and docs",
+    "groupMembers_one": "Group · {{count}} member",
+    "groupMembers_other": "Group · {{count}} members",
+    "noDescription": "No description",
+    "mute": "Mute notifications",
+    "reportGroup": "Report group",
+    "groupInfo": "Group info"
   },
   "settings": {
     "title": "Settings",
@@ -814,6 +824,10 @@
       "owner_changed": "{{actor}} made {{targets}} the owner",
       "pinned": "{{actor}} pinned a message",
       "owner_auto": "{{targets}} is now the owner"
+    },
+    "roleBadge": {
+      "owner": "Owner",
+      "admin": "Group admin"
     }
   },
   "messages": {
@@ -897,7 +911,8 @@
     "starredEmpty": "Nothing starred yet. Star a message from its menu to find it here.",
     "starredFailed": "Could not load your starred messages.",
     "openStarred": "Open this message in {{name}}",
-    "backToChats": "Back to chats"
+    "backToChats": "Back to chats",
+    "readMore": "Read more"
   },
   "formatting": {
     "copy": "Copy",
@@ -984,7 +999,8 @@
       "waves": "Waves",
       "leaves": "Leaves",
       "confetti": "Confetti",
-      "none": "Plain"
+      "none": "Plain",
+      "zuvo": "{{brand}} doodle"
     },
     "color": {
       "mist": "Mist",
