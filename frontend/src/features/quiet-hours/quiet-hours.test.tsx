@@ -57,7 +57,12 @@ describe('Settings → Notifications: quiet hours', () => {
     const { container } = await renderApp('/settings/notifications');
     expect(await screen.findByLabelText('Loading', {}, SLOW)).toHaveAttribute('aria-busy', 'true');
     release();
-    expect(await screen.findByRole('radio', { name: 'Off' }, SLOW)).toBeChecked();
+    // Scoped to quiet hours: Sounds → Sent message has an "Off" too.
+    expect(
+      within(await screen.findByRole('group', { name: 'Quiet hours' }, SLOW)).getByRole('radio', {
+        name: 'Off',
+      }),
+    ).toBeChecked();
     expect(screen.queryByLabelText('From')).toBeNull();
     expect(screen.getByRole('switch', { name: /Allow mentions/ })).toBeChecked();
     expect(screen.getByText('No chats found.')).toBeInTheDocument();
@@ -144,7 +149,13 @@ describe('Settings → Notifications: quiet hours', () => {
         quietHours: { ...DEFAULT_QUIET_HOURS, mode: 'off', timezone: 'Europe/London' },
       }),
     );
-    await waitFor(() => expect(screen.getByRole('radio', { name: 'Off' })).toBeChecked());
+    await waitFor(() =>
+      expect(
+        within(screen.getByRole('group', { name: 'Quiet hours' })).getByRole('radio', {
+          name: 'Off',
+        }),
+      ).toBeChecked(),
+    );
   });
 });
 

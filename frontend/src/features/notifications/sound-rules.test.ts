@@ -34,6 +34,13 @@ describe('which sound a new message makes', () => {
     const mention = msg({ mentions: [{ userId: 'u-me', offset: 0, length: 3 }] });
     expect(incomingSound(mention, ctx())).toBe('mention');
     expect(incomingSound(msg(), ctx({ openChatId: 'c1' }))).toBe('tick');
+    const soft = {
+      ...DEFAULT_PUSH_SETTINGS,
+      mentionTone: 'mention-soft',
+      tickTone: 'tick-soft',
+    } as const;
+    expect(incomingSound(mention, ctx({ settings: soft }))).toBe('mention-soft');
+    expect(incomingSound(msg(), ctx({ openChatId: 'c1', settings: soft }))).toBe('tick-soft');
   });
 
   it('nothing for my own, system or deleted messages, Saved Messages, or a hidden tab', () => {
@@ -66,8 +73,10 @@ describe('which sound a new message makes', () => {
     expect(incomingSound(msg(), onScreen)).toBeNull();
     const mention = msg({ mentionsEveryone: true });
     expect(incomingSound(mention, off({ soundMentions: false }))).toBeNull();
-    expect(sentSound(DEFAULT_PUSH_SETTINGS, false)).toBe('sent');
-    expect(sentSound({ ...DEFAULT_PUSH_SETTINGS, soundSent: false }, false)).toBeNull();
+    expect(sentSound(DEFAULT_PUSH_SETTINGS, false)).toBe('droplet-c');
+    expect(sentSound({ ...DEFAULT_PUSH_SETTINGS, sentTone: 'swoosh' }, false)).toBe('swoosh');
+    expect(sentSound({ ...DEFAULT_PUSH_SETTINGS, sentTone: 'off' }, false)).toBeNull();
+    expect(sentSound({ ...DEFAULT_PUSH_SETTINGS, sound: false }, false)).toBeNull();
     expect(sentSound(DEFAULT_PUSH_SETTINGS, true)).toBeNull();
   });
 });

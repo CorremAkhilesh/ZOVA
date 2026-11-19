@@ -30,10 +30,23 @@ export type PushSubscriptionBody = z.infer<typeof pushSubscriptionBodySchema>;
 /** DELETE /v1/me/push/subscription: this device stops receiving pushes. */
 export const pushUnsubscribeBodySchema = z.object({ endpoint: z.url().max(2048) });
 
-/** The tones a new message can play (frontend/public/sounds/<tone>.wav, made by our own script). */
-export const MESSAGE_TONES = ['chime', 'bubble', 'marimba', 'glass'] as const;
+/**
+ * The sounds a person can choose (frontend/public/sounds/<name>.wav, made by our own code; see
+ * docs/sounds.md). The first of each list is the default.
+ */
+export const MESSAGE_TONES = ['chime', 'chime-soft', 'bubble', 'marimba', 'glass'] as const;
 export const messageToneSchema = z.enum(MESSAGE_TONES);
 export type MessageTone = z.infer<typeof messageToneSchema>;
+export const MENTION_TONES = ['mention', 'mention-soft'] as const;
+export const mentionToneSchema = z.enum(MENTION_TONES);
+export type MentionTone = z.infer<typeof mentionToneSchema>;
+export const TICK_TONES = ['tick', 'tick-soft'] as const;
+export const tickToneSchema = z.enum(TICK_TONES);
+export type TickTone = z.infer<typeof tickToneSchema>;
+/** When I send: a water droplet (C is the default), the older swoosh, or nothing. */
+export const SENT_TONES = ['droplet-c', 'droplet-a', 'droplet-b', 'swoosh', 'off'] as const;
+export const sentToneSchema = z.enum(SENT_TONES);
+export type SentTone = z.infer<typeof sentToneSchema>;
 export const SOUND_VOLUME_DEFAULT = 70;
 
 /**
@@ -49,13 +62,15 @@ export const pushSettingsSchema = z.object({
   soundVolume: z.number().int().min(0).max(100).default(SOUND_VOLUME_DEFAULT),
   /** The new-message tone. */
   tone: messageToneSchema.default('chime'),
-  /** Each kind of sound on its own. */
+  /** A new message in another chat, and an @mention: each on or off. */
   soundMessages: z.boolean().default(true),
   soundMentions: z.boolean().default(true),
-  /** The soft "swoosh" when I send. */
-  soundSent: z.boolean().default(true),
+  mentionTone: mentionToneSchema.default('mention'),
+  /** The sound when I send ("off": none). */
+  sentTone: sentToneSchema.default('droplet-c'),
   /** The quiet "tick" for a message in the chat on screen. */
   soundOpenChat: z.boolean().default(true),
+  tickTone: tickToneSchema.default('tick'),
 });
 export type PushSettings = z.infer<typeof pushSettingsSchema>;
 export const DEFAULT_PUSH_SETTINGS: PushSettings = {
@@ -65,8 +80,10 @@ export const DEFAULT_PUSH_SETTINGS: PushSettings = {
   tone: 'chime',
   soundMessages: true,
   soundMentions: true,
-  soundSent: true,
+  mentionTone: 'mention',
+  sentTone: 'droplet-c',
   soundOpenChat: true,
+  tickTone: 'tick',
 };
 /** PUT /v1/me/push/settings: only what was sent changes (no defaults, so nothing else is reset). */
 export const updatePushSettingsBodySchema = z
@@ -77,8 +94,10 @@ export const updatePushSettingsBodySchema = z
     tone: messageToneSchema,
     soundMessages: z.boolean(),
     soundMentions: z.boolean(),
-    soundSent: z.boolean(),
+    mentionTone: mentionToneSchema,
+    sentTone: sentToneSchema,
     soundOpenChat: z.boolean(),
+    tickTone: tickToneSchema,
   })
   .partial();
 export type UpdatePushSettings = z.infer<typeof updatePushSettingsBodySchema>;

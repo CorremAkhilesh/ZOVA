@@ -8,10 +8,13 @@ import type { FastifyInstance } from 'fastify';
 import { type Connection, type Model, Types } from 'mongoose';
 import { registerAuthModels } from '../db/auth-models.ts';
 
+/** What may be stored: today's settings, plus the older on/off for the send sound. */
+type StoredPushSettings = Partial<PushSettings> & { soundSent?: boolean };
+
 /** The user document's own field (Better Auth's `user` collection, like quiet hours). */
 interface PushSettingsField {
   _id: Types.ObjectId;
-  pushSettings?: Partial<PushSettings> | null;
+  pushSettings?: StoredPushSettings | null;
 }
 
 const users = (mongo: Connection) =>
@@ -22,9 +25,12 @@ const users = (mongo: Connection) =>
  * the default, which is "on". So an account that never changed anything gets everything on, with
  * no migration to run, and a setting someone did change is kept.
  */
-export function toPushSettings(stored: Partial<PushSettings> | null | undefined): PushSettings {
+export function toPushSettings(stored: StoredPushSettings | null | undefined): PushSettings {
   const shape = pushSettingsSchema.shape;
   const merged: Record<string, unknown> = { ...DEFAULT_PUSH_SETTINGS };
+  // Before sound choices, "send sound" was on/off only: someone who turned it off keeps it off;
+  // everyone else was on the default and gets the new one.
+  if (stored?.soundSent === false) merged.sentTone = 'off';
   for (const key of Object.keys(shape) as (keyof PushSettings)[]) {
     const value = stored?.[key];
     if (value !== undefined && shape[key].safeParse(value).success) merged[key] = value;

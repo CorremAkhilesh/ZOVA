@@ -21,7 +21,7 @@ describe('our own sounds', () => {
     const peak = (name: (typeof SOUND_NAMES)[number]) =>
       Math.max(...synthesize(name).map(Math.abs));
     expect(peak('tick')).toBeLessThan(peak('chime'));
-    expect(peak('sent')).toBeLessThan(peak('chime'));
+    expect(peak('swoosh')).toBeLessThan(peak('chime'));
   });
 
   it('public/sounds holds exactly what the code makes (run `pnpm sounds` after a change)', () => {
@@ -38,5 +38,16 @@ describe('our own sounds', () => {
     expect(text(8)).toBe('WAVE');
     expect(new DataView(wav.buffer).getUint16(22, true)).toBe(1);
     expect(new DataView(wav.buffer).getInt16(46, true)).toBe(0x7fff);
+  });
+
+  it('the send droplets: softest of all, under 250 ms, no click at either end', () => {
+    for (const name of ['droplet-a', 'droplet-b', 'droplet-c'] as const) {
+      const samples = synthesize(name);
+      const peak = Math.max(...samples.map(Math.abs));
+      expect(samples.length / SAMPLE_RATE, name).toBeLessThan(0.25);
+      expect(peak, name).toBeLessThan(Math.max(...synthesize('tick').map(Math.abs)));
+      expect(Math.abs(samples[0] ?? 1), name).toBeLessThan(0.001);
+      expect(Math.abs(samples.at(-1) ?? 1), name).toBeLessThan(0.001);
+    }
   });
 });

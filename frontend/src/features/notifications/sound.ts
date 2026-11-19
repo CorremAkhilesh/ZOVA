@@ -9,7 +9,6 @@ import type { SoundName } from './sounds/synth';
 
 type AudioContextClass = new () => AudioContext;
 
-const ALL: SoundName[] = ['chime', 'bubble', 'marimba', 'glass', 'mention', 'sent', 'tick'];
 export const soundUrl = (name: SoundName) => `/sounds/${name}.wav`;
 
 let context: AudioContext | null = null;
@@ -52,19 +51,22 @@ function load(name: SoundName): Promise<AudioBuffer | null> {
   return promise;
 }
 
-/** Called on the first user gesture: audio is allowed from now on, and every sound is loaded. */
-export function unlockAudio(): void {
+/** Called on the first user gesture: audio is allowed from now on, and these sounds are loaded. */
+export function unlockAudio(names: readonly SoundName[] = []): void {
   const ctx = audioContext();
   if (!ctx) return;
   if (ctx.state === 'suspended') void ctx.resume().catch(() => undefined);
-  for (const name of ALL) void load(name);
+  for (const name of names) void load(name);
 }
 
-/** Unlocks audio on the first click, tap or key press. Returns a cleanup. */
-export function installAudioUnlock(target: Window = window): () => void {
+/** Unlocks audio on the first click, tap or key press, loading `names()`. Returns a cleanup. */
+export function installAudioUnlock(
+  names: () => readonly SoundName[],
+  target: Window = window,
+): () => void {
   const events = ['pointerdown', 'keydown', 'touchend'] as const;
   const unlock = () => {
-    unlockAudio();
+    unlockAudio(names());
     for (const event of events) target.removeEventListener(event, unlock, true);
   };
   for (const event of events) target.addEventListener(event, unlock, true);

@@ -126,7 +126,7 @@ describe('notification settings', () => {
       tone: 'chime',
       soundMessages: true,
       soundMentions: true,
-      soundSent: true,
+      sentTone: 'droplet-c',
       soundOpenChat: true,
     });
     const saved = await call(user, 'PUT', '/v1/me/push/settings', {

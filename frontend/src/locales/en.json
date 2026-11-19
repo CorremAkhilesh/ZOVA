@@ -1126,21 +1126,32 @@
       "title": "Sounds",
       "volume": "Volume",
       "tone": "New message tone",
-      "tones": {
-        "chime": "{{brand}} chime",
-        "bubble": "Bubble",
-        "marimba": "Marimba",
-        "glass": "Glass"
-      },
       "preview": "Play {{tone}}",
       "soundMessages": "New messages",
       "soundMessagesHint": "Your tone, for a message in another chat.",
       "soundMentions": "Mentions",
       "soundMentionsHint": "A different sound when someone @mentions you.",
-      "soundSent": "Sending",
-      "soundSentHint": "A soft swoosh when you send a message.",
       "soundOpenChat": "Chat on screen",
-      "soundOpenChatHint": "A quiet tick for a new message in the chat you have open."
+      "soundOpenChatHint": "A quiet tick for a new message in the chat you have open.",
+      "names": {
+        "chime": "{{brand}} chime",
+        "chime-soft": "{{brand}} chime (soft)",
+        "bubble": "Bubble",
+        "marimba": "Marimba",
+        "glass": "Glass",
+        "mention": "Mention",
+        "mention-soft": "Mention (soft)",
+        "tick": "Tick",
+        "tick-soft": "Tick (soft)",
+        "droplet-c": "Droplet C",
+        "droplet-a": "Droplet A",
+        "droplet-b": "Droplet B",
+        "swoosh": "Swoosh",
+        "off": "Off"
+      },
+      "mentionTone": "Mention sound",
+      "sentTone": "Sent message",
+      "tickTone": "Chat on screen sound"
     },
     "gate": {
       "title": "Turn on notifications",

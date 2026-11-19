@@ -214,9 +214,60 @@ describe('Settings → Notifications: sounds', () => {
         body: { soundMentions: false },
       }),
     );
+    // Mentions off: their sound choice is greyed out.
+    await waitFor(() =>
+      expect(screen.getByRole('radio', { name: 'Mention (soft)' })).toBeDisabled(),
+    );
     await user.click(screen.getByRole('switch', { name: /^Sound/ }));
     await waitFor(() => expect(screen.getByRole('radio', { name: 'Glass' })).toBeDisabled());
-    expect(screen.getByRole('switch', { name: /^Sending/ })).toBeDisabled();
+    expect(screen.getByRole('radio', { name: 'Droplet A' })).toBeDisabled();
     expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it('"Sent message": Droplet C by default, then A, B, Swoosh and Off, each but Off with a preview', async () => {
+    const api = servePush();
+    installPushBrowser({ permission: 'granted', subscribed: true });
+    await openSettings();
+    await section('Sounds');
+    const group = screen.getByRole('group', { name: 'Sent message' });
+    expect(
+      within(group)
+        .getAllByRole('radio')
+        .map((radio) => radio.closest('label')?.textContent),
+    ).toEqual(['Droplet C', 'Droplet A', 'Droplet B', 'Swoosh', 'Off']);
+    expect(within(group).getByRole('radio', { name: 'Droplet C' })).toBeChecked();
+    expect(within(group).getAllByRole('button', { name: /^Play / })).toHaveLength(4);
+    await userEvent.setup().click(within(group).getByRole('radio', { name: 'Swoosh' }));
+    await waitFor(() =>
+      expect(api.calls).toContainEqual({
+        method: 'PUT',
+        path: '/v1/me/push/settings',
+        body: { sentTone: 'swoosh' },
+      }),
+    );
+    // The soft versions are extra choices; the originals stay the default.
+    expect(screen.getByRole('radio', { name: `${brand.name} chime` })).toBeChecked();
+    expect(screen.getByRole('radio', { name: `${brand.name} chime (soft)` })).not.toBeChecked();
+    expect(screen.getByRole('radio', { name: 'Mention' })).toBeChecked();
+    expect(screen.getByRole('radio', { name: 'Tick' })).toBeChecked();
+    expect(screen.getByRole('radio', { name: 'Tick (soft)' })).toBeInTheDocument();
+  });
+
+  it('a choice made earlier is shown as it was', async () => {
+    servePush({
+      settings: {
+        ...DEFAULT_PUSH_SETTINGS,
+        sentTone: 'off',
+        tone: 'marimba',
+        tickTone: 'tick-soft',
+      },
+    });
+    installPushBrowser({ permission: 'granted', subscribed: true });
+    await openSettings();
+    await section('Sounds');
+    const sent = screen.getByRole('group', { name: 'Sent message' });
+    expect(within(sent).getByRole('radio', { name: 'Off' })).toBeChecked();
+    expect(screen.getByRole('radio', { name: 'Marimba' })).toBeChecked();
+    expect(screen.getByRole('radio', { name: 'Tick (soft)' })).toBeChecked();
   });
 });

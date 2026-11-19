@@ -1126,21 +1126,32 @@
       "title": "आवाज़ें",
       "volume": "आवाज़ का स्तर",
       "tone": "नए मैसेज की टोन",
-      "tones": {
-        "chime": "{{brand}} चाइम",
-        "bubble": "बबल",
-        "marimba": "मरिम्बा",
-        "glass": "ग्लास"
-      },
       "preview": "{{tone}} बजाएँ",
       "soundMessages": "नए मैसेज",
       "soundMessagesHint": "किसी दूसरी चैट के मैसेज के लिए आपकी टोन।",
       "soundMentions": "मेंशन",
       "soundMentionsHint": "कोई आपको @मेंशन करे तो अलग आवाज़।",
-      "soundSent": "भेजना",
-      "soundSentHint": "मैसेज भेजने पर हल्की “स्वूश”।",
       "soundOpenChat": "खुली चैट",
-      "soundOpenChatHint": "जो चैट खुली है उसमें नए मैसेज पर हल्की “टिक”।"
+      "soundOpenChatHint": "जो चैट खुली है उसमें नए मैसेज पर हल्की “टिक”।",
+      "names": {
+        "chime": "{{brand}} चाइम",
+        "chime-soft": "{{brand}} चाइम (हल्की)",
+        "bubble": "बबल",
+        "marimba": "मरिम्बा",
+        "glass": "ग्लास",
+        "mention": "मेंशन",
+        "mention-soft": "मेंशन (हल्की)",
+        "tick": "टिक",
+        "tick-soft": "टिक (हल्की)",
+        "droplet-c": "बूँद C",
+        "droplet-a": "बूँद A",
+        "droplet-b": "बूँद B",
+        "swoosh": "स्वूश",
+        "off": "बंद"
+      },
+      "mentionTone": "मेंशन की आवाज़",
+      "sentTone": "भेजा गया मैसेज",
+      "tickTone": "खुली चैट की आवाज़"
     },
     "gate": {
       "title": "नोटिफ़िकेशन चालू करें",

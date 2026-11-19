@@ -5,130 +5,33 @@
  * See docs/sounds.md for the license note.
  */
 
+import type { Note, Recipe } from './parts.ts';
+import { SOFT_RECIPES } from './soft-recipes.ts';
+import { TONE_RECIPES } from './tone-recipes.ts';
+
+export type { Note, Recipe } from './parts.ts';
+
 export const SAMPLE_RATE = 24_000;
 
-/** Every sound the app plays. The four tones are choices for a new message. */
+const RECIPES: Record<Exclude<SoundName, 'swoosh'>, Recipe> = { ...TONE_RECIPES, ...SOFT_RECIPES };
+
+/** Every sound the app plays: the choices in Settings → Sounds (docs/sounds.md). */
 export const SOUND_NAMES = [
   'chime',
+  'chime-soft',
   'bubble',
   'marimba',
   'glass',
   'mention',
-  'sent',
+  'mention-soft',
   'tick',
+  'tick-soft',
+  'droplet-a',
+  'droplet-b',
+  'droplet-c',
+  'swoosh',
 ] as const;
 export type SoundName = (typeof SOUND_NAMES)[number];
-
-interface Note {
-  /** Start, in seconds. */
-  at: number;
-  frequency: number;
-  /** Seconds for the sound to fall to about 1/1000. */
-  decay: number;
-  /** Overtones: [frequency ratio, loudness]. */
-  partials: [number, number][];
-  gain?: number;
-  /** Pitch slides from `frequency` to this over `glideSeconds`. */
-  glideTo?: number;
-  glideSeconds?: number;
-}
-
-const BELL: [number, number][] = [
-  [1, 1],
-  [2.76, 0.18],
-  [5.4, 0.05],
-];
-const WOOD: [number, number][] = [
-  [1, 1],
-  [3.99, 0.3],
-  [10.1, 0.04],
-];
-const GLASS: [number, number][] = [
-  [1, 1],
-  [1.004, 0.6],
-  [2.01, 0.2],
-];
-const PURE: [number, number][] = [[1, 1]];
-
-const RECIPES: Record<
-  Exclude<SoundName, 'sent'>,
-  { seconds: number; peak: number; notes: Note[] }
-> = {
-  // The Zuvo chime: a quick, bright rising major triad on a soft bell.
-  chime: {
-    seconds: 0.75,
-    peak: 0.8,
-    notes: [
-      { at: 0, frequency: 1318.5, decay: 0.45, partials: BELL },
-      { at: 0.075, frequency: 1661.2, decay: 0.45, partials: BELL },
-      { at: 0.15, frequency: 1975.5, decay: 0.55, partials: BELL },
-    ],
-  },
-  // Two rising "pops".
-  bubble: {
-    seconds: 0.4,
-    peak: 0.75,
-    notes: [
-      {
-        at: 0,
-        frequency: 520,
-        glideTo: 1040,
-        glideSeconds: 0.07,
-        decay: 0.12,
-        partials: PURE,
-      },
-      {
-        at: 0.12,
-        frequency: 700,
-        glideTo: 1400,
-        glideSeconds: 0.07,
-        decay: 0.14,
-        partials: PURE,
-      },
-    ],
-  },
-  // Two warm wooden notes, a fifth apart.
-  marimba: {
-    seconds: 0.55,
-    peak: 0.8,
-    notes: [
-      { at: 0, frequency: 880, decay: 0.3, partials: WOOD },
-      { at: 0.11, frequency: 1318.5, decay: 0.35, partials: WOOD },
-    ],
-  },
-  // One clear, shimmering high note.
-  glass: {
-    seconds: 0.9,
-    peak: 0.75,
-    notes: [{ at: 0, frequency: 2093, decay: 0.8, partials: GLASS }],
-  },
-  // @mention: "ding-ding" then up, so it is told apart from a plain message.
-  mention: {
-    seconds: 0.7,
-    peak: 0.8,
-    notes: [
-      { at: 0, frequency: 1568, decay: 0.18, partials: BELL },
-      { at: 0.1, frequency: 1568, decay: 0.18, partials: BELL },
-      { at: 0.2, frequency: 2349.3, decay: 0.45, partials: BELL },
-    ],
-  },
-  // A message arrived in the chat on screen: barely there.
-  tick: {
-    seconds: 0.06,
-    peak: 0.4,
-    notes: [
-      {
-        at: 0,
-        frequency: 2200,
-        decay: 0.03,
-        partials: [
-          [1, 1],
-          [2.3, 0.3],
-        ],
-      },
-    ],
-  },
-};
 
 /** A note as samples added into `out`. */
 function addNote(out: Float32Array, note: Note) {
@@ -165,7 +68,7 @@ function noise(seed: number) {
   };
 }
 
-/** The soft "swoosh" when I send: noise through a low-pass filter that opens up, rising and fading. */
+/** The older send sound, still a choice: "swoosh", noise through a low-pass filter that opens up, rising and fading. */
 function swoosh(): Float32Array {
   const seconds = 0.28;
   const out = new Float32Array(Math.round(seconds * SAMPLE_RATE));
@@ -190,19 +93,56 @@ function normalize(samples: Float32Array, peak: number): Float32Array {
   return samples.map((sample) => sample * scale);
 }
 
-/** One sound as mono samples in -1…1 at SAMPLE_RATE. */
-export function synthesize(name: SoundName): Float32Array {
-  if (name === 'sent') return swoosh();
-  const recipe = RECIPES[name];
-  const out = new Float32Array(Math.round(recipe.seconds * SAMPLE_RATE));
+/** One-pole low-pass: takes the edge off the high partials. */
+function lowpass(samples: Float32Array, cornerHz: number): Float32Array {
+  const alpha = 1 - Math.exp((-2 * Math.PI * cornerHz) / SAMPLE_RATE);
+  let low = 0;
+  return samples.map((sample) => {
+    low += alpha * (sample - low);
+    return low;
+  });
+}
+
+/** A small room: three short reflections, each quieter, mixed in. */
+const REFLECTIONS: [number, number][] = [
+  [0.023, 0.5],
+  [0.037, 0.32],
+  [0.053, 0.2],
+];
+function withRoom(dry: Float32Array, amount: number): Float32Array {
+  const wet = new Float32Array(dry.length);
+  for (const [seconds, gain] of REFLECTIONS) {
+    const delay = Math.round(seconds * SAMPLE_RATE);
+    for (let i = delay; i < dry.length; i++) {
+      wet[i] = (wet[i] ?? 0) + (dry[i - delay] ?? 0) * gain;
+    }
+  }
+  return dry.map((sample, i) => sample + (wet[i] ?? 0) * amount);
+}
+
+/** A recipe as mono samples in -1…1 at SAMPLE_RATE, faded in and out (never a click). */
+export function render(recipe: Recipe): Float32Array {
+  let out: Float32Array = new Float32Array(Math.round(recipe.seconds * SAMPLE_RATE));
   for (const note of recipe.notes) addNote(out, note);
+  if (recipe.lowpassHz) out = lowpass(out, recipe.lowpassHz);
+  if (recipe.room) out = withRoom(out, recipe.room);
+  return finish(out, recipe.peak);
+}
+
+function finish(out: Float32Array, peak: number): Float32Array {
   // A short fade at the very end: never a click.
   const fade = Math.round(0.01 * SAMPLE_RATE);
   for (let i = 0; i < fade; i++) {
     const index = out.length - 1 - i;
     out[index] = (out[index] ?? 0) * (i / fade);
   }
-  return normalize(out, recipe.peak);
+  return normalize(out, peak);
+}
+
+/** One sound as mono samples in -1…1 at SAMPLE_RATE. */
+export function synthesize(name: SoundName): Float32Array {
+  if (name === 'swoosh') return swoosh();
+  return render(RECIPES[name]);
 }
 
 /** 16-bit PCM mono WAV. */
