@@ -70,6 +70,11 @@ export interface OutboxRow {
   poll?: PollInput | undefined;
   /** A reply to this status of the chat's other person. */
   statusId?: string | undefined;
+  /**
+   * The same file as this row (by its clientMsgId), uploaded once there: this row waits for that
+   * upload, then sends the file by reference (outbox-share.ts).
+   */
+  shareOf?: string | undefined;
 }
 
 /** A Blob, or its bytes where a browser cannot keep Blobs. See stored-bytes.ts. */

@@ -43,19 +43,29 @@ export const sendMessagePayloadSchema = z
     viewOnce: z.boolean().optional(),
     /** A reply to this status of the chat's other person (POST /v1/chats/direct first). */
     statusId: objectIdSchema.optional(),
+    /**
+     * A file I already uploaded (for another chat), sent here by reference: nothing uploads again.
+     * "Share to Zuvo" sends one file to several chats this way.
+     */
+    sharedMediaId: objectIdSchema.optional(),
   })
   .refine(
     (message) =>
-      [message.text, message.mediaIds, message.poll].filter((part) => part !== undefined).length ===
-      1,
+      [message.text, message.mediaIds, message.poll, message.sharedMediaId].filter(
+        (part) => part !== undefined,
+      ).length === 1,
     { message: 'Send text, media or a poll' },
   )
   .refine((message) => !message.viewOnce || message.mediaIds !== undefined, {
     message: 'Only a photo or video can be view once',
   })
-  .refine((message) => message.mediaIds !== undefined || message.caption === undefined, {
-    message: 'A caption needs media',
-  });
+  .refine(
+    (message) =>
+      message.mediaIds !== undefined ||
+      message.sharedMediaId !== undefined ||
+      message.caption === undefined,
+    { message: 'A caption needs media' },
+  );
 export const sendMessageAckSchema = z.object({
   messageId: z.string(),
   seq: z.number().int().positive(),

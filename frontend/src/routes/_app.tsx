@@ -24,7 +24,7 @@ export const Route = createFileRoute('/_app')({
       return await requireCompleteSession(context.queryClient);
     } catch (redirected) {
       // Sent to sign in first: carry on to the invite link afterwards.
-      rememberJoinPath(location.pathname);
+      rememberJoinPath(location.href);
       throw redirected;
     }
   },

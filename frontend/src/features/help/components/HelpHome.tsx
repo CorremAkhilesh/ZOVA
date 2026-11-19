@@ -7,6 +7,7 @@ import {
   Info,
   type LucideIcon,
   Mail,
+  Share2,
   ShieldCheck,
 } from 'lucide-react';
 import { useHelpText } from '../content';
@@ -15,6 +16,7 @@ import { HelpPage } from './HelpPage';
 type HelpPath =
   | '/help/install'
   | '/help/notifications'
+  | '/help/share'
   | '/help/faq'
   | '/help/privacy'
   | '/help/contact'
@@ -23,6 +25,7 @@ type HelpPath =
 const TOPICS: readonly { to: HelpPath; key: string; icon: LucideIcon }[] = [
   { to: '/help/install', key: 'install', icon: Download },
   { to: '/help/notifications', key: 'notifications', icon: BellRing },
+  { to: '/help/share', key: 'share', icon: Share2 },
   { to: '/help/faq', key: 'faq', icon: CircleHelp },
   { to: '/help/privacy', key: 'privacy', icon: ShieldCheck },
   { to: '/help/contact', key: 'contact', icon: Mail },

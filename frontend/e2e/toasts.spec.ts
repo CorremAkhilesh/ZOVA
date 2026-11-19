@@ -30,6 +30,12 @@ for (const viewport of [
     const box = await toast.boundingBox();
     expect(header && box).toBeTruthy();
     if (header && box) expect(box.y).toBeGreaterThanOrEqual(header.y + header.height);
+    // On a desktop it sits over the chat list, never over the conversation's messages.
+    if (viewport.name === 'desktop' && box) {
+      const messages = await asha.page.getByLabel('Messages', { exact: true }).boundingBox();
+      expect(messages).toBeTruthy();
+      if (messages) expect(box.x + box.width).toBeLessThanOrEqual(messages.x + 1);
+    }
 
     // A real tap on the header's info button works while the toast is up.
     await asha.page.locator('[data-info-toggle]').click();

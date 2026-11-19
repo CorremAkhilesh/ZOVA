@@ -16,9 +16,12 @@ const loadMotionFeatures = () => import('@/lib/motion-features').then((module) =
 
 /** Toasts go after a short while; a swipe or the close button sends one away at once. */
 const TOAST_DURATION_MS = 3500;
-/** Above the composer (desktop) and above the composer or tab bar on phones (+ safe area). */
-const TOAST_OFFSET = 88;
-const TOAST_MOBILE_OFFSET = 'calc(84px + env(safe-area-inset-bottom))';
+/**
+ * Desktop: bottom left, over the chat list (clear of the icon rail), never over the conversation and
+ * its newest messages. Phones: full width, above the composer or the tab bar (+ safe area).
+ */
+const TOAST_OFFSET = { bottom: 24, left: 88 };
+const TOAST_MOBILE_OFFSET = { bottom: 'calc(84px + env(safe-area-inset-bottom))' };
 
 interface AppProps {
   queryClient?: QueryClient;
@@ -42,11 +45,10 @@ export function App({ queryClient: providedClient, router: providedRouter }: App
             <TooltipProvider>
               <RouterProvider router={router} />
               <Toaster
-                // Never over a header (its buttons must stay tappable): at the bottom, above the
-                // composer and the phone's tab bar, clear of the home indicator.
-                position="bottom-center"
-                offset={{ bottom: TOAST_OFFSET }}
-                mobileOffset={{ bottom: TOAST_MOBILE_OFFSET }}
+                // Never over a header (its buttons must stay tappable), nor over the newest messages.
+                position="bottom-left"
+                offset={TOAST_OFFSET}
+                mobileOffset={TOAST_MOBILE_OFFSET}
                 duration={TOAST_DURATION_MS}
                 swipeDirections={['left', 'right', 'bottom']}
                 closeButton

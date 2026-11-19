@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet, useMatchRoute, useNavigate } from '@tanstack/react-router';
+import { createFileRoute, Outlet, useMatchRoute, useRouter } from '@tanstack/react-router';
 import { useEffect } from 'react';
 import { Group, Panel, Separator } from 'react-resizable-panels';
 import { ChatListSkeleton } from '@/components/common/ChatListSkeleton';
@@ -30,12 +30,12 @@ function ChatsLayout() {
   const pickerOpen = useNewChat((state) => state.isOpen);
   const setPickerOpen = useNewChat((state) => state.setOpen);
   useChatShortcuts(match ? match.chatId : undefined);
-  const navigate = useNavigate();
-  // Signed in from an invite link: carry on to it.
+  // Signed in from an invite link or a share: carry on to it (the path may carry a query).
+  const router = useRouter();
   useEffect(() => {
     const path = takeJoinPath();
-    if (path) void navigate({ to: path });
-  }, [navigate]);
+    if (path) router.history.push(path);
+  }, [router]);
 
   return (
     <>

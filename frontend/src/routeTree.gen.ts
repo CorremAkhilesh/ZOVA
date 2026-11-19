@@ -15,6 +15,7 @@ import { Route as HelpRouteImport } from './routes/help'
 import { Route as VerifyRouteImport } from './routes/verify'
 import { Route as AppCallsRouteImport } from './routes/_app/calls'
 import { Route as AppChatsRouteImport } from './routes/_app/chats'
+import { Route as AppShareRouteImport } from './routes/_app/share'
 import { Route as AppStarredRouteImport } from './routes/_app/starred'
 import { Route as AppUpdatesRouteImport } from './routes/_app/updates'
 import { Route as HelpIndexRouteImport } from './routes/help.index'
@@ -24,6 +25,7 @@ import { Route as HelpFaqRouteImport } from './routes/help.faq'
 import { Route as HelpInstallRouteImport } from './routes/help.install'
 import { Route as HelpNotificationsRouteImport } from './routes/help.notifications'
 import { Route as HelpPrivacyRouteImport } from './routes/help.privacy'
+import { Route as HelpShareRouteImport } from './routes/help.share'
 import { Route as SecurityNotMeRouteImport } from './routes/security.not-me'
 import { Route as WelcomeNameRouteImport } from './routes/welcome.name'
 import { Route as AppChatsIndexRouteImport } from './routes/_app/chats.index'
@@ -70,6 +72,11 @@ const AppChatsRoute = AppChatsRouteImport.update({
   path: '/chats',
   getParentRoute: () => AppRoute,
 } as any)
+const AppShareRoute = AppShareRouteImport.update({
+  id: '/share',
+  path: '/share',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppStarredRoute = AppStarredRouteImport.update({
   id: '/starred',
   path: '/starred',
@@ -113,6 +120,11 @@ const HelpNotificationsRoute = HelpNotificationsRouteImport.update({
 const HelpPrivacyRoute = HelpPrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
+  getParentRoute: () => HelpRoute,
+} as any)
+const HelpShareRoute = HelpShareRouteImport.update({
+  id: '/share',
+  path: '/share',
   getParentRoute: () => HelpRoute,
 } as any)
 const SecurityNotMeRoute = SecurityNotMeRouteImport.update({
@@ -204,6 +216,7 @@ export interface FileRoutesByFullPath {
   '/verify': typeof VerifyRoute
   '/calls': typeof AppCallsRoute
   '/chats': typeof AppChatsRouteWithChildren
+  '/share': typeof AppShareRoute
   '/starred': typeof AppStarredRoute
   '/updates': typeof AppUpdatesRoute
   '/help/about': typeof HelpAboutRoute
@@ -212,6 +225,7 @@ export interface FileRoutesByFullPath {
   '/help/install': typeof HelpInstallRoute
   '/help/notifications': typeof HelpNotificationsRoute
   '/help/privacy': typeof HelpPrivacyRoute
+  '/help/share': typeof HelpShareRoute
   '/security/not-me': typeof SecurityNotMeRoute
   '/welcome/name': typeof WelcomeNameRoute
   '/help/': typeof HelpIndexRoute
@@ -234,6 +248,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/verify': typeof VerifyRoute
   '/calls': typeof AppCallsRoute
+  '/share': typeof AppShareRoute
   '/starred': typeof AppStarredRoute
   '/updates': typeof AppUpdatesRoute
   '/help/about': typeof HelpAboutRoute
@@ -242,6 +257,7 @@ export interface FileRoutesByTo {
   '/help/install': typeof HelpInstallRoute
   '/help/notifications': typeof HelpNotificationsRoute
   '/help/privacy': typeof HelpPrivacyRoute
+  '/help/share': typeof HelpShareRoute
   '/security/not-me': typeof SecurityNotMeRoute
   '/welcome/name': typeof WelcomeNameRoute
   '/help': typeof HelpIndexRoute
@@ -268,6 +284,7 @@ export interface FileRoutesById {
   '/verify': typeof VerifyRoute
   '/_app/calls': typeof AppCallsRoute
   '/_app/chats': typeof AppChatsRouteWithChildren
+  '/_app/share': typeof AppShareRoute
   '/_app/starred': typeof AppStarredRoute
   '/_app/updates': typeof AppUpdatesRoute
   '/help/about': typeof HelpAboutRoute
@@ -276,6 +293,7 @@ export interface FileRoutesById {
   '/help/install': typeof HelpInstallRoute
   '/help/notifications': typeof HelpNotificationsRoute
   '/help/privacy': typeof HelpPrivacyRoute
+  '/help/share': typeof HelpShareRoute
   '/security/not-me': typeof SecurityNotMeRoute
   '/welcome/name': typeof WelcomeNameRoute
   '/help/': typeof HelpIndexRoute
@@ -302,6 +320,7 @@ export interface FileRouteTypes {
     | '/verify'
     | '/calls'
     | '/chats'
+    | '/share'
     | '/starred'
     | '/updates'
     | '/help/about'
@@ -310,6 +329,7 @@ export interface FileRouteTypes {
     | '/help/install'
     | '/help/notifications'
     | '/help/privacy'
+    | '/help/share'
     | '/security/not-me'
     | '/welcome/name'
     | '/help/'
@@ -332,6 +352,7 @@ export interface FileRouteTypes {
     | '/'
     | '/verify'
     | '/calls'
+    | '/share'
     | '/starred'
     | '/updates'
     | '/help/about'
@@ -340,6 +361,7 @@ export interface FileRouteTypes {
     | '/help/install'
     | '/help/notifications'
     | '/help/privacy'
+    | '/help/share'
     | '/security/not-me'
     | '/welcome/name'
     | '/help'
@@ -365,6 +387,7 @@ export interface FileRouteTypes {
     | '/verify'
     | '/_app/calls'
     | '/_app/chats'
+    | '/_app/share'
     | '/_app/starred'
     | '/_app/updates'
     | '/help/about'
@@ -373,6 +396,7 @@ export interface FileRouteTypes {
     | '/help/install'
     | '/help/notifications'
     | '/help/privacy'
+    | '/help/share'
     | '/security/not-me'
     | '/welcome/name'
     | '/help/'
@@ -445,6 +469,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppChatsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/share': {
+      id: '/_app/share'
+      path: '/share'
+      fullPath: '/share'
+      preLoaderRoute: typeof AppShareRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/starred': {
       id: '/_app/starred'
       path: '/starred'
@@ -506,6 +537,13 @@ declare module '@tanstack/react-router' {
       path: '/privacy'
       fullPath: '/help/privacy'
       preLoaderRoute: typeof HelpPrivacyRouteImport
+      parentRoute: typeof HelpRoute
+    }
+    '/help/share': {
+      id: '/help/share'
+      path: '/share'
+      fullPath: '/help/share'
+      preLoaderRoute: typeof HelpShareRouteImport
       parentRoute: typeof HelpRoute
     }
     '/security/not-me': {
@@ -640,6 +678,7 @@ const AppChatsRouteWithChildren = AppChatsRoute._addFileChildren(
 interface AppRouteChildren {
   AppCallsRoute: typeof AppCallsRoute
   AppChatsRoute: typeof AppChatsRouteWithChildren
+  AppShareRoute: typeof AppShareRoute
   AppStarredRoute: typeof AppStarredRoute
   AppUpdatesRoute: typeof AppUpdatesRoute
   AppJoinCodeRoute: typeof AppJoinCodeRoute
@@ -659,6 +698,7 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppCallsRoute: AppCallsRoute,
   AppChatsRoute: AppChatsRouteWithChildren,
+  AppShareRoute: AppShareRoute,
   AppStarredRoute: AppStarredRoute,
   AppUpdatesRoute: AppUpdatesRoute,
   AppJoinCodeRoute: AppJoinCodeRoute,
@@ -684,6 +724,7 @@ interface HelpRouteChildren {
   HelpInstallRoute: typeof HelpInstallRoute
   HelpNotificationsRoute: typeof HelpNotificationsRoute
   HelpPrivacyRoute: typeof HelpPrivacyRoute
+  HelpShareRoute: typeof HelpShareRoute
   HelpIndexRoute: typeof HelpIndexRoute
 }
 
@@ -694,6 +735,7 @@ const HelpRouteChildren: HelpRouteChildren = {
   HelpInstallRoute: HelpInstallRoute,
   HelpNotificationsRoute: HelpNotificationsRoute,
   HelpPrivacyRoute: HelpPrivacyRoute,
+  HelpShareRoute: HelpShareRoute,
   HelpIndexRoute: HelpIndexRoute,
 }
 

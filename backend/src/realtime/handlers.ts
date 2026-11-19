@@ -135,6 +135,7 @@ export function registerHandlers(app: FastifyInstance, socket: ZuvoSocket): void
           poll: input.poll,
           viewOnce: input.viewOnce,
           statusId: input.statusId,
+          sharedMediaId: input.sharedMediaId,
         });
         return { messageId: message.id, seq: message.seq, createdAt: message.createdAt, duplicate };
       },
