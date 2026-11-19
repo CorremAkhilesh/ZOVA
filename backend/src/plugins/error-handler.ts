@@ -24,6 +24,17 @@ function statusOf(error: unknown): number | undefined {
   return undefined;
 }
 
+/**
+ * Where a request failed validation, as `params/id` or `body/items/0/name`: paths only, never the
+ * values (they can hold personal data). Logged so a 400 says which field to look at.
+ */
+export function invalidFields(error: unknown): string[] {
+  if (!hasZodFastifySchemaValidationErrors(error)) return [];
+  const context = (error as { validationContext?: string }).validationContext ?? 'request';
+  const paths = error.validation.map((issue) => `${context}${issue.instancePath || '/'}`);
+  return [...new Set(paths)].slice(0, 10);
+}
+
 /** Maps any thrown value to the shared ApiError shape. Never exposes stack traces or internals. */
 export function toErrorResponse(error: unknown, requestId: string): ErrorResponse {
   if (error instanceof AppError) {
@@ -88,7 +99,9 @@ async function errorHandler(app: FastifyInstance) {
     if (statusCode >= 500) {
       request.log.error({ err: error }, 'request failed');
     } else {
-      request.log.info({ code: body.code, statusCode }, body.message);
+      const fields = invalidFields(error);
+      const where = fields.length > 0 ? { route: request.routeOptions.url, fields } : {};
+      request.log.info({ code: body.code, statusCode, ...where }, body.message);
     }
     return reply.status(statusCode).send(body);
   });

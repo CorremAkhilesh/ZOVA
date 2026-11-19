@@ -1,11 +1,12 @@
 import type { CreateUploadBody } from '@zuvo/protocol';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useMessageUi } from '@/features/messages/store';
 import { scheduleMedia } from '@/features/scheduled/schedule-media';
 import { useSyncStore } from '@/features/sync/store';
 import { uuidv7 } from '@/lib/uuid';
 import type { PickedFile } from './components/PreviewSheet';
 import { toPicked } from './components/PreviewSheet';
+import { setFileTarget } from './file-targets';
 import { type PreparedFile, prepareFile } from './process';
 import { useAppConfig } from './use-app-config';
 
@@ -29,6 +30,8 @@ export function useSendMedia(chatId: string) {
     (files: File[]) => setPicked((current) => [...current, ...toPicked(files)]),
     [],
   );
+  // "Choose again" on a lost file in this chat opens the preview sheet with the new pick.
+  useEffect(() => setFileTarget(chatId, addFiles), [chatId, addFiles]);
 
   const send = useCallback(
     async (input: { items: PickedFile[]; asDocument: boolean; viewOnce?: boolean }) => {

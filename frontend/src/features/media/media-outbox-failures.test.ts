@@ -34,10 +34,15 @@ const api = () =>
   ({
     create: async () => {
       server.created += 1;
-      return { uploadId: 'u-1', offset: 0, size: SIZE, status: 'pending' as const };
+      return {
+        uploadId: '64b7f0c2a1b2c3d4e5f60718',
+        offset: 0,
+        size: SIZE,
+        status: 'pending' as const,
+      };
     },
     state: async () => ({
-      uploadId: 'u-1',
+      uploadId: '64b7f0c2a1b2c3d4e5f60718',
       offset: server.offset,
       size: SIZE,
       status: 'pending' as const,

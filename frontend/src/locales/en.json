@@ -626,7 +626,9 @@
     "sendFailed": "Couldn’t prepare these files. Try again.",
     "nothingToSend": "Nothing to send",
     "keepTabOpen": "Keep this tab open until the upload finishes",
-    "fileLost": "This tab closed before the upload finished. Tap to remove, then send the file again.",
+    "fileLost": "This file is no longer available on this device. Remove it, or choose it again.",
+    "fileLostRemove": "Remove",
+    "fileLostChoose": "Choose again",
     "diskFull": "The server is low on storage, so this file wasn’t uploaded.",
     "overLimit": "This file is over the size limit."
   },

@@ -16,6 +16,7 @@ import {
   outboxReply,
   pendingTextRow,
   removeQueued,
+  requeue,
   type SendExtras,
   storeMedia,
   toPayload,
@@ -148,17 +149,7 @@ export class Outbox {
   }
 
   async retry(clientMsgId: string): Promise<void> {
-    const { db, me } = this.options;
-    await db.transaction('rw', db.outbox, db.messages, async () => {
-      await db.outbox
-        .where('clientMsgId')
-        .equals(clientMsgId)
-        .modify({ state: 'pending', attempts: 0, queuedAt: Date.now() });
-      await db.messages.update(`${me}:${clientMsgId}`, {
-        status: 'pending',
-        failReason: undefined,
-      });
-    });
+    await requeue(this.options.db, this.options.me, clientMsgId);
     this.waitUntil = 0;
     void this.flush();
   }

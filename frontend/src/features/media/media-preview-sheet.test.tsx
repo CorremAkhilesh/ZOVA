@@ -7,6 +7,7 @@ import { useSyncStore } from '@/features/sync/store';
 import { axe } from '@/test/axe';
 import { PreviewSheet, toPicked } from './components/PreviewSheet';
 import { UploadNotice } from './components/UploadNotice';
+import { setFileTarget } from './file-targets';
 
 const png = (name = 'a.png', size = 1000) => {
   const file = new File([new Uint8Array(1)], name, { type: 'image/png' });
@@ -60,20 +61,38 @@ describe('notes under a message', () => {
     expect(onRetry).toHaveBeenCalledWith('cm1');
   });
 
-  it('offers a removal for a lost file, because a retry could never work', async () => {
+  it('a lost file says so, and offers Remove and Choose again instead of a retry', async () => {
     const user = userEvent.setup();
     const cancelMedia = vi.fn(async () => undefined);
     useSyncStore.setState({ client: { cancelMedia } as never });
-    render(
+    const picked = vi.fn();
+    const unregister = setFileTarget('c1', picked);
+    const { container } = render(
       <UploadNotice
         message={message({ status: 'failed', failReason: 'fileLost' })}
         onRetry={vi.fn()}
       />,
     );
-    await user.click(screen.getByRole('button', { name: /Tap to remove/ }));
-    expect(cancelMedia).toHaveBeenCalledWith('cm1');
+    expect(screen.getByRole('alert')).toHaveTextContent('no longer available');
     expect(screen.queryByRole('button', { name: /Not sent/ })).not.toBeInTheDocument();
+    expect(await axe(container)).toHaveNoViolations();
+
+    // Choose again: the old message goes, and the new pick opens the send sheet of this chat.
+    const file = png('again.png');
+    await user.upload(screen.getByTestId('choose-again-input'), file);
+    await waitFor(() => expect(picked).toHaveBeenCalledWith([file]));
+    expect(cancelMedia).toHaveBeenCalledWith('cm1');
+
+    await user.click(screen.getByRole('button', { name: 'Remove' }));
+    expect(cancelMedia).toHaveBeenCalledTimes(2);
+    unregister();
     useSyncStore.setState({ client: null });
+  });
+
+  it('without an open chat to send to, a lost file can only be removed', () => {
+    render(<UploadNotice message={message({ status: 'failed', failReason: 'fileLost' })} />);
+    expect(screen.getByRole('button', { name: 'Remove' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Choose again' })).not.toBeInTheDocument();
   });
 });
 

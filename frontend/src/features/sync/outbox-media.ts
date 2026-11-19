@@ -234,3 +234,23 @@ export async function removeQueued(
   });
   return uploadId;
 }
+
+/**
+ * "Tap to retry": queued again from the start. A file message with nothing left to send it from
+ * says so instead (remove it, or choose the file again), so it can never stay "Not sent" for good.
+ */
+export async function requeue(db: LocalDb, me: string, clientMsgId: string): Promise<void> {
+  await db.transaction('rw', db.outbox, db.messages, async () => {
+    const key = `${me}:${clientMsgId}`;
+    const queued = await db.outbox
+      .where('clientMsgId')
+      .equals(clientMsgId)
+      .modify({ state: 'pending', attempts: 0, queuedAt: Date.now() });
+    const message = await db.messages.get(key);
+    if (queued === 0 && message?.media) {
+      await db.messages.update(key, { status: 'failed', failReason: 'fileLost' });
+      return;
+    }
+    await db.messages.update(key, { status: 'pending', failReason: undefined });
+  });
+}

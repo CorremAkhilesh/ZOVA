@@ -1,4 +1,4 @@
-import { UPLOAD_CHUNK_MAX_BYTES } from '@zuvo/protocol';
+import { UPLOAD_CHUNK_MAX_BYTES, uploadParamsSchema } from '@zuvo/protocol';
 import { heldByAnotherTab, heldFile, releaseFile } from '@/features/sync/held-files';
 import type { LocalDb, OutboxRow, UploadFailReason } from '@/features/sync/local-db';
 import type { Outbox } from '@/features/sync/outbox';
@@ -16,6 +16,27 @@ export const chunkSizeFor = (fileBytes: number) =>
   fileBytes > LARGE_FILE_BYTES ? UPLOAD_CHUNK_MAX_BYTES : CHUNK_BYTES;
 
 class FileLostError extends Error {}
+
+/** An id the server could have made. Anything else (empty, `undefined`) must never reach a URL. */
+export const isUploadId = (id: unknown): id is string =>
+  uploadParamsSchema.shape.id.safeParse(id).success;
+
+/** The server does not know (404) or will not take (400) a saved upload: start a fresh one. */
+const isGone = (error: unknown) =>
+  error instanceof ApiClientError && (error.status === 400 || error.status === 404);
+
+/**
+ * A file the browser can no longer read (site data cleared, storage evicted, a broken write) would
+ * otherwise fail every chunk as a network error, and wait for a connection that is already there.
+ */
+async function assertReadable(file: Blob, size: number): Promise<void> {
+  if (file.size !== size) throw new FileLostError('The file on this device has changed');
+  try {
+    await file.slice(0, 1).arrayBuffer();
+  } catch {
+    throw new FileLostError('The file on this device cannot be read');
+  }
+}
 
 /** Failures that trying again by itself cannot fix, and that the person should hear about. */
 function failReasonOf(error: unknown): UploadFailReason | undefined {
@@ -148,12 +169,7 @@ export class MediaUploader {
       this.later(retryBaseMs * 2);
       return false;
     }
-    if (status === 404) {
-      // The server no longer has it (cleaned up, or a different environment): start over.
-      if (row.n !== undefined) await db.outbox.update(row.n, { uploadId: undefined });
-      this.later(retryBaseMs);
-      return false;
-    }
+    if (status === 404) return this.startOver(row);
     if (status === 429) {
       this.later(retryBaseMs * 3);
       return false;
@@ -170,6 +186,22 @@ export class MediaUploader {
     return false;
   }
 
+  /**
+   * The server no longer has the upload (cleaned up, or a different environment): start over, a
+   * few times at most, so a server that keeps losing it cannot keep this busy forever.
+   */
+  private async startOver(row: OutboxRow): Promise<boolean> {
+    const { db, outbox, retryBaseMs = RETRY_BASE_MS } = this.options;
+    const attempts = row.attempts + 1;
+    if (attempts >= MAX_ATTEMPTS) {
+      await outbox.markFailed(row);
+      return true;
+    }
+    if (row.n !== undefined) await db.outbox.update(row.n, { uploadId: undefined, attempts });
+    this.later(retryBaseMs);
+    return false;
+  }
+
   private async transfer(row: OutboxRow, signal: AbortSignal) {
     const { db, me, api } = this.options;
     const stored = heldFile(row.clientMsgId) ?? (await db.files.get(row.clientMsgId));
@@ -179,9 +211,11 @@ export class MediaUploader {
     }
     const chunkBytes = this.options.chunkBytes ?? chunkSizeFor(info.size);
     const key = `${me}:${row.clientMsgId}`;
-    const uploadId = await this.ensureUpload(row, stored.poster && asBlob(stored.poster));
     const file = asBlob(stored.file);
-    let { offset } = await api.state(uploadId);
+    await assertReadable(file, info.size);
+    const start = await this.startOrResume(row, stored.poster && asBlob(stored.poster));
+    const { uploadId } = start;
+    let { offset } = start;
     while (offset < info.size) {
       if (signal.aborted) return;
       const chunk = file.slice(offset, offset + chunkBytes);
@@ -202,12 +236,31 @@ export class MediaUploader {
     releaseFile(row.clientMsgId);
   }
 
-  private async ensureUpload(row: OutboxRow, poster: Blob | undefined): Promise<string> {
+  /**
+   * Carries on with the saved upload, or starts one. A saved id that is not a real one, or that the
+   * server refuses, is dropped once for a fresh upload: it never asks about an empty id.
+   */
+  private async startOrResume(
+    row: OutboxRow,
+    poster: Blob | undefined,
+  ): Promise<{ uploadId: string; offset: number }> {
+    const saved = row.uploadId;
+    if (isUploadId(saved)) {
+      try {
+        return { uploadId: saved, offset: (await this.options.api.state(saved)).offset };
+      } catch (error) {
+        if (!isGone(error)) throw error;
+      }
+    }
+    return { uploadId: await this.createUpload(row, poster), offset: 0 };
+  }
+
+  private async createUpload(row: OutboxRow, poster: Blob | undefined): Promise<string> {
     const { db, api } = this.options;
-    if (row.uploadId) return row.uploadId;
     const info = row.media;
     if (!info || row.n === undefined) throw new Error('Nothing to upload');
     const { uploadId } = await api.create(info);
+    if (!isUploadId(uploadId)) throw new Error('The server returned no usable upload id');
     await db.outbox.update(row.n, { uploadId });
     if (poster) await api.setPoster(uploadId, poster);
     return uploadId;
