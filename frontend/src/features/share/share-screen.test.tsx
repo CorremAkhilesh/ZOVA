@@ -1,6 +1,7 @@
 import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { toast } from 'sonner';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { rememberJoinPath, takeJoinPath } from '@/features/groups/rules';
 import { useSyncStore } from '@/features/sync/store';
 import type { SharedItem } from '@/sw/share/store';
@@ -41,10 +42,14 @@ const share = (overrides: Partial<SharedItem> = {}): SharedItem => ({
   files: [file('plan.pdf', 'application/pdf'), file('notes.txt', 'text/plain')],
   ...overrides,
 });
+afterEach(() => vi.restoreAllMocks());
 const people = ['Asha', 'Bharat', 'Chitra', 'Dev', 'Esha', 'Farid'];
 
 beforeEach(async () => {
   shares.clear();
+  // No real toast: its timer would outlive the test's window.
+  vi.spyOn(toast, 'success').mockImplementation(() => 'toast');
+  vi.spyOn(toast, 'error').mockImplementation(() => 'toast');
   await seedLocal(
     people.map((name, index) =>
       chatFixture({

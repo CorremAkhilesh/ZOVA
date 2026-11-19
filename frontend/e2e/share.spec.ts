@@ -8,6 +8,7 @@ import { SLOW, waitForActiveServiceWorker } from './helpers';
 
 test.describe.configure({ timeout: 300_000 });
 test.use({ actionTimeout: 30_000 });
+const UPLOADS = { timeout: 60_000 };
 
 test('two files and text shared from another app reach two chats', async ({
   browser,
@@ -68,9 +69,10 @@ test('two files and text shared from another app reach two chats', async ({
     await other.page.goto('/chats');
     await openFromList(other.page, 'Asha');
     const messages = thread(other.page, 'Asha');
-    await expect(messages.getByText('budget.pdf')).toBeVisible(SLOW);
-    await expect(messages.getByText('notes.txt')).toBeVisible(SLOW);
-    await expect(messages.getByText('From the Files app')).toBeVisible(SLOW);
+    // Four uploads go one after another (two files to each chat): give slow runners time.
+    await expect(messages.getByText('budget.pdf')).toBeVisible(UPLOADS);
+    await expect(messages.getByText('notes.txt')).toBeVisible(UPLOADS);
+    await expect(messages.getByText('From the Files app')).toBeVisible(UPLOADS);
   }
 
   await asha.context.close();
