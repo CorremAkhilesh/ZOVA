@@ -186,6 +186,9 @@ async function setupRealtime(app: FastifyInstance, options: RealtimeOptions) {
   app.addHook('onClose', async () => {
     presence.stop();
     io.engine?.close();
+    // The Redis adapter first (it unsubscribes), then its connections: quitting under a live adapter
+    // left its commands to fail with "Connection is closed", unhandled (a flaky CI run).
+    await Promise.resolve(io.of('/').adapter.close()).catch(() => undefined);
     await Promise.all(adapterClients.map((client) => client.quit().catch(() => undefined)));
   });
 }

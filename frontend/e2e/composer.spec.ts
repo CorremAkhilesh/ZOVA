@@ -106,8 +106,14 @@ for (const device of [
       await me.context.close();
     });
 
-    test('a voice note, recorded with the mic button', async ({ browser, browserName }) => {
+    test('a voice note, recorded with the mic button', async ({
+      browser,
+      browserName,
+      isMobile,
+    }) => {
       test.skip(browserName !== 'chromium', 'A fake microphone needs Chromium launch flags');
+      // A tap on a touch screen is press-and-hold (covered by component tests), not a click.
+      test.skip(isMobile, 'Press-and-hold is covered by component tests');
       const me = await openSaved(browser);
       await me.page.getByRole('button', { name: 'Record a voice note' }).click();
       const allow = me.page.getByRole('button', { name: 'Continue' });
