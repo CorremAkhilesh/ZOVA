@@ -20,6 +20,7 @@ async function newContext(browser: Browser): Promise<BrowserContext> {
   await context.addInitScript(() => {
     try {
       localStorage.setItem('zuvo.push.card-dismissed', '1');
+      localStorage.setItem('zuvo.push.nudge-off', '1');
       localStorage.setItem(
         'zuvo-install',
         JSON.stringify({ state: { bannerDismissed: true }, version: 0 }),

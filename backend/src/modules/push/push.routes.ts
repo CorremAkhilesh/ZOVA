@@ -1,5 +1,7 @@
 import {
   objectIdSchema,
+  pushClientBodySchema,
+  pushClientResponseSchema,
   pushRemovedResponseSchema,
   pushSettingsResponseSchema,
   pushStateResponseSchema,
@@ -14,6 +16,7 @@ import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { currentUserId, requireSession } from '../../auth/session.ts';
 import { AppError } from '../../lib/errors.ts';
+import { reportPushClient } from '../../push/client-state.ts';
 import { buildTestPayload } from '../../push/content.ts';
 import { deliverToDevices, liveDevices } from '../../push/devices.ts';
 import { pushSettingsFor, updatePushSettings } from '../../push/settings.service.ts';
@@ -66,6 +69,23 @@ export const pushRoutes: FastifyPluginAsyncZod = async (app) => {
       }
       const device = await subscribe(app, currentUserId(request), sessionOf(request), request.body);
       return { device };
+    },
+  );
+
+  app.put(
+    '/me/push/client',
+    {
+      config: { rateLimit: { max: 30, timeWindow: '1 minute' } },
+      schema: {
+        tags,
+        summary: 'What this device can do: permission, installed app, push on (for admins)',
+        body: pushClientBodySchema,
+        response: { 200: pushClientResponseSchema },
+      },
+    },
+    async (request) => {
+      await reportPushClient(app, sessionOf(request).id, request.body);
+      return { ok: true as const };
     },
   );
 

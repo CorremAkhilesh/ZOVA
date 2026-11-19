@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { windowStatePayloadSchema } from '../realtime/chat.ts';
 import {
+  DEFAULT_PUSH_SETTINGS,
   pushPayloadSchema,
   pushSettingsSchema,
   pushSubscriptionBodySchema,
@@ -25,8 +26,11 @@ describe('push', () => {
   });
 
   it('defaults the settings, and changes only what was sent', () => {
-    expect(pushSettingsSchema.parse({})).toEqual({ showPreview: true, sound: true });
+    expect(pushSettingsSchema.parse({})).toEqual(DEFAULT_PUSH_SETTINGS);
+    expect(Object.values(DEFAULT_PUSH_SETTINGS).includes(false)).toBe(false);
     expect(updatePushSettingsBodySchema.parse({ sound: false })).toEqual({ sound: false });
+    expect(updatePushSettingsBodySchema.safeParse({ tone: 'horn' }).success).toBe(false);
+    expect(updatePushSettingsBodySchema.safeParse({ soundVolume: 101 }).success).toBe(false);
   });
 
   it('reads the payloads the service worker gets', () => {

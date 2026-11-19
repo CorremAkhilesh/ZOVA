@@ -22,6 +22,7 @@ import { Route as HelpAboutRouteImport } from './routes/help.about'
 import { Route as HelpContactRouteImport } from './routes/help.contact'
 import { Route as HelpFaqRouteImport } from './routes/help.faq'
 import { Route as HelpInstallRouteImport } from './routes/help.install'
+import { Route as HelpNotificationsRouteImport } from './routes/help.notifications'
 import { Route as HelpPrivacyRouteImport } from './routes/help.privacy'
 import { Route as SecurityNotMeRouteImport } from './routes/security.not-me'
 import { Route as WelcomeNameRouteImport } from './routes/welcome.name'
@@ -36,6 +37,7 @@ import { Route as AppSettingsNotificationsRouteImport } from './routes/_app/sett
 import { Route as AppSettingsPrivacyRouteImport } from './routes/_app/settings.privacy'
 import { Route as AppSettingsProfileRouteImport } from './routes/_app/settings.profile'
 import { Route as AppSettingsAdminAuditRouteImport } from './routes/_app/settings.admin.audit'
+import { Route as AppSettingsAdminNotificationsRouteImport } from './routes/_app/settings.admin.notifications'
 import { Route as AppSettingsAdminReportsRouteImport } from './routes/_app/settings.admin.reports'
 import { Route as AppSettingsAdminUsersRouteImport } from './routes/_app/settings.admin.users'
 
@@ -101,6 +103,11 @@ const HelpFaqRoute = HelpFaqRouteImport.update({
 const HelpInstallRoute = HelpInstallRouteImport.update({
   id: '/install',
   path: '/install',
+  getParentRoute: () => HelpRoute,
+} as any)
+const HelpNotificationsRoute = HelpNotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
   getParentRoute: () => HelpRoute,
 } as any)
 const HelpPrivacyRoute = HelpPrivacyRouteImport.update({
@@ -174,6 +181,12 @@ const AppSettingsAdminAuditRoute = AppSettingsAdminAuditRouteImport.update({
   path: '/settings/admin/audit',
   getParentRoute: () => AppRoute,
 } as any)
+const AppSettingsAdminNotificationsRoute =
+  AppSettingsAdminNotificationsRouteImport.update({
+    id: '/settings/admin/notifications',
+    path: '/settings/admin/notifications',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppSettingsAdminReportsRoute = AppSettingsAdminReportsRouteImport.update({
   id: '/settings/admin/reports',
   path: '/settings/admin/reports',
@@ -197,6 +210,7 @@ export interface FileRoutesByFullPath {
   '/help/contact': typeof HelpContactRoute
   '/help/faq': typeof HelpFaqRoute
   '/help/install': typeof HelpInstallRoute
+  '/help/notifications': typeof HelpNotificationsRoute
   '/help/privacy': typeof HelpPrivacyRoute
   '/security/not-me': typeof SecurityNotMeRoute
   '/welcome/name': typeof WelcomeNameRoute
@@ -212,6 +226,7 @@ export interface FileRoutesByFullPath {
   '/chats/': typeof AppChatsIndexRoute
   '/settings/': typeof AppSettingsIndexRoute
   '/settings/admin/audit': typeof AppSettingsAdminAuditRoute
+  '/settings/admin/notifications': typeof AppSettingsAdminNotificationsRoute
   '/settings/admin/reports': typeof AppSettingsAdminReportsRoute
   '/settings/admin/users': typeof AppSettingsAdminUsersRoute
 }
@@ -225,6 +240,7 @@ export interface FileRoutesByTo {
   '/help/contact': typeof HelpContactRoute
   '/help/faq': typeof HelpFaqRoute
   '/help/install': typeof HelpInstallRoute
+  '/help/notifications': typeof HelpNotificationsRoute
   '/help/privacy': typeof HelpPrivacyRoute
   '/security/not-me': typeof SecurityNotMeRoute
   '/welcome/name': typeof WelcomeNameRoute
@@ -240,6 +256,7 @@ export interface FileRoutesByTo {
   '/chats': typeof AppChatsIndexRoute
   '/settings': typeof AppSettingsIndexRoute
   '/settings/admin/audit': typeof AppSettingsAdminAuditRoute
+  '/settings/admin/notifications': typeof AppSettingsAdminNotificationsRoute
   '/settings/admin/reports': typeof AppSettingsAdminReportsRoute
   '/settings/admin/users': typeof AppSettingsAdminUsersRoute
 }
@@ -257,6 +274,7 @@ export interface FileRoutesById {
   '/help/contact': typeof HelpContactRoute
   '/help/faq': typeof HelpFaqRoute
   '/help/install': typeof HelpInstallRoute
+  '/help/notifications': typeof HelpNotificationsRoute
   '/help/privacy': typeof HelpPrivacyRoute
   '/security/not-me': typeof SecurityNotMeRoute
   '/welcome/name': typeof WelcomeNameRoute
@@ -272,6 +290,7 @@ export interface FileRoutesById {
   '/_app/chats/': typeof AppChatsIndexRoute
   '/_app/settings/': typeof AppSettingsIndexRoute
   '/_app/settings/admin/audit': typeof AppSettingsAdminAuditRoute
+  '/_app/settings/admin/notifications': typeof AppSettingsAdminNotificationsRoute
   '/_app/settings/admin/reports': typeof AppSettingsAdminReportsRoute
   '/_app/settings/admin/users': typeof AppSettingsAdminUsersRoute
 }
@@ -289,6 +308,7 @@ export interface FileRouteTypes {
     | '/help/contact'
     | '/help/faq'
     | '/help/install'
+    | '/help/notifications'
     | '/help/privacy'
     | '/security/not-me'
     | '/welcome/name'
@@ -304,6 +324,7 @@ export interface FileRouteTypes {
     | '/chats/'
     | '/settings/'
     | '/settings/admin/audit'
+    | '/settings/admin/notifications'
     | '/settings/admin/reports'
     | '/settings/admin/users'
   fileRoutesByTo: FileRoutesByTo
@@ -317,6 +338,7 @@ export interface FileRouteTypes {
     | '/help/contact'
     | '/help/faq'
     | '/help/install'
+    | '/help/notifications'
     | '/help/privacy'
     | '/security/not-me'
     | '/welcome/name'
@@ -332,6 +354,7 @@ export interface FileRouteTypes {
     | '/chats'
     | '/settings'
     | '/settings/admin/audit'
+    | '/settings/admin/notifications'
     | '/settings/admin/reports'
     | '/settings/admin/users'
   id:
@@ -348,6 +371,7 @@ export interface FileRouteTypes {
     | '/help/contact'
     | '/help/faq'
     | '/help/install'
+    | '/help/notifications'
     | '/help/privacy'
     | '/security/not-me'
     | '/welcome/name'
@@ -363,6 +387,7 @@ export interface FileRouteTypes {
     | '/_app/chats/'
     | '/_app/settings/'
     | '/_app/settings/admin/audit'
+    | '/_app/settings/admin/notifications'
     | '/_app/settings/admin/reports'
     | '/_app/settings/admin/users'
   fileRoutesById: FileRoutesById
@@ -469,6 +494,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HelpInstallRouteImport
       parentRoute: typeof HelpRoute
     }
+    '/help/notifications': {
+      id: '/help/notifications'
+      path: '/notifications'
+      fullPath: '/help/notifications'
+      preLoaderRoute: typeof HelpNotificationsRouteImport
+      parentRoute: typeof HelpRoute
+    }
     '/help/privacy': {
       id: '/help/privacy'
       path: '/privacy'
@@ -567,6 +599,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsAdminAuditRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/settings/admin/notifications': {
+      id: '/_app/settings/admin/notifications'
+      path: '/settings/admin/notifications'
+      fullPath: '/settings/admin/notifications'
+      preLoaderRoute: typeof AppSettingsAdminNotificationsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/settings/admin/reports': {
       id: '/_app/settings/admin/reports'
       path: '/settings/admin/reports'
@@ -612,6 +651,7 @@ interface AppRouteChildren {
   AppSettingsProfileRoute: typeof AppSettingsProfileRoute
   AppSettingsIndexRoute: typeof AppSettingsIndexRoute
   AppSettingsAdminAuditRoute: typeof AppSettingsAdminAuditRoute
+  AppSettingsAdminNotificationsRoute: typeof AppSettingsAdminNotificationsRoute
   AppSettingsAdminReportsRoute: typeof AppSettingsAdminReportsRoute
   AppSettingsAdminUsersRoute: typeof AppSettingsAdminUsersRoute
 }
@@ -630,6 +670,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppSettingsProfileRoute: AppSettingsProfileRoute,
   AppSettingsIndexRoute: AppSettingsIndexRoute,
   AppSettingsAdminAuditRoute: AppSettingsAdminAuditRoute,
+  AppSettingsAdminNotificationsRoute: AppSettingsAdminNotificationsRoute,
   AppSettingsAdminReportsRoute: AppSettingsAdminReportsRoute,
   AppSettingsAdminUsersRoute: AppSettingsAdminUsersRoute,
 }
@@ -641,6 +682,7 @@ interface HelpRouteChildren {
   HelpContactRoute: typeof HelpContactRoute
   HelpFaqRoute: typeof HelpFaqRoute
   HelpInstallRoute: typeof HelpInstallRoute
+  HelpNotificationsRoute: typeof HelpNotificationsRoute
   HelpPrivacyRoute: typeof HelpPrivacyRoute
   HelpIndexRoute: typeof HelpIndexRoute
 }
@@ -650,6 +692,7 @@ const HelpRouteChildren: HelpRouteChildren = {
   HelpContactRoute: HelpContactRoute,
   HelpFaqRoute: HelpFaqRoute,
   HelpInstallRoute: HelpInstallRoute,
+  HelpNotificationsRoute: HelpNotificationsRoute,
   HelpPrivacyRoute: HelpPrivacyRoute,
   HelpIndexRoute: HelpIndexRoute,
 }

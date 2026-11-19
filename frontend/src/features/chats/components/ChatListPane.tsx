@@ -160,7 +160,6 @@ export function ChatListPane() {
   // "Get notified" / "Install the app": a bar over the list's bottom, once the rows have painted.
   const promo = useChatListPromo({
     rowsShown: chats.length > 0,
-    pushAllowed: Boolean(rows?.some((r) => r.type !== 'self')),
     hidden: archivedList || Boolean(query.trim()),
   });
 

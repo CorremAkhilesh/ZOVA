@@ -34,6 +34,11 @@ afterEach(() => {
 const PAGES = [
   { path: '/help', en: 'Help & About', hi: 'मदद और जानकारी' },
   { path: '/help/install', en: 'Install the app', hi: 'ऐप इंस्टॉल करें' },
+  {
+    path: '/help/notifications',
+    en: 'Notifications on every device',
+    hi: 'हर डिवाइस पर नोटिफ़िकेशन',
+  },
   { path: '/help/faq', en: 'Common questions', hi: 'आम सवाल' },
   { path: '/help/privacy', en: 'Your privacy', hi: 'आपकी प्राइवेसी' },
   { path: '/help/contact', en: 'Contact us', hi: 'हमसे संपर्क करें' },

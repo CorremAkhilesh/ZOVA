@@ -12,7 +12,8 @@ import { getUserDb, type LocalDb } from '@/features/sync/local-db';
 import { i18n } from '@/lib/i18n';
 import { type InAppAlert, inAppAlert } from './alert-rules';
 import { usePushState } from './api';
-import { playChime } from './sound';
+import { setSoundSettings, soundForIncoming } from './app-sounds';
+import { installAudioUnlock } from './sound';
 import { currentWindowState, onIncomingMessage } from './window-state';
 
 const TOAST_MS = 5000;
@@ -79,6 +80,7 @@ async function alertFor(message: Message, me: string, live: () => Live) {
   if (message.senderId === null || message.senderId === me) return null;
   const db = getUserDb(me);
   const chat = await storedChat(db, message.chatId);
+  soundForIncoming(message, { me, chat, openChatId: live().openChatId });
   const sender = await db.profiles.get(message.senderId).catch(() => undefined);
   const { openChatId, settings } = live();
   const { visible, focused } = currentWindowState();
@@ -96,13 +98,17 @@ async function alertFor(message: Message, me: string, live: () => Live) {
   });
 }
 
-/** A toast (and the chime, if on) for new messages in other chats while the app is in front. */
+/** A toast for new messages in other chats while the app is in front, and the sounds (app-sounds.ts). */
 export function useInAppAlerts(): void {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const settings = usePushState().data?.settings;
   const live = useRef<Live>({ openChatId: openChatIdFrom(pathname), settings });
   live.current = { openChatId: openChatIdFrom(pathname), settings };
+  setSoundSettings(settings);
+
+  // Browsers allow audio only after a click or key press: unlock (and load the sounds) on the first.
+  useEffect(() => installAudioUnlock(), []);
 
   useEffect(
     () =>
@@ -118,7 +124,6 @@ export function useInAppAlerts(): void {
             id,
             duration: TOAST_MS,
           });
-          if (live.current.settings?.sound ?? true) playChime();
         });
       }),
     [navigate],

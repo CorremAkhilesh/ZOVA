@@ -2,6 +2,7 @@ import { DEFAULT_PUSH_SETTINGS, type PushDevice, type PushState } from '@zuvo/pr
 import { vi } from 'vitest';
 import { vapidKeyBytes } from '@/sw/push/vapid';
 import { HttpResponse, http, server } from '@/test/msw';
+import { NUDGE_LATER_KEY, NUDGE_OFF_KEY, useNudgeStore } from './nudge';
 import { usePushPrefs } from './prefs';
 
 /** A VAPID public key of the right shape (65 bytes, 0x04 first), not a real one. */
@@ -15,6 +16,8 @@ interface BrowserOptions {
   /** This browser already has a subscription (made with VAPID_KEY). */
   subscribed?: boolean;
   userAgent?: string;
+  /** Show the "Turn on notifications" step and banner (off by default, as in E2E). */
+  nudge?: boolean;
 }
 
 /**
@@ -60,6 +63,13 @@ export function installPushBrowser(options: BrowserOptions = {}) {
       return answer;
     }),
   };
+  try {
+    if (options.nudge) localStorage.removeItem(NUDGE_OFF_KEY);
+    else localStorage.setItem(NUDGE_OFF_KEY, '1');
+  } catch {
+    // No storage in this test: the nudge follows its defaults.
+  }
+  useNudgeStore.getState().reload();
   vi.stubGlobal('Notification', FakeNotification);
   vi.stubGlobal('PushManager', class {});
   const badge = { setAppBadge: vi.fn(async () => {}), clearAppBadge: vi.fn(async () => {}) };
@@ -88,6 +98,13 @@ export function restorePushBrowser() {
   vi.unstubAllGlobals();
   for (const [target, key] of defined.splice(0)) delete (target as Record<string, unknown>)[key];
   usePushPrefs.getState().reload();
+  try {
+    localStorage.removeItem(NUDGE_OFF_KEY);
+    localStorage.removeItem(NUDGE_LATER_KEY);
+  } catch {
+    // No storage.
+  }
+  useNudgeStore.getState().reload();
 }
 
 export const deviceFixture = (overrides: Partial<PushDevice> = {}): PushDevice => ({
@@ -144,6 +161,10 @@ export function servePush(initial: Partial<PushState> = {}) {
       const changes = (state.calls.at(-1)?.body ?? {}) as Partial<PushState['settings']>;
       state.push = { ...state.push, settings: { ...state.push.settings, ...changes } };
       return HttpResponse.json({ settings: state.push.settings });
+    }),
+    http.put('*/v1/me/push/client', async ({ request }) => {
+      await record(request);
+      return HttpResponse.json({ ok: true });
     }),
     http.post('*/v1/me/push/test', async ({ request }) => {
       await record(request);

@@ -23,6 +23,10 @@
     "about": {
       "title": "About {{brand}}",
       "hint": "Version and what’s new"
+    },
+    "notifications": {
+      "title": "Notifications on every device",
+      "hint": "Turn them on, fix blocked ones, and the {{brand}} tone on Android"
     }
   },
   "install": {
@@ -193,5 +197,54 @@
     "version": "Version {{version}} ({{commit}})",
     "built": "Built on {{date}}",
     "whatsNew": "What’s new"
+  },
+  "notifications": {
+    "subtitle": "Get every message, even when {{brand}} is closed.",
+    "on": {
+      "title": "Turn notifications on",
+      "steps": [
+        "Open {{brand}} and sign in. On iPhone, open it from the Home Screen icon (see Install the app).",
+        "Tap “Turn on notifications” and allow them when your browser asks.",
+        "Go to Settings → Notifications and tap “Send test notification” to check."
+      ]
+    },
+    "android": {
+      "title": "Android: use the {{brand}} tone",
+      "intro": "When the app is closed, Android plays its own notification sound: a website cannot choose one. You can pick our chime for {{brand}} instead.",
+      "download": "Download the {{brand}} tone",
+      "steps": [
+        "Download the tone above. It is saved as “{{file}}” in Downloads.",
+        "Open the phone’s Settings → Apps → {{brand}} (installed app) or Chrome → Notifications.",
+        "Open the notification category for {{brand}} messages, then Sound.",
+        "Choose “{{file}}”. If it is not listed, tap “Add” or “From storage” and pick it in Downloads."
+      ],
+      "note": "Menus differ a little between phone makers. On some phones you may need to move the file to the Notifications folder first."
+    },
+    "ios": {
+      "title": "iPhone and iPad",
+      "points": [
+        "Notifications only work in the app added to the Home Screen (iOS 16.4 or later), not in a Safari tab.",
+        "iOS plays its own notification sound; it cannot be changed for web apps.",
+        "Check Settings → Notifications → {{brand}}: Allow Notifications, Sounds and Badges on.",
+        "Focus modes can hold notifications back: allow {{brand}} in your Focus settings."
+      ]
+    },
+    "desktop": {
+      "title": "Windows and Mac",
+      "points": [
+        "Use Chrome or Edge (installed as an app is best). Notifications come even with the window closed, as long as the browser runs.",
+        "Windows: Settings → System → Notifications: allow Chrome or Edge, and check Do not disturb.",
+        "Mac: System Settings → Notifications: allow Chrome, Edge or Safari, and check Focus."
+      ]
+    },
+    "missing": {
+      "title": "Still missing notifications?",
+      "points": [
+        "If notifications are blocked, the app shows the steps to allow them again for your browser.",
+        "Battery saver on Android can stop notifications: set {{brand}} or Chrome to “Unrestricted”.",
+        "Muted chats and quiet hours stay silent on purpose; @mentions can still come through.",
+        "Signing out stops notifications on that device."
+      ]
+    }
   }
 }

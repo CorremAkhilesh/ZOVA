@@ -1,11 +1,13 @@
 import { queryOptions, useQuery } from '@tanstack/react-query';
 import {
-  type PushSettings,
+  type PushClientReport,
   type PushState,
+  pushClientResponseSchema,
   pushSettingsSchema,
   pushStateResponseSchema,
   pushSubscribeResponseSchema,
   pushTestResponseSchema,
+  type UpdatePushSettings,
 } from '@zuvo/protocol';
 import { z } from 'zod';
 import { apiGet, apiPost, apiPut, apiRequest } from '@/lib/api-client';
@@ -29,9 +31,11 @@ export const pushApi = {
   unsubscribe: (endpoint: string) => jsonDelete('/v1/me/push/subscription', { endpoint }),
   removeDevice: (id: string) =>
     apiRequest(`/v1/me/push/devices/${encodeURIComponent(id)}`, noContent, { method: 'DELETE' }),
-  saveSettings: (changes: Partial<PushSettings>) =>
+  saveSettings: (changes: UpdatePushSettings) =>
     apiPut('/v1/me/push/settings', changes, settingsSaved),
   test: () => apiPost('/v1/me/push/test', undefined, pushTestResponseSchema),
+  client: (report: PushClientReport) =>
+    apiPut('/v1/me/push/client', report, pushClientResponseSchema),
 };
 
 export const PUSH_KEY = ['me', 'push'] as const;

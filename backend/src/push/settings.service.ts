@@ -1,4 +1,9 @@
-import { DEFAULT_PUSH_SETTINGS, type PushSettings, pushSettingsSchema } from '@zuvo/protocol';
+import {
+  DEFAULT_PUSH_SETTINGS,
+  type PushSettings,
+  pushSettingsSchema,
+  type UpdatePushSettings,
+} from '@zuvo/protocol';
 import type { FastifyInstance } from 'fastify';
 import { type Connection, type Model, Types } from 'mongoose';
 import { registerAuthModels } from '../db/auth-models.ts';
@@ -12,10 +17,19 @@ interface PushSettingsField {
 const users = (mongo: Connection) =>
   registerAuthModels(mongo).AuthUser as unknown as Model<PushSettingsField>;
 
-/** Stored settings over the defaults; anything unreadable falls back to the defaults. */
+/**
+ * Stored settings over the defaults, field by field: whatever was never set (or cannot be read) is
+ * the default, which is "on". So an account that never changed anything gets everything on, with
+ * no migration to run, and a setting someone did change is kept.
+ */
 export function toPushSettings(stored: Partial<PushSettings> | null | undefined): PushSettings {
-  const parsed = pushSettingsSchema.safeParse({ ...DEFAULT_PUSH_SETTINGS, ...(stored ?? {}) });
-  return parsed.success ? parsed.data : DEFAULT_PUSH_SETTINGS;
+  const shape = pushSettingsSchema.shape;
+  const merged: Record<string, unknown> = { ...DEFAULT_PUSH_SETTINGS };
+  for (const key of Object.keys(shape) as (keyof PushSettings)[]) {
+    const value = stored?.[key];
+    if (value !== undefined && shape[key].safeParse(value).success) merged[key] = value;
+  }
+  return pushSettingsSchema.parse(merged);
 }
 
 /** My notification settings, the same on every device (read by _id). */
@@ -38,11 +52,11 @@ export async function announcePush(app: FastifyInstance, userId: string) {
 export async function updatePushSettings(
   app: FastifyInstance,
   userId: string,
-  changes: { showPreview?: boolean | undefined; sound?: boolean | undefined },
+  changes: UpdatePushSettings,
 ): Promise<PushSettings> {
   const set = Object.fromEntries(
     Object.entries(changes)
-      .filter(([, value]) => typeof value === 'boolean')
+      .filter(([, value]) => value !== undefined)
       .map(([key, value]) => [`pushSettings.${key}`, value]),
   );
   if (Object.keys(set).length > 0) {

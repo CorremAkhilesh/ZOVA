@@ -25,6 +25,7 @@ async function person(browser: Browser, name: string, prefix: string): Promise<P
   await context.addInitScript(() => {
     try {
       localStorage.setItem('zuvo.push.card-dismissed', '1');
+      localStorage.setItem('zuvo.push.nudge-off', '1');
       localStorage.setItem(
         'zuvo-install',
         JSON.stringify({ state: { bannerDismissed: true }, version: 0 }),

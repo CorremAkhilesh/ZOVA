@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router';
 import {
+  BellRing,
   ChevronRight,
   Flag,
   LifeBuoy,
@@ -26,6 +27,7 @@ type Entry = {
     | '/settings/admin/users'
     | '/settings/admin/reports'
     | '/settings/admin/audit'
+    | '/settings/admin/notifications'
     | '/help';
   label: string;
   hint: string;
@@ -127,6 +129,12 @@ export function SettingsMenu() {
               label: t('adminReports.title'),
               hint: t('adminReports.subtitle'),
               icon: Flag,
+            },
+            {
+              to: '/settings/admin/notifications',
+              label: t('adminPush.title'),
+              hint: t('adminPush.menuHint'),
+              icon: BellRing,
             },
             {
               to: '/settings/admin/audit',

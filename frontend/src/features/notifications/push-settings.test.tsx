@@ -1,5 +1,6 @@
 import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { brand } from '@zuvo/config';
 import { DEFAULT_PUSH_SETTINGS } from '@zuvo/protocol';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { axe } from '@/test/axe';
@@ -120,7 +121,7 @@ describe('Settings → Notifications: push', () => {
       }),
     );
     expect(screen.getByRole('switch', { name: /Show message preview/ })).not.toBeChecked();
-    api.push = { ...api.push, settings: { showPreview: true, sound: false } };
+    api.push = { ...api.push, settings: { ...DEFAULT_PUSH_SETTINGS, sound: false } };
     act(() => lastSocket().receive('push:updated', { settings: api.push.settings }));
     await waitFor(() => expect(screen.getByRole('switch', { name: /^Sound/ })).not.toBeChecked());
     expect(screen.getByRole('switch', { name: /Show message preview/ })).toBeChecked();
@@ -185,5 +186,37 @@ describe('Settings → Notifications: push', () => {
       path: '/v1/me/push/devices/d2',
       body: undefined,
     });
+  });
+});
+
+describe('Settings → Notifications: sounds', () => {
+  it('a tone (with preview), each kind on its own, and "Sound" off greys the rest', async () => {
+    const api = servePush();
+    installPushBrowser({ permission: 'granted', subscribed: true });
+    const { container } = await openSettings();
+    await section('Sounds');
+    const user = userEvent.setup();
+    expect(screen.getByRole('radio', { name: `${brand.name} chime` })).toBeChecked();
+    expect(screen.getByRole('button', { name: 'Play Marimba' })).toBeInTheDocument();
+    await user.click(screen.getByRole('radio', { name: 'Glass' }));
+    await waitFor(() =>
+      expect(api.calls).toContainEqual({
+        method: 'PUT',
+        path: '/v1/me/push/settings',
+        body: { tone: 'glass' },
+      }),
+    );
+    await user.click(screen.getByRole('switch', { name: /^Mentions/ }));
+    await waitFor(() =>
+      expect(api.calls).toContainEqual({
+        method: 'PUT',
+        path: '/v1/me/push/settings',
+        body: { soundMentions: false },
+      }),
+    );
+    await user.click(screen.getByRole('switch', { name: /^Sound/ }));
+    await waitFor(() => expect(screen.getByRole('radio', { name: 'Glass' })).toBeDisabled());
+    expect(screen.getByRole('switch', { name: /^Sending/ })).toBeDisabled();
+    expect(await axe(container)).toHaveNoViolations();
   });
 });
