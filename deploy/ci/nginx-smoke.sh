@@ -28,6 +28,9 @@ header "$asset" content-encoding | grep >/dev/null gzip || [ "$(c -o /dev/null -
 csp_count="$(c -o /dev/null -D - "https://$HOST/v1/ready" | grep -ci '^content-security-policy:')"
 [ "$csp_count" = 1 ] || fail "the API must get exactly one CSP (its own), got $csp_count"
 [ "$(c -o /dev/null -w '%{http_code}' "https://$HOST/v1/test/outbox/latest")" = 404 ] || fail "test routes reachable"
+# Starting an upload must reach the API (401 without a session), never an Nginx redirect.
+start="$(c -o /dev/null -w '%{http_code} %{redirect_url}' -X POST -H 'content-type: application/json' -d '{}' "https://$HOST/v1/uploads")"
+[ "${start%% *}" = 401 ] || fail "POST /v1/uploads must reach the API (got $start)"
 # WebSocket upgrade through Nginx (Engine.IO answers 101 before any sign-in check).
 upgrade="$(c --http1.1 --max-time 3 -o /dev/null -w '%{http_code}' \
   -H 'Connection: Upgrade' -H 'Upgrade: websocket' -H 'Sec-WebSocket-Version: 13' \

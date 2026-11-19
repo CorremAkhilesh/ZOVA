@@ -41,10 +41,19 @@ export async function apiRequest<Schema extends z.ZodType>(
     response = await fetch(path, {
       ...init,
       credentials: 'include',
+      // The API never redirects. A proxy that does would turn a POST into a GET without its body
+      // (production, Nov 2026: POST /v1/uploads → 301 → GET /v1/uploads/), so never follow one.
+      redirect: 'manual',
       headers: { accept: 'application/json', ...init.headers },
     });
   } catch {
     throw new ApiClientError(0, 'Cannot reach the server. Check your connection.');
+  }
+  if (response.type === 'opaqueredirect' || (response.status >= 300 && response.status < 400)) {
+    console.error(
+      `[api] ${init.method ?? 'GET'} ${path.split('?')[0]} was redirected: check the proxy`,
+    );
+    throw new ApiClientError(502, 'The server could not take this request. Try again later.');
   }
 
   const body = await readJson(response);

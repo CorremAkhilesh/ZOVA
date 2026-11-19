@@ -1,7 +1,7 @@
 import { healthResponseSchema } from '@zuvo/protocol';
 import { describe, expect, it, vi } from 'vitest';
 import { HttpResponse, http, server } from '@/test/msw';
-import { ApiClientError, apiGet } from './api-client';
+import { ApiClientError, apiGet, apiPost } from './api-client';
 
 describe('apiGet', () => {
   it('returns the validated body on success', async () => {
@@ -71,5 +71,32 @@ describe('apiGet', () => {
     expect(seen?.headers.get('accept')).toBe('application/json');
     expect(fetchSpy.mock.calls[0]?.[1]?.credentials).toBe('include');
     fetchSpy.mockRestore();
+  });
+
+  it('never follows a redirect, so a POST can never come back as an empty GET (production bug)', async () => {
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const followed = vi.fn();
+    server.use(
+      // What the host Nginx did: `location /v1/uploads/` answers POST /v1/uploads with a 301.
+      http.post(
+        '*/v1/uploads',
+        () => new HttpResponse(null, { status: 301, headers: { location: '/v1/uploads/' } }),
+      ),
+      http.get('*/v1/uploads/', () => {
+        followed();
+        return HttpResponse.json(
+          { code: 'VALIDATION_FAILED', message: 'x', requestId: 'r' },
+          { status: 400 },
+        );
+      }),
+    );
+    const error = await apiPost('/v1/uploads', { size: 1 }, healthResponseSchema).catch(
+      (e: unknown) => e,
+    );
+    expect(error).toBeInstanceOf(ApiClientError);
+    expect((error as ApiClientError).status).toBe(502);
+    expect(followed).not.toHaveBeenCalled();
+    expect(logged).toHaveBeenCalledWith(expect.stringContaining('POST /v1/uploads was redirected'));
+    logged.mockRestore();
   });
 });
