@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, type Page, test } from '@playwright/test';
 import { expectSent, newPerson, openChatWith, openFromList, send, thread } from './chat-helpers';
 import { SLOW, waitForActiveServiceWorker } from './helpers';
 
@@ -9,6 +9,38 @@ import { SLOW, waitForActiveServiceWorker } from './helpers';
 test.describe.configure({ timeout: 300_000 });
 test.use({ actionTimeout: 30_000 });
 const UPLOADS = { timeout: 60_000 };
+
+/** This device's stored messages (type, name, seq) and its sync cursor. */
+function localState(page: Page) {
+  return page.evaluate(async () => {
+    const names = (await indexedDB.databases()).map((db) => db.name ?? '');
+    const name = names.find((candidate) => candidate.startsWith('zuvo-user-')) ?? names[0] ?? '';
+    const db = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open(name);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    const all = (store: string) =>
+      new Promise<unknown[]>((resolve) => {
+        const request = db.transaction(store).objectStore(store).getAll();
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => resolve([]);
+      });
+    const messages = (await all('messages')) as Array<{
+      chatId: string;
+      seq: number | null;
+      type: string;
+      media?: { name?: string } | null;
+      status: string;
+    }>;
+    return {
+      db: name,
+      dbs: names,
+      meta: await all('meta'),
+      messages: messages.map((m) => [m.chatId.slice(-4), m.seq, m.type, m.media?.name, m.status]),
+    };
+  });
+}
 
 test('two files and text shared from another app reach two chats', async ({
   browser,
@@ -78,7 +110,13 @@ test('two files and text shared from another app reach two chats', async ({
     const messages = thread(other.page, 'Asha');
     // Uploads go one after another: give slow runners time.
     await expect(messages.getByText('budget.pdf')).toBeVisible(UPLOADS);
-    await expect(messages.getByText('notes.txt')).toBeVisible(UPLOADS);
+    try {
+      await expect(messages.getByText('notes.txt')).toBeVisible(UPLOADS);
+    } catch (error) {
+      // What this device stored, for the CI log: was the message lost, or not shown?
+      console.log(`${other.name} local state:`, JSON.stringify(await localState(other.page)));
+      throw error;
+    }
     await expect(messages.getByText('From the Files app')).toBeVisible(UPLOADS);
   }
 
