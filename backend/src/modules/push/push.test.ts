@@ -159,14 +159,24 @@ describe('PUT /v1/me/push/settings', () => {
     const updates = record(socket, 'push:updated');
     const first = await call(asha, 'PUT', '/v1/me/push/settings', { sound: false });
     expect(pushSettingsResponseSchema.parse(first.json()).settings).toEqual({
-      showPreview: true,
+      ...DEFAULT_PUSH_SETTINGS,
       sound: false,
     });
     const second = await call(asha, 'PUT', '/v1/me/push/settings', { showPreview: false });
-    expect(second.json().settings).toEqual({ showPreview: false, sound: false });
-    expect((await state(asha)).settings).toEqual({ showPreview: false, sound: false });
+    expect(second.json().settings).toEqual({
+      ...DEFAULT_PUSH_SETTINGS,
+      showPreview: false,
+      sound: false,
+    });
+    expect((await state(asha)).settings).toEqual({
+      ...DEFAULT_PUSH_SETTINGS,
+      showPreview: false,
+      sound: false,
+    });
     await waitUntil(() => expect(updates).toHaveLength(2));
-    expect(updates[1]).toEqual({ settings: { showPreview: false, sound: false } });
+    expect(updates[1]).toEqual({
+      settings: { ...DEFAULT_PUSH_SETTINGS, showPreview: false, sound: false },
+    });
   });
 
   it('refuses values that are not true or false, and needs a session', async () => {
