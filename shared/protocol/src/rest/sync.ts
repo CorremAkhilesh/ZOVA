@@ -44,6 +44,8 @@ export const syncResponseSchema = z.object({
   cleared: z
     .array(z.object({ chatId: z.string(), seq: z.number().int(), removeChat: z.boolean() }))
     .default([]),
+  /** Statuses I may see changed while I was away: reload GET /v1/statuses. */
+  statusesChanged: z.boolean().default(false),
 });
 
 /** GET /v1/chats/:id/media */

@@ -5,6 +5,7 @@ import type { LastMessageSnapshot, MessageDoc } from '../db/chat-models.ts';
 import { AppError } from '../lib/errors.ts';
 import { KeyedQueue } from '../lib/keyed-queue.ts';
 import { linkFields } from '../previews/link-previews.service.ts';
+import { statusReplyOf } from '../status/status-feed.ts';
 import { chatModels, isDuplicateKey, oid, requireMember } from './chats.service.ts';
 import { deliver } from './deliver.ts';
 import { noteGroupActivity } from './group-activity.ts';
@@ -49,6 +50,8 @@ export interface SendInput {
   poll?: PollInput | undefined;
   /** A photo or video the others may open once. */
   viewOnce?: boolean | undefined;
+  /** A reply to this status of the chat's other person. */
+  statusId?: string | undefined;
 }
 
 export interface SendResult {
@@ -69,6 +72,9 @@ export async function sendMessage(app: FastifyInstance, input: SendInput): Promi
   if (earlier) return earlier;
   const peerId = await assertMaySend(app, chatId, userId, sender);
   const replyTo = input.replyTo ? await quoteOf(app, userId, input.replyTo) : null;
+  const statusReply = input.statusId
+    ? await statusReplyOf(app, userId, peerId, input.statusId)
+    : null;
   // Read positions a reply reveals are decided before anything changes.
   const shareRead = peerId ? await readsVisibleBetween(app, [userId, peerId]) : false;
   const links = await linkFields(app, input.linkPreviewId, text);
@@ -121,7 +127,7 @@ export async function sendMessage(app: FastifyInstance, input: SendInput): Promi
           text: text ?? null,
           media,
           albumId: albumId ?? null,
-          ...extrasOf(replyTo, forward),
+          ...extrasOf(replyTo, forward, statusReply),
           ...links,
           ...mentionFields(mentioned),
           ...kindFields(input, expiresAt),

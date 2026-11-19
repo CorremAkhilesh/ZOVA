@@ -23,6 +23,7 @@ import { useMessageUi } from '@/features/messages/store';
 import { useBubbleGestures } from '@/features/messages/use-bubble-gestures';
 import { PollCard } from '@/features/polls/components/PollCard';
 import { useInChatSearch } from '@/features/search/in-chat-store';
+import { StatusQuote } from '@/features/status/components/StatusQuote';
 import { cn } from '@/lib/utils';
 import { formatClock } from '../chat-utils';
 import { senderColorClass } from '../sender-color';
@@ -221,6 +222,7 @@ function BubbleBody(props: MessageBubbleProps & { mine: boolean }) {
         <>
           <ForwardedLabel message={message} />
           <QuoteBlock message={message} mine={mine} />
+          <StatusQuote message={message} mine={mine} />
           {message.poll ? (
             <PollCard message={message} />
           ) : (

@@ -3,6 +3,7 @@ import {
   type MediaInfo,
   type PollInput,
   type ReplyQuote,
+  type StatusReply,
 } from '@zuvo/protocol';
 import type { FastifyInstance } from 'fastify';
 import type { ClientSession, Types } from 'mongoose';
@@ -70,9 +71,14 @@ export async function attachIfAny(
 export const typeOf = (media: MediaInfo | null) => media?.kind ?? 'text';
 
 /** A reply's quote, and a forwarded copy's label and count. Absent on most messages. */
-export function extrasOf(replyTo: ReplyQuote | null, forward: SendInput['forward']) {
+export function extrasOf(
+  replyTo: ReplyQuote | null,
+  forward: SendInput['forward'],
+  statusReply: StatusReply | null = null,
+) {
   return {
     ...(replyTo ? { replyTo } : {}),
+    ...(statusReply ? { statusReply } : {}),
     ...(forward ? { forwarded: true, forwardCount: forward.count } : {}),
   };
 }

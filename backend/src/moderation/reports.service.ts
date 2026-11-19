@@ -11,6 +11,7 @@ import { hiddenIds } from '../chats/history.service.ts';
 import { canSeeSeq, requireParticipant, visibleSeqs } from '../chats/visibility.ts';
 import type { ChatMemberDoc, MessageDoc } from '../db/chat-models.ts';
 import { AppError } from '../lib/errors.ts';
+import { requireVisibleStatus } from '../status/status-feed.ts';
 import { type UserDoc, usersModel } from '../users/user-record.ts';
 import { blockUser, moderationModels } from './blocks.service.ts';
 
@@ -73,8 +74,37 @@ async function evidenceOf(app: FastifyInstance, docs: MessageDoc[], selected: Se
     );
 }
 
+/**
+ * A status the reporter can see: a copy of it is kept as evidence (the status itself is gone a day
+ * later), with its owner as the person reported.
+ */
+async function gatherStatus(app: FastifyInstance, reporterId: string, statusId: string) {
+  const doc = await requireVisibleStatus(app, reporterId, statusId);
+  const ownerId = doc.userId.toString();
+  if (ownerId === reporterId)
+    throw new AppError('BAD_REQUEST', 'You cannot report your own status.');
+  const owner = (await usersModel(app).findById(doc.userId).lean()) as UserDoc | null;
+  const item: ReportEvidence = {
+    messageId: doc._id.toString(),
+    chatId: '',
+    seq: 1,
+    senderId: ownerId,
+    senderName: owner?.displayName ?? owner?.email ?? 'Unknown',
+    type: doc.kind,
+    text: doc.text,
+    fileName: doc.media?.name ?? null,
+    selected: true,
+    createdAt: doc.createdAt.toISOString(),
+  };
+  return { reportedId: ownerId, evidence: [item] };
+}
+
 /** Who is reported, and copies of what the reporter saw: only messages they may see. */
-async function gather(app: FastifyInstance, reporterId: string, target: ReportTarget) {
+async function gather(
+  app: FastifyInstance,
+  reporterId: string,
+  target: Exclude<ReportTarget, { kind: 'status' }>,
+) {
   if (target.kind === 'user') {
     if (target.userId === reporterId)
       throw new AppError('BAD_REQUEST', 'You cannot report yourself.');
@@ -122,8 +152,14 @@ export async function createReport(
   body: CreateReportBody & { block: boolean },
 ) {
   await assertReportLimit(app, reporterId);
-  const { reportedId, docs, selected } = await gather(app, reporterId, body.target);
-  const evidence = await evidenceOf(app, docs, selected);
+  const { target } = body;
+  const { reportedId, evidence } =
+    target.kind === 'status'
+      ? await gatherStatus(app, reporterId, target.statusId)
+      : await gather(app, reporterId, target).then(async (found) => ({
+          reportedId: found.reportedId,
+          evidence: await evidenceOf(app, found.docs, found.selected),
+        }));
   const blocked = Boolean(body.block && reportedId);
   const report = await moderationModels(app).Report.create({
     reporterId: oid(reporterId),

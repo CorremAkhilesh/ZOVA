@@ -44,6 +44,8 @@ const STATUS_BY_CODE: Record<ErrorCode, number> = {
   PIN_NOT_SET: 409,
   PIN_INVALID: 403,
   PIN_LOCKED_OUT: 429,
+  STATUS_LIMIT_REACHED: 409,
+  STATUS_VIDEO_TOO_LONG: 422,
 };
 
 /** An expected error whose message is safe to show to the client. */

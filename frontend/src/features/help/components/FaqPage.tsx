@@ -15,7 +15,7 @@ function GoTo({
   to,
   children,
 }: {
-  to: '/settings/notifications' | '/settings/devices' | '/help/install';
+  to: '/settings/notifications' | '/settings/devices' | '/settings/privacy' | '/help/install';
   children: ReactNode;
 }) {
   return (
@@ -82,6 +82,16 @@ export function FaqPage() {
         <>
           <Points items={list('faq.lost.points')} />
           <GoTo to="/settings/devices">{text('faq.lost.open')}</GoTo>
+        </>
+      ),
+    },
+    {
+      id: 'status',
+      title: text('faq.status.q'),
+      content: (
+        <>
+          <Points items={list('faq.status.points')} />
+          <GoTo to="/settings/privacy">{text('faq.status.open')}</GoTo>
         </>
       ),
     },

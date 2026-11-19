@@ -53,6 +53,10 @@ export const errorCodeSchema = z.enum([
   'PIN_INVALID',
   /** Too many wrong PINs; `details.lockedUntil` says when to try again. */
   'PIN_LOCKED_OUT',
+  /** Already 30 statuses in the last 24 hours. */
+  'STATUS_LIMIT_REACHED',
+  /** A video status longer than 60 seconds. */
+  'STATUS_VIDEO_TOO_LONG',
 ]);
 
 export type ErrorCode = z.infer<typeof errorCodeSchema>;

@@ -21,7 +21,7 @@ export const adminReportsApi = {
   list: (status: 'open' | 'resolved' | undefined, cursor: string | undefined) =>
     apiGet(withQuery('/v1/admin/reports', { status, cursor, limit: 30 }), reportListResponseSchema),
   get: (id: string) => apiGet(`/v1/admin/reports/${id}`, reportDetailResponseSchema),
-  resolve: (id: string, action: 'none' | 'deactivate', note: string) =>
+  resolve: (id: string, action: 'none' | 'deactivate' | 'removeStatus', note: string) =>
     apiPost(
       `/v1/admin/reports/${id}/resolve`,
       { action, ...(note.trim() ? { note: note.trim() } : {}) },

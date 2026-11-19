@@ -39,6 +39,7 @@ import { pushRoutes } from './modules/push/push.routes.ts';
 import { searchRoutes } from './modules/search/search.routes.ts';
 import { sessionsRoutes } from './modules/security/sessions.routes.ts';
 import { quietHoursRoutes } from './modules/settings/quiet-hours.routes.ts';
+import { statusRoutes } from './modules/status/status.routes.ts';
 import { expireTestRoutes } from './modules/test-support/expire.routes.ts';
 import { outboxRoutes } from './modules/test-support/outbox.routes.ts';
 import { pushOutboxRoutes } from './modules/test-support/push-outbox.routes.ts';
@@ -174,6 +175,7 @@ export async function buildApp(env: Env, deps: Partial<AppDeps> = {}) {
   await app.register(appearanceRoutes, { prefix: '/v1' });
   await app.register(pollsRoutes, { prefix: '/v1' });
   await app.register(scheduledRoutes, { prefix: '/v1' });
+  await app.register(statusRoutes, { prefix: '/v1' });
   await app.register(disappearingRoutes, { prefix: '/v1' });
   await app.register(viewOnceRoutes, { prefix: '/v1' });
   await app.register(pushRoutes, { prefix: '/v1' });

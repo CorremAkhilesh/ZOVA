@@ -6,9 +6,16 @@ import { setUserStatus } from '../admin/user-status.ts';
 import { chatModels } from '../chats/chats.service.ts';
 import type { ReportDoc } from '../db/moderation-models.ts';
 import { AppError } from '../lib/errors.ts';
+import { removeStatusAsAdmin } from '../status/status.service.ts';
 import { type UserDoc, usersModel } from '../users/user-record.ts';
 import { moderationModels } from './blocks.service.ts';
 import { reportedUserId } from './reports.service.ts';
+
+const RESOLUTION_OF = {
+  none: 'none',
+  deactivate: 'deactivated',
+  removeStatus: 'statusRemoved',
+} as const;
 
 const person = (user: UserDoc | undefined, id: string) => ({
   id,
@@ -125,7 +132,7 @@ export async function resolveReport(
   app: FastifyInstance,
   actor: Actor,
   id: string,
-  body: { action: 'none' | 'deactivate'; note?: string | undefined },
+  body: { action: 'none' | 'deactivate' | 'removeStatus'; note?: string | undefined },
 ) {
   const report = await findReport(app, id);
   if (report.status === 'resolved')
@@ -135,8 +142,15 @@ export async function resolveReport(
     if (!reported) throw new AppError('BAD_REQUEST', 'This report is not about a person.');
     await setUserStatus(app, actor, reported, 'deactivated');
   }
+  if (body.action === 'removeStatus') {
+    if (report.target.kind !== 'status') {
+      throw new AppError('BAD_REQUEST', 'This report is not about a status.');
+    }
+    // Already gone (it expired, or its owner deleted it): nothing left to remove.
+    await removeStatusAsAdmin(app, actor, report.target.statusId);
+  }
   const resolution = {
-    action: body.action === 'deactivate' ? ('deactivated' as const) : ('none' as const),
+    action: RESOLUTION_OF[body.action],
     note: body.note?.trim() || null,
   };
   await moderationModels(app).Report.updateOne(

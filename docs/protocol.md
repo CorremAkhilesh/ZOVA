@@ -475,3 +475,30 @@ text or endpoints.
 `DELETE /v1/test/push/outbox` clears it. Any https endpoint can be registered with keys of the right
 shape, e.g. `p256dh` = "B" followed by 86 "A", `auth` = 22 "A". The E2E server collects bursts for
 `E2E_PUSH_COALESCE_MS` (default 500 ms).
+
+## Status
+
+24-hour updates: text on a background, or a photo or a video of at most 60 seconds, with a caption.
+
+- **REST:** `GET /v1/statuses` (mine, then everyone's I may see), `POST /v1/statuses` (text, or a
+  finished upload through the usual resumable uploads), `DELETE /v1/statuses/:id` (mine),
+  `POST /v1/statuses/:id/view` (seen, with an optional quick reaction), `GET /v1/statuses/:id/viewers`
+  (mine), `PUT`/`DELETE /v1/statuses/mutes/:userId`, and `GET`/`PUT /v1/me/status-privacy`.
+- **Who sees it:** the poster's status privacy at the moment of posting (`all`, `except`, `only`),
+  minus anyone blocked either way and deactivated accounts. Everyone else gets 404, for the status
+  and for its file (media access checks the status too).
+- **Read receipts:** a viewer whose read receipts are off is not listed in "Viewed by"; an owner whose
+  read receipts are off sees no viewers at all (`viewCount` is null).
+- **Expiry:** `statuses.expiresAt` has a TTL index (MongoDB removes the status), and its file has
+  `deleteRequestedAt = expiresAt`, so the hourly media cleanup job removes the file. Views go 48 hours
+  later. Clients also drop expired ones on their own.
+- **Realtime and sync:** a new, deleted or removed status writes a `status` row to the sync log of
+  everyone who may see it (and the owner), and emits `status:changed`. `GET /v1/sync` then says
+  `statusesChanged: true`, and the client reloads `GET /v1/statuses`. The feed is kept in Dexie, so
+  the Status tab works offline.
+- **Replies:** `message:send` with `statusId` in the 1:1 chat with the status's owner; the message
+  carries `statusReply`, a small copy of the status (its thumbnail only while the status lasts). A quick
+  reaction is stored on the view and sent as a reply.
+- **Limits:** 30 statuses per person per 24 hours, and a per-minute rate limit on posting.
+- **Reports:** `target.kind = 'status'`; the evidence keeps a copy of the status. An admin's
+  `removeStatus` deletes it for everyone and writes `status.remove` to the audit log.

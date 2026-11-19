@@ -1,4 +1,4 @@
-import type { LinkPreview, MediaInfo, ReplyQuote, SystemEvent } from '@zuvo/protocol';
+import type { LinkPreview, MediaInfo, ReplyQuote, StatusReply, SystemEvent } from '@zuvo/protocol';
 import { Schema, type Types } from 'mongoose';
 
 const options = { versionKey: false, autoCreate: true } as const;
@@ -38,6 +38,8 @@ export interface MessageDoc {
   albumId?: string | null;
   system?: SystemEvent | null;
   replyTo?: ReplyQuote | null;
+  /** A reply to the other person's status: a small copy of it. */
+  statusReply?: StatusReply | null;
   forwarded?: boolean;
   /** How many times this message has been forwarded, or for a copy, the original had been. */
   forwardCount?: number;
@@ -81,6 +83,7 @@ export const messageSchema = new Schema<MessageDoc>(
     albumId: { type: String, default: null },
     system: { type: Schema.Types.Mixed, default: undefined },
     replyTo: { type: Schema.Types.Mixed, default: undefined },
+    statusReply: { type: Schema.Types.Mixed, default: undefined },
     forwarded: Boolean,
     forwardCount: Number,
     reactions: { type: [Schema.Types.Mixed], default: undefined },

@@ -29,4 +29,6 @@ export * from './scheduled.ts';
 export * from './search.ts';
 export * from './security.ts';
 export * from './settings.ts';
+export * from './status.ts';
+export * from './status-core.ts';
 export * from './sync.ts';

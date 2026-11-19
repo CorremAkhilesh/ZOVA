@@ -48,7 +48,8 @@ export function ReportDetail({ id, onClose }: { id: string; onClose: () => void 
     queryFn: async () => (await adminReportsApi.get(id)).report,
   });
   const resolve = useMutation({
-    mutationFn: (action: 'none' | 'deactivate') => adminReportsApi.resolve(id, action, note),
+    mutationFn: (action: 'none' | 'deactivate' | 'removeStatus') =>
+      adminReportsApi.resolve(id, action, note),
     onSuccess: () => {
       toast.success(t('adminReports.resolved'));
       void queryClient.invalidateQueries({ queryKey: ['admin', 'reports'] });
@@ -115,6 +116,15 @@ export function ReportDetail({ id, onClose }: { id: string; onClose: () => void 
                   />
                 </div>
                 <div className="flex flex-wrap justify-end gap-2">
+                  {report.kind === 'status' ? (
+                    <Button
+                      variant="danger"
+                      disabled={resolve.isPending}
+                      onClick={() => resolve.mutate('removeStatus')}
+                    >
+                      {t('adminReports.removeStatus')}
+                    </Button>
+                  ) : null}
                   {report.reported && report.reported.status === 'active' ? (
                     <Button
                       variant="danger"

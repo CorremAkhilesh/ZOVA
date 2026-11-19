@@ -4,6 +4,7 @@ import ChatLockSettings from '@/features/lock/components/ChatLockSettings';
 import { BlockedContacts } from '@/features/moderation/components/BlockedContacts';
 import { PrivacySettings } from '@/features/profile/components/PrivacySettings';
 import { SettingsPage } from '@/features/settings/SettingsPage';
+import { StatusPrivacySettings } from '@/features/status/components/StatusPrivacySettings';
 
 export const Route = createFileRoute('/_app/settings/privacy')({
   component: function PrivacyScreen() {
@@ -11,6 +12,7 @@ export const Route = createFileRoute('/_app/settings/privacy')({
     return (
       <SettingsPage title={t('privacy.title')} description={t('privacy.subtitle')}>
         <PrivacySettings />
+        <StatusPrivacySettings />
         <ChatLockSettings />
         <BlockedContacts />
       </SettingsPage>

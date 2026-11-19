@@ -7,6 +7,7 @@ import {
   type Mention,
   type ReplyQuote,
   type SendMessagePayload,
+  type StatusReply,
 } from '@zuvo/protocol';
 import { uuidv7 } from '@/lib/uuid';
 import { holdFile, releaseFile } from './held-files';
@@ -49,6 +50,7 @@ export const toPayload = (row: OutboxRow): SendMessagePayload =>
           ...(row.linkPreviewId ? { linkPreviewId: row.linkPreviewId } : {}),
           ...(row.mentions?.length ? { mentions: row.mentions } : {}),
           ...(row.mentionsEveryone ? { mentionsEveryone: true } : {}),
+          ...(row.statusId ? { statusId: row.statusId } : {}),
         };
 
 /** A preview the sender looked up for a link in the text, sent along with it. */
@@ -62,6 +64,8 @@ export interface SendExtras {
   link?: AttachedPreview | null | undefined;
   mentions?: Mention[] | undefined;
   mentionsEveryone?: boolean | undefined;
+  /** A reply to someone's status (in our 1:1 chat): the copy shown above it. */
+  statusReply?: StatusReply | undefined;
 }
 
 const refOf = (quote: ReplyQuote | null | undefined) =>
