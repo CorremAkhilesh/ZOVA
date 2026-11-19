@@ -83,8 +83,9 @@ export async function send(page: Page, text: string): Promise<void> {
 
 /**
  * A message the server has accepted: its row has a sequence number (`data-seq`). Until then the
- * bubble is only on this device, and has no menu, reply or right click (see canAct). Waiting for
- * this before acting on it, or before leaving the page, keeps tests off that race.
+ * bubble is only on this device: no reply, and its menu has only Retry and Delete (see canAct and
+ * isUnsent). Waiting for this before acting on it, or before leaving the page, keeps tests off
+ * that race.
  */
 export const sentRow = (page: Page, chatName: string, text: string) =>
   page

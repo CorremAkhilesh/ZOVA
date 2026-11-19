@@ -11,14 +11,14 @@ import { AlbumGrid, MessageMedia } from '@/features/media/components/MessageMedi
 import { UploadNotice } from '@/features/media/components/UploadNotice';
 import { openMentionProfile, useMentionMarks } from '@/features/mentions/mention-marks';
 import {
+  BubbleHoverActions,
   ForwardedLabel,
-  HoverActions,
   QuoteBlock,
   ReactionPills,
   StarMark,
   Tombstone,
 } from '@/features/messages/components/BubbleExtras';
-import { canAct } from '@/features/messages/rules';
+import { canOpenMenu } from '@/features/messages/rules';
 import { useMessageUi } from '@/features/messages/store';
 import { useBubbleGestures } from '@/features/messages/use-bubble-gestures';
 import { PollCard } from '@/features/polls/components/PollCard';
@@ -199,6 +199,8 @@ function BubbleBody(props: MessageBubbleProps & { mine: boolean }) {
   const { message, firstInGroup, lastInGroup, isGroup, onOpenMedia, album, mine } = props;
   return (
     <div
+      // Which side it is on decides the colours inside it (mentions: globals.css).
+      data-bubble={mine ? 'out' : 'in'}
       className={cn(
         'relative rounded-2xl px-3 py-1.5 text-[15px] leading-snug shadow-sm',
         mine
@@ -254,11 +256,9 @@ function UserBubble(props: MessageBubbleProps) {
   const gestures = useBubbleGestures(message, album ?? [message]);
   const selecting = useMessageUi((state) => state.selecting !== null);
   const selected = useMessageUi((state) => state.selected.some((item) => item.id === message.id));
-  const canUse = canAct(message);
+  const canUse = canOpenMenu(message);
   const actions =
-    canUse && !selecting ? (
-      <HoverActions onReply={gestures.reply} onMenu={gestures.openMenu} />
-    ) : null;
+    canUse && !selecting ? <BubbleHoverActions message={message} gestures={gestures} /> : null;
 
   return (
     // No entrance animation: rows re-enter the page each time they are scrolled back into view.

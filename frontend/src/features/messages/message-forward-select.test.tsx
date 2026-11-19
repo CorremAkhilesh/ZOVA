@@ -142,7 +142,9 @@ describe('selecting several', () => {
     await waitFor(() => expect(requests.some((item) => item.path.endsWith('/star'))).toBe(true));
   });
 
-  it('deleting several offers "for everyone" only when all of them allow it', async () => {
+  it('deleting several offers "for everyone" only when all of them allow it', {
+    timeout: 20_000,
+  }, async () => {
     await open([theirs(1, 'one'), mine(2, 'two')]);
     await choose(await menuOn('two'), 'Select');
     fireEvent.click(await bubble('one'));
@@ -150,7 +152,9 @@ describe('selecting several', () => {
     const dialog = await screen.findByRole('dialog', { name: 'Delete 2 messages?' });
     expect(within(dialog).queryByRole('button', { name: 'Delete for everyone' })).toBeNull();
     fireEvent.click(within(dialog).getByRole('button', { name: 'Delete for me' }));
-    await waitFor(() => expect(requests).toHaveLength(2));
+    // Gone at once; sent once "Undo" (five seconds) has passed.
     expect(useMessageUi.getState().selecting).toBeNull();
+    await waitFor(() => expect(screen.queryByText('one')).not.toBeInTheDocument());
+    await waitFor(() => expect(requests).toHaveLength(2), { timeout: 9000 });
   });
 });

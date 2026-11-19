@@ -2,7 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { type KeyboardEvent, type MouseEvent, type TouchEvent, useRef, useState } from 'react';
 import { sessionQuery } from '@/features/auth/session';
 import type { ChatMessage } from '@/features/chats/types';
-import { canAct, toQuote } from './rules';
+import { canAct, canOpenMenu, toQuote } from './rules';
 import { useMessageUi } from './store';
 
 const LONG_PRESS_MS = 500;
@@ -16,7 +16,9 @@ export function useBubbleGestures(message: ChatMessage, items: ChatMessage[]) {
   const queryClient = useQueryClient();
   const [swipe, setSwipe] = useState(0);
   const press = useRef<{ x: number; y: number; timer: ReturnType<typeof setTimeout> } | null>(null);
-  const usable = canAct(message);
+  // Unsent messages open the menu too (Retry, Delete); replying and selecting need the server's copy.
+  const usable = canOpenMenu(message);
+  const onServer = canAct(message);
 
   const openMenu = (x: number, y: number) => {
     useMessageUi.getState().set({ menu: { message, items, x, y } });
@@ -44,7 +46,7 @@ export function useBubbleGestures(message: ChatMessage, items: ChatMessage[]) {
           },
           onClick() {
             const { selecting, toggleSelected } = useMessageUi.getState();
-            if (selecting) for (const item of items) toggleSelected(item);
+            if (selecting && onServer) for (const item of items) toggleSelected(item);
           },
           onKeyDown(event: KeyboardEvent) {
             if (event.target !== event.currentTarget) return;

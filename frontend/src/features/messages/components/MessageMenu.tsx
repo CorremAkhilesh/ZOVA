@@ -6,7 +6,6 @@ import {
   CornerUpLeft,
   CornerUpRight,
   Flag,
-  type LucideIcon,
   MessageCircle,
   Pencil,
   Pin,
@@ -29,27 +28,13 @@ import { applyChats } from '@/features/sync/apply';
 import { useSyncStore } from '@/features/sync/store';
 import { useBackClose } from '@/lib/back-stack';
 import { isPinned, mayPin, reportMessage, togglePin } from '../menu-actions';
-import { canEdit, targetOf, toQuote } from '../rules';
+import { canEdit, isUnsent, targetOf, toQuote } from '../rules';
 import { type MenuRequest, useMessageUi } from '../store';
+import { Entry, UnsentEntries } from './MenuEntry';
 
 const ALL_EMOJI = [...new Set(EMOJI_GROUPS.flatMap((group) => group.emojis))];
-const ITEM =
-  'flex cursor-default items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm outline-none data-[highlighted]:bg-background';
 const EMOJI =
   'flex size-9 cursor-default items-center justify-center rounded-full text-xl outline-none data-[highlighted]:bg-background';
-
-function Entry(props: { icon: LucideIcon; label: string; onSelect: () => void; danger?: boolean }) {
-  const Icon = props.icon;
-  return (
-    <DropdownMenu.Item
-      className={props.danger ? `${ITEM} text-danger` : ITEM}
-      onSelect={props.onSelect}
-    >
-      <Icon className="size-4" aria-hidden />
-      {props.label}
-    </DropdownMenu.Item>
-  );
-}
 
 function ReactionBar(props: {
   mine: string | null;
@@ -259,10 +244,16 @@ export function MessageMenu({ chat }: { chat: ChatSummary }) {
           onCloseAutoFocus={(event) => event.preventDefault()}
           className="z-[1500] w-64 max-w-[calc(100vw-1.5rem)] rounded-xl border bg-surface p-1.5 shadow-lg"
         >
-          {!message.deleted && !full ? (
-            <ReactionBar mine={mine} onPick={react} onMore={() => setFull(true)} />
-          ) : null}
-          {full ? <EmojiGrid onPick={react} /> : <Entries request={request} chat={chat} />}
+          {isUnsent(message) ? (
+            <UnsentEntries request={request} />
+          ) : (
+            <>
+              {!message.deleted && !full ? (
+                <ReactionBar mine={mine} onPick={react} onMore={() => setFull(true)} />
+              ) : null}
+              {full ? <EmojiGrid onPick={react} /> : <Entries request={request} chat={chat} />}
+            </>
+          )}
         </DropdownMenu.Content>
       </DropdownMenu.Portal>
     </DropdownMenu.Root>
