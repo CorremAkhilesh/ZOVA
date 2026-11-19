@@ -93,8 +93,13 @@ export const statusViewersResponseSchema = z.object({
 /** PUT /v1/statuses/mutes/:userId and DELETE: mute or unmute a person's statuses. */
 export const statusMuteParamsSchema = z.object({ userId: objectIdSchema });
 
-/** GET and PUT /v1/me/status-privacy */
-export const statusPrivacyResponseSchema = z.object({ privacy: statusPrivacySchema });
+/**
+ * GET and PUT /v1/me/status-privacy. Plain strings in the answer: `objectIdSchema` transforms, and a
+ * transform cannot be serialized back (that made PUT answer 500).
+ */
+export const statusPrivacyResponseSchema = z.object({
+  privacy: z.object({ mode: statusAudienceModeSchema, userIds: z.array(z.string()) }),
+});
 
 /** Socket: my status list changed (someone posted, deleted, or an admin removed one). */
 export const statusChangedEventSchema = z.object({});
