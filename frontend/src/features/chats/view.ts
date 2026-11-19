@@ -140,6 +140,7 @@ export function toChatMessage(
     serverId: row.id,
     seq: row.seq,
     replyTo: row.replyTo ?? null,
+    statusReply: row.statusReply ?? null,
     forwarded: row.forwarded === true,
     forwardCount: row.forwardCount ?? 0,
     reactions: row.reactions ?? [],

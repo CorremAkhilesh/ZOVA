@@ -58,5 +58,6 @@ export const syncPage = (overrides: Partial<SyncResponse> = {}): SyncResponse =>
   updated: [],
   removed: [],
   cleared: [],
+  statusesChanged: false,
   ...overrides,
 });

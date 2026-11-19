@@ -83,7 +83,9 @@ export interface UserUpdateDoc {
     | 'updated'
     | 'hidden'
     | 'cleared'
-    | 'chat_removed';
+    | 'chat_removed'
+    /** Statuses I may see changed. `chatId` holds the status id. */
+    | 'status';
   chatId: Types.ObjectId;
   /** kind = message or played: the message's position in its chat. */
   seq?: number;

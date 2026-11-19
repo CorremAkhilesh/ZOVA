@@ -54,6 +54,10 @@ function timedFields(doc: MessageDoc, viewerId: string, deleted: boolean): Parti
 }
 
 /** A message as this person sees it. */
+/** A reply to a status carries its copy, until the reply is deleted for everyone. */
+const statusReplyFor = (doc: MessageDoc, deleted: boolean) =>
+  doc.statusReply ? { statusReply: deleted ? null : doc.statusReply } : {};
+
 export function toMessage(doc: MessageDoc, viewerId: string): Message {
   const deleted = doc.deletedForEveryoneAt !== null;
   return {
@@ -69,6 +73,7 @@ export function toMessage(doc: MessageDoc, viewerId: string): Message {
     played: playedFor(doc, viewerId),
     system: doc.system ?? null,
     replyTo: deleted ? null : (doc.replyTo ?? null),
+    ...statusReplyFor(doc, deleted),
     forwarded: doc.forwarded === true,
     forwardCount: doc.forwardCount ?? 0,
     reactions: deleted

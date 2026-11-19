@@ -9,6 +9,7 @@ import { registerModerationModels } from './moderation-models.ts';
 import { registerPushModels } from './push-models.ts';
 import { registerScheduledModels } from './scheduled-models.ts';
 import { registerSecurityModels } from './security-models.ts';
+import { registerStatusModels } from './status-models.ts';
 import type { IndexedModel } from './sync-indexes.ts';
 
 /**
@@ -26,6 +27,7 @@ export const modelRegistrations: Array<(connection: Connection) => IndexedModel[
   (connection) => Object.values(registerAppearanceModels(connection)) as unknown as IndexedModel[],
   (connection) => Object.values(registerScheduledModels(connection)) as unknown as IndexedModel[],
   (connection) => Object.values(registerPushModels(connection)) as unknown as IndexedModel[],
+  (connection) => Object.values(registerStatusModels(connection)) as unknown as IndexedModel[],
 ];
 
 export function registerModels(connection: Connection): IndexedModel[] {

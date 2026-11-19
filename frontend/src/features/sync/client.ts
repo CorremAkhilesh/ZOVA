@@ -11,6 +11,8 @@ import { startExpiryPurge } from '@/features/disappearing/purge';
 import { mediaApi } from '@/features/media/api';
 import { MediaUploader } from '@/features/media/uploader';
 import { wireNotifications } from '@/features/notifications/window-state';
+import { wireStatusEvents } from '@/features/status/events';
+import { refreshStatuses } from '@/features/status/feed';
 import { type AccountChange, wireAccountEvents } from './account-events';
 import { ActionQueue } from './actions';
 import type { QueuedAction } from './actions-types';
@@ -103,6 +105,7 @@ export function startSyncClient(options: SyncClientOptions): SyncClient {
     api: chatsApi,
     onStatus: (sync) => setStore({ sync }),
     onUnauthorized: onSessionDoubt,
+    onStatusesChanged: () => void refreshStatuses(db),
   });
   const outbox = new Outbox({
     db,
@@ -142,19 +145,20 @@ export function startSyncClient(options: SyncClientOptions): SyncClient {
     if (socket.connected) socket.emit('presence:active', { active }, () => undefined);
   });
 
+  /** Everything waiting to go out: messages, actions and files. */
+  const resumeSending = () => {
+    outbox.resume();
+    actions.resume();
+    void uploader.run();
+  };
   const channel = openTabChannel((message) => {
-    if (message === 'outbox-changed') {
-      outbox.resume();
-      actions.resume();
-      void uploader.run();
-    } else onSessionDoubt();
+    if (message === 'outbox-changed') resumeSending();
+    else onSessionDoubt();
   });
   const leadership = watchLeadership(`zuvo-outbox-${userId}`, () => {
     isLeader = true;
     setStore({ isLeader });
-    outbox.resume();
-    actions.resume();
-    void uploader.run();
+    resumeSending();
   });
 
   const reconnectLater = (delay: number) => {
@@ -168,9 +172,7 @@ export function startSyncClient(options: SyncClientOptions): SyncClient {
     failedAttempts = 0;
     setStore({ socket: 'connected', lastHandshakeError: null });
     void engine.run();
-    outbox.resume();
-    actions.resume();
-    void uploader.run();
+    resumeSending();
     deliveryAcks.resume();
     presence.watch(currentWatchList());
     void plays.flush().catch(() => undefined);
@@ -182,6 +184,7 @@ export function startSyncClient(options: SyncClientOptions): SyncClient {
       .then((chats) => applyChats(db, chats))
       .catch(() => undefined);
   });
+  wireStatusEvents(socket, db);
   wireAccountEvents(socket, (change) => onAccountChange?.(change));
   socket.on('disconnect', (reason) => {
     setStore({ socket: 'connecting' });

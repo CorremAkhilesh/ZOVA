@@ -82,7 +82,7 @@ export class Outbox {
     quote?: ReplyQuote | null,
     extras: SendExtras = {},
   ): Promise<string> {
-    const { link, mentions, mentionsEveryone } = extras;
+    const { link, mentions, mentionsEveryone, statusReply } = extras;
     const { db, me } = this.options;
     const clientMsgId = uuidv7();
     const key = `${me}:${clientMsgId}`;
@@ -99,6 +99,7 @@ export class Outbox {
         ...(link ? { linkPreviewId: link.id } : {}),
         ...(mentions?.length ? { mentions } : {}),
         ...(mentionsEveryone ? { mentionsEveryone } : {}),
+        ...(statusReply ? { statusId: statusReply.statusId } : {}),
       });
       const input = { key, n, chatId, clientMsgId, me, text };
       await db.messages.add({
@@ -106,6 +107,7 @@ export class Outbox {
         linkPreview: link?.preview ?? null,
         ...(mentions?.length ? { mentions } : {}),
         ...(mentionsEveryone ? { mentionsEveryone } : {}),
+        ...(statusReply ? { statusReply } : {}),
       });
       await this.previewInChat(chatId, key, {
         type: 'text',

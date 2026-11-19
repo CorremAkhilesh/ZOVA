@@ -7,6 +7,25 @@ export interface WhatsNewEntry {
 
 export const WHATS_NEW: readonly WhatsNewEntry[] = [
   {
+    id: 'status',
+    en: {
+      title: 'Status',
+      items: [
+        'Share a few words on a colour, a photo or a short video: it disappears after 24 hours',
+        'Choose who sees it in Settings → Privacy → Status privacy',
+        'See who viewed yours, and reply or react to colleagues’ updates in your chat',
+      ],
+    },
+    hi: {
+      title: 'स्टेटस',
+      items: [
+        'रंगीन बैकग्राउंड पर कुछ शब्द, फ़ोटो या छोटा वीडियो शेयर करें: यह 24 घंटे बाद हट जाता है',
+        'कौन देखे, यह सेटिंग्स → प्राइवेसी → स्टेटस प्राइवेसी में चुनें',
+        'देखें किसने आपका स्टेटस देखा, और साथियों के स्टेटस पर चैट में जवाब या रिएक्शन दें',
+      ],
+    },
+  },
+  {
     id: 'help',
     en: {
       title: 'Help and polish',

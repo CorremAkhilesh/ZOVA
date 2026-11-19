@@ -74,6 +74,8 @@ export const auditActionSchema = z.enum([
   /** An admin opened a report's evidence. Target: the person reported (or the reporter, for a group). */
   'report.view',
   'report.resolve',
+  /** An admin removed a reported status. Target: its owner. */
+  'status.remove',
 ]);
 export const auditLogEntrySchema = z.object({
   id: z.string(),

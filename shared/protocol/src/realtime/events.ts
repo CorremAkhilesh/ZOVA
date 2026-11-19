@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { messagesExpiredEventSchema } from '../rest/disappearing.ts';
 import { lockUpdatedEventSchema } from '../rest/lock.ts';
 import { scheduledUpdatedEventSchema } from '../rest/scheduled.ts';
+import { statusChangedEventSchema } from '../rest/status.ts';
 import {
   appearanceUpdatedEventSchema,
   blocksChangedEventSchema,
@@ -88,6 +89,7 @@ export const serverToClientEvents = {
   'quiet-hours:updated': quietHoursUpdatedEventSchema,
   'appearance:updated': appearanceUpdatedEventSchema,
   'push:updated': pushUpdatedEventSchema,
+  'status:changed': statusChangedEventSchema,
 } satisfies Record<string, z.ZodType>;
 
 type ClientEvents = typeof clientToServerEvents;

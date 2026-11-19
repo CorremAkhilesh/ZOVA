@@ -8,6 +8,7 @@ import { linkPreviewSchema } from './link-previews.ts';
 import { mediaInfoSchema } from './media.ts';
 import { pollSchema } from './polls.ts';
 import { publicProfileSchema } from './profile.ts';
+import { statusReplySchema } from './status-core.ts';
 
 export const MESSAGE_TEXT_MAX = 4096;
 export const MESSAGE_PAGE_MAX = 100;
@@ -114,6 +115,8 @@ export const messageSchema = z.object({
   /** System messages only. */
   system: systemEventSchema.nullable().optional(),
   replyTo: replyQuoteSchema.nullable().optional(),
+  /** A reply to someone's status: a small copy of it (in a 1:1 chat). */
+  statusReply: statusReplySchema.nullable().optional(),
   forwarded: z.boolean().optional(),
   /** How many times the original has been forwarded. */
   forwardCount: z.number().int().nonnegative().optional(),

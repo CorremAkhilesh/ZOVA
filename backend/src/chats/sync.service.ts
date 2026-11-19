@@ -95,6 +95,8 @@ export async function syncSince(
     updated: [],
     removed: [],
     cleared: [],
+    // Away too long to know: reload statuses too.
+    statusesChanged: true,
   });
   if (since === undefined) return reset();
 
@@ -116,6 +118,7 @@ export async function syncSince(
           updated: [],
           removed: [],
           cleared: [],
+          statusesChanged: false,
         };
   }
   if (first.pts !== sincePts + 1) return reset();
@@ -166,5 +169,7 @@ export async function syncSince(
     updated: await withStars(app, userId, updated),
     removed,
     cleared,
+    // Statuses are few and short-lived: a changed one means reload the list (GET /v1/statuses).
+    statusesChanged: page.some((row) => row.kind === 'status'),
   };
 }

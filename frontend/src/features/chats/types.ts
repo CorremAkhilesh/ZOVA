@@ -8,6 +8,7 @@ import type {
   PinnedMessage,
   Poll,
   ReplyQuote,
+  StatusReply,
   SystemEvent,
 } from '@zuvo/protocol';
 import type { UploadFailReason } from '@/features/sync/local-db';
@@ -88,6 +89,8 @@ export interface ChatMessage extends MessageAuthor {
   /** Its position in the chat, once the server has given it one. */
   seq?: number | null;
   replyTo?: ReplyQuote | null | undefined;
+  /** A reply to someone's status: a small copy of it. */
+  statusReply?: StatusReply | null | undefined;
   forwarded?: boolean;
   forwardCount?: number;
   reactions?: Message['reactions'];

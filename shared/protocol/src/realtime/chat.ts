@@ -41,6 +41,8 @@ export const sendMessagePayloadSchema = z
     poll: pollInputSchema.optional(),
     /** A photo or video the others can open once. */
     viewOnce: z.boolean().optional(),
+    /** A reply to this status of the chat's other person (POST /v1/chats/direct first). */
+    statusId: objectIdSchema.optional(),
   })
   .refine(
     (message) =>

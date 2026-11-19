@@ -68,6 +68,8 @@ export interface OutboxRow {
   viewOnce?: boolean | undefined;
   /** A poll instead of text (see features/polls/send-poll.ts). */
   poll?: PollInput | undefined;
+  /** A reply to this status of the chat's other person. */
+  statusId?: string | undefined;
 }
 
 /** A Blob, or its bytes where a browser cannot keep Blobs. See stored-bytes.ts. */

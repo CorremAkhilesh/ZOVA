@@ -41,7 +41,9 @@ function ReportDialog({ request, onClose }: { request: ReportRequest; onClose: (
       ? t('report.titleGroup', { name: request.groupName ?? '' })
       : request.target.kind === 'message'
         ? t('report.titleMessage', { name: person?.displayName ?? '' })
-        : t('report.titleUser', { name: person?.displayName ?? '' });
+        : request.target.kind === 'status'
+          ? t('report.titleStatus', { name: person?.displayName ?? '' })
+          : t('report.titleUser', { name: person?.displayName ?? '' });
   return (
     <Dialog open onOpenChange={(open) => (open ? undefined : onClose())}>
       <DialogContent title={title} description={t('report.explain')} className="max-w-md">

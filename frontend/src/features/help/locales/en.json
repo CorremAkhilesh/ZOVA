@@ -127,6 +127,16 @@
     "account": {
       "q": "Can I delete my account?",
       "a": "Your account belongs to your organization, so you can’t delete it yourself. If you’re leaving, an admin will turn it off."
+    },
+    "status": {
+      "q": "How do status updates work?",
+      "points": [
+        "Open Status (the dotted circle) and add words on a colour, a photo, or a video of up to 60 seconds.",
+        "Each status disappears after 24 hours. You can delete yours sooner.",
+        "Choose who sees it in Status privacy: all colleagues, all except some, or only some.",
+        "With read receipts off, you don’t see who viewed yours, and others don’t see that you viewed theirs."
+      ],
+      "open": "Open privacy settings"
     }
   },
   "privacy": {

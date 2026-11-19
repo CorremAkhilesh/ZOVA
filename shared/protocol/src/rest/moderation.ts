@@ -44,6 +44,7 @@ export const reportTargetSchema = z.discriminatedUnion('kind', [
     messageIds: z.array(objectIdSchema).min(1).max(REPORT_MESSAGES_MAX),
   }),
   z.object({ kind: z.literal('group'), chatId: objectIdSchema }),
+  z.object({ kind: z.literal('status'), statusId: objectIdSchema }),
 ]);
 
 /** POST /v1/reports */
@@ -88,7 +89,7 @@ export const reportStatusSchema = z.enum(['open', 'resolved']);
 export const reportSummarySchema = z.object({
   id: z.string(),
   status: reportStatusSchema,
-  kind: z.enum(['user', 'message', 'group']),
+  kind: z.enum(['user', 'message', 'group', 'status']),
   reason: reportReasonSchema,
   note: z.string().nullable(),
   blocked: z.boolean(),
@@ -100,7 +101,10 @@ export const reportSummarySchema = z.object({
   createdAt: isoDateTimeSchema,
   resolvedAt: isoDateTimeSchema.nullable(),
   resolution: z
-    .object({ action: z.enum(['none', 'deactivated']), note: z.string().nullable() })
+    .object({
+      action: z.enum(['none', 'deactivated', 'statusRemoved']),
+      note: z.string().nullable(),
+    })
     .nullable(),
 });
 
@@ -119,7 +123,8 @@ export const reportDetailResponseSchema = z.object({
 
 /** POST /v1/admin/reports/:id/resolve */
 export const resolveReportBodySchema = z.object({
-  action: z.enum(['none', 'deactivate']),
+  /** `removeStatus`: a status report only; the status goes for everyone (audited). */
+  action: z.enum(['none', 'deactivate', 'removeStatus']),
   note: z.string().trim().max(REPORT_NOTE_MAX).optional(),
 });
 

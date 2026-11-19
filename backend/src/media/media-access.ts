@@ -3,11 +3,13 @@ import { chatModels, oid } from '../chats/chats.service.ts';
 import { canSeeSeq } from '../chats/visibility.ts';
 import type { MediaDoc } from '../db/chat-models.ts';
 import { AppError } from '../lib/errors.ts';
+import { statusShowsMedia } from '../status/status-feed.ts';
 import { destroyMedia } from './media.service.ts';
 
 /**
- * The uploader, or anyone who can see a message using this file. A forwarded file has one record and
- * many messages, in chats the uploader may not even be in. Others cannot tell it exists.
+ * The uploader, anyone who can see a message using this file, or anyone a running status using it is
+ * shared with. A forwarded file has one record and many messages, in chats the uploader may not even
+ * be in. Others cannot tell it exists.
  */
 export async function requireReadable(
   app: FastifyInstance,
@@ -16,7 +18,10 @@ export async function requireReadable(
 ): Promise<MediaDoc> {
   const doc = await chatModels(app).Media.findById(id).lean();
   if (!doc) throw new AppError('NOT_FOUND', 'Media not found.');
-  if (doc.ownerId.toString() !== userId) await requireUsedWhereVisible(app, id, userId);
+  const mine = doc.ownerId.toString() === userId;
+  if (!mine && !(await statusShowsMedia(app, userId, id))) {
+    await requireUsedWhereVisible(app, id, userId);
+  }
   // Not even the sender: their own device keeps its copy, and nobody else gets a lasting link.
   if (await isViewOnceMedia(app, id)) {
     throw new AppError('FORBIDDEN', 'View-once media opens only from its message.');

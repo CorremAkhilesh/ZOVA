@@ -291,20 +291,29 @@
     "send": "Report",
     "sendAndBlock": "Report and block",
     "sent": "Thanks — your report was sent.",
-    "sentBlocked": "Thanks — your report was sent and the person is blocked."
+    "sentBlocked": "Thanks — your report was sent and the person is blocked.",
+    "titleStatus": "Report {{name}}’s status"
   },
   "adminReports": {
     "title": "Reports",
     "subtitle": "What people reported, with the messages they saw",
     "filter": "Show",
-    "filters": { "open": "Open", "resolved": "Resolved", "all": "All" },
+    "filters": {
+      "open": "Open",
+      "resolved": "Resolved",
+      "all": "All"
+    },
     "kind": {
       "user": "{{name}}",
       "message": "Messages from {{name}}",
-      "group": "Group {{name}}"
+      "group": "Group {{name}}",
+      "status": "Status from {{name}}"
     },
     "by": "by {{name}}",
-    "status": { "open": "Open", "resolved": "Resolved" },
+    "status": {
+      "open": "Open",
+      "resolved": "Resolved"
+    },
     "none": "No reports here.",
     "loadFailed": "Couldn’t load reports.",
     "more": "Show more",
@@ -322,7 +331,12 @@
     "resolve": "Resolve",
     "deactivate": "Deactivate {{name}} and resolve",
     "resolved": "Report resolved",
-    "resolution": { "none": "Resolved", "deactivated": "Resolved: account deactivated" }
+    "resolution": {
+      "none": "Resolved",
+      "deactivated": "Resolved: account deactivated",
+      "statusRemoved": "Resolved: status removed"
+    },
+    "removeStatus": "Remove the status and resolve"
   },
   "search": {
     "title": "Search",
@@ -438,7 +452,11 @@
     "dialogTitle": "Pin for everyone",
     "howLong": "For how long?",
     "replacesOldest": "Up to 3 messages can be pinned. This one replaces the oldest pin.",
-    "durations": { "24h": "24 hours", "7d": "7 days", "30d": "30 days" },
+    "durations": {
+      "24h": "24 hours",
+      "7d": "7 days",
+      "30d": "30 days"
+    },
     "failed": "Couldn’t change the pin. Try again."
   },
   "linkPreview": {
@@ -1324,5 +1342,95 @@
     "notNow": "Not now",
     "learnMore": "What to do",
     "installText": "Install the app for quick access"
+  },
+  "updates": {
+    "title": "Status",
+    "label": "Status",
+    "myStatus": "My status",
+    "statusOf": "{{name}}’s status",
+    "recent": "Recent updates",
+    "viewed": "Viewed updates",
+    "muted": "Muted",
+    "empty": "No status updates from colleagues right now.",
+    "emptyHint": "Share a photo, a video or a few words: it disappears after 24 hours.",
+    "addHint": "Tap to add a status update",
+    "updates_one": "{{count}} update · {{time}}",
+    "updates_other": "{{count}} updates · {{time}}",
+    "unseen": "new",
+    "newText": "New text status",
+    "newMedia": "New photo or video status",
+    "newPhoto": "New photo status",
+    "newVideo": "New video status",
+    "textLabel": "What’s on your mind?",
+    "textPlaceholder": "Type a status",
+    "background": "Background colour",
+    "backgrounds": {
+      "indigo": "Indigo",
+      "teal": "Teal",
+      "violet": "Violet",
+      "rose": "Rose",
+      "amber": "Amber",
+      "sky": "Sky",
+      "slate": "Slate",
+      "emerald": "Emerald"
+    },
+    "font": "Lettering: {{font}}. Change",
+    "fonts": {
+      "sans": "Clean",
+      "serif": "Elegant",
+      "mono": "Typewriter"
+    },
+    "post": "Post",
+    "posted": "Status posted",
+    "postFailed": "Couldn’t post your status. Try again.",
+    "videoTooLong": "Videos for a status can be up to 60 seconds long.",
+    "photoOrVideo": "Choose a photo or a video.",
+    "caption": "Add a caption",
+    "preview": "Preview",
+    "uploading": "Uploading",
+    "photo": "Photo",
+    "video": "Video",
+    "more": "More options",
+    "close": "Close status",
+    "delete": "Delete status",
+    "deleteTitle": "Delete this status?",
+    "deleteBody": "It goes for everyone who could see it.",
+    "deleted": "Status deleted",
+    "failed": "Something went wrong. Try again.",
+    "mute": "Mute {{name}}’s status updates",
+    "unmute": "Unmute {{name}}’s status updates",
+    "report": "Report status",
+    "actionsFor": "Actions for {{name}}",
+    "position": "Status {{index}} of {{count}}",
+    "quickReactions": "Quick reactions",
+    "reactWith": "React with {{emoji}}",
+    "reacted": "Reacted {{emoji}}",
+    "replyLabel": "Reply to {{name}}",
+    "replyPlaceholder": "Reply…",
+    "sendReply": "Send reply",
+    "replySent": "Sent to {{name}}",
+    "replyFailed": "Couldn’t send your reply.",
+    "viewedBy_one": "Viewed by {{count}}",
+    "viewedBy_other": "Viewed by {{count}}",
+    "viewedByHidden": "Views are hidden (read receipts off)",
+    "viewersList": "Viewed by",
+    "noViewers": "Nobody has seen it yet, or their read receipts are off.",
+    "viewersFailed": "Couldn’t load who viewed it.",
+    "privacyTitle": "Status privacy",
+    "privacyExplain": "Who sees the status updates you post from now on. Earlier ones keep the setting they were posted with.",
+    "privacy": {
+      "all": "All colleagues",
+      "except": "All colleagues except…",
+      "only": "Only share with…"
+    },
+    "privacyHiddenFrom_one": "Hidden from {{count}} person",
+    "privacyHiddenFrom_other": "Hidden from {{count}} people",
+    "privacySharedWith_one": "Shared with {{count}} person",
+    "privacySharedWith_other": "Shared with {{count}} people",
+    "privacyChosen": "Chosen people",
+    "privacyRemove": "Remove {{name}}",
+    "privacySearch": "Find colleagues",
+    "privacyResults": "Colleagues",
+    "privacyFailed": "Couldn’t save your status privacy."
   }
 }

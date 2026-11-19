@@ -27,6 +27,8 @@ interface SyncEngineOptions {
   onStatus?: (status: SyncStatus) => void;
   /** The server no longer accepts this session. */
   onUnauthorized?: () => void;
+  /** Statuses I may see changed while this device was away: reload them. */
+  onStatusesChanged?: () => void;
   retryBaseMs?: number;
 }
 
@@ -148,6 +150,7 @@ export class SyncEngine {
       } else {
         await applySyncPage(db, me, page);
       }
+      if (page.statusesChanged) this.options.onStatusesChanged?.();
       cursor = page.cursor;
       more = page.hasMore;
     }
