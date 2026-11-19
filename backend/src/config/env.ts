@@ -89,6 +89,17 @@ const envSchema = z
         .optional()
         .transform((value) => (value ? commaList(value).map((email) => email.toLowerCase()) : [])),
     ),
+    /**
+     * In a chat an ADMIN_EMAILS account started, the other person may answer (default). "false" makes
+     * such chats announcement-only.
+     */
+    ADMIN_CHAT_USER_CAN_REPLY: z.preprocess(
+      emptyToUndefined,
+      z
+        .enum(['true', 'false'])
+        .default('true')
+        .transform((value) => value === 'true'),
+    ),
     /** OTP requests allowed per client IP per hour. */
     OTP_IP_LIMIT_PER_HOUR: z.coerce.number().int().min(1).max(10_000).default(30),
     MEDIA_STORAGE_PATH: z

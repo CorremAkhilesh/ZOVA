@@ -2,6 +2,7 @@ import type { PresenceEvent } from '@zuvo/protocol';
 import type { FastifyInstance } from 'fastify';
 import { chatModels, oid, pairKeyOf } from '../chats/chats.service.ts';
 import { blockedEitherWay } from '../moderation/blocks.service.ts';
+import { isHiddenAdmin, seesAdmins } from '../users/hidden-admins.ts';
 import { privacyOf, type UserDoc, usersModel } from '../users/user-record.ts';
 import type { PresenceStore } from './presence-store.ts';
 import { userRoom, type ZuvoServer, type ZuvoSocket } from './server.ts';
@@ -109,7 +110,7 @@ export function createPresence(
       const userIds = [...new Set(requested)].filter((id) => id !== viewerId);
       const docs = (await usersModel(app)
         .find({ _id: { $in: [...userIds, viewerId].map(oid) } })
-        .select({ privacy: 1, status: 1, lastSeenAt: 1 })
+        .select({ privacy: 1, status: 1, lastSeenAt: 1, email: 1, role: 1 })
         .lean()) as UserDoc[];
       const byId = new Map(docs.map((doc) => [doc._id.toString(), doc]));
       const viewer = byId.get(viewerId);
@@ -133,6 +134,8 @@ export function createPresence(
           doc &&
           doc.status !== 'deactivated' &&
           privacyOf(doc).lastSeen !== 'nobody' &&
+          // A hidden admin's presence is never shown to a normal user, not even in their chat.
+          (seesAdmins(viewer) || !isHiddenAdmin(app, doc)) &&
           pairKeys.has(pairKeyOf(id, viewerId)) &&
           !blocked.has(id)
         );

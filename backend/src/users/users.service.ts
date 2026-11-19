@@ -12,6 +12,7 @@ import type { FastifyInstance } from 'fastify';
 import { Types } from 'mongoose';
 import { AppError } from '../lib/errors.ts';
 import { blockerIds } from '../moderation/blocks.service.ts';
+import { hideAdminsFilter } from './hidden-admins.ts';
 import {
   buildSearchTerms,
   chatSettingsOf,
@@ -173,7 +174,7 @@ interface SearchInput {
 }
 
 /**
- * People search over active users, excluding the caller:
+ * People search over active users, excluding the caller (and, for a normal user, hidden admins):
  * - empty → suggested (recently active), one page
  * - contains "@" → exact email
  * - otherwise every word must prefix-match a search term (name words or username)
@@ -184,7 +185,11 @@ export async function searchUsers(app: FastifyInstance, input: SearchInput) {
   const Users = usersModel(app);
   // People who blocked me cannot be found by me.
   const hidden = [new Types.ObjectId(viewerId), ...(await blockerIds(app, viewerId))];
-  const base = { status: { $ne: 'deactivated' }, _id: { $nin: hidden } };
+  const base = {
+    status: { $ne: 'deactivated' },
+    _id: { $nin: hidden },
+    ...(await hideAdminsFilter(app, viewerId)),
+  };
   const page = (docs: UserDoc[], nextCursor: string | null) => ({
     items: docs.map((doc): PublicProfile => toPublicProfile(doc, viewerId)),
     nextCursor,
@@ -198,7 +203,8 @@ export async function searchUsers(app: FastifyInstance, input: SearchInput) {
     return page(docs, null);
   }
   if (q.includes('@')) {
-    const doc = (await Users.findOne({ ...base, email: q }).lean()) as UserDoc | null;
+    const email = { ...base.email, $eq: q };
+    const doc = (await Users.findOne({ ...base, email }).lean()) as UserDoc | null;
     return page(doc ? [doc] : [], null);
   }
 

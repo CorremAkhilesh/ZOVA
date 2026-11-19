@@ -11,7 +11,8 @@ import type { ChatDoc, ChatMemberDoc, MessageDoc, StoredPoll } from '../db/chat-
 import { AppError } from '../lib/errors.ts';
 import { attachMedia, toMediaInfo } from '../media/media.service.ts';
 import { assertNotBlocked } from '../moderation/blocks.service.ts';
-import { usersModel } from '../users/user-record.ts';
+import { hiddenAmong } from '../users/hidden-admins.ts';
+import { type UserDoc, usersModel } from '../users/user-record.ts';
 import { chatModels, oid } from './chats.service.ts';
 import { assertAllowed, groupRules } from './group-permissions.ts';
 import { toMessage } from './message-format.ts';
@@ -52,9 +53,18 @@ export async function assertMaySend(
   const other = await ChatMember.findOne({ chatId: oid(chatId), userId: { $ne: oid(userId) } })
     .select({ userId: 1 })
     .lean();
-  const deactivated =
-    other && (await usersModel(app).exists({ _id: other.userId, status: 'deactivated' }));
-  if (deactivated) throw new AppError('FORBIDDEN', 'This account has been deactivated.');
+  const peer = other
+    ? ((await usersModel(app)
+        .findById(other.userId)
+        .select({ status: 1, email: 1 })
+        .lean()) as Pick<UserDoc, '_id' | 'status' | 'email'> | null)
+    : null;
+  if (peer?.status === 'deactivated') {
+    throw new AppError('FORBIDDEN', 'This account has been deactivated.');
+  }
+  if (peer && !app.env.ADMIN_CHAT_USER_CAN_REPLY && (await hiddenAmong(app, userId, [peer])).size) {
+    throw new AppError('FORBIDDEN', 'Only the admin can send messages in this chat.');
+  }
   if (other) await assertNotBlocked(app, userId, other.userId.toString());
   return other?.userId.toString() ?? null;
 }

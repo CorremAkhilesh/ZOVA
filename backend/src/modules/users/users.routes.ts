@@ -10,8 +10,10 @@ import {
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { currentUserId, requireSession } from '../../auth/session.ts';
+import { chatModels, pairKeyOf } from '../../chats/chats.service.ts';
 import { AppError } from '../../lib/errors.ts';
 import { blockersAmong } from '../../moderation/blocks.service.ts';
+import { hiddenAmong } from '../../users/hidden-admins.ts';
 import { privacyOf, toPublicProfile } from '../../users/user-record.ts';
 import { requireUser, searchUsers, usernameAvailability } from '../../users/users.service.ts';
 
@@ -66,6 +68,12 @@ export const usersRoutes: FastifyPluginAsyncZod = async (app) => {
     async (request) => {
       const viewer = currentUserId(request);
       const user = await requireUser(app, request.params.id);
+      // A hidden admin is "not found", except to someone they already have a chat with.
+      if ((await hiddenAmong(app, viewer, [user])).size > 0) {
+        const pairKey = pairKeyOf(viewer, user._id.toString());
+        const shared = await chatModels(app).Chat.exists({ type: 'direct', pairKey });
+        if (!shared) throw new AppError('NOT_FOUND', 'User not found.');
+      }
       const blockers = await blockersAmong(app, viewer, [user._id]);
       return {
         user: toPublicProfile(user, viewer, { blockedViewer: blockers.size > 0 }),

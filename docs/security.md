@@ -66,6 +66,21 @@ API (Fastify + Socket.IO) — authn on every route/event, authz per resource, Zo
 - Sockets: authenticated from the session cookie; the `Origin` header is checked against the
   allow-list (cross-site WebSocket hijacking).
 
+### Hidden admins
+
+The `ADMIN_EMAILS` accounts are invisible to normal users, enforced on the server
+(`backend/src/users/hidden-admins.ts`; tests in `backend/src/modules/users/hidden-admins.test.ts`):
+
+- Not in New chat suggestions, nor found by name, `@username` or email; `GET /v1/users/:id` is 404
+  unless the two already share a 1:1 chat.
+- A normal user cannot start a 1:1 chat with one, add one to a group (both 404), or mention one; a
+  group's member list leaves them out for normal members.
+- Their statuses reach admins only, their views are left out of "Viewed by", and their online / last
+  seen is never sent to a normal user.
+- An admin sees and can message everyone. In a chat an admin started, the user may reply while
+  `ADMIN_CHAT_USER_CAN_REPLY=true` (default); `false` makes such chats announcement-only (403).
+  Existing chats are never changed.
+
 ### Authorization
 
 Every route and socket event checks the session and membership of the chat / ownership of the

@@ -5,6 +5,7 @@ import { oid } from '../chats/chats.service.ts';
 import type { StatusDoc } from '../db/status-models.ts';
 import { AppError } from '../lib/errors.ts';
 import { blockedEitherWay } from '../moderation/blocks.service.ts';
+import { hiddenAmong } from '../users/hidden-admins.ts';
 import { privacyOf, toPublicProfile, type UserDoc, usersModel } from '../users/user-record.ts';
 import { audienceAllows, statusModels } from './audience.ts';
 import { toStatus } from './status.service.ts';
@@ -30,7 +31,13 @@ export async function requireVisibleStatus(
   if (ownerId === userId) return doc;
   const owner = (await usersModel(app).findById(doc.userId).lean()) as UserDoc | null;
   const blocked = await blockedEitherWay(app, userId, [ownerId]);
-  if (!isActive(owner ?? undefined) || blocked.size > 0 || !audienceAllows(doc.audience, userId)) {
+  const hidden = owner ? await hiddenAmong(app, userId, [owner]) : new Set<string>();
+  if (
+    !isActive(owner ?? undefined) ||
+    blocked.size > 0 ||
+    hidden.size > 0 ||
+    !audienceAllows(doc.audience, userId)
+  ) {
     throw new AppError('NOT_FOUND', 'Status not found.');
   }
   return doc;
@@ -100,10 +107,12 @@ export async function statusFeed(
     userId,
     ownerIds.filter((id) => id !== userId),
   );
+  const hidden = await hiddenAmong(app, userId, users);
   const visible = running.filter((doc) => {
     const owner = doc.userId.toString();
     if (owner === userId) return true;
-    return isActive(byId.get(owner)) && !blocked.has(owner) && audienceAllows(doc.audience, userId);
+    if (hidden.has(owner) || blocked.has(owner)) return false;
+    return isActive(byId.get(owner)) && audienceAllows(doc.audience, userId);
   });
   const ids = visible.map((doc) => doc._id);
   // Index: { viewerId, statusId }.
@@ -121,6 +130,7 @@ export async function statusFeed(
   const counts = sharesViews(me)
     ? await viewCounts(
         app,
+        userId,
         mineDocs.map((doc) => doc._id),
       )
     : null;
@@ -152,17 +162,17 @@ const latest = (person: { statuses: { createdAt: string }[] }) =>
   Date.parse(person.statuses.at(-1)?.createdAt ?? '0');
 
 /** How many have seen each of these (people sharing read receipts only). */
-async function viewCounts(app: FastifyInstance, ids: Types.ObjectId[]) {
+async function viewCounts(app: FastifyInstance, ownerId: string, ids: Types.ObjectId[]) {
   const counts = new Map<string, number>();
   for (const id of ids) {
-    const viewers = await sharingViewers(app, id);
+    const viewers = await sharingViewers(app, id, ownerId);
     counts.set(id.toString(), viewers.length);
   }
   return counts;
 }
 
-/** Views of one status by people whose read receipts are on, newest first. */
-async function sharingViewers(app: FastifyInstance, statusId: Types.ObjectId) {
+/** Views of one status by people whose read receipts are on (and whom its owner may see), newest first. */
+async function sharingViewers(app: FastifyInstance, statusId: Types.ObjectId, ownerId: string) {
   // Index: { statusId, viewedAt }.
   const views = await statusModels(app).StatusView.find({ statusId }).sort({ viewedAt: -1 }).lean();
   if (views.length === 0) return [];
@@ -170,8 +180,10 @@ async function sharingViewers(app: FastifyInstance, statusId: Types.ObjectId) {
     .find({ _id: { $in: views.map((view) => view.viewerId) } })
     .lean()) as UserDoc[];
   const byId = new Map(users.map((user) => [user._id.toString(), user]));
+  const hidden = await hiddenAmong(app, ownerId, users);
   return views.flatMap((view) => {
     const user = byId.get(view.viewerId.toString());
+    if (!user || hidden.has(user._id.toString())) return [];
     return isActive(user) && sharesViews(user) ? [{ view, user }] : [];
   });
 }
@@ -210,7 +222,7 @@ export async function statusViewers(
     throw new AppError('NOT_FOUND', 'Status not found.');
   const me = (await usersModel(app).findById(userId).lean()) as UserDoc | null;
   if (!sharesViews(me ?? undefined)) return { viewers: [], count: 0 };
-  const viewers = await sharingViewers(app, doc._id);
+  const viewers = await sharingViewers(app, doc._id, userId);
   return {
     viewers: viewers.map(({ view, user }) => ({
       user: toPublicProfile(user, userId),
