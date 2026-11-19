@@ -24,7 +24,9 @@ day="$(date -u +%F)"
 dir="$ZUVO_BACKUP_DIR/daily/$day"
 [ -s "$dir/zuvo_prod.archive.gz" ] && [ -f "$dir/uploads/ab/ci-file" ] && [ -f "$dir/env.prod" ] \
   || fail "the backup is incomplete"
-grep -q '^upload_files=1$' "$dir/MANIFEST" || fail "MANIFEST must count 1 upload"
+# Every file in the media folder: the one above, and the photo from upload-smoke.sh.
+files="$(find "$ZUVO_DATA_DIR/uploads" -type f | wc -l)"
+grep -q "^upload_files=$files\$" "$dir/MANIFEST" || fail "MANIFEST must count the $files uploads"
 bash deploy/scripts/backup.sh > /dev/null   # a second run the same day replaces it
 [ ! -e "$dir.old" ] || fail "a second backup left $dir.old behind"
 
