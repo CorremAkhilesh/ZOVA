@@ -62,6 +62,23 @@ describe('OtpThrottle', () => {
     expect(await throttle.recordFailure('a@x.com')).toBe(4);
   });
 
+  it('locks an email for the rest of the day at 15 wrong codes, even across new codes', async () => {
+    const { throttle, advance } = setup();
+    for (let i = 0; i < 14; i++) {
+      if (i % 5 === 0) await throttle.resetAttempts('a@x.com');
+      await throttle.recordFailure('a@x.com');
+    }
+    await expect(throttle.checkLocked('a@x.com')).resolves.toBeUndefined();
+    await throttle.resetAttempts('a@x.com');
+    await throttle.recordFailure('a@x.com');
+    const error = await throttle.checkLocked('a@x.com').catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(ThrottledError);
+    expect((error as ThrottledError).retryAfterSeconds).toBe(24 * 3600);
+    await expect(throttle.checkLocked('b@x.com')).resolves.toBeUndefined();
+    advance(24 * 3600 + 1);
+    await expect(throttle.checkLocked('a@x.com')).resolves.toBeUndefined();
+  });
+
   it('never reports negative attempts', async () => {
     const { throttle } = setup();
     for (let i = 0; i < 7; i++) await throttle.recordFailure('a@x.com');

@@ -1,6 +1,14 @@
 import { adminUserStatusResponseSchema, apiErrorSchema } from '@zuvo/protocol';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { headers, me, outbox, requestOtp, signIn, verifyOtp } from '../../../test/auth-helpers.ts';
+import {
+  headers,
+  me,
+  outbox,
+  readOtp,
+  requestOtp,
+  signIn,
+  verifyOtp,
+} from '../../../test/auth-helpers.ts';
 import { buildTestApp } from '../../../test/helpers.ts';
 import { generateVapidKeys } from '../../push/vapid.ts';
 
@@ -79,6 +87,36 @@ describe('rate limits', () => {
     }
     expect(statuses).toEqual([200, 200, 200, 200, 200, 429]);
   });
+
+  it('locks an email for a day after 15 wrong codes, whatever new codes were requested', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    const app = await start();
+    let previous: string | undefined;
+    const freshCode = async () => {
+      vi.setSystemTime(Date.now() + 61_000);
+      expect((await requestOtp(app, email)).statusCode).toBe(200);
+      previous = await readOtp(app, email, previous);
+      return previous;
+    };
+    const wrong = (code: string) => (code === '000000' ? '111111' : '000000');
+    // Five wrong guesses on each of the first two codes, four on the third: 14 so far.
+    for (const guesses of [5, 5, 4]) {
+      const code = await freshCode();
+      for (let i = 0; i < guesses; i++) await verifyOtp(app, email, wrong(code));
+    }
+    // A new code used to reset every count: the 15th wrong guess now ends the day.
+    const code = await freshCode();
+    expect((await verifyOtp(app, email, wrong(code))).statusCode).toBe(400);
+    const right = await verifyOtp(app, email, code);
+    expect(right.statusCode).toBe(429);
+    expect(right.json()).toMatchObject({ code: 'RATE_LIMITED' });
+    expect(right.json().details.retryAfterSeconds).toBeGreaterThan(23 * 3600);
+    vi.setSystemTime(Date.now() + 3601_000);
+    expect((await requestOtp(app, email)).statusCode).toBe(429);
+    // A day later the email works again.
+    vi.setSystemTime(Date.now() + 24 * 3600_000);
+    expect(await verifyOtp(app, email, await freshCode()).then((r) => r.statusCode)).toBe(200);
+  }, 120_000);
 
   it('limits code requests per IP, counting rejected domains too', async () => {
     const app = await start({ OTP_IP_LIMIT_PER_HOUR: '3' });
