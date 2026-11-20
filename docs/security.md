@@ -65,6 +65,10 @@ API (Fastify + Socket.IO) — authn on every route/event, authz per resource, Zo
   "This wasn't me" revokes all of them. Deactivation revokes all sessions at once.
 - Sockets: authenticated from the session cookie; the `Origin` header is checked against the
   allow-list (cross-site WebSocket hijacking).
+- Socket limits: handshakes per client IP per minute (`SOCKET_HANDSHAKES_PER_MINUTE`, default 600,
+  counted before the session lookup); at most 10 sockets per session (across instances); and every
+  event has a per-socket limit per 10 s (`realtime/socket-limit.ts`), checked before validation and
+  the session lookup. `presence:active` allows 6, since each change is announced to every contact.
 
 ### Hidden admins
 
@@ -153,7 +157,8 @@ CORP `same-site` and a `connect-src` entry.
   signature and by extension.
 - Limits: `MEDIA_MAX_FILE_MB` (default 1024) per file, pictures 100 MB, voice 64 MB and
   `VOICE_MAX_SECONDS`, avatars 5 MB, wallpapers 10 MB, 8 MB per upload chunk; checked before bytes
-  move and again while they arrive. New uploads are refused above 90 % disk use (`507 STORAGE_FULL`).
+  move and again while they arrive. New uploads are refused above 85 % disk use (`507 STORAGE_FULL`, admins emailed) and past
+  a person's storage limit (`413 STORAGE_QUOTA_EXCEEDED`, default 3 GB).
 - Pictures (photos, avatars, group photos, wallpapers, video posters, link-preview images) are
   decoded with a pixel limit and **re-encoded to WebP**, which strips EXIF/GPS and anything hidden.
 - Storage keys are random (`ab/cd/<32 hex>`), validated by a strict pattern and resolved inside the

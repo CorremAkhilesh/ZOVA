@@ -57,9 +57,19 @@ export const adminUserSchema = z.object({
 export const adminUsersQuerySchema = cursorPageQuerySchema.extend({
   q: z.string().trim().max(100).default(''),
 });
-/** A row of Admin → Users. `storageBytes`: the person's sent and ready files. No quota applies yet. */
+/** A row of Admin → Users. `storageBytes`: the person's finished files; `quotaBytes`: their limit. */
 export const adminUserRowSchema = adminUserSchema.extend({
   storageBytes: z.number().int().nonnegative(),
+  quotaBytes: z.number().int().positive(),
+});
+/** PUT /v1/admin/users/:id/storage-quota. `null` puts the default limit back. 100 MB to 1 TB. */
+export const adminStorageQuotaBodySchema = z.object({
+  quotaMb: z.number().int().min(100).max(1_048_576).nullable(),
+});
+export const adminStorageQuotaResponseSchema = z.object({
+  quotaBytes: z.number().int().positive(),
+  /** True when this person has a limit of their own rather than the default. */
+  custom: z.boolean(),
 });
 export const adminUsersResponseSchema = cursorPageSchema(adminUserRowSchema);
 export const adminRoleBodySchema = z.object({ role: userRoleSchema });
@@ -78,6 +88,8 @@ export const auditActionSchema = z.enum([
   'status.remove',
   /** An admin sent the "turn on notifications" reminder. Target: the person reminded. */
   'notifications.remind',
+  /** An admin changed someone's storage limit. Target: that person. */
+  'storage.quota',
 ]);
 export const auditLogEntrySchema = z.object({
   id: z.string(),

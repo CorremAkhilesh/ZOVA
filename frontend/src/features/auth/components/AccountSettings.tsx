@@ -3,6 +3,8 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { ConfirmDialog } from '@/components/ui/dialog';
+import { getUserDb } from '@/features/sync/local-db';
 import { useSession } from '../session';
 import { useSignOut } from '../use-sign-out';
 
@@ -12,7 +14,17 @@ export function AccountSettings() {
   const session = useSession();
   const signOut = useSignOut();
   const [busy, setBusy] = useState(false);
+  /** Null while closed; otherwise how many messages on this device have not been sent yet. */
+  const [asking, setAsking] = useState<number | null>(null);
   if (!session) return null;
+
+  const ask = async () => {
+    // Signing out wipes this device: anything still waiting to be sent goes with it.
+    const unsent = await getUserDb(session.user.id)
+      .outbox.count()
+      .catch(() => 0);
+    setAsking(unsent);
+  };
 
   const { user } = session;
   const name = user.displayName ?? user.email;
@@ -34,17 +46,28 @@ export function AccountSettings() {
         <dt className="text-text-muted">{t('auth.account.sessionEnds')}</dt>
         <dd>{expires}</dd>
       </dl>
-      <Button
-        variant="outline"
-        disabled={busy}
-        onClick={async () => {
-          setBusy(true);
-          await signOut('signed-out');
-        }}
-      >
+      <Button variant="outline" disabled={busy} onClick={() => void ask()}>
         <LogOut className="size-4" aria-hidden />
         {t('auth.signOut')}
       </Button>
+      <ConfirmDialog
+        open={asking !== null}
+        onOpenChange={(open) => (open ? null : setAsking(null))}
+        title={t('auth.signOutConfirm.title')}
+        description={[
+          asking ? t('auth.signOutConfirm.unsent', { count: asking }) : '',
+          t('auth.signOutConfirm.body'),
+        ]
+          .filter(Boolean)
+          .join(' ')}
+        confirmLabel={t('auth.signOut')}
+        pending={busy}
+        danger={Boolean(asking)}
+        onConfirm={async () => {
+          setBusy(true);
+          await signOut('signed-out');
+        }}
+      />
     </div>
   );
 }

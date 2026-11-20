@@ -31,3 +31,13 @@ describe('shares waiting on this device', () => {
     expect((await store.latest())?.id).toBe('a');
   });
 });
+
+describe('a share left too long', () => {
+  it('is never handed out once a day old, even before a prune', async () => {
+    const store = indexedDbShareStore();
+    const stale = item('stale', Date.now() - SHARE_TTL_MS - 1);
+    await store.put(stale);
+    expect(await store.get('stale')).toBeUndefined();
+    expect((await store.latest())?.id).not.toBe('stale');
+  });
+});

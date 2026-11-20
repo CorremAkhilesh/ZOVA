@@ -67,17 +67,33 @@ function run<T>(
   );
 }
 
+/** Older than a day: never handed out, whether or not a prune has run since. */
+const fresh = (item: SharedItem) => item.createdAt >= Date.now() - SHARE_TTL_MS;
+
+/** Sign-out: everything shared into the app and not sent goes with the rest of the user's data. */
+export function deleteShareDatabase(factory: IDBFactory = indexedDB): Promise<void> {
+  return new Promise((resolve) => {
+    const request = factory.deleteDatabase(DB_NAME);
+    // Blocked or failed: the items still expire within a day, and are not handed out after that.
+    request.onsuccess = () => resolve();
+    request.onerror = () => resolve();
+    request.onblocked = () => resolve();
+  });
+}
+
 /** The store, on this device's IndexedDB (the service worker's and the page's are the same). */
 export function indexedDbShareStore(factory: IDBFactory = indexedDB): ShareStore {
   return {
     put: async (item) => {
       await run(factory, 'readwrite', (store) => store.put(item));
     },
-    get: async (id) =>
-      (await run<SharedItem>(factory, 'readonly', (store) => store.get(id))) ?? undefined,
+    get: async (id) => {
+      const item = await run<SharedItem>(factory, 'readonly', (store) => store.get(id));
+      return item && fresh(item) ? item : undefined;
+    },
     latest: async () => {
       const all = (await run<SharedItem[]>(factory, 'readonly', (store) => store.getAll())) ?? [];
-      return all.sort((a, b) => b.createdAt - a.createdAt)[0];
+      return all.filter(fresh).sort((a, b) => b.createdAt - a.createdAt)[0];
     },
     remove: async (id) => {
       await run(factory, 'readwrite', (store) => store.delete(id));

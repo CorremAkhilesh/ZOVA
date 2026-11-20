@@ -111,7 +111,7 @@ export function OtpStep() {
           {verify.isPending ? t('auth.verifying') : t('auth.verify')}
         </Button>
         <div className="flex items-center justify-between text-sm">
-          <Link to="/" className="font-medium text-brand-text hover:underline">
+          <Link to="/" className="tap-target font-medium text-brand-text hover:underline">
             {t('auth.changeEmail')}
           </Link>
           <Button

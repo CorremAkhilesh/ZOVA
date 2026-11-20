@@ -1,4 +1,5 @@
 import { UPLOAD_CHUNK_MAX_BYTES, uploadParamsSchema } from '@zuvo/protocol';
+import { storageChanged } from '@/features/storage/api';
 import { heldByAnotherTab, heldFile, releaseFile } from '@/features/sync/held-files';
 import type { LocalDb, OutboxRow, UploadFailReason } from '@/features/sync/local-db';
 import type { Outbox } from '@/features/sync/outbox';
@@ -44,6 +45,7 @@ function failReasonOf(error: unknown): UploadFailReason | undefined {
   if (error instanceof FileLostError) return 'fileLost';
   if (!(error instanceof ApiClientError)) return undefined;
   if (error.apiError?.code === 'STORAGE_FULL') return 'diskFull';
+  if (error.apiError?.code === 'STORAGE_QUOTA_EXCEEDED') return 'quotaFull';
   if (error.apiError?.code === 'PAYLOAD_TOO_LARGE') return 'overLimit';
   return undefined;
 }
@@ -147,6 +149,7 @@ export class MediaUploader {
     this.current = { clientMsgId: row.clientMsgId, abort };
     try {
       await this.transfer(row, abort.signal);
+      storageChanged();
       this.options.outbox.resume();
       return true;
     } catch (error) {

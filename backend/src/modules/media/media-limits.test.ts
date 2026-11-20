@@ -134,9 +134,9 @@ describe('free disk space', () => {
   const disk = (space: { total: number; free: number } | null) =>
     vi.spyOn(app().storage, 'space').mockResolvedValue(space);
 
-  it('refuses an upload that would take the disk past 90%, with a clear error', async () => {
+  it('refuses an upload that would take the disk past 85%, with a clear error', async () => {
     const who = await person();
-    const space = disk({ total: 100 * GB, free: 10 * GB + 100 });
+    const space = disk({ total: 100 * GB, free: 15 * GB + 100 });
     const response = await client().start(who, doc(101));
     space.mockRestore();
     expect(response.statusCode).toBe(507);
@@ -144,9 +144,9 @@ describe('free disk space', () => {
     expect(response.json().message).toContain('low on storage');
   });
 
-  it('accepts one that takes it to exactly 90%', async () => {
+  it('accepts one that takes it to exactly 85%', async () => {
     const who = await person();
-    const space = disk({ total: 100 * GB, free: 10 * GB + 100 });
+    const space = disk({ total: 100 * GB, free: 15 * GB + 100 });
     const response = await client().start(who, doc(100));
     space.mockRestore();
     expect(response.statusCode).toBe(200);
@@ -156,7 +156,7 @@ describe('free disk space', () => {
     const who = await person();
     const { uploadId } = (await client().start(who, doc(PDF.length))).json();
 
-    const space = disk({ total: 100 * GB, free: 10 * GB });
+    const space = disk({ total: 100 * GB, free: 15 * GB });
     const refused = await client().chunk(who, uploadId, 0, PDF);
     space.mockRestore();
     expect(refused.statusCode).toBe(507);

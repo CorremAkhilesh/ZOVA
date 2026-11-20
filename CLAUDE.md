@@ -96,7 +96,7 @@
 
 ### MongoDB
 
-- **Development:** MongoDB Atlas cluster `cluster0.zitp2pj.mongodb.net`, one database per developer.
+- **Development:** MongoDB Atlas cluster `<your-cluster>.mongodb.net`, one database per developer.
 - **Production:** its own `mongo:8.0` container on the server (single-node replica set `rs0`, auth +
   key file, never published), data in `/var/data/zuvo/db` (`docs/adr/0009-production-hosting.md`).
 - The database is selected via the `MONGODB_DB` env variable:
@@ -171,7 +171,12 @@
   - Max 1 GB per file, set by env `MEDIA_MAX_FILE_MB` (default 1024). The app reads the limit from
     `GET /v1/config`, so both sides always use the same one. Pictures stay at 100 MB: they are decoded
     on both sides, and a larger one goes as a document.
-  - New uploads are refused (`507 STORAGE_FULL`) if the disk would go above 90%.
+  - **Per-person limit:** 3 GB of photos, videos, voice notes, documents and statuses together
+    (env `MEDIA_USER_QUOTA_MB`, default 3072; uploads on their way count too). An admin can give one
+    person a different limit (Admin → Users, audited). Over it: `413 STORAGE_QUOTA_EXCEEDED`.
+    Settings → Storage shows the usage, and the app warns at 90%.
+  - New uploads are refused (`507 STORAGE_FULL`) if the disk would go above 85%; the admins get
+    an email (at most one every 6 hours).
   - Voice notes: at most `VOICE_MAX_SECONDS` long (default 900) and 64 MB. Formats and browser support:
     `docs/adr/0004-voice-notes.md`.
   - MIME type allow-list, verified by file signature (magic bytes), never by extension.

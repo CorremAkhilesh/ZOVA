@@ -22,7 +22,7 @@ import { toErrorResponse } from '../plugins/error-handler.ts';
 import { registerCallHandlers } from './call-handlers.ts';
 import type { ZuvoSocket } from './server.ts';
 import { closeSocket } from './session-guard.ts';
-import { windowLimit } from './socket-limit.ts';
+import { eventLimiter, windowLimit } from './socket-limit.ts';
 import { createTyping } from './typing.ts';
 
 /** 20 messages per 5 seconds, per user, across all devices and instances. */
@@ -65,7 +65,25 @@ export function safeReason(error: unknown): string {
   return code === undefined ? error.name : `${error.name} ${String(code)}`;
 }
 
-/** Runs one event: validate, check the session, act, and always acknowledge. */
+const limiters = new WeakMap<ZuvoSocket, ReturnType<typeof eventLimiter>>();
+
+/** False when this socket has sent too many of this event lately. */
+function eventAllowed(socket: ZuvoSocket, event: string): boolean {
+  let allowed = limiters.get(socket);
+  if (!allowed) {
+    allowed = eventLimiter();
+    limiters.set(socket, allowed);
+  }
+  return allowed(event);
+}
+
+const FLOODED = {
+  code: 'RATE_LIMITED',
+  message: 'Too many requests. Slow down.',
+  requestId: 'socket-rate-limit',
+} as const;
+
+/** Runs one event: rate limit, validate, check the session, act, and always acknowledge. */
 export async function respond<Schema extends z.ZodType, Data>(
   app: FastifyInstance,
   socket: ZuvoSocket,
@@ -78,6 +96,11 @@ export async function respond<Schema extends z.ZodType, Data>(
   const reply = (typeof ack === 'function' ? ack : () => undefined) as (
     response: AckResponse<Data>,
   ) => void;
+  // Not logged one by one: a flood would flood the logs too.
+  if (!eventAllowed(socket, event)) {
+    reply({ ok: false, error: FLOODED });
+    return;
+  }
   try {
     const parsed = schema.safeParse(payload);
     if (!parsed.success) {

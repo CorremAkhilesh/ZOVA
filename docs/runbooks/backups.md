@@ -15,7 +15,7 @@ A daily folder holds `zuvo_prod.archive.gz` (gzip `mongodump` archive, tested wi
 `uploads/` (the media folder; unchanged files are hard links to the day before, so a day costs
 only what changed), `env.prod` and `MANIFEST`. Log: `/var/log/zuvo-backup.log`.
 
-From 80% disk usage the daily run emails every `ADMIN_EMAILS` address (`disk-alert`). At 90% the API
+From 80% disk usage the daily run emails every `ADMIN_EMAILS` address (`disk-alert`). At 85% the API
 refuses new uploads (`507 STORAGE_FULL`).
 
 ## Restore test (monthly, safe while people use the app)

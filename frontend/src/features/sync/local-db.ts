@@ -9,13 +9,14 @@ import type {
 import Dexie, { type Table } from 'dexie';
 import type { ActionRow } from './actions-types';
 import { releaseAllFiles } from './held-files';
+import { hasPendingWipe, PENDING_WIPE_KEY } from './wipe-flag';
 
 /** Messages not yet accepted by the server sort after every real position. */
 export const PENDING_ORDER_BASE = 1e12;
 
 export type MessageStatus = 'pending' | 'failed' | 'sent';
 /** Why a file was not sent, when the person can do something about it. */
-export type UploadFailReason = 'fileLost' | 'diskFull' | 'overLimit';
+export type UploadFailReason = 'fileLost' | 'diskFull' | 'overLimit' | 'quotaFull';
 
 export interface MessageRow extends Omit<Message, 'id' | 'seq'> {
   /** Stable across send and ack, so re-applying a message can never duplicate it. */
@@ -167,7 +168,7 @@ export interface WipeResult {
 /** How long one delete may wait for other tabs to let go (tests shorten it), and how many times. */
 export const wipeTiming = { attemptMs: 3000 };
 const WIPE_ATTEMPTS = 3;
-const PENDING_KEY = 'zuvo-wipe-pending';
+const PENDING_KEY = PENDING_WIPE_KEY;
 
 const userDatabases = async () =>
   (await Dexie.getDatabaseNames()).filter((name) => name.startsWith(DB_PREFIX));
@@ -198,9 +199,24 @@ const remember = (names: string[]) => {
  * this tab has is closed for good first. A delete another tab blocks is asked again a few times; if
  * it still has not happened, that is reported and remembered, never silently left behind.
  */
-export async function wipeLocalDatabases(): Promise<WipeResult> {
-  const { attemptMs } = wipeTiming;
+export function wipeLocalDatabases(): Promise<WipeResult> {
+  // One at a time: a wipe that ended while an earlier one still ran (sign-out and a revoke at once)
+  // would let the next person open a database that the earlier wipe then deletes.
   wipesRunning += 1;
+  const run = wipeQueue.then(wipeOnce);
+  wipeQueue = run.catch(() => undefined);
+  return run;
+}
+
+let wipeQueue: Promise<unknown> = Promise.resolve();
+
+/** Resolves once no wipe is running or queued (tests: a sign-out's wipe outlives its screen). */
+export async function wipesSettled(): Promise<void> {
+  while (wipesRunning > 0) await wipeQueue;
+}
+
+async function wipeOnce(): Promise<WipeResult> {
+  const { attemptMs } = wipeTiming;
   try {
     releaseAllFiles();
     for (const db of open.values()) closedForGood(db);
@@ -221,11 +237,4 @@ export async function wipeLocalDatabases(): Promise<WipeResult> {
   }
 }
 
-/** A wipe that a blocked delete left unfinished. */
-export function hasPendingWipe(): boolean {
-  try {
-    return localStorage.getItem(PENDING_KEY) !== null;
-  } catch {
-    return false;
-  }
-}
+export { hasPendingWipe };

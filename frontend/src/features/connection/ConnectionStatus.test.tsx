@@ -40,14 +40,16 @@ describe('ConnectionStatus', () => {
     expect(screen.getByText('Connected')).toBeInTheDocument();
   });
 
-  it('shows "Offline" when the browser goes offline', () => {
+  it('says "Offline" to screen readers only: the banner at the top already shows it', () => {
     useSyncStore.setState({ socket: 'connected' });
     renderStatus();
     const onLine = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
     act(() => {
       window.dispatchEvent(new Event('offline'));
     });
-    expect(screen.getByText('Offline')).toBeInTheDocument();
+    const offline = screen.getByText('Offline');
+    expect(offline).toHaveClass('sr-only');
+    expect(offline.closest('button')).toBeNull();
     onLine.mockRestore();
   });
 

@@ -124,7 +124,6 @@
     "unreachable": "Server unreachable",
     "offlineShort": "Offline",
     "connectingHint": "Trying to reach the server…",
-    "offlineHint": "You’re offline. Check your network connection.",
     "offline": "You are offline. Messages will send when you reconnect.",
     "unreachableShort": "Can’t reach server",
     "unreachableHint": "You’re online, but the server isn’t responding. We’ll keep trying."
@@ -135,7 +134,9 @@
     "retry": "Try again",
     "notFoundTitle": "Page not found",
     "notFoundBody": "The page you are looking for does not exist.",
-    "goHome": "Go to chats"
+    "goHome": "Go to chats",
+    "chatNotFoundTitle": "Chat not found",
+    "chatNotFoundBody": "This chat doesn’t exist, or you’re not in it."
   },
   "install": {
     "install": "Install",
@@ -204,7 +205,13 @@
       "expired": "This code has expired. Request a new code.",
       "invalid": "Enter a valid email address."
     },
-    "latestCodeOnly": "Only the most recent code works."
+    "latestCodeOnly": "Only the most recent code works.",
+    "signOutConfirm": {
+      "title": "Sign out of this device?",
+      "body": "You’ll need a new code from your email to sign in again.",
+      "unsent_one": "{{count}} message hasn’t been sent yet and will be lost.",
+      "unsent_other": "{{count}} messages haven’t been sent yet and will be lost."
+    }
   },
   "common": {
     "close": "Close",
@@ -565,9 +572,11 @@
       "report.view": "{{actor}} viewed a report about {{target}}",
       "report.resolve": "{{actor}} resolved a report about {{target}}",
       "status.remove": "{{actor}} removed a status of {{target}}",
-      "notifications.remind": "{{actor}} reminded {{target}} to turn on notifications"
+      "notifications.remind": "{{actor}} reminded {{target}} to turn on notifications",
+      "storage.quota": "{{actor}} changed the storage limit of {{target}}"
     },
-    "storageUsed": "Storage used: {{size}}"
+    "storageUsed": "Storage used: {{size}}",
+    "storageUsedOf": "Storage used: {{size}} of {{limit}}"
   },
   "people": {
     "title": "New chat",
@@ -659,7 +668,8 @@
     "fileLostRemove": "Remove",
     "fileLostChoose": "Choose again",
     "diskFull": "The server is low on storage, so this file wasn’t uploaded.",
-    "overLimit": "This file is over the size limit."
+    "overLimit": "This file is over the size limit.",
+    "quotaFull": "Your storage is full, so this file wasn’t uploaded. Free up space in Settings → Storage."
   },
   "voice": {
     "preview": "Voice message",
@@ -799,6 +809,7 @@
     "join": "Join",
     "openGroup": "Open group",
     "inviteInvalid": "This invite link is no longer valid. Ask for a new one.",
+    "joinRemoved": "An admin removed you from this group. Only an admin can add you back.",
     "messageInfo": "Message info",
     "readBy": "Read by",
     "deliveredTo": "Delivered to",
@@ -1426,7 +1437,7 @@
     "muted": "Muted",
     "empty": "No status updates from colleagues right now.",
     "emptyHint": "Share a photo, a video or a few words: it disappears after 24 hours.",
-    "addHint": "Tap to add a status update",
+    "addHint": "Add a status update",
     "updates_one": "{{count}} update · {{time}}",
     "updates_other": "{{count}} updates · {{time}}",
     "unseen": "new",
@@ -1510,7 +1521,7 @@
     "next": "Next status",
     "deleteConfirm": "Delete",
     "paneTitle": "Status updates",
-    "paneHint": "Click on a contact to view their status updates",
+    "paneHint": "Choose a colleague to see their status updates",
     "paneNote": "Status updates disappear after 24 hours."
   },
   "adminPush": {
@@ -1650,5 +1661,39 @@
       "busy": "Voice call · Busy"
     },
     "rerouting": "Trying another route…"
+  },
+  "storage": {
+    "title": "Storage",
+    "subtitle": "How much space your photos, videos, voice notes, documents and statuses use.",
+    "menuHint": "Space your files use, and your limit",
+    "usedOf": "{{used}} of {{limit}} used",
+    "meterLabel": "Storage used",
+    "percentUsed": "{{percent}}% used",
+    "free": "{{size}} free",
+    "uploading": "{{size}} uploading",
+    "loadFailed": "Couldn’t load your storage. Check your connection and try again.",
+    "nearlyFullHint": "Your storage is nearly full. When it is full, new files can’t be sent.",
+    "fullHint": "Your storage is full. New files can’t be sent until you free up space.",
+    "byKind": "What uses it",
+    "empty": "You haven’t sent any files yet.",
+    "kinds": {
+      "image": "Photos",
+      "video": "Videos",
+      "voice": "Voice notes",
+      "audio": "Audio",
+      "document": "Documents"
+    },
+    "howToFree": "To free up space, delete messages with files you sent using “Delete for everyone”. If you need more space, ask an admin.",
+    "toastNearlyFull": "Your storage is nearly full",
+    "toastFull": "Your storage is full",
+    "open": "View",
+    "admin": {
+      "change": "Change limit",
+      "title": "Storage limit for {{name}}",
+      "current": "Using {{used}} of {{limit}}.",
+      "label": "New limit (GB)",
+      "hint": "Between {{min}} GB and {{max}} GB.",
+      "useDefault": "Use default"
+    }
   }
 }

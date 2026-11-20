@@ -16,6 +16,11 @@ test('sign up with an organization email, stay signed in after reload, then sign
   await page.goto('/settings');
   await expect(page.getByText('Playwright User').first()).toBeVisible();
   await page.getByRole('button', { name: 'Sign out' }).click();
+  // It asks first: one mis-tap must not sign anyone out.
+  await page
+    .getByRole('dialog', { name: 'Sign out of this device?' })
+    .getByRole('button', { name: 'Sign out' })
+    .click();
   await expect(page.getByRole('heading', { name: /Welcome to/ })).toBeVisible();
 
   // Signed out for real: the app is no longer reachable.

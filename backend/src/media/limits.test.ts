@@ -17,9 +17,9 @@ describe('file size limits', () => {
 });
 
 describe('the disk check', () => {
-  const space = { total: 1000, free: 200 };
+  const space = { total: 1000, free: 250 };
 
-  it('allows a file that takes the disk to exactly 90%', () => {
+  it('allows a file that takes the disk to exactly 85%', () => {
     expect(wouldOverfill(space, 100)).toBe(false);
   });
 
@@ -27,7 +27,7 @@ describe('the disk check', () => {
     expect(wouldOverfill(space, 101)).toBe(true);
   });
 
-  it('refuses even an empty request on a disk already past 90%', () => {
-    expect(wouldOverfill({ total: 1000, free: 50 }, 0)).toBe(true);
+  it('refuses even an empty request on a disk already past 85%', () => {
+    expect(wouldOverfill({ total: 1000, free: 140 }, 0)).toBe(true);
   });
 });

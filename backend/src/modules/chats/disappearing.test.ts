@@ -8,14 +8,17 @@ import {
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { groupClient, systemKinds } from '../../../test/group-helpers.ts';
 import { buildTestApp } from '../../../test/helpers.ts';
+import { mediaClient, PDF } from '../../../test/media-helpers.ts';
 import {
   closeAllSockets,
   connect,
   listen,
   record,
+  uuidv7,
   waitUntil,
 } from '../../../test/realtime-helpers.ts';
 import { chatModels, oid } from '../../chats/chats.service.ts';
+import { sendMessage } from '../../chats/messages.service.ts';
 
 let built: Awaited<ReturnType<typeof buildTestApp>>;
 let url = '';
@@ -129,6 +132,37 @@ describe('expiry of new messages', () => {
     const listed = await history(asha, chatId);
     expect(listed.find((item) => item.id === before.id)?.expiresAt).toBeUndefined();
     expect(listed.find((item) => item.id === after.id)?.expiresAt).toBe(after.expiresAt);
+  });
+});
+
+describe('once the time is up, before the sweep has run', () => {
+  it('is gone from history, sync, search and its file', async () => {
+    const [asha, bharat] = [await person(), await person()];
+    const chatId = await direct(asha, bharat);
+    const cursor = (await call(bharat, 'GET', '/v1/sync')).json().cursor as string;
+    await setTimer(asha, chatId, '24h');
+    const mediaId = await mediaClient(app()).ready(asha as never, 'document', 'a.pdf', PDF);
+    const file = (
+      await sendMessage(app(), { userId: asha.id, chatId, clientMsgId: uuidv7(), mediaId })
+    ).message;
+    const text = (await say(asha, chatId, 'vanishingword soon')).message;
+    // Its time is up, and the sweep (every 30 s) has not got to it yet.
+    await chatModels(app()).Message.updateMany(
+      { _id: { $in: [oid(file.id), oid(text.id)] } },
+      { $set: { expiresAt: new Date(Date.now() - 1000) } },
+    );
+    await chatModels(app()).Chat.updateOne(
+      { _id: oid(chatId) },
+      { $set: { 'lastMessage.expiresAt': new Date(Date.now() - 1000) } },
+    );
+    const ids = (await history(bharat, chatId)).map((message) => message.id);
+    expect(ids).not.toContain(text.id);
+    expect(ids).not.toContain(file.id);
+    const synced = (await call(bharat, 'GET', `/v1/sync?since=${cursor}`)).json();
+    expect(JSON.stringify(synced)).not.toContain('vanishingword');
+    const found = await call(bharat, 'GET', '/v1/search/messages?q=vanishingword');
+    expect(found.json().items).toEqual([]);
+    expect((await call(bharat, 'GET', `/v1/media/${mediaId}/link`)).statusCode).toBe(404);
   });
 });
 

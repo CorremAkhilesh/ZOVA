@@ -1,8 +1,9 @@
 import { useAuthFlow } from '@/features/auth/flow-store';
 import { forgetDrafts } from '@/features/drafts/draft-sync';
 import { recentPeople } from '@/features/people/recent-people';
+import { deleteShareDatabase } from '@/sw/share/store';
 import { resetLiveStatus } from './live-status';
-import { hasPendingWipe, type WipeResult, wipeLocalDatabases } from './local-db';
+import { hasPendingWipe, type WipeResult, wipeLocalDatabases, wipesSettled } from './local-db';
 import { INITIAL_SYNC_STATE, useSyncStore } from './store';
 import { announceSessionEnded } from './tabs';
 
@@ -10,7 +11,29 @@ import { announceSessionEnded } from './tabs';
  * Shared PCs: when a session ends for any reason, nothing of that user's stays on this browser.
  * Stops the running client first, so nothing writes while the databases are deleted.
  */
-export async function clearLocalUserData(): Promise<WipeResult> {
+export function clearLocalUserData(): Promise<WipeResult> {
+  const clearing = clearNow();
+  running.add(clearing);
+  void clearing.finally(() => running.delete(clearing)).catch(() => undefined);
+  return clearing;
+}
+
+const running = new Set<Promise<unknown>>();
+
+/**
+ * Resolves once no clear or wipe is running, also one a finished sign-out starts right after
+ * (tests: a sign-out outlives its screen and must not reach the next test).
+ */
+export async function localDataSettled(): Promise<void> {
+  do {
+    await Promise.allSettled([...running]);
+    await wipesSettled();
+    // What ran after the last one ended (the sign-out's own `setSignedOut`) has started by now.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  } while (running.size > 0);
+}
+
+async function clearNow(): Promise<WipeResult> {
   const { client } = useSyncStore.getState();
   client?.stop();
   useSyncStore.setState(INITIAL_SYNC_STATE);
@@ -19,7 +42,10 @@ export async function clearLocalUserData(): Promise<WipeResult> {
   forgetDrafts();
   // Other tabs check with the server and sign out too.
   announceSessionEnded();
-  return wipeAndReport();
+  const result = await wipeAndReport();
+  // Shared into the app and never sent: it goes too.
+  await deleteShareDatabase().catch(() => undefined);
+  return result;
 }
 
 /** On start: finishes a wipe that a blocked delete left unfinished last time. */

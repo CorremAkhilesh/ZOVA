@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { chatModels, oid } from '../chats/chats.service.ts';
-import { canSeeSeq } from '../chats/visibility.ts';
+import { canSeeSeq, isExpiredDoc } from '../chats/visibility.ts';
 import type { MediaDoc } from '../db/chat-models.ts';
 import { AppError } from '../lib/errors.ts';
 import { statusShowsMedia } from '../status/status-feed.ts';
@@ -36,7 +36,10 @@ export async function isViewOnceMedia(app: FastifyInstance, id: string): Promise
 
 async function requireUsedWhereVisible(app: FastifyInstance, id: string, userId: string) {
   const { Message, ChatMember } = chatModels(app);
-  const uses = await Message.find({ 'media.id': id }).select({ chatId: 1, seq: 1 }).lean();
+  // A disappearing message whose time is up no longer shares its file, even before the sweep.
+  const uses = (
+    await Message.find({ 'media.id': id }).select({ chatId: 1, seq: 1, expiresAt: 1 }).lean()
+  ).filter((use) => !isExpiredDoc(use));
   const members = await ChatMember.find({
     userId: oid(userId),
     chatId: { $in: uses.map((use) => use.chatId) },

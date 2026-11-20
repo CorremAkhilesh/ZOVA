@@ -35,6 +35,8 @@ export interface LastMessageSnapshot {
   preview: string;
   system?: SystemEvent | null;
   deleted?: boolean;
+  /** A disappearing message: once this has passed, the chat list shows no preview of it. */
+  expiresAt?: Date | null;
   createdAt: Date;
 }
 
@@ -128,6 +130,8 @@ export interface ChatMemberDoc {
   joinSeq?: number;
   /** Groups: my last position, once I have left. I keep what came up to here. */
   leftSeq?: number | null;
+  /** Groups: set when an admin removed me (not when I left). The invite link cannot undo it. */
+  removedAt?: Date | null;
   /** Groups: the chat as it was when I left, since I hear nothing after that. */
   leftView?: {
     lastMessage: LastMessageSnapshot;
@@ -181,6 +185,7 @@ const chatMemberSchema = new Schema<ChatMemberDoc>(
     sharedReadSeq: { type: Number },
     joinSeq: Number,
     leftSeq: { type: Number, default: null },
+    removedAt: { type: Date, default: null },
     leftView: Schema.Types.Mixed,
     ackReadSeq: Number,
     clearedSeq: Number,

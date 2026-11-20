@@ -75,7 +75,10 @@ describe('View votes', () => {
     });
     const user = userEvent.setup();
     await openGroupPoll(poll);
-    await user.click(screen.getByRole('button', { name: /^View votes/ }));
+    const view = screen.getByRole('button', { name: /^View votes/ });
+    // Touch screens give it 44×44 px to tap (globals.css, .tap-target).
+    expect(view).toHaveClass('tap-target');
+    await user.click(view);
     const sheet = await screen.findByRole('dialog', { name: 'Lunch?' }, SLOW);
     expect(sheet).toHaveTextContent('7 people voted');
     expect(

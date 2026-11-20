@@ -3,7 +3,13 @@ import { OTP_MAX_ATTEMPTS, OTP_RESEND_COOLDOWN_SECONDS, OTP_TTL_SECONDS } from '
 import type { CounterStore } from './counter-store.ts';
 
 const HOUR = 3600;
+const DAY = 24 * HOUR;
 export const OTP_REQUESTS_PER_EMAIL_PER_HOUR = 5;
+/**
+ * Wrong codes allowed per email per day, across every code requested in that day. Without it a new
+ * code reset the count, so one account could take about 600 guesses a day (ASVS 2.2.1).
+ */
+export const OTP_FAILURES_PER_EMAIL_PER_DAY = 15;
 
 /** Thrown when a limit is hit; `retryAfterSeconds` tells the client when to try again. */
 export class ThrottledError extends Error {
@@ -80,12 +86,25 @@ export class OtpThrottle {
     await this.store.remove(this.key('otp-fail', hashed(email)));
   }
 
-  /** Records a wrong code and returns how many attempts remain for the current code. */
+  /** Refuses codes and sign-ins for an email that used up its wrong guesses for the day. */
+  async checkLocked(email: string): Promise<void> {
+    const left = await this.store.ttl(this.key('otp-locked', hashed(email)));
+    if (left > 0) {
+      throw new ThrottledError('Too many wrong codes for this email. Try again later.', left);
+    }
+  }
+
+  /**
+   * Records a wrong code and returns how many attempts remain for the current code. The daily
+   * count is never reset by a new code or a sign-in; reaching it locks the email until it ends.
+   */
   async recordFailure(email: string): Promise<number> {
-    const failures = await this.store.increment(
-      this.key('otp-fail', hashed(email)),
-      OTP_TTL_SECONDS,
-    );
+    const id = hashed(email);
+    const daily = this.key('otp-fail-day', id);
+    if ((await this.store.increment(daily, DAY)) >= OTP_FAILURES_PER_EMAIL_PER_DAY) {
+      await this.store.setIfAbsent(this.key('otp-locked', id), await this.store.ttl(daily));
+    }
+    const failures = await this.store.increment(this.key('otp-fail', id), OTP_TTL_SECONDS);
     return Math.max(0, OTP_MAX_ATTEMPTS - failures);
   }
 }
