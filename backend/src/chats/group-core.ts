@@ -8,6 +8,7 @@ import { type UserDoc, usersModel } from '../users/user-record.ts';
 import { chatModels, oid, requireMember } from './chats.service.ts';
 import { hiddenCountsByMember } from './hidden-members.ts';
 import { toLastMessage, toMessage } from './message-format.ts';
+import { hiddenPinsByUser } from './pin-sync.ts';
 import { visiblePins } from './pin-view.ts';
 import { logUpdates } from './updates.ts';
 
@@ -67,6 +68,8 @@ export interface StoredSystemMessage {
   cursors: Map<string, string>;
   /** Hidden admins each member must not count (see hidden-members.ts). */
   hiddenCounts: Map<string, number>;
+  /** Pinned messages each member deleted for themselves: not in their pins. */
+  hiddenPins?: Map<string, Set<string>>;
 }
 
 interface AppendOptions {
@@ -148,12 +151,13 @@ export async function appendSystemMessage(
   const chat = await models.Chat.findById(chatId).session(session).lean();
   if (!chat) throw new AppError('NOT_FOUND', 'Group not found.');
   const hiddenCounts = await hiddenCountsByMember(app, members);
-  return { doc, chat, lastMessage, members, cursors, hiddenCounts };
+  const hiddenPins = await hiddenPinsByUser(app, chat);
+  return { doc, chat, lastMessage, members, cursors, hiddenCounts, hiddenPins };
 }
 
 /** After commit: every member hears about the message, and the group as they now see it. */
 export function deliverSystemMessage(app: FastifyInstance, stored: StoredSystemMessage) {
-  const { doc, chat, lastMessage, members, cursors, hiddenCounts } = stored;
+  const { doc, chat, lastMessage, members, cursors, hiddenCounts, hiddenPins } = stored;
   for (const member of members) {
     const viewerId = member.userId.toString();
     const cursor = cursors.get(viewerId) ?? '0';
@@ -171,7 +175,7 @@ export function deliverSystemMessage(app: FastifyInstance, stored: StoredSystemM
       ...(chat.type === 'group'
         ? { group: groupView(chat, member, hiddenCounts.get(viewerId) ?? 0) }
         : {}),
-      pins: visiblePins(chat.pins, member),
+      pins: visiblePins(chat.pins, member, Date.now(), hiddenPins?.get(viewerId)),
       disappearing: chat.disappearing ?? 'off',
       cursor,
     });

@@ -16,6 +16,7 @@ import {
   refreshQuotes,
   requireVisibleMessage,
 } from './message-updates.ts';
+import { announcePins, dropPins } from './pin-sync.ts';
 
 export const assertActionable = (doc: MessageDoc) => {
   if (doc.deletedForEveryoneAt) throw new AppError('CONFLICT', 'This message was deleted.');
@@ -92,9 +93,14 @@ export async function editMessage(
     await patchPreviewCopies(app, session, doc, {
       'previewLast.preview': previewOf(doc.media, text),
     });
-    return logMessageUpdate(app, session, updated, { chatChanged: preview.modifiedCount > 0 });
+    const update = await logMessageUpdate(app, session, updated, {
+      chatChanged: preview.modifiedCount > 0,
+    });
+    // A deleted message stays pinned for nobody: every device hears it (after the update above).
+    return { update, pins: await dropPins(app, session, doc.chatId, [doc._id]) };
   });
-  announceMessageUpdate(app, pending);
+  announceMessageUpdate(app, pending.update);
+  await announcePins(app, pending.pins);
   // Their "@" on the chat may have come or gone.
   for (const id of touched) await announceOwnChat(app, id, chatId, '0').catch(() => undefined);
   await refreshQuotes(app, doc, { text: previewOf(doc.media, text), deleted: false });
@@ -147,12 +153,6 @@ export async function deleteForEveryone(
       { $set: { 'lastMessage.preview': '', 'lastMessage.deleted': true } },
       { session },
     );
-    // A deleted message stays pinned for nobody.
-    await Chat.updateOne(
-      { _id: doc.chatId },
-      { $pull: { pins: { messageId: doc._id } } },
-      { session },
-    );
     await patchPreviewCopies(app, session, doc, {
       'previewLast.preview': '',
       'previewLast.deleted': true,
@@ -164,9 +164,14 @@ export async function deleteForEveryone(
         { session },
       );
     }
-    return logMessageUpdate(app, session, updated, { chatChanged: preview.modifiedCount > 0 });
+    const update = await logMessageUpdate(app, session, updated, {
+      chatChanged: preview.modifiedCount > 0,
+    });
+    // A deleted message stays pinned for nobody: every device hears it (after the update above).
+    return { update, pins: await dropPins(app, session, doc.chatId, [doc._id]) };
   });
-  announceMessageUpdate(app, pending);
+  announceMessageUpdate(app, pending.update);
+  await announcePins(app, pending.pins);
   await refreshQuotes(app, doc, { text: '', deleted: true });
 }
 

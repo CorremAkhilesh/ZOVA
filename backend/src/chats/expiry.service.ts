@@ -4,6 +4,7 @@ import type { ChatDoc, ChatMemberDoc, LastMessageSnapshot, MessageDoc } from '..
 import { chatModels, oid } from './chats.service.ts';
 import { previewOf, shownLast, toLastMessage } from './message-format.ts';
 import { refreshQuotes } from './message-updates.ts';
+import { announcePins, dropPins, type PinsChange } from './pin-sync.ts';
 import { senderNameOf } from './sender-name.ts';
 import { logUpdates } from './updates.ts';
 import { canSeeSeq } from './visibility.ts';
@@ -34,6 +35,7 @@ function snapshotOf(doc: MessageDoc, senderName: string | null): LastMessageSnap
 }
 
 interface ExpiredInChat {
+  pins: PinsChange | null;
   chat: ChatDoc;
   removed: MessageDoc[];
   members: ChatMemberDoc[];
@@ -51,16 +53,11 @@ async function forget(
   removed: MessageDoc[],
   now: Date,
 ) {
-  const { Chat, ChatMember, Media, MessageHidden, Star } = models;
+  const { ChatMember, Media, MessageHidden, Star } = models;
   const gone = removed.map((doc) => doc._id);
   const seqs = removed.map((doc) => doc.seq);
   await Star.deleteMany({ chatId, messageId: { $in: gone } }, { session });
   await MessageHidden.deleteMany({ chatId, messageId: { $in: gone } }, { session });
-  await Chat.updateOne(
-    { _id: chatId },
-    { $pull: { pins: { messageId: { $in: gone } } } },
-    { session },
-  );
   const files = removed.flatMap((doc) => (doc.media?.id ? [oid(doc.media.id)] : []));
   // The file goes once no forwarded copy still uses it (cleanupDeletedMedia decides).
   await Media.updateMany(
@@ -146,8 +143,15 @@ async function expireInChat(
     const lastChanged = await moveLastBack(app, models, session, chatId, seqs);
     const members = await ChatMember.find({ chatId }).session(session).lean();
     const cursors = await logRemovals(models, session, chatId, members, seqs, now);
+    // Pinned ones are unpinned for everyone (logged after the removals, announced after commit).
+    const pins = await dropPins(
+      app,
+      session,
+      chatId,
+      removed.map((doc) => doc._id),
+    );
     const chat = await Chat.findById(chatId).session(session).lean();
-    return chat ? { chat, removed, members, cursors, lastChanged } : null;
+    return chat ? { chat, removed, members, cursors, lastChanged, pins } : null;
   });
 }
 
@@ -197,6 +201,7 @@ export async function expireDueMessages(
     if (!result) continue;
     expired += result.removed.length;
     announceExpired(app, result);
+    await announcePins(app, result.pins);
     // A reply that quoted it (in a chat without the timer, or sent later) no longer shows its text.
     for (const doc of result.removed) {
       await refreshQuotes(app, doc, { text: '', deleted: true });

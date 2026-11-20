@@ -131,7 +131,10 @@ export function StarredScreen({ chatId }: { chatId?: string | undefined }) {
         ? undefined
         : stars.data?.pages
             .flatMap((page) => page.items)
-            .filter((item) => !lockedIds.has(item.message.chatId)),
+            // Deleted for everyone since this page was fetched: nothing left to star.
+            .filter(
+              (item) => !lockedIds.has(item.message.chatId) && !item.message.deletedForEveryoneAt,
+            ),
     [lockedIds, rows, stars.data],
   );
   const lockedHidden = hidesLocked(stars.data?.pages, lockedIds, chatId);
