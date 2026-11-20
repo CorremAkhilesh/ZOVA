@@ -38,6 +38,7 @@ import { Route as AppSettingsDevicesRouteImport } from './routes/_app/settings.d
 import { Route as AppSettingsNotificationsRouteImport } from './routes/_app/settings.notifications'
 import { Route as AppSettingsPrivacyRouteImport } from './routes/_app/settings.privacy'
 import { Route as AppSettingsProfileRouteImport } from './routes/_app/settings.profile'
+import { Route as AppSettingsStorageRouteImport } from './routes/_app/settings.storage'
 import { Route as AppSettingsAdminAuditRouteImport } from './routes/_app/settings.admin.audit'
 import { Route as AppSettingsAdminNotificationsRouteImport } from './routes/_app/settings.admin.notifications'
 import { Route as AppSettingsAdminReportsRouteImport } from './routes/_app/settings.admin.reports'
@@ -188,6 +189,11 @@ const AppSettingsProfileRoute = AppSettingsProfileRouteImport.update({
   path: '/settings/profile',
   getParentRoute: () => AppRoute,
 } as any)
+const AppSettingsStorageRoute = AppSettingsStorageRouteImport.update({
+  id: '/settings/storage',
+  path: '/settings/storage',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppSettingsAdminAuditRoute = AppSettingsAdminAuditRouteImport.update({
   id: '/settings/admin/audit',
   path: '/settings/admin/audit',
@@ -237,6 +243,7 @@ export interface FileRoutesByFullPath {
   '/settings/notifications': typeof AppSettingsNotificationsRoute
   '/settings/privacy': typeof AppSettingsPrivacyRoute
   '/settings/profile': typeof AppSettingsProfileRoute
+  '/settings/storage': typeof AppSettingsStorageRoute
   '/chats/': typeof AppChatsIndexRoute
   '/settings/': typeof AppSettingsIndexRoute
   '/settings/admin/audit': typeof AppSettingsAdminAuditRoute
@@ -269,6 +276,7 @@ export interface FileRoutesByTo {
   '/settings/notifications': typeof AppSettingsNotificationsRoute
   '/settings/privacy': typeof AppSettingsPrivacyRoute
   '/settings/profile': typeof AppSettingsProfileRoute
+  '/settings/storage': typeof AppSettingsStorageRoute
   '/chats': typeof AppChatsIndexRoute
   '/settings': typeof AppSettingsIndexRoute
   '/settings/admin/audit': typeof AppSettingsAdminAuditRoute
@@ -305,6 +313,7 @@ export interface FileRoutesById {
   '/_app/settings/notifications': typeof AppSettingsNotificationsRoute
   '/_app/settings/privacy': typeof AppSettingsPrivacyRoute
   '/_app/settings/profile': typeof AppSettingsProfileRoute
+  '/_app/settings/storage': typeof AppSettingsStorageRoute
   '/_app/chats/': typeof AppChatsIndexRoute
   '/_app/settings/': typeof AppSettingsIndexRoute
   '/_app/settings/admin/audit': typeof AppSettingsAdminAuditRoute
@@ -341,6 +350,7 @@ export interface FileRouteTypes {
     | '/settings/notifications'
     | '/settings/privacy'
     | '/settings/profile'
+    | '/settings/storage'
     | '/chats/'
     | '/settings/'
     | '/settings/admin/audit'
@@ -373,6 +383,7 @@ export interface FileRouteTypes {
     | '/settings/notifications'
     | '/settings/privacy'
     | '/settings/profile'
+    | '/settings/storage'
     | '/chats'
     | '/settings'
     | '/settings/admin/audit'
@@ -408,6 +419,7 @@ export interface FileRouteTypes {
     | '/_app/settings/notifications'
     | '/_app/settings/privacy'
     | '/_app/settings/profile'
+    | '/_app/settings/storage'
     | '/_app/chats/'
     | '/_app/settings/'
     | '/_app/settings/admin/audit'
@@ -630,6 +642,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsProfileRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/settings/storage': {
+      id: '/_app/settings/storage'
+      path: '/settings/storage'
+      fullPath: '/settings/storage'
+      preLoaderRoute: typeof AppSettingsStorageRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/settings/admin/audit': {
       id: '/_app/settings/admin/audit'
       path: '/settings/admin/audit'
@@ -688,6 +707,7 @@ interface AppRouteChildren {
   AppSettingsNotificationsRoute: typeof AppSettingsNotificationsRoute
   AppSettingsPrivacyRoute: typeof AppSettingsPrivacyRoute
   AppSettingsProfileRoute: typeof AppSettingsProfileRoute
+  AppSettingsStorageRoute: typeof AppSettingsStorageRoute
   AppSettingsIndexRoute: typeof AppSettingsIndexRoute
   AppSettingsAdminAuditRoute: typeof AppSettingsAdminAuditRoute
   AppSettingsAdminNotificationsRoute: typeof AppSettingsAdminNotificationsRoute
@@ -708,6 +728,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppSettingsNotificationsRoute: AppSettingsNotificationsRoute,
   AppSettingsPrivacyRoute: AppSettingsPrivacyRoute,
   AppSettingsProfileRoute: AppSettingsProfileRoute,
+  AppSettingsStorageRoute: AppSettingsStorageRoute,
   AppSettingsIndexRoute: AppSettingsIndexRoute,
   AppSettingsAdminAuditRoute: AppSettingsAdminAuditRoute,
   AppSettingsAdminNotificationsRoute: AppSettingsAdminNotificationsRoute,

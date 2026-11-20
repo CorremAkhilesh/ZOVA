@@ -102,6 +102,11 @@ const envSchema = z
     ),
     /** OTP requests allowed per client IP per hour. */
     OTP_IP_LIMIT_PER_HOUR: z.coerce.number().int().min(1).max(10_000).default(30),
+    /**
+     * Realtime connections opened per client IP per minute. High, because a whole office shares one
+     * address and every tab reconnects at once after a deploy; it stops scripted floods.
+     */
+    SOCKET_HANDSHAKES_PER_MINUTE: z.coerce.number().int().min(1).max(100_000).default(600),
     MEDIA_STORAGE_PATH: z
       .string()
       .min(1)
@@ -110,6 +115,14 @@ const envSchema = z
     MEDIA_MAX_FILE_MB: z.preprocess(
       emptyToUndefined,
       z.coerce.number().int().min(1).max(102_400).default(1024),
+    ),
+    /**
+     * Each person's storage limit, in MiB: their photos, videos, voice notes, documents and statuses
+     * together. An admin can give one person a different limit.
+     */
+    MEDIA_USER_QUOTA_MB: z.preprocess(
+      emptyToUndefined,
+      z.coerce.number().int().min(100).max(1_048_576).default(3072),
     ),
     /** The longest voice note, in seconds. The app reads it from GET /v1/config. */
     VOICE_MAX_SECONDS: z.preprocess(

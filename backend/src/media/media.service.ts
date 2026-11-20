@@ -10,6 +10,7 @@ import { registerScheduledModels } from '../db/scheduled-models.ts';
 import { AppError } from '../lib/errors.ts';
 import { assertRoomFor, assertWithinLimits } from './limits.ts';
 import { processImage, processPoster } from './process-image.ts';
+import { assertWithinQuota } from './quota.ts';
 import { UploadArea } from './upload-area.ts';
 import { SNIFF_BYTES, verifyFileType } from './validate.ts';
 
@@ -55,6 +56,7 @@ export async function createUpload(app: FastifyInstance, userId: string, body: C
     throw new AppError('RATE_LIMITED', 'Too many uploads. Try again in a minute.');
   }
   assertWithinLimits(app.env, body);
+  await assertWithinQuota(app, userId, body.size);
   await assertRoomFor(app, body.size);
   const open = await Media.countDocuments({
     ownerId: oid(userId),

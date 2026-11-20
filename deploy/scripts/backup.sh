@@ -82,7 +82,7 @@ find "$daily" -mindepth 1 -maxdepth 1 -type d -name '????-??-??' | sort -r | tai
       if [[ "$(basename "$old")" < "$cutoff" ]]; then rm -rf "$old" && log "removed $(basename "$old")"; fi
     done
 
-# --- Disk usage: email the admins from 80% (the API refuses uploads at 90%) ---------------------------
+# --- Disk usage: email the admins from 80% (the API refuses uploads at 85%) ---------------------------
 read -r percent free_kib < <(df -Pk "$DATA_ROOT" | awk 'NR==2 { sub("%", "", $5); print $5, $4 }')
 log "disk: ${percent}% used on $DATA_ROOT"
 if [ "$percent" -ge 80 ]; then

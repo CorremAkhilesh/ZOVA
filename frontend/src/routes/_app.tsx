@@ -15,6 +15,7 @@ import { ModerationHost } from '@/features/moderation/components/ModerationHost'
 import { NotificationsNudge } from '@/features/notifications/components/NotificationsNudge';
 import { NotificationsHost } from '@/features/notifications/NotificationsHost';
 import { SearchHost } from '@/features/search/components/SearchHost';
+import { StorageWarningHost } from '@/features/storage/StorageWarningHost';
 import { useSyncClient } from '@/features/sync/use-sync-client';
 import { MiniPlayer } from '@/features/voice/components/MiniPlayer';
 import { useIsDesktop } from '@/lib/hooks';
@@ -66,6 +67,7 @@ function AppShell() {
       <AppearanceHost />
       <NotificationsHost />
       <CallScreen />
+      <StorageWarningHost />
     </>
   );
 

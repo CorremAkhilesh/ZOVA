@@ -1,5 +1,7 @@
 import {
   adminRoleBodySchema,
+  adminStorageQuotaBodySchema,
+  adminStorageQuotaResponseSchema,
   adminUserParamsSchema,
   adminUserResponseSchema,
   adminUserStatusResponseSchema,
@@ -10,7 +12,13 @@ import {
 } from '@zuvo/protocol';
 import type { FastifyRequest } from 'fastify';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
-import { type Actor, listAudit, listUsers, setRole } from '../../admin/admin.service.ts';
+import {
+  type Actor,
+  listAudit,
+  listUsers,
+  setRole,
+  setStorageQuota,
+} from '../../admin/admin.service.ts';
 import { setUserStatus } from '../../admin/user-status.ts';
 import { requireAdmin } from '../../auth/session.ts';
 import { AppError } from '../../lib/errors.ts';
@@ -77,6 +85,21 @@ export const adminRoutes: FastifyPluginAsyncZod = async (app) => {
     async (request) => ({
       user: await setRole(app, actorOf(request), request.params.id, request.body.role),
     }),
+  );
+
+  app.put(
+    '/admin/users/:id/storage-quota',
+    {
+      schema: {
+        tags: ['admin'],
+        summary: "Set one person's storage limit in MiB (null: the default)",
+        params: adminUserParamsSchema,
+        body: adminStorageQuotaBodySchema,
+        response: { 200: adminStorageQuotaResponseSchema },
+      },
+    },
+    async (request) =>
+      setStorageQuota(app, actorOf(request), request.params.id, request.body.quotaMb),
   );
 
   app.get(
