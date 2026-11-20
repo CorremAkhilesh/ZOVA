@@ -17,6 +17,7 @@ import {
   requireVisibleMessage,
 } from './message-updates.ts';
 import { announcePins, dropPins } from './pin-sync.ts';
+import { assertChatNotBlocked } from './send-rules.ts';
 
 export const assertActionable = (doc: MessageDoc) => {
   if (doc.deletedForEveryoneAt) throw new AppError('CONFLICT', 'This message was deleted.');
@@ -55,6 +56,7 @@ export async function editMessage(
     throw new AppError('EDIT_WINDOW_PASSED', 'This message is too old to edit.');
   }
   if (doc.type === 'voice') throw new AppError('BAD_REQUEST', 'A voice note cannot be edited.');
+  await assertChatNotBlocked(app, userId, chatId);
   if (doc.type === 'poll') throw new AppError('BAD_REQUEST', 'A poll cannot be edited.');
   const trimmed = input.trim();
   if (!trimmed && doc.type === 'text') {
@@ -188,6 +190,7 @@ export async function setReaction(
   const current = doc.reactions?.find((reaction) => reaction.userId.equals(member.userId));
   // Sent again by a device catching up.
   if ((current?.emoji ?? null) === emoji) return;
+  await assertChatNotBlocked(app, userId, chatId);
   const { Message, ChatMember } = chatModels(app);
   const at = new Date();
   const others = (doc.reactions ?? []).filter((reaction) => !reaction.userId.equals(member.userId));

@@ -1,5 +1,9 @@
+import { Readable } from 'node:stream';
 import {
   chatResponseSchema,
+  invitePreviewSchema,
+  inviteResponseSchema,
+  messageInfoResponseSchema,
   presenceEventSchema,
   publicProfileResponseSchema,
   statusFeedResponseSchema,
@@ -18,6 +22,8 @@ import {
   uuidv7,
 } from '../../../test/realtime-helpers.ts';
 import { sendMessage } from '../../chats/messages.service.ts';
+import { markDelivered } from '../../chats/receipts.service.ts';
+import { usersModel } from '../../users/user-record.ts';
 
 // ADMIN_EMAILS accounts are invisible to normal users: search, suggestions, groups, "@", status,
 // profile lookup and presence. Only an admin starts a chat with one; the user may answer there.
@@ -119,6 +125,52 @@ describe('chats with an admin', () => {
     await expect(mention(asha, admin)).rejects.toMatchObject({ code: 'BAD_REQUEST' });
     await expect(mention(asha, bharat)).resolves.toBeTruthy();
     await expect(mention(admin, asha)).resolves.toBeTruthy();
+  });
+});
+
+describe('nothing else gives a hidden admin away', () => {
+  it('"Message info" in a group leaves the admin out, delivered or not', async () => {
+    const [asha, bharat] = [await person(), await person()];
+    const chatId = await group(admin, [asha, bharat]);
+    const sent = await say(asha, chatId, 'Who has seen this?');
+    await markDelivered(app(), admin.id, chatId, sent.message.seq);
+    const info = await call(asha, 'GET', `/v1/chats/${chatId}/messages/${sent.message.id}/info`);
+    expect(info.statusCode).toBe(200);
+    const body = messageInfoResponseSchema.parse(info.json());
+    const ids = [...body.readBy, ...body.deliveredTo].map((entry) => entry.user.id);
+    expect(ids).not.toContain(admin.id);
+    expect(body.waiting).toBe(1);
+    // The admin sees everyone, as in the member list.
+    const mine = await say(admin, chatId, 'Hello all');
+    await markDelivered(app(), asha.id, chatId, mine.message.seq);
+    const own = await call(admin, 'GET', `/v1/chats/${chatId}/messages/${mine.message.id}/info`);
+    const seen = messageInfoResponseSchema.parse(own.json());
+    expect(seen.deliveredTo.map((entry) => entry.user.id)).toEqual([asha.id]);
+    expect(seen.waiting).toBe(1);
+  });
+
+  it('their photo is "not found" by id, until they have a chat with that person', async () => {
+    const { key: small } = await app().storage.save(Readable.from([Buffer.from('small')]));
+    const { key: large } = await app().storage.save(Readable.from([Buffer.from('large')]));
+    await usersModel(app()).updateOne(
+      { _id: admin.id },
+      { $set: { avatar: { small, large, version: 'v1' } } },
+    );
+    const other = await person();
+    expect((await call(other, 'GET', `/v1/users/${admin.id}/avatar`)).statusCode).toBe(404);
+    expect((await direct(admin, other)).statusCode).toBe(200);
+    expect((await call(other, 'GET', `/v1/users/${admin.id}/avatar`)).statusCode).toBe(200);
+  });
+
+  it('an invite link counts the members a normal person would see', async () => {
+    const [asha, bharat, outsider] = [await person(), await person(), await person()];
+    const chatId = await group(admin, [asha, bharat]);
+    const code = inviteResponseSchema.parse(
+      (await call(admin, 'POST', `/v1/chats/${chatId}/invite`)).json(),
+    ).code;
+    const preview = (who: Person) => call(who, 'GET', `/v1/invites/${code}`);
+    expect(invitePreviewSchema.parse((await preview(outsider)).json()).memberCount).toBe(2);
+    expect(invitePreviewSchema.parse((await preview(admin)).json()).memberCount).toBe(3);
   });
 });
 

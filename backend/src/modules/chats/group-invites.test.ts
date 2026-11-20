@@ -114,6 +114,22 @@ describe('the invite link', () => {
     expect((await call(dinesh, 'GET', '/v1/invites/!!')).statusCode).toBe(400);
   });
 
+  it('cannot undo a removal: only an admin can add them back; someone who left may rejoin', async () => {
+    const [asha, bharat, chitra] = [await person(), await person(), await person()];
+    const chatId = await group(asha, [bharat, chitra]);
+    const code = await linkFor(asha, chatId);
+    const join = (who: Person) => call(who, 'POST', `/v1/invites/${code}/join`);
+    await call(asha, 'DELETE', `/v1/chats/${chatId}/members/${bharat.id}`);
+    const refused = await join(bharat);
+    expect(refused.statusCode).toBe(403);
+    expect(refused.json().message).toMatch(/removed/);
+    await call(chitra, 'POST', `/v1/chats/${chatId}/leave`);
+    expect((await join(chitra)).statusCode).toBe(200);
+    await call(asha, 'POST', `/v1/chats/${chatId}/members`, { userIds: [bharat.id] });
+    await call(bharat, 'POST', `/v1/chats/${chatId}/leave`);
+    expect((await join(bharat)).statusCode).toBe(200);
+  });
+
   it('cannot fill a group past 256', async () => {
     const [asha, dinesh] = [await person(), await person()];
     const chatId = await group(asha);

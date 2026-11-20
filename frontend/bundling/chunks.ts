@@ -21,6 +21,13 @@ type CodeSplittingGroup = Rolldown.CodeSplittingGroup;
 
 /** The routes of the first screen, as the router plugin's split modules (`…?tsr-split=…`). */
 const FIRST_SCREEN_ROUTES = /[\\/]src[\\/]routes[\\/]_app(?:\.tsx|[\\/]chats(?:\.index)?\.tsx)\?/;
+/**
+ * The signed-out screens (sign-in, code, name, Help, "This wasn't me"). What they share with the
+ * app shell (the logo, the auth card) must stay out of `first-screen`, or the sign-in page loads
+ * the whole chat list's code for it (audit M10; scripts/check-bundle-size.ts checks it).
+ */
+const PUBLIC_ROUTES =
+  /[\\/]src[\\/]routes[\\/](?:index|verify|welcome\.name|help(?:\.[a-z-]+)?|security\.not-me)\.tsx\?/;
 const NODE_MODULES = /[\\/]node_modules[\\/]/;
 const ENTRY = /[\\/]src[\\/]main\.tsx$/;
 
@@ -51,17 +58,24 @@ function appClosure(graph: ModuleGraph, roots: Iterable<string>): Set<string> {
 function firstScreenGroup(): CodeSplittingGroup {
   const roots: string[] = [];
   const entries: string[] = [];
+  const publicRoots: string[] = [];
   let members: Set<string> | null = null;
   return {
     name: (id, ctx) => {
       if (!members) {
         const initial = appClosure(ctx, entries);
-        members = new Set([...appClosure(ctx, roots)].filter((member) => !initial.has(member)));
+        const shared = appClosure(ctx, publicRoots);
+        members = new Set(
+          [...appClosure(ctx, roots)].filter(
+            (member) => !initial.has(member) && !shared.has(member),
+          ),
+        );
       }
       return members.has(id) ? 'first-screen' : null;
     },
     test: (id) => {
       if (FIRST_SCREEN_ROUTES.test(id)) roots.push(id);
+      if (PUBLIC_ROUTES.test(id)) publicRoots.push(id);
       if (ENTRY.test(id)) entries.push(id);
       return true;
     },
@@ -83,6 +97,13 @@ function codeSplitting(): Rolldown.CodeSplittingOptions {
         priority: 2,
       },
       firstScreenGroup(),
+      // Syntax highlighting (~50 KB gzip), loaded only with a code block (formatting/highlight.ts).
+      // In `lib` it shared a file with icons, so every chat screen loaded it (audit L22).
+      {
+        name: 'highlighter',
+        test: /[\\/]node_modules[\\/](?:\.pnpm[\\/][^\\/]+[\\/]node_modules[\\/])?(?:highlight\.js|lowlight|devlop)[\\/]/,
+        priority: 1,
+      },
       // Libraries of lazy screens (icons, hooks): one file per set of screens that use them, tiny
       // sets merged into a neighbour, instead of one file per icon.
       {

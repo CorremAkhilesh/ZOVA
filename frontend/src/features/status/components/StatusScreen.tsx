@@ -135,8 +135,9 @@ function StatusList() {
           <div className="mx-auto mt-10 max-w-xs space-y-2 px-6 text-center text-sm text-text-muted">
             <CircleDashed className="mx-auto size-9" aria-hidden />
             <p>{t('updates.empty')}</p>
-            <p className="flex items-center justify-center gap-1">
-              <Camera className="size-4" aria-hidden />
+            {/* The camera sits on the hint's first line, even when the text wraps. */}
+            <p>
+              <Camera className="mr-1 inline size-4 -translate-y-px align-middle" aria-hidden />
               {t('updates.emptyHint')}
             </p>
           </div>

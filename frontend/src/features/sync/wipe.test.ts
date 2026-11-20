@@ -1,9 +1,10 @@
-import { act, screen, waitFor } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Dexie from 'dexie';
 import { describe, expect, it, vi } from 'vitest';
 import { recentPeople } from '@/features/people/recent-people';
 import { uuidv7 } from '@/lib/uuid';
+import { indexedDbShareStore } from '@/sw/share/store';
 import { chatFixture, ME_ID, personFixture, syncPage } from '@/test/chat-fixtures';
 import { HttpResponse, http, server, signedOut } from '@/test/msw';
 import { DESKTOP_WIDTH, renderApp } from '@/test/render-app';
@@ -64,6 +65,24 @@ describe('wiping local data', () => {
     expect(result).toEqual({ complete: true });
   });
 
+  it('a second wipe ends only after an earlier one, so it never deletes what comes next', async () => {
+    await seed('u-one');
+    // Sign-out started a wipe that is slow to list the databases; then another wipe is asked for.
+    const list = Dexie.getDatabaseNames.bind(Dexie);
+    const slow = vi
+      .spyOn(Dexie, 'getDatabaseNames')
+      .mockImplementationOnce(() => new Promise((done) => setTimeout(() => done(list()), 200)));
+    const first = wipeLocalDatabases();
+    await wipeLocalDatabases();
+    slow.mockRestore();
+    // The next person's data, saved once the wipes are done: the earlier wipe must not take it.
+    const db = getUserDb('u-one');
+    await db.open();
+    await db.drafts.put({ chatId: 'c1', text: 'next person' });
+    await first;
+    expect(await db.drafts.count()).toBe(1);
+  });
+
   it('keeps each user in a separate database', async () => {
     const one = await seed('u-one');
     const two = getUserDb('u-two');
@@ -76,10 +95,23 @@ describe('wiping local data', () => {
     server.use(http.post('*/v1/auth/logout', () => HttpResponse.json({ status: 'signed_out' })));
     await seed();
     recentPeople.add(personFixture());
+    // Something shared into the app and never sent: the next person must not find it.
+    await indexedDbShareStore().put({
+      id: 'left-behind',
+      createdAt: Date.now(),
+      title: '',
+      text: 'shared secret',
+      url: '',
+      files: [],
+    });
     const user = userEvent.setup();
     const { router } = await renderApp('/settings', { width: DESKTOP_WIDTH });
     server.use(signedOut());
     await user.click(screen.getByRole('button', { name: 'Sign out' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Sign out of this device?' });
+    // The pending message in the outbox is named: it would be lost.
+    expect(dialog).toHaveTextContent('1 message hasn’t been sent yet');
+    await user.click(within(dialog).getByRole('button', { name: 'Sign out' }));
     await waitFor(() => expect(router.state.location.pathname).toBe('/'));
     await waitFor(async () => expect(await localDatabases()).toEqual([]));
     expect(recentPeople.load()).toEqual([]);

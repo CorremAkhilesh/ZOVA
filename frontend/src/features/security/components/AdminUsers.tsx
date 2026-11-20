@@ -53,7 +53,7 @@ function UserRow({
           <button
             type="button"
             onClick={() => onQuota(user)}
-            className="font-medium text-brand-text underline-offset-2 hover:underline"
+            className="tap-target font-medium text-brand-text underline-offset-2 hover:underline"
           >
             {t('storage.admin.change')}
           </button>

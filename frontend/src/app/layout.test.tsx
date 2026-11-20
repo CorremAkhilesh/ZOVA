@@ -70,7 +70,10 @@ describe('screens', () => {
 
   it('renders a 404 page for unknown URLs and unknown chats', async () => {
     await renderApp('/does-not-exist');
-    expect(await screen.findByRole('heading', { name: 'Page not found' })).toBeInTheDocument();
+    // The page's own top heading (axe: page-has-heading-one).
+    expect(
+      await screen.findByRole('heading', { name: 'Page not found', level: 1 }),
+    ).toBeInTheDocument();
   });
 
   it('switches the UI to Hindi from settings', async () => {

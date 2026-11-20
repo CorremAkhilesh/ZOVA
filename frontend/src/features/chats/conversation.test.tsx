@@ -105,7 +105,10 @@ describe('conversation', () => {
       ),
     );
     await renderApp('/chats/nope', { width: DESKTOP_WIDTH });
-    expect(await screen.findByRole('heading', { name: 'Page not found' })).toBeInTheDocument();
+    // A chat that does not exist (or is not mine) says so, rather than "Page not found".
+    expect(
+      await screen.findByRole('heading', { name: 'Chat not found', level: 1 }),
+    ).toBeInTheDocument();
   });
 
   it('fetches a chat this device has not seen, and opens it', async () => {

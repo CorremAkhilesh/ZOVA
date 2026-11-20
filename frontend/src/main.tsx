@@ -4,7 +4,7 @@ import { App } from './app/App';
 import { startFirstScreen } from './app/first-screen';
 import { createAppRouter, createQueryClient } from './app/router';
 import { registerServiceWorker } from './features/pwa/register';
-import { finishPendingWipe } from './features/sync/wipe';
+import { hasPendingWipe } from './features/sync/wipe-flag';
 import { initI18n } from './lib/i18n';
 import './styles/globals.css';
 
@@ -21,7 +21,11 @@ const router = createAppRouter(queryClient);
 startFirstScreen(queryClient, router);
 
 // Rare: only after a sign-out whose delete another tab blocked. Done before anything opens a database.
-void finishPendingWipe()
+// Only then is the local database's code loaded: the sign-in page does not need it.
+const pendingWipe = hasPendingWipe()
+  ? import('./features/sync/wipe').then((wipe) => wipe.finishPendingWipe())
+  : Promise.resolve();
+void pendingWipe
   .catch(() => undefined)
   .then(() => {
     createRoot(mount).render(

@@ -1,4 +1,4 @@
-import { act, cleanup, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { DEFAULT_PUSH_SETTINGS } from '@zuvo/protocol';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -174,7 +174,10 @@ describe('notification clicks and sign-out', () => {
       }),
     );
     const { router } = await renderApp('/settings', { width: DESKTOP_WIDTH });
-    await userEvent.setup().click(screen.getByRole('button', { name: 'Sign out' }));
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'Sign out' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Sign out of this device?' });
+    await user.click(within(dialog).getByRole('button', { name: 'Sign out' }));
     await waitFor(() => expect(router.state.location.pathname).toBe('/'));
     expect(order).toEqual(['logout after 1 delete']);
     expect(browser.subscription.unsubscribe).toHaveBeenCalled();

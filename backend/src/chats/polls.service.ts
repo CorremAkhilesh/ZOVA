@@ -7,13 +7,14 @@ import { isHiddenAdmin } from '../users/hidden-admins.ts';
 import { type UserDoc, usersModel } from '../users/user-record.ts';
 import { chatModels } from './chats.service.ts';
 import { assertActionable } from './message-actions.service.ts';
-import { hideQuote, toMessage } from './message-format.ts';
+import { forMember, toMessage } from './message-format.ts';
 import {
   announceMessageUpdate,
   logMessageUpdate,
   requireVisibleMessage,
 } from './message-updates.ts';
 import { notifyPollVote } from './poll-push.ts';
+import { assertChatNotBlocked } from './send-rules.ts';
 
 /** A poll this member may see and act on: a live message of type `poll`. */
 async function requirePoll(
@@ -29,7 +30,7 @@ async function requirePoll(
 }
 
 const view = (doc: MessageDoc, userId: string, member: ChatMemberDoc): { message: Message } => ({
-  message: hideQuote(toMessage(doc, userId), member),
+  message: forMember(toMessage(doc, userId), member),
 });
 
 /** The options chosen: every one a real option, and one at most unless the poll allows several. */
@@ -108,6 +109,7 @@ export async function votePoll(
 ) {
   const { doc, member, poll } = await requirePoll(app, userId, chatId, messageId);
   if (poll.closedAt) throw pollClosed();
+  await assertChatNotBlocked(app, userId, chatId);
   const chosen = checkChoice(poll, optionIds);
   const before = myChoice(poll, member.userId);
   // Sent again by a device catching up: nothing changes.

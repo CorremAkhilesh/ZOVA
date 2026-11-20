@@ -69,6 +69,8 @@ code="$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:7155/assets/miss
 [ "$code" = 404 ] || fail "a missing asset must be 404 (got $code)"
 type="$(curl -fsS -o /dev/null -w '%{content_type}' http://127.0.0.1:7155/sounds/chime.wav)" || fail "the chime is missing"
 [ "$type" = audio/wav ] || fail "sounds must be served as audio/wav (got $type)"
+type="$(curl -fsS -o /dev/null -w '%{content_type}' http://127.0.0.1:7155/manifest.webmanifest)" || fail "the manifest is missing"
+[ "$type" = application/manifest+json ] || fail "the manifest must be application/manifest+json (got $type)"
 share="$(curl -s -o /dev/null -X POST -F text=hi -w '%{http_code} %{redirect_url}' http://127.0.0.1:7155/share-target)"
 [ "${share%% *}" = 303 ] && [[ "$share" == */share\?retry=1 ]] || fail "a share without the service worker must go to /share?retry=1 (got $share)"
 code="$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:7155/sounds/missing.wav)"

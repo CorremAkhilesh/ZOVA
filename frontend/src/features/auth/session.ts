@@ -1,6 +1,5 @@
 import { type QueryClient, queryOptions, useQuery } from '@tanstack/react-query';
 import { type SessionResponse, sessionResponseSchema } from '@zuvo/protocol';
-import { clearLocalUserData } from '@/features/sync/wipe';
 import { ApiClientError } from '@/lib/api-client';
 import { authApi } from './api';
 
@@ -43,6 +42,16 @@ export const sessionSnapshot = {
   },
 };
 
+/**
+ * Wipes this browser's copy of the user's data. Its code (the local database) is loaded only now:
+ * the sign-in page, which checks the session first, does not need it (audit M10).
+ */
+function clearLocalUserData(): void {
+  void import('@/features/sync/wipe')
+    .then((wipe) => wipe.clearLocalUserData())
+    .catch(() => undefined);
+}
+
 export async function fetchSessionState(): Promise<SessionState> {
   try {
     const data = await authApi.me();
@@ -51,7 +60,7 @@ export async function fetchSessionState(): Promise<SessionState> {
   } catch (error) {
     if (error instanceof ApiClientError && error.status === 401) {
       sessionSnapshot.clear();
-      void clearLocalUserData();
+      clearLocalUserData();
       return {
         status: 'signed-out',
         reason: error.apiError?.code === 'SESSION_EXPIRED' ? 'expired' : null,
@@ -110,7 +119,7 @@ export function setSignedIn(queryClient: QueryClient, data: SessionResponse) {
 
 export function setSignedOut(queryClient: QueryClient, reason: 'expired' | null = null) {
   sessionSnapshot.clear();
-  void clearLocalUserData();
+  clearLocalUserData();
   const state: SessionState = { status: 'signed-out', reason };
   queryClient.setQueryData(sessionQuery.queryKey, state);
 }
