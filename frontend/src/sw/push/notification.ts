@@ -32,7 +32,7 @@ export interface RichNotificationOptions extends NotificationOptions {
 
 /** What a click needs: kept on the notification. */
 export interface NotificationData {
-  kind: 'message' | 'test' | 'call' | 'unknown';
+  kind: 'message' | 'test' | 'call' | 'poll' | 'unknown';
   url: string;
   chatId?: string;
   /** A call's notification. */
@@ -93,6 +93,25 @@ export function notificationFor(
     ...(payload.silent ? {} : { vibrate: VIBRATE_PATTERN }),
   };
   if (payload.kind === 'call') return callNotification(payload, base);
+  if (payload.kind === 'poll') {
+    // "Asha voted in your poll": quiet, and a newer vote replaces it without alerting again.
+    const data: NotificationData = {
+      kind: 'poll',
+      url: chatUrl(payload.chatId),
+      chatId: payload.chatId,
+    };
+    return {
+      title: payload.title,
+      options: {
+        ...base,
+        body: payload.body,
+        tag: payload.tag,
+        silent: true,
+        renotify: false,
+        data,
+      },
+    };
+  }
   if (payload.kind === 'test') {
     const data: NotificationData = { kind: 'test', url: '/settings/notifications' };
     return { title: payload.title || t.newMessage, options: { ...options, data } };
@@ -153,7 +172,10 @@ export function readNotificationData(raw: unknown): NotificationData {
       : '/chats';
   return {
     kind:
-      data.kind === 'message' || data.kind === 'test' || data.kind === 'call'
+      data.kind === 'message' ||
+      data.kind === 'test' ||
+      data.kind === 'call' ||
+      data.kind === 'poll'
         ? data.kind
         : 'unknown',
     url,

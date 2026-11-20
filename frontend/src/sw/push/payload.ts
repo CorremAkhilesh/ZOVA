@@ -16,6 +16,7 @@ export function parsePushPayload(raw: unknown): PushPayload | null {
   if (!str('sentAt') || Number.isNaN(Date.parse(data.sentAt as string))) return null;
   if (data.kind === 'test') return data as PushPayload;
   if (data.kind === 'call') return isCall(data) ? (data as PushPayload) : null;
+  if (data.kind === 'poll') return str('chatId') && str('messageId') ? (data as PushPayload) : null;
   if (data.kind !== 'message' || !str('chatId') || !bool('hidden')) return null;
   if (!count('seq', 1) || !count('count', 1) || !count('badge', 0)) return null;
   return data as PushPayload;

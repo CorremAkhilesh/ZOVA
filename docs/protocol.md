@@ -350,9 +350,20 @@ A message of type `poll` carries `poll: {question, options:[{id, text, voterIds}
 It is sent like text (`message:send` with `poll`), in groups and 1:1 chats, not in Saved Messages.
 `PUT /v1/chats/:id/messages/:messageId/vote {optionIds}` replaces my whole choice (`[]` removes it). The
 vote is open to members who may see the message (history limits apply), with at most one option unless
-`multiple`. `POST …/close-poll` is for its sender (`409 POLL_CLOSED` afterwards). Both log a sync update and
-send `message:updated`. Polls cannot be edited or forwarded. The chat list shows the question, and the
-app adds "📊 Poll:".
+`multiple`. `POST …/close-poll` is for its sender or a group admin/owner (`409 POLL_CLOSED` afterwards).
+Both log a sync update and send `message:updated`. Polls cannot be edited or forwarded. The chat list shows
+the question, and the app adds "📊 Poll:".
+
+- **Vote times:** `poll.votedAt` maps each voter to when they last voted ("View votes"); taking a vote back
+  removes it.
+- **Hidden admins:** a vote by an `ADMIN_EMAILS` account is stored in `poll.hiddenVoterIds` and left out of
+  the poll everyone else sees (ids, counts and times); the admin sees their own vote.
+- **Offline:** the app queues a vote in its action queue (`type: 'vote'`), shows it at once, and sends it
+  once online; a refusal puts the poll back as the server has it.
+- **"X voted in your poll":** a silent push (`kind: 'poll'`, tag `poll:<messageId>`, one per poll) to the
+  poll's sender on devices not looking at the app. Never for taking a vote back, in a muted chat, during
+  quiet hours (unless the chat is let through), across a block, for a hidden admin's vote, or with the
+  `pollVotes` notification setting off. At most 10 a minute per person.
 
 ## Disappearing messages and view once
 

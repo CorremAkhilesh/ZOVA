@@ -50,6 +50,12 @@ export default function PushSettings() {
           checked={settings.showPreview}
           onChange={(showPreview) => save.mutate({ showPreview })}
         />
+        <Switch
+          label={t('notifications.settings.pollVotes')}
+          hint={t('notifications.settings.pollVotesHint')}
+          checked={settings.pollVotes}
+          onChange={(pollVotes) => save.mutate({ pollVotes })}
+        />
         {publicKey ? (
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm text-text-muted">{t('notifications.settings.testHint')}</p>

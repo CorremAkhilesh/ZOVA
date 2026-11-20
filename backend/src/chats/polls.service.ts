@@ -3,6 +3,8 @@ import type { FastifyInstance } from 'fastify';
 import type { Types } from 'mongoose';
 import type { ChatMemberDoc, MessageDoc, StoredPoll } from '../db/chat-models.ts';
 import { AppError } from '../lib/errors.ts';
+import { isHiddenAdmin } from '../users/hidden-admins.ts';
+import { type UserDoc, usersModel } from '../users/user-record.ts';
 import { chatModels } from './chats.service.ts';
 import { assertActionable } from './message-actions.service.ts';
 import { hideQuote, toMessage } from './message-format.ts';
@@ -11,6 +13,7 @@ import {
   logMessageUpdate,
   requireVisibleMessage,
 } from './message-updates.ts';
+import { notifyPollVote } from './poll-push.ts';
 
 /** A poll this member may see and act on: a live message of type `poll`. */
 async function requirePoll(
@@ -49,13 +52,25 @@ const myChoice = (poll: StoredPoll, voter: Types.ObjectId) =>
  * Every option without me, then me added to the chosen ones: one atomic update of one document, so
  * two quick votes can never count me twice, whatever order they land in.
  */
-function voteUpdate(voter: Types.ObjectId, chosen: string[]) {
+function voteUpdate(voter: Types.ObjectId, chosen: string[], hiddenAdmin: boolean, at: Date) {
   const without = {
     $filter: { input: '$$option.voterIds', as: 'v', cond: { $ne: ['$$v', voter] } },
   };
+  const hiddenIds = { $ifNull: ['$poll.hiddenVoterIds', []] };
   return [
     {
       $set: {
+        // When I voted (my last change); gone with my vote.
+        'poll.votedAt': {
+          $setField: {
+            field: voter.toString(),
+            input: { $ifNull: ['$poll.votedAt', {}] },
+            value: chosen.length > 0 ? at : '$$REMOVE',
+          },
+        },
+        'poll.hiddenVoterIds': hiddenAdmin
+          ? { $setUnion: [hiddenIds, [voter]] }
+          : { $setDifference: [hiddenIds, [voter]] },
         'poll.options': {
           $map: {
             input: '$poll.options',
@@ -100,10 +115,12 @@ export async function votePoll(
     return view(doc, userId, member);
   }
   const { Message } = chatModels(app);
+  const voter = await usersModel(app).findById(member.userId).select({ email: 1 }).lean();
+  const hiddenAdmin = voter ? isHiddenAdmin(app, voter as Pick<UserDoc, 'email'>) : false;
   const pending = await app.mongo.transaction(async (session) => {
     const result = await Message.collection.updateOne(
       { _id: doc._id, 'poll.closedAt': null, deletedForEveryoneAt: null },
-      voteUpdate(member.userId, chosen),
+      voteUpdate(member.userId, chosen, hiddenAdmin, new Date()),
       { session },
     );
     if (result.matchedCount === 0) throw pollClosed();
@@ -112,10 +129,16 @@ export async function votePoll(
     return logMessageUpdate(app, session, updated);
   });
   announceMessageUpdate(app, pending);
+  // A quiet "X voted in your poll" for whoever sent it (never for taking a vote back).
+  if (chosen.length > 0 && !hiddenAdmin) {
+    void notifyPollVote(app, { message: pending.doc, voterId: userId }).catch((error: unknown) =>
+      app.log.warn({ err: error }, 'poll vote notification failed'),
+    );
+  }
   return view(pending.doc, userId, member);
 }
 
-/** Only whoever sent the poll. Closing it again changes nothing. */
+/** Whoever sent the poll, or an admin of the group. Closing it again changes nothing. */
 export async function closePoll(
   app: FastifyInstance,
   userId: string,
@@ -123,8 +146,9 @@ export async function closePoll(
   messageId: string,
 ) {
   const { doc, member, poll } = await requirePoll(app, userId, chatId, messageId);
-  if (!doc.senderId?.equals(member.userId)) {
-    throw new AppError('FORBIDDEN', 'Only whoever sent the poll can close it.');
+  const groupAdmin = member.role === 'admin' || member.role === 'owner';
+  if (!doc.senderId?.equals(member.userId) && !groupAdmin) {
+    throw new AppError('FORBIDDEN', 'Only whoever sent the poll or a group admin can close it.');
   }
   if (poll.closedAt) return view(doc, userId, member);
   const { Message } = chatModels(app);

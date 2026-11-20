@@ -66,6 +66,7 @@ describe('creating a poll over the socket', () => {
         options: lunch.options.map((text, id) => ({ id: String(id), text, voterIds: [] })),
         multiple: false,
         closedAt: null,
+        votedAt: {},
       });
       expect((await summary(bharat, chatId)).lastMessage?.preview).toBe('Lunch?');
     }

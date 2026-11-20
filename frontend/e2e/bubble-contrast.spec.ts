@@ -10,10 +10,11 @@ import {
   send,
 } from './chat-helpers';
 import { SLOW } from './helpers';
+import { createPoll, pollCard } from './poll-helpers';
 
 // Everything inside a chat bubble must be readable (WCAG AA) on both sides of the conversation, in
 // light and dark, with every accent: mentions, links, `code`, bold and italic, replies, "edited",
-// times and file cards. Live bug (Nov 2026): a mention in my own (indigo) bubble was indigo on indigo.
+// times, file cards and polls. Live bug (Nov 2026): a mention in my own (indigo) bubble was indigo on indigo.
 
 test.describe.configure({ timeout: 300_000 });
 
@@ -72,6 +73,13 @@ async function conversation(page: Page, me: string, them: Person) {
     .getByRole('dialog', { name: 'Send 1 file' })
     .getByRole('button', { name: 'Send', exact: true })
     .click();
+  // A poll with a vote on it (a filled bar, a ✓, a face) and an option at 0 (the bare track).
+  const question = `${me}'s lunch poll`;
+  await createPoll(page, question, ['Dosa', 'Pizza']);
+  await pollCard(page, question).getByText('Dosa', { exact: true }).click();
+  await expect(pollCard(page, question).getByRole('radio', { name: /^Dosa, 1 vote/ })).toBeChecked(
+    SLOW,
+  );
 }
 
 interface Problem {

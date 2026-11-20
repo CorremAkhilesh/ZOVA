@@ -71,6 +71,8 @@ export const pushSettingsSchema = z.object({
   /** The quiet "tick" for a message in the chat on screen. */
   soundOpenChat: z.boolean().default(true),
   tickTone: tickToneSchema.default('tick'),
+  /** A quiet notification when someone votes in a poll I sent. */
+  pollVotes: z.boolean().default(true),
 });
 export type PushSettings = z.infer<typeof pushSettingsSchema>;
 export const DEFAULT_PUSH_SETTINGS: PushSettings = {
@@ -84,6 +86,7 @@ export const DEFAULT_PUSH_SETTINGS: PushSettings = {
   sentTone: 'droplet-c',
   soundOpenChat: true,
   tickTone: 'tick',
+  pollVotes: true,
 };
 /** PUT /v1/me/push/settings: only what was sent changes (no defaults, so nothing else is reset). */
 export const updatePushSettingsBodySchema = z
@@ -98,6 +101,7 @@ export const updatePushSettingsBodySchema = z
     sentTone: sentToneSchema,
     soundOpenChat: z.boolean(),
     tickTone: tickToneSchema,
+    pollVotes: z.boolean(),
   })
   .partial();
 export type UpdatePushSettings = z.infer<typeof updatePushSettingsBodySchema>;
@@ -194,6 +198,18 @@ export const pushPayloadSchema = z.discriminatedUnion('kind', [
     silent: z.boolean(),
     sentAt: z.iso.datetime(),
   }),
+  /** Someone voted in my poll: quiet, one per poll (a newer vote replaces it). Tag `poll:<id>`. */
+  z.object({
+    kind: z.literal('poll'),
+    v: z.literal(1),
+    chatId: z.string(),
+    messageId: z.string(),
+    tag: z.string(),
+    title: z.string().max(120),
+    body: z.string().max(400),
+    silent: z.boolean(),
+    sentAt: z.iso.datetime(),
+  }),
   /** Someone is calling (or called and I missed it). One notification per call: `call:<id>`. */
   z.object({
     kind: z.literal('call'),
@@ -224,3 +240,5 @@ export type PushPayload = z.infer<typeof pushPayloadSchema>;
 export const pushTagFor = (chatId: string) => `chat:${chatId}`;
 /** The tag of a call's notification: "missed" replaces "incoming". */
 export const callPushTagFor = (callId: string) => `call:${callId}`;
+/** The tag of "X voted in your poll": one per poll. */
+export const pollPushTagFor = (messageId: string) => `poll:${messageId}`;
