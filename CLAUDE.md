@@ -96,7 +96,7 @@
 
 ### MongoDB
 
-- **Development:** MongoDB Atlas cluster `cluster0.zitp2pj.mongodb.net`, one database per developer.
+- **Development:** MongoDB Atlas cluster `<your-cluster>.mongodb.net`, one database per developer.
 - **Production:** its own `mongo:8.0` container on the server (single-node replica set `rs0`, auth +
   key file, never published), data in `/var/data/zuvo/db` (`docs/adr/0009-production-hosting.md`).
 - The database is selected via the `MONGODB_DB` env variable:

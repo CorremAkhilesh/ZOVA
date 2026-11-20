@@ -104,3 +104,34 @@ Known work that was decided on or deliberately left for later. Product scope liv
   Not optimised yet, on purpose.
 - **More than one API instance:** the upload guards against double-processing and overlapping chunk
   writes live in the API's memory, and would need to move to Redis.
+
+## Audit 2026-11-20: left for later
+
+Low findings from `docs/audit/2026-11-20-audit.md` that the owner chose not to fix now. IDs match the
+report.
+
+- **L2: sign-in lockout by a third party.** The 5 codes an hour cap is per email only, so anyone who
+  knows an address can block its sign-in for an hour. Key the cap on email and IP, with a larger cap
+  per email, and stop a request from a new IP replacing a live code.
+- **L3: deactivated accounts answer differently.** A code request for a deactivated account gets 403
+  `ACCOUNT_DEACTIVATED`; other allowed emails get "sent". Either answer "sent" and send nothing (verify
+  already refuses), or record it as a product decision.
+- **L4: "last active admin" race.** Two admins demoting or deactivating each other at the same moment
+  can both pass the count. Do the check and the update in one guarded write or a transaction.
+- **L6: the 256-member cap under parallel adds.** The cap is read before the transaction, and two joins
+  by the same person can count twice. Use a conditional `$inc` inside the transaction.
+- **L11: moderate advisories in dev and build tools** (uuid via autocannon, glob and minimatch via
+  rimraf and workbox-build). Not in the production runtime; update when upstream releases fixes.
+- **L12: one non-documentation IPv4 address in git history** (a test from 2026-11-04 to 2026-11-16).
+  Not a secret. The owner checks that it is not an office or server address; history stays as it is.
+- **L14: accessible names that differ from visible text** ("View once", the reply quote). Start each
+  `aria-label` with the visible words.
+- **L16: Admin → Users at phone width.** The action buttons squeeze the name and email; stack them
+  under the person below `sm`, or move them into a ⋯ menu.
+- **L19: brand name in locale strings, and the default About text.** `auth.errors.domain` and
+  `voice.permissionBody` hard-code the name instead of `{{brand}}`; the default About in
+  `shared/config/src/brand.ts` mirrors a well-known messenger's default.
+- **L20: Hindi gaps.** "Unknown browser on Unknown OS" from the server shows in English on Admin →
+  Notifications; a few terms ("PIN", "@mention") are left in English for the owner to decide.
+- **L21: phone landscape** (800×360) gets the two-pane layout with a ~230 px message area. Use the
+  single pane when the height is under ~480 px.
