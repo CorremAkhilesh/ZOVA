@@ -2,6 +2,7 @@ import type { MessageInfo } from '@zuvo/protocol';
 import type { FastifyInstance } from 'fastify';
 import { AppError } from '../lib/errors.ts';
 import { blockersAmong } from '../moderation/blocks.service.ts';
+import { hiddenAmong } from '../users/hidden-admins.ts';
 import { toPublicProfile, type UserDoc, usersModel } from '../users/user-record.ts';
 import { chatModels, oid, requireMember } from './chats.service.ts';
 import { ownReceiptsOn } from './group-receipts.service.ts';
@@ -50,12 +51,14 @@ export async function messageInfo(
   const byId = new Map(users.map((user) => [user._id.toString(), user]));
   const myReceipts = await ownReceiptsOn(app, userId);
   const blockers = await blockersAmong(app, userId, [...byId.keys()]);
+  // A hidden admin is not in a normal member's member list, so not here either, not even counted.
+  const hidden = await hiddenAmong(app, userId, users);
 
   const info: MessageInfo = { readBy: [], deliveredTo: [], waiting: 0 };
   for (const member of audience) {
     const id = member.userId.toString();
     const user = byId.get(id);
-    if (!user) continue;
+    if (!user || hidden.has(id)) continue;
     const entry = (kind: 'read' | 'delivered') => ({
       user: toPublicProfile(user, userId, { blockedViewer: blockers.has(id) }),
       at: firstAt.get(`${kind}:${id}`)?.toISOString() ?? null,
