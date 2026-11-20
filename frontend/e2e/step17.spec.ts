@@ -109,9 +109,7 @@ test('a poll: B votes and A sees the result', async ({ browser }) => {
     SLOW,
   );
   await openFromList(bharat.page, 'Lunch');
-  await thread(bharat.page, 'Lunch')
-    .getByRole('radio', { name: /Dosa place/ })
-    .click();
+  await thread(bharat.page, 'Lunch').getByText('Dosa place', { exact: true }).click();
   await expect(
     thread(asha.page, 'Lunch').getByRole('radio', { name: /Dosa place, 1 vote, 100 percent/ }),
   ).toBeAttached(SLOW);

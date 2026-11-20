@@ -60,13 +60,13 @@ describe('poll bubble', () => {
     const { group } = await openPoll(pollFixture());
     await user.click(option(group, /^Dosa/));
     await waitFor(() => expect(option(group, /^Dosa, 2 votes/)).toBeChecked(), SLOW);
-    expect(state.votes).toEqual([['1']]);
+    await waitFor(() => expect(state.votes).toEqual([['1']]), SLOW);
     await user.click(option(group, /^Pizza/));
     await waitFor(() => expect(option(group, /^Pizza, 4 votes/)).toBeChecked(), SLOW);
     expect(option(group, /^Dosa, 1 vote/)).not.toBeChecked();
     await user.click(option(group, /^Pizza/));
     await waitFor(() => expect(option(group, /^Pizza, 3 votes/)).not.toBeChecked(), SLOW);
-    expect(state.votes).toEqual([['1'], ['0'], []]);
+    await waitFor(() => expect(state.votes).toEqual([['1'], ['0'], []]), SLOW);
   });
 
   it('"Remove vote" takes my vote back', async () => {
@@ -107,7 +107,7 @@ describe('poll bubble', () => {
     await user.click(option(group, /^Salad/));
     expect(await screen.findByText('This poll is closed.', {}, SLOW)).toBeInTheDocument();
     await waitFor(() => expect(option(group, /^Salad, 0 votes/)).not.toBeChecked(), SLOW);
-    expect(state.votes).toEqual([['2']]);
+    await waitFor(() => expect(state.votes).toEqual([['2']]), SLOW);
   });
 
   it('a closed poll shows its results but takes no votes', async () => {

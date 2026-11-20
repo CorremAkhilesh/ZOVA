@@ -44,7 +44,15 @@ describe('log redaction', () => {
       { req: { headers: { cookie: SECRETS.cookie, authorization: SECRETS.authorization } } },
       'headers',
     );
-    const written = text();
+    // Without pino's own fields: a timestamp or pid can hold "1357" by chance (a flaky CI run).
+    const written = text()
+      .split(/\r?\n/)
+      .filter(Boolean)
+      .map((line) => {
+        const { time: _time, pid: _pid, hostname: _host, ...rest } = JSON.parse(line);
+        return JSON.stringify(rest);
+      })
+      .join(' ');
     expect(written).toContain('top level');
     for (const value of [
       ...Object.values(SECRETS).filter((value) => typeof value === 'string'),
