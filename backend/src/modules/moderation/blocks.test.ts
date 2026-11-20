@@ -15,9 +15,11 @@ import {
   listen,
   record,
   send,
+  uuidv7,
   waitUntil,
 } from '../../../test/realtime-helpers.ts';
 import { oid } from '../../chats/chats.service.ts';
+import { sendMessage } from '../../chats/messages.service.ts';
 import { moderationModels } from '../../moderation/blocks.service.ts';
 
 let built: Awaited<ReturnType<typeof buildTestApp>>;
@@ -118,6 +120,57 @@ describe('blocking: what it stops', () => {
     await block(bharat, asha);
     expect(await refusal(say(asha, chatId, 'group news'))).toBe('sent');
     expect(await refusal(say(bharat, chatId, 'thanks'))).toBe('sent');
+  });
+
+  it('stops every other way to reach me in our chat too, both ways', async () => {
+    const [asha, bharat] = [await person(), await person()];
+    const chat = await direct(asha, bharat);
+    const mine = (await say(asha, chat.id, 'mine')).message;
+    const theirs = (await say(bharat, chat.id, 'theirs')).message;
+    const question = (
+      await sendMessage(app(), {
+        userId: bharat.id,
+        chatId: chat.id,
+        clientMsgId: uuidv7(),
+        poll: { question: 'Tea?', options: ['Yes', 'No'], multiple: false },
+      })
+    ).message;
+    await block(bharat, asha);
+    const at = `/v1/chats/${chat.id}/messages`;
+    const tries = (who: Person, own: string, other: string) => [
+      call(who, 'PUT', `/v1/chats/${chat.id}/disappearing`, { timer: '24h' }),
+      call(who, 'PUT', `${at}/${other}/reaction`, { emoji: '👍' }),
+      call(who, 'PUT', `${at}/${other}/pin`, { duration: '7d' }),
+      call(who, 'PATCH', `${at}/${own}`, { text: 'edited' }),
+      call(who, 'PUT', `${at}/${question.id}/vote`, {
+        optionIds: [question.poll?.options[0]?.id ?? ''],
+      }),
+    ];
+    const codes = async (who: Person, own: string, other: string) =>
+      (await Promise.all(tries(who, own, other))).map((response) => response.json().code);
+    expect(await codes(asha, mine.id, theirs.id)).toEqual(Array(5).fill('CANNOT_MESSAGE'));
+    expect(await codes(bharat, theirs.id, mine.id)).toEqual(Array(5).fill('BLOCKED'));
+    await unblock(bharat, asha);
+    const after = await call(asha, 'PUT', `${at}/${theirs.id}/reaction`, { emoji: '👍' });
+    expect(after.statusCode).toBeLessThan(300);
+  });
+
+  it('cannot be got round with a group: nobody adds someone who blocked them', async () => {
+    const [asha, bharat, chitra] = [await person(), await person(), await person()];
+    await block(bharat, asha);
+    const create = await call(asha, 'POST', '/v1/groups', {
+      name: 'Sneaky',
+      memberIds: [bharat.id, chitra.id],
+    });
+    expect(create.statusCode).toBe(400);
+    expect(create.json().message).toBe('Someone in this list cannot be added.');
+    const chatId = await group(asha, [chitra]);
+    const add = await call(asha, 'POST', `/v1/chats/${chatId}/members`, { userIds: [bharat.id] });
+    expect(add.statusCode).toBe(400);
+    // Bharat, who blocked, may still put Asha in a group: blocking is his choice to make.
+    expect(
+      (await call(bharat, 'POST', '/v1/groups', { name: 'Mine', memberIds: [asha.id] })).statusCode,
+    ).toBe(200);
   });
 
   it('hides my about and photo from the person I blocked, everywhere', async () => {

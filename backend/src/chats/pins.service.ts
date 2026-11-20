@@ -13,6 +13,7 @@ import { appendSystemMessage, deliverSystemMessage, namesOf } from './group-core
 import { assertAllowed, groupRules } from './group-permissions.ts';
 import { announcePins, dropPins, hiddenPinsByUser, logPins } from './pin-sync.ts';
 import { visiblePins } from './pin-view.ts';
+import { assertDirectNotBlocked } from './send-rules.ts';
 import { canSeeSeq } from './visibility.ts';
 
 const alive = (pins: StoredPin[] | undefined, now: Date) =>
@@ -31,6 +32,7 @@ async function loadForPin(app: FastifyInstance, userId: string, chatId: string, 
       'Only admins can pin messages in this group.',
     );
   }
+  await assertDirectNotBlocked(app, userId, chat);
   const message = await Message.findOne({ _id: oid(messageId), chatId: chat._id }).lean();
   // Pinning tells everyone where a message is: only one I may see myself.
   if (!message || !canSeeSeq(member, message.seq) || message.type === 'system') {
