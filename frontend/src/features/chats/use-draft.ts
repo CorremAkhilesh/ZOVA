@@ -28,6 +28,11 @@ export function useDraft(chatId: string) {
   const db = useLocalDb();
   const [text, setText] = useState('');
   const latest = useRef({ text: '', dirty: false });
+  /**
+   * When this device last saved the draft. A draft read back that is not newer than this is my own
+   * older state (a late read while my save is still landing), never something to put in the box.
+   */
+  const savedAt = useRef<string | null>(null);
   /** The reply as last saved or received, by message id: tells my changes from echoes. */
   const replyId = useRef<string | null>(null);
   const reply = useMessageUi((state) => state.replies[chatId]);
@@ -41,6 +46,9 @@ export function useDraft(chatId: string) {
     if (stored === undefined || latest.current.dirty) return;
     if (stored === null && db) void adoptLegacyDraft(db, chatId);
     const incoming: Draft | null = stored;
+    // Old words coming back: the chat's row is read again with every new message, and one read can
+    // still carry the draft from before my last save (live bug: a message sent twice, the next lost).
+    if (savedAt.current && (incoming?.updatedAt ?? '') <= savedAt.current) return;
     const next = incoming?.text ?? '';
     if (next !== latest.current.text) {
       latest.current = { text: next, dirty: false };
@@ -63,6 +71,7 @@ export function useDraft(chatId: string) {
       replyTo,
       updatedAt: new Date().toISOString(),
     };
+    savedAt.current = draft.updatedAt;
     void db.chats
       .update(chatId, { draft })
       .then(() => pushDraft(db, chatId))

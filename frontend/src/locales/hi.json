@@ -79,7 +79,8 @@
     "lastSeenYesterday": "कल {{time}} पर ऑनलाइन थे",
     "lastSeenDate": "{{date}} को ऑनलाइन थे",
     "jumpToLatestCount_one": "नवीनतम पर जाएँ, {{count}} नया मैसेज",
-    "jumpToLatestCount_other": "नवीनतम पर जाएँ, {{count}} नए मैसेज"
+    "jumpToLatestCount_other": "नवीनतम पर जाएँ, {{count}} नए मैसेज",
+    "notSaved": "आपका संदेश इस डिवाइस पर सेव नहीं हो पाया, इसलिए भेजा नहीं गया। आपका टेक्स्ट यहीं है: फिर से कोशिश करें।"
   },
   "empty": {
     "title": "कोई चैट चुनें",
