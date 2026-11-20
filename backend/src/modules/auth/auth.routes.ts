@@ -9,6 +9,7 @@ import {
 } from '@zuvo/protocol';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { authErrorFromBody, rethrowAuthError } from '../../auth/errors.ts';
+import { ThrottledError } from '../../auth/otp-throttle.ts';
 import {
   type AuthSessionRecord,
   forwardCookies,
@@ -62,6 +63,13 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
     },
     async (request, reply) => {
       const { email, code } = request.body;
+      // Checked before the code is looked at, so a locked email takes no more guesses.
+      await app.otpThrottle.checkLocked(email).catch((error: unknown) => {
+        if (!(error instanceof ThrottledError)) throw error;
+        throw new AppError('RATE_LIMITED', error.message, {
+          retryAfterSeconds: error.retryAfterSeconds,
+        });
+      });
       const response = await app.auth.api
         .signInEmailOTP({
           body: { email, otp: code },
