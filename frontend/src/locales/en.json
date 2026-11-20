@@ -79,7 +79,8 @@
     "lastSeenYesterday": "last seen yesterday at {{time}}",
     "lastSeenDate": "last seen {{date}}",
     "jumpToLatestCount_one": "Jump to latest, {{count}} new message",
-    "jumpToLatestCount_other": "Jump to latest, {{count}} new messages"
+    "jumpToLatestCount_other": "Jump to latest, {{count}} new messages",
+    "notSaved": "Couldn’t save your message on this device, so it wasn’t sent. Your text is still here: try again."
   },
   "empty": {
     "title": "Pick a conversation",

@@ -50,6 +50,8 @@ async function unsent(text: string) {
   input.focus();
   await user.keyboard(`${text}{Enter}`);
   await screen.findByText(text);
+  // Saved in the outbox: only then does the box empty.
+  await waitFor(() => expect(input).toHaveValue(''), { timeout: 15_000 });
 }
 
 describe('delete for me, with Undo', () => {
@@ -97,7 +99,9 @@ describe('a message that was never sent', () => {
     expect(within(dialog).queryByRole('button', { name: 'Delete for me' })).toBeNull();
     expect(await axe(container.ownerDocument.body)).toHaveNoViolations();
     fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
-    await waitFor(() => expect(screen.queryByText('typed offline')).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByText('typed offline')).not.toBeInTheDocument(), {
+      timeout: 15_000,
+    });
     const db = getUserDb(ME_ID);
     expect(await db.outbox.count()).toBe(0);
     expect(await db.messages.where('chatId').equals('c1').count()).toBe(0);

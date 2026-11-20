@@ -8,6 +8,7 @@ import {
   useState,
 } from 'react';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 import { formatShortcut } from '@/features/formatting/composer-shortcut';
 import { FormattingHint } from '@/features/formatting/FormattingHint';
 import { ComposerLinkPreview } from '@/features/link-previews/LinkPreviewCard';
@@ -69,20 +70,48 @@ export function Composer({ chatId, onSent, onFiles }: ComposerProps) {
   // One line to six, then it scrolls inside (see use-auto-grow.ts).
   useAutoGrow(field, text);
 
-  function send() {
-    if (!canSend) return;
+  // What the box holds right now (also after an await), and the saves still running, in order.
+  const latest = useRef(text);
+  latest.current = text;
+  const saves = useRef<{ chain: Promise<unknown>; text: string | null }>({
+    chain: Promise.resolve(),
+    text: null,
+  });
+
+  /**
+   * The message is saved in the outbox (this device's database) first, and only then does the box
+   * empty: it is never in neither place. If saving fails, the words stay in the box and the person is
+   * told. Sends follow each other in order; the same words pressed twice while saving go once.
+   */
+  async function send() {
+    if (!canSend || !client || saves.current.text === text) return;
     const mentions = mention.payload(text);
     if (actions.finishEdit(mentions)) return;
-    void client?.sendText(chatId, text, actions.takeReply(), { link: link.take(), ...mentions });
+    const sent = text;
+    const reply = actions.takeReply();
+    const extras = { link: link.take(), ...mentions };
     typing.stop();
-    update('');
+    const job = saves.current.chain.then(() => client.sendText(chatId, sent, reply, extras));
+    saves.current = { chain: job.catch(() => undefined), text: sent };
+    try {
+      await job;
+    } catch {
+      // The words are still in the box, unless it was emptied meanwhile: then they come back.
+      if (!latest.current.trim()) update(sent);
+      toast.error(t('conversation.notSaved'));
+      return;
+    } finally {
+      if (saves.current.text === sent) saves.current.text = null;
+    }
+    // Saved: only now may the box empty (unless something new was typed meanwhile).
+    if (latest.current === sent) update('');
     onSent();
     field.current?.focus();
   }
 
   function onSubmit(event: FormEvent) {
     event.preventDefault();
-    send();
+    void send();
   }
 
   function onKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
@@ -93,7 +122,7 @@ export function Composer({ chatId, onSent, onFiles }: ComposerProps) {
     // Phones and tablets have no Shift key to hand: Enter makes a new line, the button sends.
     if (!isDesktop) return;
     event.preventDefault();
-    send();
+    void send();
   }
 
   function insertEmoji(emoji: string) {
