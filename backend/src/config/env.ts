@@ -102,6 +102,11 @@ const envSchema = z
     ),
     /** OTP requests allowed per client IP per hour. */
     OTP_IP_LIMIT_PER_HOUR: z.coerce.number().int().min(1).max(10_000).default(30),
+    /**
+     * Realtime connections opened per client IP per minute. High, because a whole office shares one
+     * address and every tab reconnects at once after a deploy; it stops scripted floods.
+     */
+    SOCKET_HANDSHAKES_PER_MINUTE: z.coerce.number().int().min(1).max(100_000).default(600),
     MEDIA_STORAGE_PATH: z
       .string()
       .min(1)
