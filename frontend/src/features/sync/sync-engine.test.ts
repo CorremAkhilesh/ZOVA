@@ -155,9 +155,11 @@ describe('live events', () => {
 
   it('a skipped number triggers sync, and what it returns fills the hole', async () => {
     await startAt('5');
-    answers = [syncPage({ cursor: '8', messages: [1, 2, 3].map((n) => messageFixture(n)) })];
+    // The same messages live and from sync (as on the server: one clientMsgId each).
+    const messages = [1, 2, 3].map((n) => messageFixture(n));
+    answers = [syncPage({ cursor: '8', messages })];
     const running = engine();
-    await running.onMessage(messageFixture(3), '8');
+    await running.onMessage(messages[2] ?? messageFixture(3), '8');
     await vi.waitFor(async () => expect(await readCursor(db)).toBe('8'));
     expect(syncCalls).toEqual(['5']);
     expect(await messageTexts()).toEqual(['message 1', 'message 2', 'message 3']);

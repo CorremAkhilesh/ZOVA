@@ -3,6 +3,7 @@ import type { PinnedMessage } from '@zuvo/protocol';
 import { describe, expect, it, vi } from 'vitest';
 import { useSyncStore } from '@/features/sync/store';
 import { chatFixture, messageFixture } from '@/test/chat-fixtures';
+import { HttpResponse, http, server } from '@/test/msw';
 import { DESKTOP_WIDTH, renderApp } from '@/test/render-app';
 import { seedLocal } from '@/test/seed';
 import { lastSocket } from '@/test/socket-mock';
@@ -44,11 +45,28 @@ describe('a pinned message that is deleted', () => {
   });
 
   it('the server’s new pins (chat:updated) replace the old: next pin, then none', async () => {
-    await openChat([pinOf(3), pinOf(1)]);
+    // The server as it is after each change: a chat:updated with a last message leaves the cursor
+    // to sync, which brings the chat with its pins.
+    let now = { cursor: '5', pins: [pinOf(3), pinOf(1)] };
+    server.use(
+      http.get('*/v1/sync', ({ request }) => {
+        const since = new URL(request.url).searchParams.get('since');
+        const changed = Number(now.cursor) > Number(since);
+        return HttpResponse.json({
+          cursor: now.cursor,
+          reset: false,
+          hasMore: false,
+          chats: changed ? [chatFixture({ seq: 3, pins: now.pins })] : [],
+          messages: [],
+        });
+      }),
+    );
+    await openChat(now.pins);
     await screen.findByRole('button', { name: 'Go to pinned message 1 of 2' }, SLOW);
     await waitFor(() => expect(useSyncStore.getState().client).not.toBeNull());
-    const update = (pins: PinnedMessage[], cursor: string) =>
-      act(() =>
+    const update = (pins: PinnedMessage[], cursor: string) => {
+      now = { cursor, pins };
+      return act(() =>
         lastSocket().receive('chat:updated', {
           chatId: 'c1',
           type: 'direct',
@@ -61,6 +79,7 @@ describe('a pinned message that is deleted', () => {
           cursor,
         }),
       );
+    };
     update([pinOf(1)], '6');
     const next = await screen.findByRole('button', { name: 'Go to pinned message 1 of 1' }, SLOW);
     await waitFor(() => expect(next).toHaveTextContent('point 1'));

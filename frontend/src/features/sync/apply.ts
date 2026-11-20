@@ -30,7 +30,7 @@ const sortAtOf = (chat: Pick<ChatSummary, 'lastActivityAt' | 'createdAt'>) =>
 
 export const toChatRow = (chat: ChatSummary): ChatRow => ({ ...chat, sortAt: sortAtOf(chat) });
 
-type ChatChange = {
+export type ChatChange = {
   [Field in
     | 'seq'
     | 'lastMessage'
@@ -144,7 +144,7 @@ async function settleOutbox(db: LocalDb, messages: Message[]) {
   await db.files.bulkDelete(ids);
 }
 
-async function storeMessages(db: LocalDb, me: string, messages: Message[]) {
+export async function storeMessages(db: LocalDb, me: string, messages: Message[]) {
   const rows = messages.map(toMessageRow);
   // Only history and sync know about stars. A live event leaves mine as it was.
   const known = await db.messages.bulkGet(rows.map((row) => row.key));
@@ -182,44 +182,7 @@ export async function advance(db: LocalDb, cursor: string) {
   await db.meta.put({ key: CURSOR, value: cursor });
 }
 
-export function applyLiveMessage(
-  db: LocalDb,
-  me: string,
-  message: Message,
-  cursor: string,
-): Promise<ApplyResult> {
-  return db.transaction('rw', allStores(db), async () => {
-    const position = classify(await readCursor(db), cursor);
-    if (position === 'gap') return 'gap';
-    if (position === 'seen') return 'stale';
-    // A first message in a chat this device has never seen: sync brings the chat with it.
-    if (!(await db.chats.get(message.chatId))) return 'gap';
-    await storeMessages(db, me, [message]);
-    await advance(db, cursor);
-    return 'applied';
-  });
-}
-
-/**
- * chat:updated and read:update share a number with the event before them, so an already-seen number
- * still applies: merging is safe to repeat. Only a skipped number means something is missing.
- */
-export function applyLiveChatChange(
-  db: LocalDb,
-  chatId: string,
-  change: ChatChange,
-  cursor: string,
-): Promise<ApplyResult> {
-  return db.transaction('rw', allStores(db), async () => {
-    const position = classify(await readCursor(db), cursor);
-    if (position === 'gap') return 'gap';
-    const row = await db.chats.get(chatId);
-    if (!row) return 'gap';
-    await db.chats.put(mergeChat(row, change));
-    if (position === 'next') await advance(db, cursor);
-    return 'applied';
-  });
-}
+export { applyLiveChatChange, applyLiveMessage } from './apply-live';
 
 /** One page of GET /v1/sync. Safe to repeat: every write is keyed or only moves forward. */
 export function applySyncPage(db: LocalDb, me: string, page: SyncResponse): Promise<void> {
