@@ -37,6 +37,11 @@ interface DialogContentProps extends React.ComponentProps<typeof DialogPrimitive
   hideTitle?: boolean;
   /** For a dialog with its own close button. */
   hideClose?: boolean;
+  /**
+   * 'top': above full-screen layers (the status viewer, z 1600), for dialogs opened from inside
+   * them. Others stay below tooltips and menus.
+   */
+  layer?: 'top';
 }
 
 /** Centered modal with focus trap, Escape to close and a labelled close button. */
@@ -45,6 +50,7 @@ function DialogContent({
   description,
   hideTitle,
   hideClose,
+  layer,
   className,
   children,
   ...props
@@ -52,10 +58,16 @@ function DialogContent({
   const { t } = useTranslation();
   return (
     <DialogPrimitive.Portal>
-      <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/50 data-[state=open]:animate-in data-[state=open]:fade-in-0" />
+      <DialogPrimitive.Overlay
+        className={cn(
+          'fixed inset-0 bg-black/50 data-[state=open]:animate-in data-[state=open]:fade-in-0',
+          layer === 'top' ? 'z-[1700]' : 'z-50',
+        )}
+      />
       <DialogPrimitive.Content
         className={cn(
-          'fixed top-1/2 left-1/2 z-50 flex max-h-[90dvh] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 flex-col gap-4 rounded-2xl border bg-elevated p-5 shadow-xl data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95',
+          'fixed top-1/2 left-1/2 flex max-h-[90dvh] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 flex-col gap-4 rounded-2xl border bg-elevated p-5 shadow-xl data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95',
+          layer === 'top' ? 'z-[1700]' : 'z-50',
           className,
         )}
         {...(description ? {} : { 'aria-describedby': undefined })}

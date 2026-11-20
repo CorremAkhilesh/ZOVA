@@ -4,10 +4,10 @@ import { Bell, BellOff, MoreHorizontal, Plus } from 'lucide-react';
 import { DropdownMenu } from 'radix-ui';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import { Avatar } from '@/components/ui/avatar';
 import { setMuted } from '../actions';
 import { useAgo } from '../viewer/ViewerChrome';
 import { StatusRing } from './StatusRing';
+import { StatusThumb } from './StatusThumb';
 
 const ITEM =
   'flex cursor-default items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm outline-none data-[highlighted]:bg-background';
@@ -40,23 +40,23 @@ export function StatusRow({ user, statuses, mine = false, muted = false, onOpen 
   const seen = mine ? statuses.length : statuses.filter((status) => status.viewed).length;
   const name = mine ? t('updates.myStatus') : user.displayName;
   const detail = rowDetail(statuses, mine, ago, t);
-  const unseen = !mine && seen < statuses.length ? `, ${t('updates.unseen')}` : '';
+  const unseen = !mine && seen < statuses.length ? ` ${t('updates.unseen')}` : '';
   return (
     <li className="group flex items-center gap-1 pr-2">
       <button
         type="button"
         onClick={onOpen}
-        aria-label={`${name}, ${detail}${unseen}`}
         className="flex min-w-0 flex-1 items-center gap-3 rounded-xl px-4 py-2 text-left hover:bg-background focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-brand/40"
       >
-        <span className="relative">
+        {/* The name is the visible words (WCAG 2.5.3); the picture is decoration. */}
+        <span className="relative" aria-hidden>
           {statuses.length > 0 ? (
             <StatusRing total={statuses.length} seen={seen}>
-              <Avatar name={user.displayName} src={user.avatar?.small} className="size-11" />
+              <StatusThumb user={user} latest={statuses.at(-1)} />
             </StatusRing>
           ) : (
             <span className="grid size-[52px] place-items-center">
-              <Avatar name={user.displayName} src={user.avatar?.small} className="size-11" />
+              <StatusThumb user={user} latest={undefined} />
             </span>
           )}
           {mine && statuses.length === 0 ? (
@@ -68,8 +68,11 @@ export function StatusRow({ user, statuses, mine = false, muted = false, onOpen 
         <span className="min-w-0 flex-1">
           <span className={`block truncate font-semibold ${muted ? 'text-text-muted' : ''}`}>
             {name}
+          </span>{' '}
+          <span className="block truncate text-sm text-text-muted">
+            {detail}
+            {unseen ? <span className="sr-only">{unseen}</span> : null}
           </span>
-          <span className="block truncate text-sm text-text-muted">{detail}</span>
         </span>
       </button>
       {mine ? null : (

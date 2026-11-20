@@ -1,4 +1,10 @@
-import { type Browser, type BrowserContext, expect, type Page } from '@playwright/test';
+import {
+  type Browser,
+  type BrowserContext,
+  type BrowserContextOptions,
+  expect,
+  type Page,
+} from '@playwright/test';
 import { SLOW, signIn, signUpByApi } from './helpers';
 
 export interface Person {
@@ -15,8 +21,11 @@ export interface Person {
  * "Install the app") stays away, so it never covers a row under a click. The bar has its own
  * component tests, and push.spec.ts covers pushes.
  */
-async function newContext(browser: Browser): Promise<BrowserContext> {
-  const context = await browser.newContext();
+async function newContext(
+  browser: Browser,
+  options: BrowserContextOptions = {},
+): Promise<BrowserContext> {
+  const context = await browser.newContext(options);
   await context.addInitScript(() => {
     try {
       localStorage.setItem('zuvo.push.card-dismissed', '1');
@@ -32,8 +41,12 @@ async function newContext(browser: Browser): Promise<BrowserContext> {
   return context;
 }
 
-export async function newPerson(browser: Browser, name: string): Promise<Person> {
-  const context = await newContext(browser);
+export async function newPerson(
+  browser: Browser,
+  name: string,
+  options: BrowserContextOptions = {},
+): Promise<Person> {
+  const context = await newContext(browser, options);
   const page = await context.newPage();
   // Random: tests in parallel workers start within the same millisecond.
   const username = `${name.toLowerCase()}${Math.random().toString(36).slice(2, 12)}`;

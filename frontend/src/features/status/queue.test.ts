@@ -8,6 +8,7 @@ import {
   previousPosition,
   STILL_MS,
   type ViewerPerson,
+  withoutStatuses,
 } from './viewer/queue';
 
 const queue: ViewerPerson[] = feedFixture().people.map((person) => ({
@@ -56,5 +57,44 @@ describe('the feed on this device', () => {
     const shown = withoutExpired(feed);
     expect(shown.mine).toEqual([]);
     expect(shown.people.map((p) => p.user.id)).toEqual(['u-vikram', 'u-meera']);
+  });
+});
+
+describe('a status that goes while the viewer is open', () => {
+  const ids = (q: ViewerPerson[]) => q.map((person) => person.statuses.map((status) => status.id));
+  const riya = queue[0]?.statuses ?? [];
+  const not =
+    (...gone: (string | undefined)[]) =>
+    (status: { id: string }) =>
+      !gone.includes(status.id);
+
+  it('deleting the one on screen shows the one after it', () => {
+    const left = withoutStatuses(queue, { person: 0, status: 0 }, not(riya[0]?.id));
+    expect(left?.at).toEqual({ person: 0, status: 0 });
+    expect(left?.queue[0]?.statuses[0]?.id).toBe(riya[1]?.id);
+  });
+
+  it('a person’s last one gone: the next person’s first', () => {
+    const left = withoutStatuses(queue, { person: 0, status: 1 }, not(riya[1]?.id));
+    expect(left?.at).toEqual({ person: 1, status: 0 });
+  });
+
+  it('a person with nothing left drops out; the one on screen stays put', () => {
+    const left = withoutStatuses(queue, { person: 1, status: 0 }, not(riya[0]?.id, riya[1]?.id));
+    expect(left && ids(left.queue)).toHaveLength(queue.length - 1);
+    expect(left?.at).toEqual({ person: 0, status: 0 });
+    expect(left?.queue[0]?.user.id).toBe(queue[1]?.user.id);
+  });
+
+  it('the very last one gone: the one before it; nothing left: null (the viewer closes)', () => {
+    const lastPerson = queue.length - 1;
+    const lastId = queue[lastPerson]?.statuses.at(-1)?.id;
+    const left = withoutStatuses(queue, { person: lastPerson, status: 0 }, not(lastId));
+    const end = left?.queue.at(-1);
+    expect(left?.at).toEqual({
+      person: (left?.queue.length ?? 0) - 1,
+      status: (end?.statuses.length ?? 0) - 1,
+    });
+    expect(withoutStatuses(queue, { person: 0, status: 0 }, () => false)).toBeNull();
   });
 });

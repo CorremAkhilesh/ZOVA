@@ -18,6 +18,7 @@ export function ViewersSheet({ statusId, onClose }: { statusId: string; onClose:
     <Dialog open onOpenChange={(open) => (open ? undefined : onClose())}>
       <DialogContent
         title={t('updates.viewedBy', { count: viewers.data?.count ?? 0 })}
+        layer="top"
         className="max-w-sm"
       >
         {viewers.isPending ? (

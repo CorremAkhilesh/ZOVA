@@ -28,7 +28,8 @@ export const FONT_CLASSES: Record<StatusFont, string> = {
 
 /** Shorter texts are shown bigger. */
 export function textSizeClass(text: string): string {
-  if (text.length <= 40) return 'text-3xl md:text-4xl';
-  if (text.length <= 140) return 'text-2xl md:text-3xl';
-  return 'text-lg md:text-xl';
+  if (text.length <= 40) return 'text-4xl md:text-5xl';
+  if (text.length <= 140) return 'text-3xl md:text-4xl';
+  if (text.length <= 400) return 'text-2xl md:text-3xl';
+  return 'text-xl md:text-2xl';
 }

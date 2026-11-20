@@ -7,10 +7,12 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSession } from '@/features/auth/session';
 import { useLocalDb } from '@/features/chats/queries';
+import { useIsDesktop } from '@/lib/hooks';
 import { refreshStatuses, useStatusFeed } from '../feed';
 import { useStatusViewer, type ViewerPerson } from '../viewer/queue';
 import { StatusViewer } from '../viewer/StatusViewer';
 import { MediaStatusPicker } from './MediaStatusSheet';
+import { StatusEmptyPane } from './StatusEmptyPane';
 import { StatusRow } from './StatusRow';
 import { TextStatusEditor } from './TextStatusEditor';
 
@@ -44,8 +46,25 @@ function Section(props: { id: string; title: string; people: StatusPerson[] }) {
   );
 }
 
-/** The Status tab: mine first, then everyone else's, newest first; muted people at the bottom. */
+/**
+ * The Status tab: mine first, then everyone else's, newest first; muted people at the bottom.
+ * Wider screens (≥768 px): the list on the left, and on the right a quiet pane until a status opens
+ * (the viewer then fills the window).
+ */
 export function StatusScreen() {
+  const isDesktop = useIsDesktop();
+  if (!isDesktop) return <StatusList />;
+  return (
+    <div className="flex h-full min-h-0">
+      <div className="glass h-full w-[22rem] shrink-0 border-r lg:w-[26rem]">
+        <StatusList />
+      </div>
+      <StatusEmptyPane />
+    </div>
+  );
+}
+
+function StatusList() {
   const { t } = useTranslation();
   const db = useLocalDb();
   const feed = useStatusFeed();

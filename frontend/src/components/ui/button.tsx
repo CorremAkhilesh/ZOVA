@@ -13,7 +13,9 @@ const buttonVariants = cva(
         outline: 'border bg-surface text-text hover:bg-background',
         ghost: 'text-text-muted hover:bg-background hover:text-text',
         subtle: 'bg-brand-subtle text-brand-text hover:bg-brand-subtle/80',
-        danger: 'bg-danger text-white shadow-sm hover:bg-danger/90',
+        // Dark theme's danger is a light red: white words need a deeper one (AA).
+        danger:
+          'bg-danger text-white shadow-sm hover:bg-danger/90 dark:bg-[#B91C1C] dark:hover:bg-[#991B1B]',
         'danger-outline': 'border border-danger/40 bg-surface text-danger hover:bg-danger/10',
       },
       size: {

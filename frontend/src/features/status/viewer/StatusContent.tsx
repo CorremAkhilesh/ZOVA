@@ -43,14 +43,12 @@ export function StatusContent({ status, paused, onVideoLength, onWaiting }: Stat
   }, [status.kind, link.data, onWaiting]);
 
   if (status.kind === 'text') {
+    // The colour fills the whole window (StatusBackdrop); here only the words, big and centred.
     return (
-      <div
-        className="grid h-full w-full place-items-center p-8 text-center text-white"
-        style={status.style ? backgroundStyle(status.style.background) : undefined}
-      >
+      <div className="grid h-full w-full place-items-center overflow-y-auto px-6 py-24 text-center text-white md:px-10 md:py-8">
         <p
           className={cn(
-            'max-w-xl leading-snug break-words whitespace-pre-wrap',
+            'max-w-2xl leading-tight break-words whitespace-pre-wrap [text-shadow:0_1px_3px_rgb(0_0_0/0.25)]',
             FONT_CLASSES[status.style?.font ?? 'sans'],
             textSizeClass(status.text ?? ''),
           )}
@@ -68,20 +66,14 @@ export function StatusContent({ status, paused, onVideoLength, onWaiting }: Stat
     );
   }
   return (
-    <div className="relative grid h-full w-full place-items-center bg-black">
-      {status.media?.placeholder ? (
-        <img
-          src={status.media.placeholder}
-          alt=""
-          aria-hidden
-          className="absolute inset-0 h-full w-full scale-110 object-cover opacity-40 blur-2xl"
-        />
-      ) : null}
+    // Absolutely filling the stage, so the picture's max height is the stage's: never cut, never
+    // under the reply box, its own shape kept.
+    <div className="absolute inset-0 flex items-center justify-center">
       {link.data && status.kind === 'image' ? (
         <img
           src={link.data.url}
           alt={status.text ?? t('updates.photo')}
-          className="relative max-h-full max-w-full object-contain"
+          className="relative max-h-full max-w-full object-contain md:rounded-lg md:shadow-2xl"
         />
       ) : null}
       {link.data && status.kind === 'video' ? (
@@ -92,16 +84,43 @@ export function StatusContent({ status, paused, onVideoLength, onWaiting }: Stat
           autoPlay
           playsInline
           aria-label={status.text ?? t('updates.video')}
-          className="relative max-h-full max-w-full object-contain"
+          className="relative max-h-full max-w-full object-contain md:rounded-lg md:shadow-2xl"
           onLoadedMetadata={(event) => onVideoLength(event.currentTarget.duration)}
           onWaiting={() => onWaiting(true)}
           onPlaying={() => onWaiting(false)}
         />
       ) : null}
       {status.text ? (
-        <p className="absolute inset-x-0 bottom-24 mx-auto max-w-xl px-6 text-center text-base text-white drop-shadow-[0_1px_2px_rgb(0_0_0/0.8)]">
+        <p className="absolute inset-x-0 bottom-28 mx-auto w-fit max-w-[calc(100%-2rem)] rounded-xl bg-black/55 px-4 py-2 text-center text-base text-white backdrop-blur-sm md:bottom-4">
           {status.text}
         </p>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * Behind everything, filling the window: a text status's colour; a photo's own colours, blurred
+ * (its tiny placeholder); else near-black.
+ */
+export function StatusBackdrop({ status }: { status: Status }) {
+  if (status.kind === 'text') {
+    return (
+      <div
+        aria-hidden
+        className="absolute inset-0"
+        style={status.style ? backgroundStyle(status.style.background) : undefined}
+      />
+    );
+  }
+  return (
+    <div aria-hidden className="absolute inset-0 overflow-hidden bg-[#0b0b12]">
+      {status.media?.placeholder ? (
+        <img
+          src={status.media.placeholder}
+          alt=""
+          className="h-full w-full scale-110 object-cover opacity-45 blur-3xl"
+        />
       ) : null}
     </div>
   );
