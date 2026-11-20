@@ -45,11 +45,44 @@ export function durationOf(status: Status, videoSeconds?: number): number {
   return seconds > 0 ? Math.min(seconds, 60) * 1000 : STILL_MS;
 }
 
+/**
+ * The queue without the statuses `keep` refuses (deleted, by me here or anywhere else, or expired).
+ * The viewer stays on the same status if it is still there; if it went, on the one after it (the
+ * same person's next, else the next person's first, else the last one left). Null: nothing left.
+ */
+export function withoutStatuses(
+  queue: ViewerPerson[],
+  at: ViewerPosition,
+  keep: (status: Status) => boolean,
+): { queue: ViewerPerson[]; at: ViewerPosition } | null {
+  const people: ViewerPerson[] = [];
+  let next: ViewerPosition | null = null;
+  for (const [personIndex, person] of queue.entries()) {
+    const statuses = person.statuses.filter(keep);
+    if (statuses.length === 0) continue;
+    people.push({ ...person, statuses });
+    if (next || personIndex < at.person) continue;
+    // The person being watched: this status, else the first after it that is left. Later people:
+    // their first.
+    const from =
+      personIndex === at.person ? person.statuses.slice(at.status).find(keep) : statuses[0];
+    if (from) next = { person: people.length - 1, status: statuses.indexOf(from) };
+  }
+  const last = people.at(-1);
+  if (!last) return null;
+  return {
+    queue: people,
+    at: next ?? { person: people.length - 1, status: last.statuses.length - 1 },
+  };
+}
+
 interface StatusViewerState {
   queue: ViewerPerson[] | null;
   at: ViewerPosition;
   open: (queue: ViewerPerson[], person: number) => void;
   go: (at: ViewerPosition) => void;
+  /** Takes out statuses that are gone; closes the viewer if none are left. */
+  keepOnly: (keep: (status: Status) => boolean) => void;
   close: () => void;
 }
 
@@ -62,5 +95,13 @@ export const useStatusViewer = create<StatusViewerState>()((set) => ({
     set({ queue, at: { person, status: chosen ? firstUnseen(chosen) : 0 } });
   },
   go: (at) => set({ at }),
+  keepOnly: (keep) =>
+    set((state) => {
+      if (!state.queue) return state;
+      const gone = state.queue.some((person) => person.statuses.some((status) => !keep(status)));
+      if (!gone) return state;
+      const left = withoutStatuses(state.queue, state.at, keep);
+      return left ?? { queue: null, at: { person: 0, status: 0 } };
+    }),
   close: () => set({ queue: null, at: { person: 0, status: 0 } }),
 }));

@@ -46,7 +46,13 @@ function ReportDialog({ request, onClose }: { request: ReportRequest; onClose: (
           : t('report.titleUser', { name: person?.displayName ?? '' });
   return (
     <Dialog open onOpenChange={(open) => (open ? undefined : onClose())}>
-      <DialogContent title={title} description={t('report.explain')} className="max-w-md">
+      <DialogContent
+        title={title}
+        description={t('report.explain')}
+        className="max-w-md"
+        // Opened from anywhere, the status viewer included: always on top.
+        layer="top"
+      >
         <form
           className="space-y-4"
           onSubmit={(event) => {
@@ -125,6 +131,7 @@ function BlockDialog({
         title={t('blocks.confirmTitle', { name: person.displayName })}
         description={t('blocks.confirmText')}
         className="max-w-sm"
+        layer="top"
       >
         <div className="flex justify-end gap-2">
           <Button variant="ghost" onClick={onClose}>

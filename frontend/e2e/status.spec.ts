@@ -72,18 +72,22 @@ test('post a status, a colleague sees it, views it and replies; the excluded one
   await toStatus(asha.page);
   await postText(asha.page, 'Standup moved to 11 today');
   await postPhoto(asha.page, 'New office plants');
-  await expect(asha.page.getByRole('button', { name: /^My status, 2 updates/ })).toBeVisible(SLOW);
+  await expect(asha.page.getByRole('button', { name: /^My status 2 updates/ })).toBeVisible(SLOW);
 
   // It arrives by itself (socket), in "Recent updates", with a ring of two parts.
   const recent = bharat.page.getByRole('list', { name: 'Recent updates' });
-  await expect(recent.getByRole('button', { name: /^Asha.*new/ })).toBeVisible(SLOW);
-  await expect(recent.getByTestId('status-ring').locator('circle')).toHaveCount(2);
+  const fromAsha = recent.getByRole('button', { name: /^Asha.*new/ });
+  await expect(fromAsha).toBeVisible(SLOW);
+  // Asha's ring only: other tests' people post statuses too.
+  await expect(fromAsha.getByTestId('status-ring').locator('circle')).toHaveCount(2);
   await shot(bharat.page, 'list-phone');
 
   await row(bharat.page, asha).click();
   const viewer = bharat.page.getByRole('dialog', { name: 'Asha’s status' });
   await expect(viewer.getByText('Standup moved to 11 today')).toBeVisible(SLOW);
   await shot(bharat.page, 'viewer-text-phone');
+  // On a phone the reply box opens from the "Reply" bar under the status.
+  await viewer.getByRole('button', { name: 'Reply', exact: true }).click();
   await viewer.getByRole('textbox', { name: /Reply to Asha/ }).fill('On it, thanks!');
   await viewer.getByRole('button', { name: 'Send reply' }).click();
   await expect(bharat.page.getByText('Sent to Asha')).toBeVisible(SLOW);

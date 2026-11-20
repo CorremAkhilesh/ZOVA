@@ -1502,7 +1502,14 @@
     "privacyRemove": "Remove {{name}}",
     "privacySearch": "Find colleagues",
     "privacyResults": "Colleagues",
-    "privacyFailed": "Couldn’t save your status privacy."
+    "privacyFailed": "Couldn’t save your status privacy.",
+    "reply": "Reply",
+    "previous": "Previous status",
+    "next": "Next status",
+    "deleteConfirm": "Delete",
+    "paneTitle": "Status updates",
+    "paneHint": "Click on a contact to view their status updates",
+    "paneNote": "Status updates disappear after 24 hours."
   },
   "adminPush": {
     "title": "Notifications",

@@ -60,13 +60,16 @@ export async function reactToStatus(owner: PublicProfile, status: Status, emoji:
   return replyToStatus(owner, status, emoji);
 }
 
-/** Mine only: gone for everyone. */
+/** Mine only: gone for everyone. Out of my list at once; if the server refuses, it comes back. */
 export async function deleteMyStatus(status: Status) {
   const db = dbOf();
   if (db)
     await patchFeed(db, (feed) => ({ ...feed, mine: feed.mine.filter((s) => s.id !== status.id) }));
-  await statusApi.remove(status.id);
-  if (db) void refreshStatuses(db);
+  try {
+    await statusApi.remove(status.id);
+  } finally {
+    if (db) void refreshStatuses(db);
+  }
 }
 
 /** Muted people move to "Muted" in my list; nobody else knows. */

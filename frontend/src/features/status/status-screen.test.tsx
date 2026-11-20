@@ -52,7 +52,7 @@ afterEach(() => {
 const open = async (width = DESKTOP_WIDTH) => {
   const view = await renderApp('/updates', { width });
   await screen.findByRole('heading', { name: 'Status', level: 1 }, SLOW);
-  await screen.findByRole('button', { name: /^Riya Shah,/ }, SLOW);
+  await screen.findByRole('button', { name: /^Riya Shah / }, SLOW);
   return view;
 };
 const viewer = () => screen.findByRole('dialog', { name: /’s status|My status/ }, SLOW);
@@ -68,7 +68,7 @@ describe('the status list', () => {
   it('shows mine, then new, seen and muted people, each in a ring with one part per status', async () => {
     const { container } = await open();
     expect(
-      screen.getByRole('button', { name: /My status, Tap to add a status update/ }),
+      screen.getByRole('button', { name: /My status Tap to add a status update/ }),
     ).toBeInTheDocument();
     const recent = screen.getByRole('list', { name: 'Recent updates' });
     expect(within(recent).getByRole('button', { name: /Riya Shah.*new/ })).toBeInTheDocument();
@@ -98,7 +98,7 @@ describe('the status list', () => {
 describe('the viewer', () => {
   it('starts at the first unseen, marks it seen, and taps move right and left', async () => {
     await open();
-    fireEvent.click(screen.getByRole('button', { name: /^Riya Shah,/ }));
+    fireEvent.click(screen.getByRole('button', { name: /^Riya Shah / }));
     const dialog = await viewer();
     expect(within(dialog).getByText('first from Riya')).toBeInTheDocument();
     await waitFor(() => expect(views).toContain(feed.people[0]?.statuses[0]?.id));
@@ -116,21 +116,21 @@ describe('the viewer', () => {
     const vikram = feed.people[1];
     if (vikram) vikram.statuses = vikram.statuses.map((status) => ({ ...status, viewed: false }));
     await open();
-    fireEvent.click(screen.getByRole('button', { name: /^Riya Shah,/ }));
+    fireEvent.click(screen.getByRole('button', { name: /^Riya Shah / }));
     const dialog = await viewer();
     await user.keyboard('{ArrowRight}');
     expect(await within(dialog).findByText('second from Riya')).toBeInTheDocument();
     await user.keyboard('{ArrowRight}');
-    expect(await screen.findByText('from Vikram')).toBeInTheDocument();
+    expect(await within(dialog).findByText('from Vikram')).toBeInTheDocument();
     await user.keyboard('{ArrowLeft}');
-    expect(await screen.findByText('second from Riya')).toBeInTheDocument();
+    expect(await within(dialog).findByText('second from Riya')).toBeInTheDocument();
     await user.keyboard('{Escape}');
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 
   it('holding pauses (a long press moves nowhere), and swiping down closes', async () => {
     await open(MOBILE_WIDTH);
-    fireEvent.click(screen.getByRole('button', { name: /^Riya Shah,/ }));
+    fireEvent.click(screen.getByRole('button', { name: /^Riya Shah / }));
     const dialog = await viewer();
     const area = pictureArea(dialog);
     fireEvent.pointerDown(area, { clientX: 250, clientY: 200, button: 0 });
@@ -147,7 +147,7 @@ describe('the viewer', () => {
     await open();
     await waitFor(() => expect(useSyncStore.getState().client).not.toBeNull());
     act(() => lastSocket().receive('connect'));
-    fireEvent.click(screen.getByRole('button', { name: /^Riya Shah,/ }));
+    fireEvent.click(screen.getByRole('button', { name: /^Riya Shah / }));
     const dialog = await viewer();
     await user.type(
       within(dialog).getByRole('textbox', { name: 'Reply to Riya Shah' }),
