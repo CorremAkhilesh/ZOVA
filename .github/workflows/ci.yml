@@ -269,6 +269,15 @@ jobs:
           pnpm --filter @zuvo/frontend exec playwright test e2e/sync-stress.spec.ts
           --project chromium --repeat-each 10 --retries 0 --workers 1 --reporter list
 
+      # A failed run says which messages never reached the server and what each outbox held.
+      - name: Keep the failure report
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: sync-stress-failure
+          path: frontend/test-results/
+          retention-days: 7
+
   # The one E2E check for branch protection, whatever the matrix holds: one HTML report for all
   # shards, and green only if every shard passed.
   e2e-report:

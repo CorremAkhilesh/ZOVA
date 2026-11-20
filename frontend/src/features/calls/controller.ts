@@ -107,6 +107,7 @@ export function startCalls(socket: CallSocket, me: string) {
       send: (signal) => void emit('call:signal', { callId: call.id, signal }),
       beat: () => void emit('call:beat', { callId: call.id }),
       onConnected: () => send({ type: 'connected', at: Date.now() }),
+      onRerouting: () => send({ type: 'rerouting' }),
       onLost: () => send({ type: 'media-lost' }),
       onGiveUp: () => hangUp('failed'),
       onQuality: (quality) => send({ type: 'quality', quality }),

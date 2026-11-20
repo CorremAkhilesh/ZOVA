@@ -60,7 +60,23 @@ Option B adds no risk to the shared company server, needs no Nginx change, and t
 coturn. Voice relay traffic is small. If calls become heavy, or EasyDrop's server changes hands, move
 TURN to its own small VPS with the same settings; only `CALLS_TURN_URLS` and `CALLS_TURN_SECRET` change.
 
-## Steps for Option B (prepared, not run)
+## Decided (Option B on coturn 4.6.1, system package)
+
+- Zuvo gets its **own secret** as a second `static-auth-secret=` line in `/etc/turnserver.conf`. As far
+  as we know, coturn accepts any of the listed secrets (that is how secrets are rotated); step D2 checks
+  that EasyDrop's own secret still works. EasyDrop's line, realm, ports and quotas stay as they are. The
+  sqlite `turnadmin` route was not chosen: it would move EasyDrop's secret out of the file.
+- One realm (EasyDrop's): with time-limited credentials the realm is a label, not a boundary; the
+  separate secret is what keeps the products apart.
+- coturn reads secrets on restart only; restart when no relay port is in use (a second or so).
+- UDP 3478 only (no TCP/TLS on that server): networks that block UDP will still fail. Adding TCP or TLS
+  there would change EasyDrop's server; a dedicated Zuvo TURN can offer them later.
+- The app tries direct routes first; after 10 s without a connection it uses the relay only ("Trying
+  another route…"), so relay use stays small (voice: 50–100 kbit/s per call).
+- The exact commands (backup, add the line, restart when idle, verify both secrets with
+  `turnutils_uclient`, rollback) were given to the owner in the session, with placeholders only here.
+
+## Steps for Option B (first draft, superseded by "Decided" above)
 
 Run on the **EasyDrop VPS** in PuTTY. Step 0 only reads; send its output before going further, because
 the layout (Docker or a system package, file path, secret style) decides the exact edit.

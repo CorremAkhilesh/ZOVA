@@ -4,6 +4,8 @@ import { type LinkState, PeerLink } from './rtc';
 
 /** Without audio for this long, the call is given up. */
 export const GIVE_UP_AFTER_MS = 30_000;
+/** Without a direct route by then, try the relay only ("Trying another route…"). */
+export const RELAY_AFTER_MS = 10_000;
 /** A lost path gets a little time to come back by itself before an ICE restart. */
 const RESTART_AFTER_MS = 2000;
 const QUALITY_EVERY_MS = 4000;
@@ -15,6 +17,8 @@ export interface MediaSessionOptions {
   send: (signal: CallSignal) => void;
   beat: () => void;
   onConnected: () => void;
+  /** Switching to the relay: the screen says "Trying another route…". */
+  onRerouting: () => void;
   onLost: () => void;
   onGiveUp: () => void;
   onQuality: (quality: Quality | null) => void;
@@ -33,6 +37,7 @@ export class MediaSession {
   private restartTimer: ReturnType<typeof setTimeout> | undefined;
   private giveUpTimer: ReturnType<typeof setTimeout> | undefined;
   private connectedOnce = false;
+  private relayTimer: ReturnType<typeof setTimeout> | undefined;
   private closed = false;
 
   constructor(options: MediaSessionOptions) {
@@ -56,6 +61,7 @@ export class MediaSession {
     this.timers.push(setInterval(options.beat, CALL_BEAT_SECONDS * 1000));
     // Not connected at all within the time limit (no route between the two): give up.
     this.giveUpTimer = setTimeout(() => this.giveUp(), GIVE_UP_AFTER_MS);
+    this.relayTimer = setTimeout(() => void this.reroute(), RELAY_AFTER_MS);
   }
 
   async start(): Promise<void> {
@@ -71,6 +77,7 @@ export class MediaSession {
     if (state === 'connected') {
       clearTimeout(this.restartTimer);
       clearTimeout(this.giveUpTimer);
+      clearTimeout(this.relayTimer);
       this.giveUpTimer = undefined;
       if (!this.connectedOnce) {
         this.connectedOnce = true;
@@ -87,6 +94,13 @@ export class MediaSession {
     );
     // Counted from the first loss: flapping on and off does not keep a dead call alive.
     this.giveUpTimer ??= setTimeout(() => this.giveUp(), GIVE_UP_AFTER_MS);
+  }
+
+  /** Still not connected after RELAY_AFTER_MS: the relay is the other route (if there is one). */
+  private async reroute() {
+    if (this.closed || this.connectedOnce || !this.link.hasRelay()) return;
+    this.options.onRerouting();
+    await this.link.relayOnly().catch(() => undefined);
   }
 
   private giveUp() {
@@ -122,6 +136,7 @@ export class MediaSession {
     for (const timer of this.timers) clearInterval(timer);
     clearTimeout(this.restartTimer);
     clearTimeout(this.giveUpTimer);
+    clearTimeout(this.relayTimer);
     this.link.close();
     for (const track of this.options.local.getTracks()) track.stop();
     this.audio.srcObject = null;
