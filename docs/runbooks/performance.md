@@ -149,6 +149,24 @@ after the service worker installs) and is the largest text on screen. It also ca
 CLS. Showing these cards below the list, or only after the first visit, would fix both: a product
 decision.
 
+## Audit 2026-11-20 (M10, L22): the signed-out pages
+
+Live Lighthouse (mobile) on the public pages scored 74 (sign-in) and 60 (Help), LCP 4.1–4.5 s. The
+sign-in page's code waited for ~1.3 s of script evaluation, then fetched a second wave of files.
+
+- **The sign-in page loaded the app shell.** The logo is shared by the shell and the sign-in card, so
+  it sat in `first-screen`, and the sign-in page fetched the whole file (62 KB gzip, 58 KB unused).
+  `bundling/chunks.ts` now keeps whatever the signed-out routes import out of `first-screen`.
+- **The local database (Dexie) was in the first load**, only to finish a rare unfinished wipe and to
+  wipe on sign-out. `main.tsx` checks a localStorage flag (`features/sync/wipe-flag.ts`) and
+  `auth/session.ts` imports the wipe only when it runs.
+- **Syntax highlighting (highlight.js, ~50 KB gzip) loaded with every chat**, Starred and admin
+  screen: in the `lib` group it shared a file with icons. It has its own `highlighter` group now, and
+  loads only when a code block shows.
+- Sign-in page JS: **463 → 316 KB gzip** (21 → 19 files); first load 322 → 289 KB gzip.
+- `pnpm --filter @zuvo/frontend size` (CI "Build + bundle budget") now also fails if a signed-out
+  screen reaches `first-screen`, or if anything but the highlight module imports highlight.js.
+
 ## Known gaps (not fixed here)
 
 - **Cold `/chats` on a slow phone** is slow in Lighthouse: the empty-device path waits for the
