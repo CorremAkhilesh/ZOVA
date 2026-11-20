@@ -9,6 +9,7 @@ import type {
 import Dexie, { type Table } from 'dexie';
 import type { ActionRow } from './actions-types';
 import { releaseAllFiles } from './held-files';
+import { hasPendingWipe, PENDING_WIPE_KEY } from './wipe-flag';
 
 /** Messages not yet accepted by the server sort after every real position. */
 export const PENDING_ORDER_BASE = 1e12;
@@ -167,7 +168,7 @@ export interface WipeResult {
 /** How long one delete may wait for other tabs to let go (tests shorten it), and how many times. */
 export const wipeTiming = { attemptMs: 3000 };
 const WIPE_ATTEMPTS = 3;
-const PENDING_KEY = 'zuvo-wipe-pending';
+const PENDING_KEY = PENDING_WIPE_KEY;
 
 const userDatabases = async () =>
   (await Dexie.getDatabaseNames()).filter((name) => name.startsWith(DB_PREFIX));
@@ -236,11 +237,4 @@ async function wipeOnce(): Promise<WipeResult> {
   }
 }
 
-/** A wipe that a blocked delete left unfinished. */
-export function hasPendingWipe(): boolean {
-  try {
-    return localStorage.getItem(PENDING_KEY) !== null;
-  } catch {
-    return false;
-  }
-}
+export { hasPendingWipe };
