@@ -188,3 +188,46 @@ export const previewOf = (
     : media
       ? toMediaPreview(media, text ?? undefined)
       : toPreview(text ?? '');
+
+/**
+ * Someone who left (or was removed) keeps the history up to then, as it was then: reactions and
+ * votes made after, and a poll closed after, are not theirs to see. Without a time (votes from
+ * before times were kept), a vote counts as made before.
+ */
+export function asOfLeaving(message: Message, leftAt: Date | null | undefined): Message {
+  if (!leftAt) return message;
+  const cut = leftAt.getTime();
+  const before = (at: string | null | undefined) => !at || Date.parse(at) <= cut;
+  const { poll } = message;
+  return {
+    ...message,
+    reactions: (message.reactions ?? []).filter((reaction) => before(reaction.at)),
+    ...(poll
+      ? {
+          poll: {
+            ...poll,
+            options: poll.options.map((option) => ({
+              ...option,
+              voterIds: option.voterIds.filter((id) => before(poll.votedAt?.[id])),
+            })),
+            votedAt: Object.fromEntries(
+              Object.entries(poll.votedAt ?? {}).filter(([, at]) => before(at)),
+            ),
+            closedAt: poll.closedAt && before(poll.closedAt) ? poll.closedAt : null,
+          },
+        }
+      : {}),
+  };
+}
+
+/** A message as one member sees it: quotes from before they could see, and nothing after they left. */
+export function forMember(
+  message: Message,
+  member: {
+    joinSeq?: number | undefined;
+    clearedSeq?: number | undefined;
+    leftAt?: Date | null | undefined;
+  },
+): Message {
+  return asOfLeaving(hideQuote(message, member), member.leftAt);
+}

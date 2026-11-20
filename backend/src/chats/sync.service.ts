@@ -4,7 +4,7 @@ import type { Types } from 'mongoose';
 import type { ChatMemberDoc, MessageDoc, UserUpdateDoc } from '../db/chat-models.ts';
 import { buildSummaries, chatModels, oid } from './chats.service.ts';
 import { withStars } from './history.service.ts';
-import { hideQuote, toMessage } from './message-format.ts';
+import { forMember, toMessage } from './message-format.ts';
 import { canSeeSeq, isExpiredDoc } from './visibility.ts';
 
 /** A new message, or one whose `played` changed: either way, this device needs its latest copy. */
@@ -49,7 +49,7 @@ function sortMessages(
     const id = doc._id.toString();
     if (hidden.has(id) || sent.has(id)) continue;
     sent.add(id);
-    (row.kind === 'updated' ? updated : messages).push(hideQuote(toMessage(doc, userId), member));
+    (row.kind === 'updated' ? updated : messages).push(forMember(toMessage(doc, userId), member));
   }
   return { messages, updated };
 }

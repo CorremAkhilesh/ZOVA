@@ -11,6 +11,7 @@ import {
 } from './group-core.ts';
 import { admitMembers, assertRoomFor } from './group-members.service.ts';
 import { assertAllowed, groupRules } from './group-permissions.ts';
+import { hiddenMemberCounts } from './hidden-members.ts';
 
 const newCode = () => randomBytes(16).toString('base64url');
 
@@ -59,11 +60,13 @@ export async function previewInvite(
     userId: oid(userId),
     leftAt: null,
   });
+  const hidden = await hiddenMemberCounts(app, userId, [chat._id]);
   return {
     chatId: chat._id.toString(),
     name: chat.group?.name ?? '',
     photo: chat.group?.photo ? `/v1/invites/${code}/photo` : null,
-    memberCount: chat.group?.memberCount ?? 0,
+    // Less any hidden admin, as the group itself shows it to a normal member.
+    memberCount: (chat.group?.memberCount ?? 0) - (hidden.get(chat._id.toString()) ?? 0),
     alreadyMember: member !== null,
   };
 }

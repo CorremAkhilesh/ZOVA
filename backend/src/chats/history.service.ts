@@ -1,7 +1,7 @@
 import type { Message } from '@zuvo/protocol';
 import type { FastifyInstance } from 'fastify';
 import { chatModels, oid } from './chats.service.ts';
-import { hideQuote, toMessage } from './message-format.ts';
+import { forMember, toMessage } from './message-format.ts';
 import { notExpired, requireParticipant, visibleSeqs } from './visibility.ts';
 
 /** What I hid in this chat. A person's own short list, so this stays cheap. */
@@ -53,7 +53,7 @@ export async function getHistory(
     .lean();
   const page = docs.slice(0, limit);
   if (!forward) page.reverse();
-  const items = page.map((doc) => hideQuote(toMessage(doc, userId), member));
+  const items = page.map((doc) => forMember(toMessage(doc, userId), member));
   return { items: await withStars(app, userId, items), hasMore: docs.length > limit };
 }
 

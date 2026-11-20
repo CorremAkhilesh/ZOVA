@@ -5,7 +5,7 @@ import type { ChatDoc, ChatMemberDoc, MessageDoc } from '../db/chat-models.ts';
 import { AppError } from '../lib/errors.ts';
 import { chatModels, oid, requireMember } from './chats.service.ts';
 import { namesOf } from './group-core.ts';
-import { hideQuote, previewOf, shownLast, toLastMessage, toMessage } from './message-format.ts';
+import { forMember, previewOf, shownLast, toLastMessage, toMessage } from './message-format.ts';
 import { logUpdates } from './updates.ts';
 import { canSeeSeq, requireParticipant } from './visibility.ts';
 
@@ -112,9 +112,13 @@ export async function logMessageUpdate(
   options: { only?: Types.ObjectId; chatChanged?: boolean } = {},
 ): Promise<PendingAnnouncement> {
   const models = chatModels(app);
-  const members = options.only
-    ? (await audience(app, session, doc)).filter((member) => member.userId.equals(options.only))
-    : await audience(app, session, doc);
+  // Someone who left hears only of a deletion (it must go from their copy) or of their own change
+  // (a star): anything else happened after their time.
+  const members = (await audience(app, session, doc)).filter((member) =>
+    options.only
+      ? member.userId.equals(options.only)
+      : !member.leftAt || doc.deletedForEveryoneAt !== null,
+  );
   const cursors = await logUpdates(
     models,
     session,
@@ -138,7 +142,7 @@ export function announceMessageUpdate(
   for (const member of members) {
     const viewerId = member.userId.toString();
     const cursor = cursors.get(viewerId) ?? '0';
-    const message = hideQuote(toMessage(doc, viewerId), member);
+    const message = forMember(toMessage(doc, viewerId), member);
     app.realtime.emitToUser(viewerId, 'message:updated', {
       message: stars?.userId === viewerId ? { ...message, starred: stars.starred } : message,
       cursor,
