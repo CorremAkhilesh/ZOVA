@@ -218,6 +218,57 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
+  # The live-sync stress test (e2e/sync-stress.spec.ts), ten times in a row with no retries: a race
+  # that shows once in ten is a bug, not bad luck.
+  sync-stress:
+    name: Sync stress (x10, Chromium)
+    needs: build
+    # On dev pushes and pull requests; the deploy (main) already ran it on the same code.
+    if: github.ref != 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      CI: true
+      MONGOMS_DOWNLOAD_DIR: ${{ github.workspace }}/.cache/mongodb-binaries
+      PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/.cache/ms-playwright
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+
+      - name: Download the built app
+        uses: actions/download-artifact@v8
+        with:
+          name: app-build
+
+      - name: Playwright version
+        id: playwright
+        working-directory: frontend
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Cache the Chromium browser
+        id: browser-cache
+        uses: actions/cache@v6
+        with:
+          path: ${{ env.PLAYWRIGHT_BROWSERS_PATH }}
+          key: playwright-${{ runner.os }}-chromium-${{ steps.playwright.outputs.version }}
+
+      - name: Install Chromium and its system libraries
+        if: steps.browser-cache.outputs.cache-hit != 'true'
+        run: pnpm --filter @zuvo/frontend exec playwright install --with-deps chromium
+
+      - name: Cache MongoDB binary (mongodb-memory-server)
+        uses: actions/cache@v6
+        with:
+          path: ${{ env.MONGOMS_DOWNLOAD_DIR }}
+          key: mongodb-binaries-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            mongodb-binaries-${{ runner.os }}-
+
+      - name: Run the sync stress test ten times
+        run: >-
+          pnpm --filter @zuvo/frontend exec playwright test e2e/sync-stress.spec.ts
+          --project chromium --repeat-each 10 --retries 0 --workers 1 --reporter list
+
   # The one E2E check for branch protection, whatever the matrix holds: one HTML report for all
   # shards, and green only if every shard passed.
   e2e-report:

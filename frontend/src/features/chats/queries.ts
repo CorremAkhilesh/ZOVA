@@ -1,5 +1,6 @@
 import Dexie from 'dexie';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { fillGaps } from '@/features/sync/gap-fill';
 import type { ChatRow, MessageRow } from '@/features/sync/local-db';
 import { getUserDb, type LocalDb, PENDING_ORDER_BASE } from '@/features/sync/local-db';
 import { useSyncStore } from '@/features/sync/store';
@@ -42,6 +43,8 @@ export function useChat(chatId: string): ChatRow | null | undefined {
   return useLive(async () => (await db?.chats.get(chatId)) ?? null, [db, chatId]);
 }
 
+/** After a change, wait this long (the message usually lands a moment after its chat line). */
+const GAP_CHECK_DELAY_MS = 400;
 /** Enough to fill a screen; a chat with fewer stored messages fetches more straight away. */
 const FIRST_SCREEN = 30;
 /** How much more of the local history to read each time the user scrolls near the top. */
@@ -109,6 +112,17 @@ export function useConversationMessages(chat: ChatRow): ConversationMessages {
 
   // History was never loaded on this device (a new device, or after a reset).
   const client = useSyncStore((state) => state.client);
+  // Holes (a message the chat list knows of but this device does not have): filled on opening and
+  // whenever the chat moves on. Local reads only, unless something is missing.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a new chat.seq is the reason to look again
+  useEffect(() => {
+    if (!db || !client) return;
+    const timer = setTimeout(
+      () => void fillGaps(db, client.userId, chat.id).catch(() => undefined),
+      GAP_CHECK_DELAY_MS,
+    );
+    return () => clearTimeout(timer);
+  }, [db, client, chat.id, chat.seq]);
   const shortOfHistory = rows !== undefined && rows.length < FIRST_SCREEN && moreOnServer;
   useEffect(() => {
     if (shortOfHistory && client && !loadFailed) loadOlder();

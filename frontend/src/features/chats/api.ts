@@ -42,4 +42,11 @@ export const chatsApi = {
       withQuery(`/v1/chats/${chatId}/messages`, { before, limit: MESSAGE_PAGE }),
       messageHistoryResponseSchema,
     ),
+
+  /** Messages strictly between two positions, oldest first: filling a hole (gap-fill.ts). */
+  range: (chatId: string, after: number, before: number) =>
+    apiGet(
+      withQuery(`/v1/chats/${chatId}/messages`, { after, before, limit: MESSAGE_PAGE }),
+      messageHistoryResponseSchema,
+    ),
 };

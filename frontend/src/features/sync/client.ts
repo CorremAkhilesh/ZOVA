@@ -18,6 +18,7 @@ import { ActionQueue } from './actions';
 import type { QueuedAction } from './actions-types';
 import { applyChats, applyReadAck } from './apply';
 import { trackAway } from './away';
+import { startGapWatch } from './gap-watch';
 import { loadOlderMessages, startReconciling } from './history';
 import { resetLiveStatus } from './live-status';
 import { getUserDb, type LocalDb, type MessageRow } from './local-db';
@@ -99,11 +100,15 @@ export function startSyncClient(options: SyncClientOptions): SyncClient {
   let failedAttempts = 0;
   let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
 
+  const gaps = startGapWatch(db, userId);
   const engine = new SyncEngine({
     db,
     me: userId,
     api: chatsApi,
-    onStatus: (sync) => setStore({ sync }),
+    onStatus: (sync) => {
+      setStore({ sync });
+      if (sync === 'idle') gaps.check();
+    },
     onUnauthorized: onSessionDoubt,
     onStatusesChanged: () => void refreshStatuses(db),
   });
@@ -291,6 +296,7 @@ export function startSyncClient(options: SyncClientOptions): SyncClient {
       deliveryAcks.stop();
       uploader.stop();
       reconciling.stop();
+      gaps.stop();
       resetLiveStatus();
       clearTimeout(reconnectTimer);
       window.removeEventListener('online', onOnline);

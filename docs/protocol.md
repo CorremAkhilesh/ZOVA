@@ -79,6 +79,16 @@ GET /v1/sync?since=<cursor>&limit=200
   - If it equals your cursor + 1, apply it and save the new cursor.
   - If it is higher, you missed something: call sync with your saved cursor.
   - If it is not higher, you already have it (`message:new` and `chat:updated` share one number).
+  - A `chat:updated` that names a last message never moves the cursor itself: its number is its
+    message's, and if it comes first (out of order, or its message failed to store) moving on would
+    lose that message for good. It merges, and if it was the next number, sync settles it.
+  - While a sync is filling a gap, live events still store and merge (so the screen updates at once)
+    but only the sync moves the cursor (`apply-live.ts`, `sync-engine.ts`).
+- **Holes heal themselves:** a chat's `seq` says how far it goes. When the stored messages fall short
+  of it, or skip a position, the app fetches just that range (`GET /v1/chats/:id/messages?after=&before=`)
+  and remembers positions the server does not return for it (deleted for me, expired). It checks
+  when a chat opens or moves on, after every finished sync, and when the app comes back to the front
+  (`gap-fill.ts`, `gap-watch.ts`). Nothing is asked when nothing is missing.
 - **On every reconnect:** call sync with your saved cursor. Repeat while `hasMore` is true.
 - **`reset: true`** means the cursor cannot be caught up from: it is missing, from the future, or older
   than the log keeps (30 days). Replace your cursor with the returned one and reload the chat list.

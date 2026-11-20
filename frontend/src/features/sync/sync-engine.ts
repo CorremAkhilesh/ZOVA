@@ -46,6 +46,11 @@ export class SyncEngine {
   private failures = 0;
   private retryTimer: ReturnType<typeof setTimeout> | undefined;
   private stopped = false;
+  /**
+   * A live event proved something missing (or failed to store). Until a sync run finishes, live
+   * events still store and merge but never move the cursor: only sync does (apply-live.ts).
+   */
+  private gapPending = false;
 
   constructor(options: SyncEngineOptions) {
     this.options = options;
@@ -70,7 +75,7 @@ export class SyncEngine {
 
   onMessage(message: Message, cursor: string): Promise<void> {
     const { db, me } = this.options;
-    return this.inOrder(() => applyLiveMessage(db, me, message, cursor));
+    return this.inOrder(() => applyLiveMessage(db, me, message, cursor, this.live()));
   }
 
   onChatChange(
@@ -78,30 +83,40 @@ export class SyncEngine {
     change: Parameters<typeof applyLiveChatChange>[2],
     cursor: string,
   ): Promise<void> {
-    return this.inOrder(() => applyLiveChatChange(this.options.db, chatId, change, cursor));
+    return this.inOrder(() =>
+      applyLiveChatChange(this.options.db, chatId, change, cursor, this.live()),
+    );
   }
 
   onUpdate(message: Message, cursor: string): Promise<void> {
-    return this.inOrder(() => applyLiveUpdate(this.options.db, message, cursor));
+    return this.inOrder(() => applyLiveUpdate(this.options.db, message, cursor, this.live()));
   }
 
   onRemoved(chatId: string, seq: number, cursor: string): Promise<void> {
-    return this.inOrder(() => applyLiveRemoval(this.options.db, chatId, seq, cursor));
+    return this.inOrder(() => applyLiveRemoval(this.options.db, chatId, seq, cursor, this.live()));
   }
 
   onCleared(
     change: { chatId: string; seq: number; removeChat: boolean },
     cursor: string,
   ): Promise<void> {
-    return this.inOrder(() => applyLiveClear(this.options.db, change, cursor));
+    return this.inOrder(() => applyLiveClear(this.options.db, change, cursor, this.live()));
+  }
+
+  private live() {
+    return { mayAdvance: !this.gapPending };
   }
 
   /** Events apply one at a time, in arrival order: database writes finish asynchronously. */
   private inOrder(apply: () => Promise<ApplyResult>): Promise<void> {
     const next = this.events.then(async () => {
       if (this.stopped) return;
+      // A failed write counts as missing: sync brings it again.
       const result = await apply().catch(() => 'gap' as const);
-      if (result === 'gap' && !this.stopped) void this.run();
+      if (result === 'gap' && !this.stopped) {
+        this.gapPending = true;
+        void this.run();
+      }
     });
     this.events = next;
     return next;
@@ -116,6 +131,8 @@ export class SyncEngine {
         this.again = false;
         await this.catchUp();
       } while (this.again && !this.stopped);
+      // Caught up, and nothing asked for more during the run: the cursor is whole again.
+      if (!this.again) this.gapPending = false;
       this.failures = 0;
       if (!this.stopped) onStatus?.('idle');
     } catch (error) {
