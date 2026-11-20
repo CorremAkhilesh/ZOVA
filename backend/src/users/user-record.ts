@@ -31,6 +31,8 @@ export interface UserDoc {
   lastLoginAt?: Date | null;
   /** When the last socket went away. Only ever shown through the presence privacy rules. */
   lastSeenAt?: Date | null;
+  /** This person's own storage limit in MiB, set by an admin; null or absent: the default. */
+  storageQuotaMb?: number | null;
   createdAt: Date;
 }
 

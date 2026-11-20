@@ -56,6 +56,10 @@ describe('message actions use an index', () => {
     await expectIndexedQuery(Message.find({ 'media.id': messageId.toString() }));
     await expectIndexedQuery(Message.find({ 'replyTo.id': messageId.toString() }).limit(100));
     await expectIndexedQuery(Media.find({ deleteRequestedAt: { $type: 'date' } }).limit(200));
+    // Storage quota and Settings → Storage: one person's pending and finished files.
+    await expectIndexedQuery(
+      Media.find({ ownerId: userId, status: { $in: ['pending', 'ready'] } }),
+    );
     await expectIndexedQuery(
       Message.findOne({ chatId, seq: { $lt: 5 }, _id: { $nin: [messageId] } }).sort({ seq: -1 }),
     );

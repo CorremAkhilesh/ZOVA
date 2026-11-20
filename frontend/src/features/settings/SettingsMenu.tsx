@@ -3,6 +3,7 @@ import {
   BellRing,
   ChevronRight,
   Flag,
+  HardDrive,
   LifeBuoy,
   MessagesSquare,
   MonitorSmartphone,
@@ -24,6 +25,7 @@ type Entry = {
     | '/settings/appearance'
     | '/settings/notifications'
     | '/settings/devices'
+    | '/settings/storage'
     | '/settings/admin/users'
     | '/settings/admin/reports'
     | '/settings/admin/audit'
@@ -110,6 +112,12 @@ export function SettingsMenu() {
             label: t('devices.title'),
             hint: t('devices.subtitle'),
             icon: MonitorSmartphone,
+          },
+          {
+            to: '/settings/storage',
+            label: t('storage.title'),
+            hint: t('storage.menuHint'),
+            icon: HardDrive,
           },
           { to: '/help', label: t('help.menuTitle'), hint: t('help.menuHint'), icon: LifeBuoy },
         ]}

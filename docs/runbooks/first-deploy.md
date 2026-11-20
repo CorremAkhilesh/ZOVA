@@ -138,5 +138,5 @@ Details, the real restore and the off-server options: `docs/runbooks/backups.md`
 | Deploy log           | `sudo tail -n 80 /var/log/correm-deploy/zuvo.log`                                                    |
 | App logs             | `sudo docker compose -p zuvo -f /var/www/zuvo/deploy/docker-compose.prod.yml logs --tail 100 api`    |
 | Emergency admin role | `sudo docker compose -p zuvo -f … exec api node dist/scripts/admin-role.js --email <e> --role admin` |
-| Disk space           | backup emails the admins from 80%; uploads stop at 90%. `df -h /var`, `du -sh /var/data/zuvo/*`      |
+| Disk space           | backup emails the admins from 80%; uploads stop at 85%. `df -h /var`, `du -sh /var/data/zuvo/*`      |
 | Reboot               | every service is `unless-stopped` and comes back by itself                                           |

@@ -116,6 +116,14 @@ const envSchema = z
       emptyToUndefined,
       z.coerce.number().int().min(1).max(102_400).default(1024),
     ),
+    /**
+     * Each person's storage limit, in MiB: their photos, videos, voice notes, documents and statuses
+     * together. An admin can give one person a different limit.
+     */
+    MEDIA_USER_QUOTA_MB: z.preprocess(
+      emptyToUndefined,
+      z.coerce.number().int().min(100).max(1_048_576).default(3072),
+    ),
     /** The longest voice note, in seconds. The app reads it from GET /v1/config. */
     VOICE_MAX_SECONDS: z.preprocess(
       emptyToUndefined,

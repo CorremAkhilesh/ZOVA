@@ -24,7 +24,7 @@ after setting it up and after any change to the Nginx site or the compose file. 
 
 - **Room for 1 GB files and their backups.** `/var/data/zuvo/uploads` holds what people send;
   `/var/backups/zuvo` holds the dumps and hard-linked daily media snapshots (same disk).
-- **New uploads stop at 90% used** ("The server is low on storage"); files already sent keep working.
+- **New uploads stop at 85% used** ("The server is low on storage"); files already sent keep working.
   Admin → Users shows how much each person stores.
 - **Finishing a file briefly needs its size twice** (`.uploads/` and storage); the 10% kept free covers
   it on any disk over 20 GB.
