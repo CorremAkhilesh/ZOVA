@@ -4,6 +4,7 @@ import Dexie from 'dexie';
 import { describe, expect, it, vi } from 'vitest';
 import { recentPeople } from '@/features/people/recent-people';
 import { uuidv7 } from '@/lib/uuid';
+import { indexedDbShareStore } from '@/sw/share/store';
 import { chatFixture, ME_ID, personFixture, syncPage } from '@/test/chat-fixtures';
 import { HttpResponse, http, server, signedOut } from '@/test/msw';
 import { DESKTOP_WIDTH, renderApp } from '@/test/render-app';
@@ -76,6 +77,15 @@ describe('wiping local data', () => {
     server.use(http.post('*/v1/auth/logout', () => HttpResponse.json({ status: 'signed_out' })));
     await seed();
     recentPeople.add(personFixture());
+    // Something shared into the app and never sent: the next person must not find it.
+    await indexedDbShareStore().put({
+      id: 'left-behind',
+      createdAt: Date.now(),
+      title: '',
+      text: 'shared secret',
+      url: '',
+      files: [],
+    });
     const user = userEvent.setup();
     const { router } = await renderApp('/settings', { width: DESKTOP_WIDTH });
     server.use(signedOut());

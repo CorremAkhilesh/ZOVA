@@ -8,6 +8,7 @@ import {
 import type { FastifyInstance } from 'fastify';
 import { Types } from 'mongoose';
 import { AppError } from '../lib/errors.ts';
+import { blockersAmong } from '../moderation/blocks.service.ts';
 import { processAvatar } from '../users/avatar.ts';
 import { hiddenAmong } from '../users/hidden-admins.ts';
 import { type UserDoc, usersModel } from '../users/user-record.ts';
@@ -34,7 +35,9 @@ export async function requireActiveUsers(app: FastifyInstance, actorId: string, 
     throw new AppError('NOT_FOUND', 'User not found.');
   }
   const active = users.filter((user) => user.status !== 'deactivated');
-  if (active.length !== userIds.length) {
+  // Nobody is put in a group by someone they blocked: the same answer as for anyone unavailable.
+  const blockers = await blockersAmong(app, actorId, userIds);
+  if (active.length !== userIds.length || blockers.size > 0) {
     throw new AppError('BAD_REQUEST', 'Someone in this list cannot be added.');
   }
 }

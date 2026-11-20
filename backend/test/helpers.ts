@@ -67,6 +67,11 @@ export async function buildTestApp(
   );
   // No mailer override: test mode uses the in-memory mailer, so tests can read OTPs.
   const app = await buildApp(env, { redis: null, ...deps });
+  // Tests never depend on how full this machine's disk is: past 85% the API refuses uploads, and a
+  // shared dev PC can be. Disk tests mock `space` themselves.
+  if (!deps.storage) {
+    app.storage.space = async () => ({ total: 1_000_000 * 1024 ** 3, free: 900_000 * 1024 ** 3 });
+  }
 
   const cleanup = async () => {
     await app.mongo.dropDatabase();

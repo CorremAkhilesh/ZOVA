@@ -11,6 +11,7 @@ import {
 } from './group-core.ts';
 import { admitMembers, assertRoomFor } from './group-members.service.ts';
 import { assertAllowed, groupRules } from './group-permissions.ts';
+import { hiddenMemberCounts } from './hidden-members.ts';
 
 const newCode = () => randomBytes(16).toString('base64url');
 
@@ -59,11 +60,13 @@ export async function previewInvite(
     userId: oid(userId),
     leftAt: null,
   });
+  const hidden = await hiddenMemberCounts(app, userId, [chat._id]);
   return {
     chatId: chat._id.toString(),
     name: chat.group?.name ?? '',
     photo: chat.group?.photo ? `/v1/invites/${code}/photo` : null,
-    memberCount: chat.group?.memberCount ?? 0,
+    // Less any hidden admin, as the group itself shows it to a normal member.
+    memberCount: (chat.group?.memberCount ?? 0) - (hidden.get(chat._id.toString()) ?? 0),
     alreadyMember: member !== null,
   };
 }
@@ -85,12 +88,18 @@ export async function joinByInvite(app: FastifyInstance, userId: string, code: s
   }
   const chat = await findByCode(app, code);
   const chatId = chat._id.toString();
-  const already = await chatModels(app).ChatMember.exists({
-    chatId: chat._id,
-    userId: oid(userId),
-    leftAt: null,
-  });
-  if (already) return getChat(app, chatId, userId);
+  // Index: { chatId, userId } unique.
+  const mine = await chatModels(app)
+    .ChatMember.findOne({ chatId: chat._id, userId: oid(userId) })
+    .select({ leftAt: 1, removedAt: 1 })
+    .lean();
+  if (mine && !mine.leftAt) return getChat(app, chatId, userId);
+  if (mine?.removedAt) {
+    throw new AppError(
+      'FORBIDDEN',
+      'You were removed from this group. Only an admin can add you back.',
+    );
+  }
   assertRoomFor(chat, 1);
   const name = await namesOf(app, [userId]);
   const at = new Date();

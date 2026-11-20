@@ -30,6 +30,7 @@ function snapshotOf(doc: MessageDoc, senderName: string | null): LastMessageSnap
     preview: deleted ? '' : previewOf(doc.media, doc.text, doc.poll),
     ...(doc.system ? { system: doc.system } : {}),
     ...(deleted ? { deleted: true } : {}),
+    ...(doc.expiresAt ? { expiresAt: doc.expiresAt } : {}),
     createdAt: doc.createdAt,
   };
 }

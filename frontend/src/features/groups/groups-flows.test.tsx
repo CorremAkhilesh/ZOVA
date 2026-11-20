@@ -194,6 +194,24 @@ describe('the join page', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('no longer valid');
   });
 
+  it('says plainly why someone removed from the group cannot join again', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.get('*/v1/invites/:code', () => HttpResponse.json(preview)),
+      http.post('*/v1/invites/:code/join', () =>
+        HttpResponse.json(
+          { code: 'FORBIDDEN', message: 'removed (server text)', requestId: 'r' },
+          { status: 403 },
+        ),
+      ),
+    );
+    await renderApp('/join/abcdefghijklmnopqr', { width: DESKTOP_WIDTH });
+    await user.click(await screen.findByRole('button', { name: 'Join' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'An admin removed you from this group. Only an admin can add you back.',
+    );
+  });
+
   it('offers to open a group I am already in', async () => {
     server.use(
       http.get('*/v1/invites/:code', () => HttpResponse.json({ ...preview, alreadyMember: true })),

@@ -32,6 +32,9 @@ const SECRET_KEYS = [
   'SMTP_PASS',
   'AUTH_SECRET',
   'VAPID_PRIVATE_KEY',
+  // TURN: the shared secret, and the short-lived credentials made from it.
+  'CALLS_TURN_SECRET',
+  'credential',
 ];
 
 /** Log paths that may carry secrets. Values at these paths are never written to logs. */
