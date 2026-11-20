@@ -18,6 +18,7 @@ import { adminRoutes } from './modules/admin/admin.routes.ts';
 import { adminNotificationsRoutes } from './modules/admin/admin-notifications.routes.ts';
 import { appearanceRoutes } from './modules/appearance/appearance.routes.ts';
 import { authRoutes } from './modules/auth/auth.routes.ts';
+import { callsRoutes } from './modules/calls/calls.routes.ts';
 import { chatsRoutes } from './modules/chats/chats.routes.ts';
 import { disappearingRoutes } from './modules/chats/disappearing.routes.ts';
 import { draftsRoutes } from './modules/chats/drafts.routes.ts';
@@ -48,6 +49,7 @@ import { scheduledTestRoutes } from './modules/test-support/scheduled.routes.ts'
 import { meRoutes } from './modules/users/me.routes.ts';
 import { usersRoutes } from './modules/users/users.routes.ts';
 import { authPlugin } from './plugins/auth.ts';
+import { callsPlugin } from './plugins/calls.ts';
 import { docsPlugin } from './plugins/docs.ts';
 import { errorHandlerPlugin } from './plugins/error-handler.ts';
 import { expirySweepPlugin, SWEEP_EVERY_MS } from './plugins/expiry-sweep.ts';
@@ -149,6 +151,8 @@ export async function buildApp(env: Env, deps: Partial<AppDeps> = {}) {
     ...(deps.realtimeKey !== undefined ? { adapterKey: deps.realtimeKey } : {}),
   });
 
+  await app.register(callsPlugin);
+
   // Multipart only for uploads; each route sets its own file-size limit.
   await app.register(multipart, { limits: { files: 1, fields: 5, fileSize: AVATAR_MAX_BYTES } });
 
@@ -178,6 +182,7 @@ export async function buildApp(env: Env, deps: Partial<AppDeps> = {}) {
   await app.register(pollsRoutes, { prefix: '/v1' });
   await app.register(scheduledRoutes, { prefix: '/v1' });
   await app.register(statusRoutes, { prefix: '/v1' });
+  await app.register(callsRoutes, { prefix: '/v1' });
   await app.register(disappearingRoutes, { prefix: '/v1' });
   await app.register(viewOnceRoutes, { prefix: '/v1' });
   await app.register(pushRoutes, { prefix: '/v1' });

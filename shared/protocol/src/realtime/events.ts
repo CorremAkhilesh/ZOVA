@@ -14,6 +14,16 @@ import {
 } from './account.ts';
 import type { AckResponse } from './ack.ts';
 import {
+  callAcceptAckSchema,
+  callIdPayloadSchema,
+  callIncomingEventSchema,
+  callSignalEventSchema,
+  callSignalPayloadSchema,
+  callStartAckSchema,
+  callStartPayloadSchema,
+  callUpdateEventSchema,
+} from './calls.ts';
+import {
   chatClearedEventSchema,
   chatUpdatedEventSchema,
   deliveredUpdateAckSchema,
@@ -62,6 +72,13 @@ export const clientToServerEvents = {
   },
   'presence:active': { payload: presenceActivePayloadSchema, ack: z.object({}) },
   'window:state': { payload: windowStatePayloadSchema, ack: z.object({}) },
+  'call:start': { payload: callStartPayloadSchema, ack: callStartAckSchema },
+  'call:ringing': { payload: callIdPayloadSchema, ack: z.object({}) },
+  'call:accept': { payload: callIdPayloadSchema, ack: callAcceptAckSchema },
+  'call:decline': { payload: callIdPayloadSchema, ack: z.object({}) },
+  'call:end': { payload: callIdPayloadSchema, ack: z.object({}) },
+  'call:signal': { payload: callSignalPayloadSchema, ack: z.object({}) },
+  'call:beat': { payload: callIdPayloadSchema, ack: z.object({}) },
 } satisfies Record<string, ClientEventDefinition>;
 
 /** Events the server emits. */
@@ -90,6 +107,9 @@ export const serverToClientEvents = {
   'appearance:updated': appearanceUpdatedEventSchema,
   'push:updated': pushUpdatedEventSchema,
   'status:changed': statusChangedEventSchema,
+  'call:incoming': callIncomingEventSchema,
+  'call:update': callUpdateEventSchema,
+  'call:signal': callSignalEventSchema,
 } satisfies Record<string, z.ZodType>;
 
 type ClientEvents = typeof clientToServerEvents;

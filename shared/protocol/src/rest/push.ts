@@ -194,6 +194,20 @@ export const pushPayloadSchema = z.discriminatedUnion('kind', [
     silent: z.boolean(),
     sentAt: z.iso.datetime(),
   }),
+  /** Someone is calling (or called and I missed it). One notification per call: `call:<id>`. */
+  z.object({
+    kind: z.literal('call'),
+    v: z.literal(1),
+    callId: z.string(),
+    chatId: z.string(),
+    state: z.enum(['incoming', 'missed']),
+    tag: z.string(),
+    title: z.string().max(120),
+    body: z.string().max(400),
+    /** Quiet hours: shown without sound or vibration. */
+    silent: z.boolean(),
+    sentAt: z.iso.datetime(),
+  }),
   z.object({
     kind: z.literal('test'),
     v: z.literal(1),
@@ -208,3 +222,5 @@ export type PushPayload = z.infer<typeof pushPayloadSchema>;
 
 /** The tag of a chat's notification. */
 export const pushTagFor = (chatId: string) => `chat:${chatId}`;
+/** The tag of a call's notification: "missed" replaces "incoming". */
+export const callPushTagFor = (callId: string) => `call:${callId}`;

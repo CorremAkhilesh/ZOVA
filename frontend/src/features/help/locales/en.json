@@ -136,6 +136,20 @@
       "q": "Can I delete my account?",
       "a": "Your account belongs to your organization, so you can’t delete it yourself. If you’re leaving, an admin will turn it off."
     },
+    "calls": {
+      "q": "How do voice calls work?",
+      "points": [
+        "Calls are one-to-one and voice only. The sound goes straight between the two devices (or through a relay server when a network needs one); the server never records or stores it.",
+        "While calls are being tested, only some accounts see the call button.",
+        "With the app open, a call rings on screen with a ringtone. With it closed, you get an “Incoming call” notification: tap it to open {{brand}} and answer while it is still ringing (about 45 seconds). Notifications must be on.",
+        "Android (Chrome or Edge, app installed): the notification vibrates, but a web app cannot show a full ringing screen over the lock screen like the phone’s own dialer.",
+        "iPhone and iPad: only when {{brand}} is added to the Home Screen (iOS 16.4 or later). The notification is a silent banner with no ringtone, and you open the app from it to answer. iOS pauses web apps in the background, so a call can drop if you switch away for long.",
+        "Computer: keep the app or a tab open to hear the ringtone; notifications arrive while the browser is running.",
+        "During quiet hours a call shows without sound, and you get a missed-call notification if you don’t answer.",
+        "Switching to the speaker works only where the browser lets an app choose the sound output (mostly Chrome and Edge on a computer). On a phone, use the phone’s own sound controls."
+      ],
+      "open": "Turn on notifications for calls"
+    },
     "status": {
       "q": "How do status updates work?",
       "points": [

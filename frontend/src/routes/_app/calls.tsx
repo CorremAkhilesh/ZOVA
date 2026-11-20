@@ -1,17 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { Phone } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
-import { Placeholder } from '@/components/common/StatusScreens';
+import { CallsScreen } from '@/features/calls/components/CallsScreen';
 
+/** The Calls tab (📞 in the sidebar): my call history, and calling back from it. */
 export const Route = createFileRoute('/_app/calls')({
-  component: function Calls() {
-    const { t } = useTranslation();
-    return (
-      <Placeholder
-        title={t('placeholder.callsTitle')}
-        body={t('placeholder.callsBody')}
-        icon={<Phone className="size-9" aria-hidden />}
-      />
-    );
-  },
+  component: CallsScreen,
 });

@@ -2,6 +2,7 @@ import { X } from 'lucide-react';
 import { m } from 'motion/react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
+import { CallButton } from '@/features/calls/components/CallButton';
 import { DisappearingRow } from '@/features/disappearing/DisappearingRow';
 import { GroupInfoBody } from '@/features/groups/components/GroupInfoPane';
 import { ChatGallery } from '@/features/media/components/ChatGallery';
@@ -51,6 +52,13 @@ export function ChatInfoPane({
             <p className="text-lg font-semibold">{chat.name}</p>
             {chat.username ? <p className="text-sm text-text-muted">@{chat.username}</p> : null}
             {chat.about ? <p className="text-sm text-text-muted">{chat.about}</p> : null}
+            <CallButton
+              chatId={chat.id}
+              name={chat.name}
+              direct={chat.kind === 'personal'}
+              labeled
+              className="mt-2"
+            />
           </div>
           <DisappearingRow chat={row} />
           {chat.kind === 'saved' ? null : <ChatGallery chatId={chat.id} onOpen={onOpenMedia} />}

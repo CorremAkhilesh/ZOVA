@@ -1,5 +1,6 @@
 export * from './account.ts';
 export { type AckResponse, ackResponseSchema } from './ack.ts';
+export * from './calls.ts';
 export * from './chat.ts';
 export {
   type ClientEventDefinition,

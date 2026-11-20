@@ -8,6 +8,8 @@ export const NOTIFICATION_BADGE = '/icons/badge-96.png';
 
 /** A message on Android: two short buzzes (none for a silent one). */
 export const VIBRATE_PATTERN = [120, 80, 120];
+/** An incoming call on Android: long, ring-like buzzes. */
+export const CALL_VIBRATE_PATTERN = [500, 250, 500, 250, 500, 250, 500];
 
 export const ACTION_READ = 'read';
 export const ACTION_REPLY = 'reply';
@@ -30,9 +32,11 @@ export interface RichNotificationOptions extends NotificationOptions {
 
 /** What a click needs: kept on the notification. */
 export interface NotificationData {
-  kind: 'message' | 'test' | 'unknown';
+  kind: 'message' | 'test' | 'call' | 'unknown';
   url: string;
   chatId?: string;
+  /** A call's notification. */
+  callId?: string;
   seq?: number;
   /** Unread chats when it arrived: "Mark as read" leaves one fewer. */
   badge?: number;
@@ -88,6 +92,7 @@ export function notificationFor(
     renotify: can.replacing && !payload.silent,
     ...(payload.silent ? {} : { vibrate: VIBRATE_PATTERN }),
   };
+  if (payload.kind === 'call') return callNotification(payload, base);
   if (payload.kind === 'test') {
     const data: NotificationData = { kind: 'test', url: '/settings/notifications' };
     return { title: payload.title || t.newMessage, options: { ...options, data } };
@@ -106,6 +111,38 @@ export function notificationFor(
   };
 }
 
+/**
+ * "Incoming call": stays until handled, rings (vibrates) like a call. "Missed call" takes its place
+ * (same tag). Either opens the chat, where the app shows the call if it is still ringing.
+ */
+function callNotification(
+  payload: Extract<PushPayload, { kind: 'call' }>,
+  base: { icon: string; badge: string },
+): { title: string; options: RichNotificationOptions } {
+  const incoming = payload.state === 'incoming';
+  const data: NotificationData = {
+    kind: 'call',
+    url: chatUrl(payload.chatId),
+    chatId: payload.chatId,
+    callId: payload.callId,
+  };
+  const vibrate = incoming ? CALL_VIBRATE_PATTERN : VIBRATE_PATTERN;
+  return {
+    title: payload.title,
+    options: {
+      ...base,
+      body: payload.body,
+      tag: payload.tag,
+      timestamp: Date.parse(payload.sentAt),
+      silent: payload.silent,
+      renotify: !payload.silent,
+      ...(incoming ? { requireInteraction: true } : {}),
+      ...(payload.silent ? {} : { vibrate }),
+      data,
+    },
+  };
+}
+
 /** A notification's data, checked (it may come from an older version of the worker). */
 export function readNotificationData(raw: unknown): NotificationData {
   const data = (typeof raw === 'object' && raw !== null ? raw : {}) as Partial<NotificationData>;
@@ -115,9 +152,13 @@ export function readNotificationData(raw: unknown): NotificationData {
       ? data.url
       : '/chats';
   return {
-    kind: data.kind === 'message' || data.kind === 'test' ? data.kind : 'unknown',
+    kind:
+      data.kind === 'message' || data.kind === 'test' || data.kind === 'call'
+        ? data.kind
+        : 'unknown',
     url,
     ...(typeof data.chatId === 'string' ? { chatId: data.chatId } : {}),
+    ...(typeof data.callId === 'string' ? { callId: data.callId } : {}),
     ...(typeof data.seq === 'number' ? { seq: data.seq } : {}),
     ...(typeof data.badge === 'number' ? { badge: data.badge } : {}),
   };

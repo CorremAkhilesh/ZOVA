@@ -139,6 +139,44 @@ const envSchema = z
         .regex(/^(mailto:[^\s@]+@[^\s@]+|https:\/\/\S+)$/, 'must be a mailto: or https: URL')
         .default('mailto:nova@corremadvisory.com'),
     ),
+    /** Who may make calls: `admins` (plus CALLS_TEST_EMAILS) while calls are tested, or `all`. */
+    CALLS_ENABLED_FOR: z.preprocess(emptyToUndefined, z.enum(['admins', 'all']).default('admins')),
+    /** Extra accounts allowed to call while CALLS_ENABLED_FOR=admins (comma-separated emails). */
+    CALLS_TEST_EMAILS: z.preprocess(
+      emptyToUndefined,
+      z
+        .string()
+        .optional()
+        .transform((value) => (value ? commaList(value).map((email) => email.toLowerCase()) : [])),
+    ),
+    /** STUN servers for calls (comma-separated `stun:` URLs). "none": host candidates only. */
+    CALLS_STUN_URLS: z.preprocess(
+      emptyToUndefined,
+      z
+        .string()
+        .default('stun:stun.cloudflare.com:3478,stun:stun.l.google.com:19302')
+        .transform((value) => (value === 'none' ? [] : commaList(value)))
+        .pipe(z.array(z.string().regex(/^stuns?:\S+$/, 'must be stun: URLs'))),
+    ),
+    /** TURN relay (comma-separated `turn:`/`turns:` URLs), with CALLS_TURN_SECRET. Empty: no TURN. */
+    CALLS_TURN_URLS: z.preprocess(
+      emptyToUndefined,
+      z
+        .string()
+        .default('')
+        .transform(commaList)
+        .pipe(z.array(z.string().regex(/^turns?:\S+$/, 'must be turn: or turns: URLs'))),
+    ),
+    /** The TURN server's static-auth-secret: time-limited credentials are made from it. */
+    CALLS_TURN_SECRET: z.preprocess(
+      emptyToUndefined,
+      z.string().min(32, 'must be at least 32 characters').optional(),
+    ),
+    /** How long TURN credentials work. */
+    CALLS_TURN_TTL_SECONDS: z.preprocess(
+      emptyToUndefined,
+      z.coerce.number().int().min(300).max(86_400).default(3600),
+    ),
     LOG_LEVEL: z
       .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
       .default('info'),
@@ -163,6 +201,10 @@ const envSchema = z
       });
     }
     checkVapid(env, ctx);
+    if (env.CALLS_TURN_URLS.length > 0 !== Boolean(env.CALLS_TURN_SECRET)) {
+      const missing = env.CALLS_TURN_SECRET ? 'CALLS_TURN_URLS' : 'CALLS_TURN_SECRET';
+      ctx.addIssue({ code: 'custom', path: [missing], message: 'must be set with the other' });
+    }
     if (env.NODE_ENV === 'test' && !env.MONGODB_DB.startsWith('zuvo_test_')) {
       ctx.addIssue({
         code: 'custom',

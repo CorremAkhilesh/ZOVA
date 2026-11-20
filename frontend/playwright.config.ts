@@ -43,7 +43,8 @@ export default defineConfig({
       ? [
           { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
           { name: 'webkit', use: { ...devices['Desktop Safari'] } },
-          { name: 'mobile', use: { ...devices['Pixel 7'] } },
+          // Chromium on a phone screen: fake microphone too (voice notes, calls).
+          { name: 'mobile', use: { ...devices['Pixel 7'], ...FAKE_MIC } },
         ]
       : []),
   ],
