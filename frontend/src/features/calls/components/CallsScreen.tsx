@@ -53,18 +53,16 @@ function CallRow({ entry, chat }: { entry: CallLogEntry; chat: ChatSummary | und
           <ChatAvatar chat={chat} className="size-12" />
         ) : (
           <span
-            className="grid size-12 place-items-center rounded-full bg-surface-muted"
+            className="grid size-12 place-items-center rounded-full bg-brand-subtle text-brand-text"
             aria-hidden
           >
             <Phone className="size-5" />
           </span>
         )}
         <span className="min-w-0">
-          <span className={cn('block truncate font-medium', missed && 'text-danger-text')}>
-            {name}
-          </span>
+          <span className={cn('block truncate font-medium', missed && 'text-danger')}>{name}</span>
           <span className="flex items-center gap-1.5 text-sm text-text-muted">
-            <Icon className={cn('size-4', missed && 'text-danger-text')} aria-hidden />
+            <Icon className={cn('size-4', missed && 'text-danger')} aria-hidden />
             <span>{t(`calls.history.${outcomeKey(entry)}`)}</span>
             <span aria-hidden>·</span>
             <time dateTime={entry.startedAt}>

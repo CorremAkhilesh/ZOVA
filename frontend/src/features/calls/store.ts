@@ -38,3 +38,9 @@ export const useCallStore = create<CallStore>((set) => ({
 }));
 
 export const callState = () => useCallStore.getState().state;
+
+/** The full-screen call is showing (a call going on, not folded into the "On call" bar). */
+export const callScreenOpen = () => {
+  const { state, minimized } = useCallStore.getState();
+  return !minimized && ['outgoing', 'incoming', 'connecting', 'active'].includes(state.phase);
+};

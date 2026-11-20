@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import type { CallLogEntry, CallView } from '@zuvo/protocol';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { axe } from '@/test/axe';
-import { chatFixture } from '@/test/chat-fixtures';
+import { chatFixture, messageFixture, personFixture } from '@/test/chat-fixtures';
 import { HttpResponse, http, server } from '@/test/msw';
 import { DESKTOP_WIDTH, MOBILE_WIDTH, renderApp } from '@/test/render-app';
 import { seedLocal } from '@/test/seed';
@@ -137,6 +137,35 @@ describe('a call ringing for me', () => {
     expect(within(dialog).getByText('Quiet hours: ringing silently')).toBeInTheDocument();
     lastSocket().receive('call:update', { call: ringing({ status: 'active' }) });
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Asha Verma' })).toBeNull());
+  });
+});
+
+describe('messages during a call', () => {
+  it('no message toast over the call screen (it covered End call on phones)', async () => {
+    vi.spyOn(document, 'hasFocus').mockReturnValue(true);
+    await seedLocal([
+      chatFixture(),
+      chatFixture({
+        id: 'c2',
+        otherUser: personFixture({ id: 'u-chitra', displayName: 'Chitra Rao' }),
+      }),
+    ]);
+    await renderApp('/chats/c1', { width: MOBILE_WIDTH });
+    await waitFor(() => expect(lastSocket()).toBeTruthy());
+    const socket = lastSocket();
+    socket.receive('connect');
+    const message = (seq: number, text: string) => ({
+      message: messageFixture(seq, { chatId: 'c2', senderId: 'u-chitra', text }),
+      cursor: String(100 + seq),
+    });
+    // Without a call: a toast for the other chat.
+    socket.receive('message:new', message(1, 'first ping'));
+    expect(await screen.findByText('first ping', {}, SLOW)).toBeInTheDocument();
+    socket.receive('call:incoming', { call: ringing(), silent: false });
+    await screen.findByRole('dialog', { name: 'Asha Verma' }, SLOW);
+    socket.receive('message:new', message(2, 'are you free?'));
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    expect(screen.queryByText('are you free?')).toBeNull();
   });
 });
 

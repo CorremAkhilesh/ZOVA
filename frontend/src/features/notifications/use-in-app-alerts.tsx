@@ -4,6 +4,7 @@ import { MessageCircle, X } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
+import { callScreenOpen } from '@/features/calls/store';
 import { previewText } from '@/features/chats/view';
 import { toPlainText } from '@/features/formatting/parse';
 import { useLockStore } from '@/features/lock/store';
@@ -128,7 +129,8 @@ export function useInAppAlerts(): void {
     () =>
       onIncomingMessage((message, me) => {
         void alertFor(message, me, () => live.current).then((alert) => {
-          if (!alert) return;
+          // Never over a call: the toast would cover its buttons (End call on a phone).
+          if (!alert || callScreenOpen()) return;
           const id = `message:${alert.chatId}`;
           const open = () => {
             toast.dismiss(id);

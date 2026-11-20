@@ -20,7 +20,7 @@ export function OnCallBar() {
     <button
       type="button"
       onClick={() => useCallStore.getState().setMinimized(false)}
-      className="flex h-9 w-full shrink-0 items-center justify-center gap-2 bg-emerald-700 px-4 text-sm font-medium text-white hover:bg-emerald-800 focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none focus-visible:ring-inset"
+      className="flex h-9 w-full shrink-0 items-center justify-center gap-2 bg-[#15803D] px-4 text-sm font-medium text-white hover:bg-[#166534] focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none focus-visible:ring-inset"
     >
       <Phone className="size-4" aria-hidden />
       <span className="truncate">

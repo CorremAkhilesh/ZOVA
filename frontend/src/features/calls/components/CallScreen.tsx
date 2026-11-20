@@ -38,9 +38,9 @@ function RoundButton(props: {
 }
 
 const QUALITY_BARS: Record<Quality, string> = {
-  good: 'text-emerald-300',
-  fair: 'text-amber-300',
-  poor: 'text-red-300',
+  good: 'text-[#86EFAC]',
+  fair: 'text-[#FCD34D]',
+  poor: 'text-[#FCA5A5]',
 };
 
 function QualityBadge({ quality }: { quality: Quality | null }) {
@@ -66,14 +66,14 @@ function IncomingControls() {
       <RoundButton
         label={t('calls.decline')}
         onClick={() => actions?.decline()}
-        className="bg-red-600 hover:bg-red-500"
+        className="bg-[#DC2626] hover:bg-[#B91C1C]"
       >
         <PhoneOff className="size-7" aria-hidden />
       </RoundButton>
       <RoundButton
         label={t('calls.accept')}
         onClick={() => void actions?.accept()}
-        className="bg-emerald-600 hover:bg-emerald-500"
+        className="bg-[#15803D] hover:bg-[#166534]"
         autoFocus
       >
         <Phone className="size-7" aria-hidden />
@@ -113,7 +113,7 @@ function LiveControls({ state }: { state: CallState }) {
       <RoundButton
         label={t('calls.end')}
         onClick={() => actions?.hangUp()}
-        className="bg-red-600 hover:bg-red-500"
+        className="bg-[#DC2626] hover:bg-[#B91C1C]"
       >
         <PhoneOff className="size-7" aria-hidden />
       </RoundButton>
