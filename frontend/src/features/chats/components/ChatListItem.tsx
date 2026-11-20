@@ -167,6 +167,8 @@ export const ChatListItem = memo(function ChatListItem({
         className={cn(
           'group flex min-h-[72px] items-center gap-3 rounded-lg px-3 py-2.5 outline-none transition-colors',
           'hover:bg-background focus-visible:bg-background',
+          // Keyboard focus needs more than the hover colour (WCAG 2.4.7); inset, so rows never clip it.
+          'focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-inset',
           'data-[status=active]:bg-brand-subtle',
         )}
       >

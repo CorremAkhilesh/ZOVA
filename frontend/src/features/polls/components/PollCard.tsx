@@ -13,7 +13,9 @@ import { PollOptionRow } from './PollOptionRow';
 
 const PollVotesSheet = lazy(() => import('./PollVotesSheet'));
 
-const LINK = 'rounded text-xs font-semibold underline-offset-2 hover:underline disabled:opacity-50';
+// tap-target: 44×44 px to tap on touch screens, without looking any bigger (globals.css).
+const LINK =
+  'tap-target rounded text-xs font-semibold underline-offset-2 hover:underline disabled:opacity-50';
 
 const stop = (event: SyntheticEvent) => event.stopPropagation();
 
@@ -96,7 +98,7 @@ export function PollCard({ message }: { message: ChatMessage }) {
       >
         <button
           type="button"
-          className="w-full rounded py-1 text-center text-sm font-semibold hover:underline"
+          className="tap-target w-full rounded py-1 text-center text-sm font-semibold hover:underline"
           onClick={() => setViewing(true)}
         >
           {t('polls.viewVotes')}

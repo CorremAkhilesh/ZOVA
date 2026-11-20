@@ -68,7 +68,7 @@ describe('the status list', () => {
   it('shows mine, then new, seen and muted people, each in a ring with one part per status', async () => {
     const { container } = await open();
     expect(
-      screen.getByRole('button', { name: /My status Tap to add a status update/ }),
+      screen.getByRole('button', { name: /My status Add a status update/ }),
     ).toBeInTheDocument();
     const recent = screen.getByRole('list', { name: 'Recent updates' });
     expect(within(recent).getByRole('button', { name: /Riya Shah.*new/ })).toBeInTheDocument();

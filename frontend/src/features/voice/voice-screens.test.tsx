@@ -10,7 +10,7 @@ import { HttpResponse, http, server } from '@/test/msw';
 import { AudioBubble } from './components/AudioBubble';
 import { MiniPlayer } from './components/MiniPlayer';
 import { VoiceBubble } from './components/VoiceBubble';
-import { nextPosition } from './components/Waveform';
+import { fitBars, nextPosition } from './components/Waveform';
 import { playTrack, resetPlayerForTests, usePlayer } from './player';
 
 const media = (overrides: Partial<MediaInfo> = {}): MediaInfo => ({
@@ -156,6 +156,24 @@ describe('moving through a note with the keyboard', () => {
     expect(nextPosition('ArrowUp', 10, 100)).toBe(15);
     expect(nextPosition('ArrowDown', 10, 100)).toBe(5);
     expect(nextPosition('a', 10, 100)).toBeNull();
+  });
+});
+
+describe('the bars fit the bubble', () => {
+  const bars = Array.from({ length: 64 }, (_, index) => index);
+
+  it('keeps every bar when there is room, or before the width is known', () => {
+    expect(fitBars(bars, 300)).toHaveLength(64);
+    expect(fitBars(bars, 0)).toHaveLength(64);
+  });
+
+  it('merges neighbours on a narrow bubble, keeping the loudest of each', () => {
+    // A phone bubble: 2 px bars with 2 px gaps must fit in 150 px.
+    const fitted = fitBars(bars, 150);
+    expect(fitted.length * 4 - 2).toBeLessThanOrEqual(150);
+    expect(fitted.length).toBeGreaterThan(30);
+    expect(Math.max(...fitted)).toBe(63);
+    expect(fitted[0]).toBeLessThan(fitted.at(-1) ?? 0);
   });
 });
 

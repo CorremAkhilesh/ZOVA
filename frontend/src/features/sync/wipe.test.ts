@@ -1,4 +1,4 @@
-import { act, screen, waitFor } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Dexie from 'dexie';
 import { describe, expect, it, vi } from 'vitest';
@@ -80,6 +80,10 @@ describe('wiping local data', () => {
     const { router } = await renderApp('/settings', { width: DESKTOP_WIDTH });
     server.use(signedOut());
     await user.click(screen.getByRole('button', { name: 'Sign out' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Sign out of this device?' });
+    // The pending message in the outbox is named: it would be lost.
+    expect(dialog).toHaveTextContent('1 message hasn’t been sent yet');
+    await user.click(within(dialog).getByRole('button', { name: 'Sign out' }));
     await waitFor(() => expect(router.state.location.pathname).toBe('/'));
     await waitFor(async () => expect(await localDatabases()).toEqual([]));
     expect(recentPeople.load()).toEqual([]);

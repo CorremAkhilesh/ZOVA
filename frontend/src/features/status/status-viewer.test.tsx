@@ -72,7 +72,7 @@ describe('deleting my status', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     await waitFor(() => expect(deleted).toHaveLength(2));
     expect(
-      await screen.findByRole('button', { name: /^My status Tap to add/ }, SLOW),
+      await screen.findByRole('button', { name: /^My status Add a status/ }, SLOW),
     ).toBeInTheDocument();
   });
 
@@ -114,7 +114,7 @@ describe('the layout', () => {
   it('desktop: the list on the left, a quiet pane on the right, ‹ › to move', async () => {
     const user = userEvent.setup();
     const { container } = await open();
-    expect(screen.getByText('Click on a contact to view their status updates')).toBeInTheDocument();
+    expect(screen.getByText('Choose a colleague to see their status updates')).toBeInTheDocument();
     expect(await axe(container)).toHaveNoViolations();
     await user.click(screen.getByRole('button', { name: /^Riya Shah / }));
     const dialog = await viewer(/Riya Shah’s status/);
@@ -129,7 +129,7 @@ describe('the layout', () => {
   it('phone: no side pane; "Reply" opens the reply box, a swipe up does too', async () => {
     const user = userEvent.setup();
     await open(MOBILE_WIDTH);
-    expect(screen.queryByText('Click on a contact to view their status updates')).toBeNull();
+    expect(screen.queryByText('Choose a colleague to see their status updates')).toBeNull();
     await user.click(screen.getByRole('button', { name: /^Riya Shah / }));
     const dialog = await viewer(/Riya Shah’s status/);
     await user.click(within(dialog).getByRole('button', { name: 'Reply' }));

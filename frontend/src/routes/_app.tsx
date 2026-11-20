@@ -44,7 +44,7 @@ export const Route = createFileRoute('/_app')({
   pendingMinMs: 0,
   codeSplitGroupings: [['component'], ['errorComponent'], ['notFoundComponent']],
   // Rendered inside the shell's <main>, so no extra landmark here.
-  notFoundComponent: NotFound,
+  notFoundComponent: () => <NotFound />,
   errorComponent: ({ reset }) => <ErrorScreen onRetry={reset} />,
 });
 
