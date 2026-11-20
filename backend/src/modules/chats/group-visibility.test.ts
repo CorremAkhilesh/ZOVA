@@ -203,3 +203,50 @@ const serverUrl = async () => {
   listening ??= await listen(app());
   return listening;
 };
+
+describe('after leaving, older messages stay as they were', () => {
+  it('no newer reactions or votes, live, in history or through sync', async () => {
+    const [asha, bharat, chitra] = [await person(), await person(), await person()];
+    // Chitra stays: what she does after Bharat leaves is not his to see.
+    const chatId = await group(asha, [bharat, chitra]);
+    const { message: poll } = await sendMessage(app(), {
+      userId: asha.id,
+      chatId,
+      clientMsgId: uuidv7(),
+      poll: { question: 'Lunch?', options: ['Pizza', 'Dosa'], multiple: false },
+    });
+    const [first] = poll.poll?.options ?? [];
+    await call(bharat, 'PUT', `/v1/chats/${chatId}/messages/${poll.id}/vote`, {
+      optionIds: [first?.id],
+    });
+    await call(bharat, 'PUT', `/v1/chats/${chatId}/messages/${poll.id}/reaction`, { emoji: '👍' });
+    const socket = await connect(await serverUrl(), bharat.cookie);
+    await remove(asha, chatId, bharat);
+    const cursor = await cursorOf(bharat);
+    const live = record(socket, 'message:updated');
+
+    await call(chitra, 'PUT', `/v1/chats/${chatId}/messages/${poll.id}/vote`, {
+      optionIds: [first?.id],
+    });
+    await call(chitra, 'PUT', `/v1/chats/${chatId}/messages/${poll.id}/reaction`, { emoji: '🎉' });
+    await call(asha, 'POST', `/v1/chats/${chatId}/messages/${poll.id}/close-poll`);
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    const leaks = (message: object | undefined) =>
+      JSON.stringify(message ?? {}).includes(chitra.id) ||
+      ((message as { poll?: { closedAt?: string | null } } | undefined)?.poll?.closedAt ?? null) !==
+        null;
+    expect(live.filter((event) => leaks(event.message))).toEqual([]);
+    const seen = (await history(bharat, chatId)).find((message) => message.id === poll.id);
+    expect(seen?.reactions?.map((reaction) => reaction.userId)).toEqual([bharat.id]);
+    expect(seen?.poll?.options[0]?.voterIds).toEqual([bharat.id]);
+    expect(leaks(seen)).toBe(false);
+    const synced = await syncFrom(bharat, cursor);
+    for (const message of [...synced.messages, ...(synced.updated ?? [])]) {
+      expect(leaks(message)).toBe(false);
+    }
+    // Members still see all of it.
+    const current = (await history(asha, chatId)).find((message) => message.id === poll.id);
+    expect(current?.poll?.options[0]?.voterIds.sort()).toEqual([bharat.id, chitra.id].sort());
+  });
+});

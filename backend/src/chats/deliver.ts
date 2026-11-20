@@ -1,7 +1,7 @@
 import type { Message } from '@zuvo/protocol';
 import type { FastifyInstance } from 'fastify';
 import type { ChatDoc, LastMessageSnapshot } from '../db/chat-models.ts';
-import { hideQuote, toLastMessage } from './message-format.ts';
+import { forMember, toLastMessage } from './message-format.ts';
 
 export interface DeliveredMember {
   userId: string;
@@ -28,7 +28,7 @@ export function deliver(
     const { userId, lastReadSeq, cursor } = member;
     const peer = chat.type === 'direct' ? members.find((m) => m.userId !== userId) : undefined;
     app.realtime.emitToUser(userId, 'message:new', {
-      message: hideQuote(message, member),
+      message: forMember(message, member),
       cursor,
     });
     app.realtime.emitToUser(userId, 'chat:updated', {
