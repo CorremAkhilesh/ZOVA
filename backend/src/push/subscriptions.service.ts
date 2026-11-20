@@ -10,6 +10,9 @@ import { describeDevice } from '../security/devices.ts';
 import { announcePush } from './settings.service.ts';
 import { isValidSubscriptionKeys } from './vapid.ts';
 
+/** A subscription's two keys: a shared browser sends both, unchanged, with its endpoint. */
+const KEY_PARTS = ['p256dh', 'auth'] as const;
+
 export const pushModels = (mongo: Connection) => registerPushModels(mongo);
 const oid = (id: string) => new Types.ObjectId(id);
 
@@ -69,6 +72,12 @@ export async function subscribe(
   };
   const save = async () => {
     const existing = await PushSubscription.findOne({ endpoint: body.endpoint }).lean();
+    // A browser shared between accounts sends the same keys with its endpoint. Someone who knows
+    // only the endpoint (it is a capability URL) cannot take another person's notifications.
+    const sameKeys = KEY_PARTS.every((part) => existing?.keys[part] === body.keys[part]);
+    if (existing && existing.userId.toString() !== userId && !sameKeys) {
+      throw new AppError('CONFLICT', 'This push subscription belongs to another device.');
+    }
     const fresh = { createdAt: now, lastUsedAt: null };
     // Moved to this device: it starts again as new here.
     const update =

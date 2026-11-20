@@ -120,6 +120,7 @@ export async function sendMessage(app: FastifyInstance, input: SendInput): Promi
           senderName,
           type,
           preview: previewOf(media, text, input.poll),
+          ...(expiresAt ? { expiresAt } : {}),
           createdAt: now,
         };
         await models.Chat.updateOne(

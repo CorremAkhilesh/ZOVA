@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { authErrorMessage } from '@/features/auth/errors';
+import { authErrorMessage, errorCode } from '@/features/auth/errors';
 import { useLocalDb } from '@/features/chats/queries';
 import { groupsApi } from '@/features/groups/api';
 import { applyChats } from '@/features/sync/apply';
@@ -77,7 +77,9 @@ function JoinGroup() {
             </div>
             {join.isError ? (
               <p role="alert" className="text-sm text-danger">
-                {authErrorMessage(join.error, t)}
+                {errorCode(join.error) === 'FORBIDDEN'
+                  ? t('groups.joinRemoved')
+                  : authErrorMessage(join.error, t)}
               </p>
             ) : null}
             {preview.data.alreadyMember ? (

@@ -1,6 +1,7 @@
 import { useAuthFlow } from '@/features/auth/flow-store';
 import { forgetDrafts } from '@/features/drafts/draft-sync';
 import { recentPeople } from '@/features/people/recent-people';
+import { deleteShareDatabase } from '@/sw/share/store';
 import { resetLiveStatus } from './live-status';
 import { hasPendingWipe, type WipeResult, wipeLocalDatabases } from './local-db';
 import { INITIAL_SYNC_STATE, useSyncStore } from './store';
@@ -19,7 +20,10 @@ export async function clearLocalUserData(): Promise<WipeResult> {
   forgetDrafts();
   // Other tabs check with the server and sign out too.
   announceSessionEnded();
-  return wipeAndReport();
+  const result = await wipeAndReport();
+  // Shared into the app and never sent: it goes too.
+  await deleteShareDatabase().catch(() => undefined);
+  return result;
 }
 
 /** On start: finishes a wipe that a blocked delete left unfinished last time. */

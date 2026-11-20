@@ -145,13 +145,15 @@ export function hideQuote(
 }
 
 export function toLastMessage(snapshot: LastMessageSnapshot): LastMessage {
+  // Its time is up and the sweep has not replaced it yet: say nothing of what it said.
+  const expired = snapshot.expiresAt != null && snapshot.expiresAt.getTime() <= Date.now();
   return {
     id: snapshot.id.toString(),
     seq: snapshot.seq,
     senderId: snapshot.senderId?.toString() ?? null,
     senderName: snapshot.senderName ?? null,
     type: snapshot.type,
-    preview: snapshot.preview,
+    preview: expired ? '' : snapshot.preview,
     system: snapshot.system ?? null,
     deleted: snapshot.deleted === true,
     createdAt: snapshot.createdAt.toISOString(),

@@ -5,7 +5,7 @@ import type { ChatMemberDoc, MessageDoc, UserUpdateDoc } from '../db/chat-models
 import { buildSummaries, chatModels, oid } from './chats.service.ts';
 import { withStars } from './history.service.ts';
 import { hideQuote, toMessage } from './message-format.ts';
-import { canSeeSeq } from './visibility.ts';
+import { canSeeSeq, isExpiredDoc } from './visibility.ts';
 
 /** A new message, or one whose `played` changed: either way, this device needs its latest copy. */
 const carriesMessage = (row: { kind: string }) =>
@@ -150,7 +150,10 @@ export async function syncSince(
         $or: [...seqsByChat.values()].map(({ chatId, seqs }) => ({ chatId, seq: { $in: seqs } })),
       }).lean()
     : [];
-  const docByKey = new Map(messageDocs.map((doc) => [`${doc.chatId}:${doc.seq}`, doc]));
+  // Its time is up: the sweep's removal follows; meanwhile it is not sent again.
+  const docByKey = new Map(
+    messageDocs.filter((doc) => !isExpiredDoc(doc)).map((doc) => [`${doc.chatId}:${doc.seq}`, doc]),
+  );
   const hidden = await hiddenAmong(app, userId, chatIds, messageDocs);
   const { messages, updated } = sortMessages(page, docByKey, memberByChat, hidden, userId);
   const { removed, cleared } = removalsIn(page);
