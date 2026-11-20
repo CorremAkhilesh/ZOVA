@@ -133,6 +133,18 @@ test('50 messages at once from three people, one of them offline halfway: all, i
     ];
     const report = {
       missing: expected.filter((label) => !have.has(label)),
+      // Kept on the sender's device at all? (seq null: never confirmed by the server.)
+      local: {
+        asha: (await stored(asha.page, chatId)).filter(([seq]) => seq === null),
+        bharat: (await stored(bharat.page, chatId)).filter(([seq]) => seq === null),
+        chitra: (await stored(chitra.page, chatId)).filter(([seq]) => seq === null),
+        senderHas: await Promise.all(
+          [asha, bharat, chitra].map(async (person) => {
+            const labels = new Set((await stored(person.page, chatId)).map(([, label]) => label));
+            return [person.name, expected.filter((label) => !have.has(label) && labels.has(label))];
+          }),
+        ),
+      },
       outbox: {
         asha: await outbox(asha.page).catch(() => 'unreadable'),
         bharat: await outbox(bharat.page).catch(() => 'unreadable'),
