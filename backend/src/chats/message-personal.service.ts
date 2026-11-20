@@ -10,6 +10,7 @@ import {
   logMessageUpdate,
   requireVisibleMessage,
 } from './message-updates.ts';
+import { announcePins, logPins } from './pin-sync.ts';
 import { senderNameOf } from './sender-name.ts';
 import { logUpdates } from './updates.ts';
 import { visibleSeqs } from './visibility.ts';
@@ -60,7 +61,8 @@ export async function deleteForMe(
   const models = chatModels(app);
   const { MessageHidden, Star, ChatMember, Chat } = models;
   const now = new Date();
-  const chat = await Chat.findById(doc.chatId).select({ lastMessage: 1 }).lean();
+  const chat = await Chat.findById(doc.chatId).select({ lastMessage: 1, pins: 1 }).lean();
+  const pinned = (chat?.pins ?? []).some((pin) => pin.messageId.equals(doc._id));
   // It was the one showing in my chat list, so the one before takes its place.
   const replaces = chat && shownLast(chat, member)?.seq === doc.seq;
   const previewLast = replaces ? await previewBefore(app, userId, member, doc) : null;
@@ -78,17 +80,21 @@ export async function deleteForMe(
         { session },
       );
     }
-    return logUpdates(
+    const hidden = await logUpdates(
       models,
       session,
       [member.userId],
       { kind: 'hidden', chatId: doc.chatId, seq: doc.seq },
       now,
     );
+    // Pinned: out of my pins on all my devices (still pinned for everyone else).
+    const pins = pinned ? await logPins(app, session, doc.chatId, [member.userId]) : null;
+    return { hidden, pins };
   });
-  const cursor = cursors.get(userId) ?? '0';
+  const cursor = cursors.hidden.get(userId) ?? '0';
   app.realtime.emitToUser(userId, 'message:removed', { chatId, seq: doc.seq, cursor });
   if (replaces) await announceOwnChat(app, userId, chatId, cursor);
+  await announcePins(app, cursors.pins);
 }
 
 export async function setStar(

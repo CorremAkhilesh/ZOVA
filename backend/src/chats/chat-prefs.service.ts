@@ -188,7 +188,8 @@ export async function listStars(
   const items: StarredItem[] = page.flatMap((star) => {
     const doc = byId.get(star.messageId.toString());
     const member = memberOf.get(star.chatId.toString());
-    if (!doc || !member || !canSeeSeq(member, doc.seq)) return [];
+    // Deleted for everyone: nothing left to keep (older versions left such stars behind).
+    if (!doc || doc.deletedForEveryoneAt || !member || !canSeeSeq(member, doc.seq)) return [];
     if (member.locked === true && !withLocked) {
       lockedHidden = true;
       return [];

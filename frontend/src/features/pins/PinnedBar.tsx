@@ -11,6 +11,7 @@ import type { ChatRow } from '@/features/sync/local-db';
 import { useLive } from '@/features/sync/use-live';
 import { PinDialog } from './PinDialog';
 import { canPin, livePins, pinsApi, storePins } from './pins';
+import { useWithoutDeletedPins } from './use-pins-shown';
 
 /** Pins run out on their own: look again every minute. */
 const RECHECK_MS = 60_000;
@@ -32,7 +33,7 @@ export function PinnedBar({ chat }: { chat: ChatRow }) {
   const { t } = useTranslation();
   const db = useLocalDb();
   const now = useNow();
-  const pins = useUnexpiredPins(chat.id, livePins(chat.pins, now));
+  const pins = useWithoutDeletedPins(chat.id, useUnexpiredPins(chat.id, livePins(chat.pins, now)));
   const [index, setIndex] = useState(0);
   const shown = pins[Math.min(index, Math.max(0, pins.length - 1))];
   const text = useLive(async () => {

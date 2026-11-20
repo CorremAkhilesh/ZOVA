@@ -37,6 +37,7 @@ export function toSummary(
   otherUser: ChatSummary['otherUser'],
   peer: PeerProgress,
   hiddenMembers = 0,
+  hiddenPins?: ReadonlySet<string>,
 ): ChatSummary {
   const seq = member.leftSeq ?? chat.seq;
   const last = shownLast(chat, member);
@@ -57,7 +58,7 @@ export function toSummary(
     ...peer,
     lastActivityAt: member.lastActivityAt?.toISOString() ?? null,
     createdAt: chat.createdAt.toISOString(),
-    pins: visiblePins(chat.pins, member),
+    pins: visiblePins(chat.pins, member, Date.now(), hiddenPins),
     mentionSeqs: member.mentionSeqs ?? [],
     draft: draftView(member),
     disappearing: chat.disappearing ?? 'off',

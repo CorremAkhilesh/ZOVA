@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import fp from 'fastify-plugin';
 import { expireDueMessages } from '../chats/expiry.service.ts';
+import { removeStalePins } from '../chats/pins.service.ts';
 import { expireStaleViewOnce } from '../chats/view-once.service.ts';
 import { cleanupDeletedMedia } from '../media/media-access.ts';
 
@@ -74,6 +75,11 @@ async function expirySweep(app: FastifyInstance, options: ExpirySweepOptions) {
   if (options.every !== null) {
     const every = options.every;
     app.addHook('onReady', async () => {
+      // Once per start: pins older versions left on deleted messages (idempotent, quick after).
+      chain = chain
+        .then(() => removeStalePins(app))
+        .then((chats) => chats > 0 && app.log.info({ chats }, 'pins on deleted messages removed'))
+        .catch((error: unknown) => app.log.error({ err: error }, 'stale pin cleanup failed'));
       tick();
       timer = setInterval(tick, every);
       timer.unref();

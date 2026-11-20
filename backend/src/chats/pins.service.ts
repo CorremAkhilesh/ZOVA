@@ -5,15 +5,14 @@ import {
   type PinDuration,
 } from '@zuvo/protocol';
 import type { FastifyInstance } from 'fastify';
-import type { ClientSession, Types } from 'mongoose';
-import type { ChatDoc, ChatMemberDoc, StoredPin } from '../db/chat-models.ts';
+import type { Types } from 'mongoose';
+import type { ChatDoc, StoredPin } from '../db/chat-models.ts';
 import { AppError } from '../lib/errors.ts';
 import { chatModels, oid, requireMember } from './chats.service.ts';
 import { appendSystemMessage, deliverSystemMessage, namesOf } from './group-core.ts';
 import { assertAllowed, groupRules } from './group-permissions.ts';
-import { shownLast, toLastMessage } from './message-format.ts';
+import { announcePins, dropPins, hiddenPinsByUser, logPins } from './pin-sync.ts';
 import { visiblePins } from './pin-view.ts';
-import { logUpdates } from './updates.ts';
 import { canSeeSeq } from './visibility.ts';
 
 const alive = (pins: StoredPin[] | undefined, now: Date) =>
@@ -39,31 +38,6 @@ async function loadForPin(app: FastifyInstance, userId: string, chatId: string, 
   }
   if (message.deletedForEveryoneAt) throw new AppError('CONFLICT', 'This message was deleted.');
   return { member, chat, message };
-}
-
-/** Every member's devices: the chat's pins as each may see them. */
-function announcePins(
-  app: FastifyInstance,
-  chat: ChatDoc,
-  members: ChatMemberDoc[],
-  cursors: Map<string, string>,
-) {
-  for (const member of members) {
-    const userId = member.userId.toString();
-    const last = shownLast(chat, member);
-    const seq = member.leftSeq ?? chat.seq;
-    app.realtime.emitToUser(userId, 'chat:updated', {
-      chatId: chat._id.toString(),
-      type: chat.type,
-      seq,
-      lastMessage: last ? toLastMessage(last) : null,
-      lastReadSeq: member.lastReadSeq,
-      unreadCount: Math.max(0, seq - member.lastReadSeq),
-      lastActivityAt: member.lastActivityAt?.toISOString() ?? null,
-      pins: visiblePins(chat.pins, member),
-      cursor: cursors.get(userId) ?? '0',
-    });
-  }
 }
 
 /**
@@ -104,26 +78,8 @@ export async function pinMessage(
     ),
   );
   deliverSystemMessage(app, stored);
-  return { pins: visiblePins(stored.chat.pins, member) };
-}
-
-async function logPins(
-  app: FastifyInstance,
-  session: ClientSession,
-  chatId: Types.ObjectId,
-): Promise<{ members: ChatMemberDoc[]; cursors: Map<string, string> }> {
-  const models = chatModels(app);
-  const members = (await models.ChatMember.find({ chatId, leftAt: null })
-    .session(session)
-    .lean()) as ChatMemberDoc[];
-  const cursors = await logUpdates(
-    models,
-    session,
-    members.map((item) => item.userId),
-    { kind: 'chat', chatId },
-    new Date(),
-  );
-  return { members, cursors };
+  const hidden = await hiddenPinsByUser(app, stored.chat, [member.userId]);
+  return { pins: visiblePins(stored.chat.pins, member, Date.now(), hidden.get(userId)) };
 }
 
 /** Unpins a message; the same people may do this as may pin. No notice. */
@@ -135,7 +91,7 @@ export async function unpinMessage(
 ) {
   const { member, chat } = await loadForPin(app, userId, chatId, messageId);
   const models = chatModels(app);
-  const result = await app.mongo.transaction(async (session) => {
+  const change = await app.mongo.transaction(async (session) => {
     await models.Chat.updateOne(
       { _id: chat._id },
       { $pull: { pins: { messageId: oid(messageId) } } },
@@ -143,9 +99,10 @@ export async function unpinMessage(
     );
     return logPins(app, session, chat._id);
   });
+  await announcePins(app, change);
   const fresh = (await models.Chat.findById(chat._id).lean()) as ChatDoc;
-  announcePins(app, fresh, result.members, result.cursors);
-  return { pins: visiblePins(fresh.pins, member) };
+  const hidden = await hiddenPinsByUser(app, fresh, [member.userId]);
+  return { pins: visiblePins(fresh.pins, member, Date.now(), hidden.get(userId)) };
 }
 
 /**
@@ -169,4 +126,42 @@ export async function sweepExpiredPins(app: FastifyInstance, now = new Date(), b
     });
   }
   return chats.length;
+}
+
+/**
+ * Pins on messages that were deleted for everyone, or are gone, before deleting unpinned them
+ * (older versions). Removed, and each member's devices told. Runs when the worker starts, through
+ * every chat with pins (index: pins.expiresAt), a batch at a time. Returns how many chats changed.
+ */
+export async function removeStalePins(app: FastifyInstance, batch = 200) {
+  const { Chat, Message } = chatModels(app);
+  let changed = 0;
+  let after: Types.ObjectId | null = null;
+  for (;;) {
+    const chats: Pick<ChatDoc, '_id' | 'pins'>[] = await Chat.find({
+      'pins.expiresAt': { $gt: new Date(0) },
+      ...(after ? { _id: { $gt: after } } : {}),
+    })
+      .select({ _id: 1, pins: 1 })
+      .sort({ _id: 1 })
+      .limit(batch)
+      .lean();
+    for (const chat of chats) {
+      const ids = (chat.pins ?? []).map((pin) => pin.messageId);
+      const alive = await Message.find({ _id: { $in: ids }, deletedForEveryoneAt: null })
+        .select({ _id: 1 })
+        .lean();
+      const keep = new Set(alive.map((doc) => doc._id.toString()));
+      const gone = ids.filter((id) => !keep.has(id.toString()));
+      if (gone.length === 0) continue;
+      const change = await app.mongo.transaction((session) =>
+        dropPins(app, session, chat._id, gone),
+      );
+      await announcePins(app, change);
+      if (change) changed += 1;
+    }
+    const last = chats.at(-1);
+    if (!last || chats.length < batch) return changed;
+    after = last._id;
+  }
 }

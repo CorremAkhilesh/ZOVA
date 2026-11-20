@@ -9,6 +9,7 @@ import { privacyOf, toPublicProfile, type UserDoc, usersModel } from '../users/u
 import { NO_PEER, peerProgress, toSummary } from './chat-summary.ts';
 import { defaultTimerOf, timerFields } from './default-timer.ts';
 import { hiddenMemberCounts } from './hidden-members.ts';
+import { myHiddenPins } from './pin-sync.ts';
 import { logUpdates } from './updates.ts';
 
 export const chatModels = (app: FastifyInstance) => registerChatModels(app.mongo);
@@ -66,6 +67,7 @@ export async function buildSummaries(
     chats.filter((chat) => chat.type === 'group').map((chat) => chat._id),
   );
   const otherByChat = new Map(others.map((other) => [other.chatId.toString(), other]));
+  const hiddenPins = await myHiddenPins(app, viewerId, chats);
 
   return rows.flatMap((row) => {
     const chat = chatById.get(row.chatId.toString());
@@ -85,7 +87,10 @@ export async function buildSummaries(
     const profile = person
       ? toPublicProfile(person, viewerId, { blockedViewer: blockers.has(person._id.toString()) })
       : null;
-    return [toSummary(chat, row, profile, progress, hiddenMembers.get(chat._id.toString()) ?? 0)];
+    const id = chat._id.toString();
+    return [
+      toSummary(chat, row, profile, progress, hiddenMembers.get(id) ?? 0, hiddenPins.get(id)),
+    ];
   });
 }
 
