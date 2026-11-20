@@ -18,6 +18,8 @@ export type QueuedAction =
   | ({ type: 'delete'; scope: 'me' | 'everyone'; asAdmin?: boolean } & OnMessage)
   | ({ type: 'react'; emoji: string | null } & OnMessage)
   | ({ type: 'star'; starred: boolean } & OnMessage)
+  /** My whole choice in a poll; empty takes my vote back. */
+  | ({ type: 'vote'; optionIds: string[] } & OnMessage)
   | { type: 'prefs'; chatId: string; prefs: ChatPrefs }
   | { type: 'clear'; chatId: string; seq: number; removeChat: boolean }
   | {

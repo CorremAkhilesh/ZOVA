@@ -1,4 +1,9 @@
-import { chatResponseSchema, forwardResponseSchema, okResponseSchema } from '@zuvo/protocol';
+import {
+  chatResponseSchema,
+  forwardResponseSchema,
+  okResponseSchema,
+  pollMessageResponseSchema,
+} from '@zuvo/protocol';
 import { chatsApi } from '@/features/chats/api';
 import { ApiClientError, apiDelete, apiPatch, apiPost, apiPut } from '@/lib/api-client';
 import { applyLocally } from './actions-local';
@@ -37,6 +42,12 @@ export function sendAction(action: QueuedAction): Promise<unknown> {
       return action.starred
         ? apiPut(onMessage(action, '/star'), undefined, ok)
         : apiDelete(onMessage(action, '/star'), ok);
+    case 'vote':
+      return apiPut(
+        onMessage(action, '/vote'),
+        { optionIds: action.optionIds },
+        pollMessageResponseSchema,
+      );
     case 'prefs':
       return apiPatch(`/v1/chats/${action.chatId}/prefs`, action.prefs, chatResponseSchema);
     case 'clear':

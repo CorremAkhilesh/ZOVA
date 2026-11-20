@@ -16,6 +16,8 @@ export const pollFixture = (overrides: Partial<Poll> = {}): Poll => ({
 
 export const pollMessage = (poll: Poll, overrides: Partial<Message> = {}): Message =>
   messageFixture(1, {
+    // The same message every time, as the server would send it again (same key on this device).
+    clientMsgId: '019a0000-0000-7000-8000-000000000001',
     type: 'poll',
     text: null,
     poll,
@@ -38,18 +40,21 @@ export const pollChat = (overrides: Parameters<typeof chatFixture>[0] = {}) =>
   });
 
 /** Test-only: voting and closing, as the server would answer them. Records each request. */
-export function servePolls(start: Poll, options: { failVotes?: boolean } = {}) {
+export function servePolls(
+  start: Poll,
+  options: { refuseVotes?: boolean; senderId?: string } = {},
+) {
   const state = { poll: start, votes: [] as string[][], closed: 0 };
-  const answer = () =>
-    HttpResponse.json({ message: pollMessage(state.poll, { senderId: 'u-asha' }) });
+  const senderId = options.senderId ?? 'u-asha';
+  const answer = () => HttpResponse.json({ message: pollMessage(state.poll, { senderId }) });
   server.use(
     http.put('*/v1/chats/:id/messages/:messageId/vote', async ({ request }) => {
       const { optionIds } = (await request.json()) as { optionIds: string[] };
       state.votes.push(optionIds);
-      if (options.failVotes) {
+      if (options.refuseVotes) {
         return HttpResponse.json(
-          { code: 'INTERNAL_ERROR', message: 'x', requestId: 'r' },
-          { status: 500 },
+          { code: 'POLL_CLOSED', message: 'This poll is closed.', requestId: 'r' },
+          { status: 409 },
         );
       }
       state.poll = {
@@ -64,6 +69,12 @@ export function servePolls(start: Poll, options: { failVotes?: boolean } = {}) {
       };
       return answer();
     }),
+    // After a refusal the app asks how the poll really is.
+    http.get('*/v1/chats/:id/messages', () =>
+      HttpResponse.json({ items: [pollMessage(state.poll, { senderId })], hasMore: false }),
+    ),
+    http.get('*/v1/chats/:id', () => HttpResponse.json({ chat: pollChat() })),
+    http.get('*/v1/statuses', () => HttpResponse.json({ mine: [], people: [] })),
     http.post('*/v1/chats/:id/messages/:messageId/close-poll', () => {
       state.closed += 1;
       state.poll = { ...state.poll, closedAt: new Date().toISOString() };

@@ -65,9 +65,11 @@ export function nextChoice(poll: Poll, me: string, optionId: string): string[] {
 }
 
 /** The poll as it will be once the server has my choice: shown at once, undone on failure. */
-export function withChoice(poll: Poll, me: string, optionIds: string[]): Poll {
+export function withChoice(poll: Poll, me: string, optionIds: string[], at?: string): Poll {
+  const { [me]: _previous, ...others } = poll.votedAt ?? {};
   return {
     ...poll,
+    votedAt: optionIds.length > 0 && at ? { ...others, [me]: at } : others,
     options: poll.options.map((option) => {
       const others = option.voterIds.filter((id) => id !== me);
       return { ...option, voterIds: optionIds.includes(option.id) ? [...others, me] : others };

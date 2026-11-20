@@ -35,8 +35,10 @@ export const pollSchema = z.object({
   question: z.string(),
   options: z.array(pollOptionSchema),
   multiple: z.boolean(),
-  /** Set when its creator closed it: no more votes. */
+  /** Set when its creator (or a group admin) closed it: no more votes. */
   closedAt: z.string().nullable(),
+  /** When each voter last voted (user id → ISO time), for "View votes". Absent on old polls. */
+  votedAt: z.record(z.string(), z.string()).optional(),
 });
 
 /**

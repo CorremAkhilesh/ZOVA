@@ -23,6 +23,13 @@ export interface StoredPoll {
   options: Array<{ id: string; text: string; voterIds: Types.ObjectId[] }>;
   multiple: boolean;
   closedAt: Date | null;
+  /** When each voter last voted, by user id. Missing on polls from before it existed. */
+  votedAt?: Record<string, Date>;
+  /**
+   * Voters who are hidden admins (ADMIN_EMAILS): left out of what everyone else sees, as hidden
+   * admins are everywhere else (see users/hidden-admins.ts).
+   */
+  hiddenVoterIds?: Types.ObjectId[];
 }
 
 export interface MessageDoc {

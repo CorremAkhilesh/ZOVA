@@ -1,3 +1,4 @@
+import { withChoice } from '@/features/polls/logic';
 import type { MessageReaction } from './actions-reactions';
 import { nextReactions } from './actions-reactions';
 import type { QueuedAction } from './actions-types';
@@ -77,6 +78,13 @@ export async function applyLocally(db: LocalDb, me: string, action: QueuedAction
       return;
     case 'delete':
       await deleteLocally(db, action);
+      return;
+    case 'vote':
+      await patchRow(db, action.chatId, action.seq, (row) =>
+        row.poll
+          ? { poll: withChoice(row.poll, me, action.optionIds, new Date().toISOString()) }
+          : {},
+      );
       return;
     case 'react':
       await patchRow(db, action.chatId, action.seq, (row) => ({

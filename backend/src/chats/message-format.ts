@@ -20,16 +20,20 @@ function playedFor(doc: MessageDoc, viewerId: string): boolean {
   return plays.some((play) => play.userId.toString() === viewerId);
 }
 
-function toPoll(poll: StoredPoll): NonNullable<Message['poll']> {
+/** A poll as `viewerId` sees it: a hidden admin's vote only by that admin. */
+function toPoll(poll: StoredPoll, viewerId: string): NonNullable<Message['poll']> {
+  const hidden = new Set((poll.hiddenVoterIds ?? []).map(String).filter((id) => id !== viewerId));
+  const votedAt = Object.entries(poll.votedAt ?? {}).filter(([id]) => !hidden.has(id));
   return {
     question: poll.question,
     options: poll.options.map((option) => ({
       id: option.id,
       text: option.text,
-      voterIds: option.voterIds.map((id) => id.toString()),
+      voterIds: option.voterIds.map((id) => id.toString()).filter((id) => !hidden.has(id)),
     })),
     multiple: poll.multiple,
     closedAt: poll.closedAt ? new Date(poll.closedAt).toISOString() : null,
+    votedAt: Object.fromEntries(votedAt.map(([id, at]) => [id, new Date(at).toISOString()])),
   };
 }
 
@@ -49,7 +53,7 @@ function timedFields(doc: MessageDoc, viewerId: string, deleted: boolean): Parti
   return {
     ...(doc.expiresAt ? { expiresAt: new Date(doc.expiresAt).toISOString() } : {}),
     ...(doc.viewOnce && !deleted ? { viewOnce: true, viewOnceOpened: opened } : {}),
-    ...(doc.poll && !deleted ? { poll: toPoll(doc.poll) } : {}),
+    ...(doc.poll && !deleted ? { poll: toPoll(doc.poll, viewerId) } : {}),
   };
 }
 

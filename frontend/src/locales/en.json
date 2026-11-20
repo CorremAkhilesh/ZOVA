@@ -1134,7 +1134,9 @@
       "remove": "Remove",
       "removeLabel": "Stop notifications on {{name}}",
       "removed": "That device won’t get notifications any more.",
-      "removeFailed": "Couldn’t remove that device. Try again."
+      "removeFailed": "Couldn’t remove that device. Try again.",
+      "pollVotes": "Votes in my polls",
+      "pollVotesHint": "A quiet notification when someone votes in a poll you sent. Never in muted chats or during quiet hours."
     },
     "sounds": {
       "title": "Sounds",
@@ -1388,18 +1390,19 @@
     "voters_other": "{{count}} people voted",
     "optionLabel_one": "{{text}}, {{count}} vote, {{percent}} percent",
     "optionLabel_other": "{{text}}, {{count}} votes, {{percent}} percent",
-    "seeVoters_one": "See who voted for {{text}}: {{count}} vote",
-    "seeVoters_other": "See who voted for {{text}}: {{count}} votes",
     "votes_one": "{{count}} vote",
     "votes_other": "{{count}} votes",
-    "votersTitle": "Voters",
-    "offline": "You’re offline. You can vote again once you’re connected.",
     "removeVote": "Remove vote",
     "close": "Close poll",
     "closeTitle": "Close this poll?",
     "closeHint": "No one will be able to vote any more. The results stay visible.",
     "voteFailed": "Your vote couldn’t be saved. Try again.",
-    "closeFailed": "Couldn’t close the poll. Try again."
+    "closeFailed": "Couldn’t close the poll. Try again.",
+    "viewVotes": "View votes",
+    "yourVote": "Your vote",
+    "noVotes": "No votes yet",
+    "votersFor": "Who voted for {{text}}",
+    "showAll": "Show all ({{count}})"
   },
   "help": {
     "menuTitle": "Help & About",
