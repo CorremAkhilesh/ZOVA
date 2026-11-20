@@ -1,8 +1,13 @@
-import { act, screen, waitFor } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it } from 'vitest';
+import { getUserDb } from '@/features/sync/local-db';
+import { uuidv7 } from '@/lib/uuid';
+import { axe } from '@/test/axe';
+import { chatFixture, ME_ID } from '@/test/chat-fixtures';
 import { HttpResponse, http, server, sessionFixture, signedOut } from '@/test/msw';
 import { DESKTOP_WIDTH, renderApp } from '@/test/render-app';
+import { seedLocal } from '@/test/seed';
 import { fakeSockets, lastSocket } from '@/test/socket-mock';
 import { useAuthFlow } from './flow-store';
 import { sessionQuery, sessionSnapshot } from './session';
@@ -132,11 +137,45 @@ describe('account settings', () => {
     ).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Sign out' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Sign out of this device?' });
+    await user.click(within(dialog).getByRole('button', { name: 'Sign out' }));
     await waitFor(() => expect(router.state.location.pathname).toBe('/'));
     expect(loggedOut).toBe(true);
     expect(
       screen.queryByText('Your session ended. Sign in again to continue.'),
     ).not.toBeInTheDocument();
+  });
+});
+
+describe('signing out asks first', () => {
+  it('Cancel keeps me signed in, and messages not sent yet are named', async () => {
+    const user = userEvent.setup();
+    await seedLocal([chatFixture()]);
+    await getUserDb(ME_ID).outbox.bulkAdd(
+      ['one', 'two'].map((text) => ({
+        clientMsgId: uuidv7(),
+        chatId: 'c1',
+        text,
+        attempts: 0,
+        state: 'pending' as const,
+      })),
+    );
+    let loggedOut = false;
+    server.use(
+      http.post('*/v1/auth/logout', () => {
+        loggedOut = true;
+        return HttpResponse.json({ status: 'signed_out' });
+      }),
+    );
+    const { router } = await renderApp('/settings', { width: DESKTOP_WIDTH });
+    await user.click(screen.getByRole('button', { name: 'Sign out' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Sign out of this device?' });
+    expect(await within(dialog).findByText(/2 messages haven’t been sent yet/)).toBeInTheDocument();
+    expect(await axe(dialog)).toHaveNoViolations();
+    await user.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(router.state.location.pathname).toBe('/settings');
+    expect(loggedOut).toBe(false);
   });
 });
 

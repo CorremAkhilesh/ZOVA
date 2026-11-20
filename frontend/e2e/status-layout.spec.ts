@@ -81,7 +81,7 @@ test('the status viewer at desktop, tablet and phone widths', async ({ browser }
     const page = await context.newPage();
     await page.goto('/updates');
     // Wider screens: the list beside a quiet pane.
-    await expect(page.getByText('Click on a contact to view their status updates')).toBeVisible({
+    await expect(page.getByText('Choose a colleague to see their status updates')).toBeVisible({
       visible: wide,
       ...SLOW,
     });

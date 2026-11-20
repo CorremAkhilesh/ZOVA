@@ -33,6 +33,9 @@ const SECRETS = {
   SMTP_PASS: 'env-smtp-pass',
   MONGODB_URI: 'mongodb+srv://user:mongo-pass@cluster.example',
   REDIS_URL: 'redis://:redis-pass@127.0.0.1:6391',
+  // TURN: the shared secret, and a short-lived credential made from it (GET /v1/calls/ice).
+  CALLS_TURN_SECRET: 'turn-shared-secret-value',
+  credential: 'turn-credential-value',
 };
 
 describe('log redaction', () => {

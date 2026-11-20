@@ -5,6 +5,7 @@ import { AppError } from '../lib/errors.ts';
 import { chatModels, requireMember } from './chats.service.ts';
 import { appendSystemMessage, deliverSystemMessage, namesOf } from './group-core.ts';
 import { assertAllowed, groupRules } from './group-permissions.ts';
+import { assertDirectNotBlocked } from './send-rules.ts';
 
 /**
  * Sets the chat's timer, with a "turned on disappearing messages" notice, inside the caller's
@@ -54,6 +55,7 @@ export async function setDisappearing(
       'Only admins can change disappearing messages in this group.',
     );
   }
+  await assertDirectNotBlocked(app, userId, chat);
   if ((chat.disappearing ?? 'off') === timer) return { timer };
   const actor = (await namesOf(app, [userId]))(userId);
   const stored = await app.mongo.transaction((session) =>

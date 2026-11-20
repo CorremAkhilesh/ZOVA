@@ -100,6 +100,24 @@ describe('PUT/DELETE /v1/me/push/subscription', () => {
     expect((await state(ben)).devices).toHaveLength(1);
   });
 
+  it('never moves it to someone who knows only the endpoint, not the browser’s keys', async () => {
+    const asha = await person();
+    const thief = await person();
+    const { endpoint } = await subscribeDevice(app(), asha.cookie);
+    const taken = await app().inject({
+      method: 'PUT',
+      url: '/v1/me/push/subscription',
+      headers: headers(thief.cookie),
+      payload: {
+        ...fakeSubscription(endpoint),
+        keys: { p256dh: `B${'C'.repeat(86)}`, auth: 'C'.repeat(22) },
+      },
+    });
+    expect(taken.statusCode).toBe(409);
+    expect((await state(asha)).devices).toHaveLength(1);
+    expect((await state(thief)).devices).toEqual([]);
+  });
+
   it('refuses http endpoints, bad keys and missing fields', async () => {
     const asha = await person();
     const bad = [

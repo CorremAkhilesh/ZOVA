@@ -43,7 +43,7 @@ export function ChatScreen({ chatId }: { chatId: string }) {
       />
     );
   }
-  if (error) return <NotFound />;
+  if (error) return <NotFound what="chat" />;
   return (
     <div className="flex h-full flex-col gap-3 p-4" aria-busy="true">
       <h2 className="sr-only">{t('conversation.messages')}</h2>

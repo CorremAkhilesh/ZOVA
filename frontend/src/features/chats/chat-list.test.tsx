@@ -85,6 +85,15 @@ describe('chat list states', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
+  it('shows keyboard focus on a row with a ring of its own, not only the hover colour', async () => {
+    await seedLocal([asha]);
+    await renderApp('/chats', { width: DESKTOP_WIDTH });
+    const row = await screen.findByRole('link', { name: /Asha Verma/ });
+    // jsdom draws nothing: the classes are what a browser draws the ring from (WCAG 2.4.7).
+    expect(row.className).toMatch(/focus-visible:ring-2/);
+    expect(row.className).toMatch(/focus-visible:ring-brand/);
+  });
+
   it('has no sample data or badge', async () => {
     await renderApp('/chats', { width: DESKTOP_WIDTH });
     await screen.findByRole('heading', { name: 'No chats yet' });

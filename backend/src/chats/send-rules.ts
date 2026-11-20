@@ -70,6 +70,29 @@ export async function assertMaySend(
   return other?.userId.toString() ?? null;
 }
 
+/**
+ * In a 1:1 chat, anything the other person would see (a timer change, a pin, a reaction, an edit,
+ * a vote) is refused while either has blocked the other, as a message would be. Groups: no check.
+ */
+export async function assertDirectNotBlocked(
+  app: FastifyInstance,
+  userId: string,
+  chat: { _id: Types.ObjectId; type: string },
+): Promise<void> {
+  if (chat.type !== 'direct') return;
+  const other = await chatModels(app)
+    .ChatMember.findOne({ chatId: chat._id, userId: { $ne: oid(userId) } })
+    .select({ userId: 1 })
+    .lean();
+  if (other) await assertNotBlocked(app, userId, other.userId.toString());
+}
+
+/** The same, for a chat known by id only. */
+export async function assertChatNotBlocked(app: FastifyInstance, userId: string, chatId: string) {
+  const chat = await chatModels(app).Chat.findById(chatId).select({ type: 1 }).lean();
+  if (chat) await assertDirectNotBlocked(app, userId, chat);
+}
+
 export async function attachIfAny(
   app: FastifyInstance,
   session: ClientSession,
