@@ -81,6 +81,7 @@ async function guardOtpRequest(ctx: HookContext, { policy, throttle }: AuthOptio
     if ((found?.user as { status?: string } | undefined)?.status === 'deactivated') {
       throw accountDeactivated();
     }
+    await throttle.checkLocked(email);
     await throttle.checkEmail(email);
     await throttle.resetAttempts(email);
   } catch (error) {
