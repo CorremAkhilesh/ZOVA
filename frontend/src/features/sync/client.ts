@@ -6,6 +6,7 @@ import type {
 } from '@zuvo/protocol';
 import { io, type Socket } from 'socket.io-client';
 import { toast } from 'sonner';
+import { startCalls } from '@/features/calls/controller';
 import { chatsApi } from '@/features/chats/api';
 import { startExpiryPurge } from '@/features/disappearing/purge';
 import { mediaApi } from '@/features/media/api';
@@ -145,6 +146,7 @@ export function startSyncClient(options: SyncClientOptions): SyncClient {
   const presence = presenceSubscriber(socket, () => stopped);
   const plays = socketPlayReports(db, socket);
   const notifications = wireNotifications(socket, userId);
+  const calls = startCalls(socket, userId);
 
   const awayTracker = trackAway((active) => {
     if (socket.connected) socket.emit('presence:active', { active }, () => undefined);
@@ -292,6 +294,7 @@ export function startSyncClient(options: SyncClientOptions): SyncClient {
       clearInterval(stateCheck);
       awayTracker.stop();
       notifications.stop();
+      calls.stop();
       expiry.stop();
       deliveryAcks.stop();
       uploader.stop();

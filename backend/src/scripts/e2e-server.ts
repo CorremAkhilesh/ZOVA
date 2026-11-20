@@ -51,6 +51,9 @@ const env = loadEnv({
   // Every browser project shares one IP; keep the per-IP OTP limit out of the way.
   OTP_IP_LIMIT_PER_HOUR: '10000',
   MEDIA_STORAGE_PATH: './storage/e2e',
+  // Calls for every test account, between browsers on this machine: no STUN on the internet.
+  CALLS_ENABLED_FOR: 'all',
+  CALLS_STUN_URLS: 'none',
   LOG_LEVEL: 'warn',
 });
 

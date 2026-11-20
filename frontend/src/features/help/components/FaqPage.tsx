@@ -86,6 +86,16 @@ export function FaqPage() {
       ),
     },
     {
+      id: 'calls',
+      title: text('faq.calls.q'),
+      content: (
+        <>
+          <Points items={list('faq.calls.points')} />
+          <GoTo to="/settings/notifications">{text('faq.calls.open')}</GoTo>
+        </>
+      ),
+    },
+    {
       id: 'status',
       title: text('faq.status.q'),
       content: (

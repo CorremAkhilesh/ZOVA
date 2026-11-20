@@ -15,7 +15,8 @@ let context: AudioContext | null = null;
 const buffers = new Map<SoundName, AudioBuffer>();
 const loading = new Map<SoundName, Promise<AudioBuffer | null>>();
 
-function audioContext(): AudioContext | null {
+/** The one audio context (also for the call ringtone), once the browser allows audio. */
+export function audioContext(): AudioContext | null {
   if (context) return context;
   const Ctor =
     (globalThis as { AudioContext?: AudioContextClass }).AudioContext ??

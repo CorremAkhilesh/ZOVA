@@ -521,3 +521,27 @@ shape, e.g. `p256dh` = "B" followed by 86 "A", `auth` = 22 "A". The E2E server c
 - **Limits:** 30 statuses per person per 24 hours, and a per-minute rate limit on posting.
 - **Reports:** `target.kind = 'status'`; the evidence keeps a copy of the status. An admin's
   `removeStatus` deletes it for everyone and writes `status.remove` to the audit log.
+
+## Calls
+
+1:1 voice calls over WebRTC (ADR 0010). The server passes signaling and keeps a record; it never
+touches the audio.
+
+- **REST:** `GET /v1/calls/access` (whether I have calls: the call buttons), `GET /v1/calls/ice` (STUN,
+  and TURN with time-limited credentials; `no-store`), `GET /v1/calls/active` (a call ringing for me or
+  that I am in: for a device opened from the notification), `GET /v1/calls?before=&limit=` (my history,
+  newest first, by cursor).
+- **Socket, client → server (all acked):** `call:start {chatId, kind}` → `{call, busy}`;
+  `call:ringing`, `call:accept` (→ `{call}`), `call:decline`, `call:end`, `call:beat` (every 15 s while
+  connected), `call:signal {callId, signal}` (offer, answer, candidate, or `restart`).
+- **Socket, server → client:** `call:incoming {call, silent}` to every device of the person called;
+  `call:update {call}` to both people on every change (ringing, answered, ended); `call:signal` to the
+  other device in the call only.
+- **Who answers:** the first `call:accept` wins (an atomic update from `ringing`); its session is stored
+  and only it and the caller's session may signal. Other devices see `active` and stop ringing.
+- **Endings:** `outcome` is `answered`, `missed` (45 s, or a stale ringing call found later), `declined`,
+  `busy`, `cancelled` or `failed`. One system message (`kind: 'call'`, `value` such as
+  `voice:answered:151` or `voice:missed`) goes into the chat; it is read for the caller, and for the
+  callee unless they missed it. A missed call sends a push with the call's tag.
+- **Indexes:** `calls {userIds, _id}` (history) and `{userIds, status}` (busy, my ringing call); both
+  tested with `expectIndexedQuery()`.

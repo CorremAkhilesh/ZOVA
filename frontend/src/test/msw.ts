@@ -141,6 +141,11 @@ export const server = setupServer(
   }),
   http.get('*/v1/chats', () => HttpResponse.json({ items: [SAVED_CHAT], nextCursor: null })),
   http.get('*/v1/chats/self', () => HttpResponse.json({ chat: SAVED_CHAT })),
+  // Calls: off for this account unless a test says otherwise; nothing ringing, no history.
+  http.get('*/v1/calls/access', () => HttpResponse.json({ enabled: false })),
+  http.get('*/v1/calls/active', () => HttpResponse.json({ call: null })),
+  http.get('*/v1/calls/ice', () => HttpResponse.json({ iceServers: [], ttlSeconds: 0 })),
+  http.get('*/v1/calls', () => HttpResponse.json({ items: [], nextCursor: null })),
 );
 
 export { HttpResponse, http };

@@ -1,6 +1,7 @@
 import type { Connection } from 'mongoose';
 import { registerAppearanceModels } from './appearance-models.ts';
 import { registerAuthModels } from './auth-models.ts';
+import { registerCallModels } from './call-models.ts';
 import { registerChatModels } from './chat-models.ts';
 import { registerFolderModels } from './folder-models.ts';
 import { registerLinkPreviewModels } from './link-preview-models.ts';
@@ -28,6 +29,7 @@ export const modelRegistrations: Array<(connection: Connection) => IndexedModel[
   (connection) => Object.values(registerScheduledModels(connection)) as unknown as IndexedModel[],
   (connection) => Object.values(registerPushModels(connection)) as unknown as IndexedModel[],
   (connection) => Object.values(registerStatusModels(connection)) as unknown as IndexedModel[],
+  (connection) => Object.values(registerCallModels(connection)) as unknown as IndexedModel[],
 ];
 
 export function registerModels(connection: Connection): IndexedModel[] {

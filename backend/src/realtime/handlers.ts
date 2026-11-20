@@ -19,6 +19,7 @@ import { markDelivered, markRead } from '../chats/receipts.service.ts';
 import { registerAuthModels } from '../db/auth-models.ts';
 import { AppError } from '../lib/errors.ts';
 import { toErrorResponse } from '../plugins/error-handler.ts';
+import { registerCallHandlers } from './call-handlers.ts';
 import type { ZuvoSocket } from './server.ts';
 import { closeSocket } from './session-guard.ts';
 import { windowLimit } from './socket-limit.ts';
@@ -65,7 +66,7 @@ export function safeReason(error: unknown): string {
 }
 
 /** Runs one event: validate, check the session, act, and always acknowledge. */
-async function respond<Schema extends z.ZodType, Data>(
+export async function respond<Schema extends z.ZodType, Data>(
   app: FastifyInstance,
   socket: ZuvoSocket,
   event: string,
@@ -215,6 +216,8 @@ export function registerHandlers(app: FastifyInstance, socket: ZuvoSocket): void
       },
     );
   });
+
+  registerCallHandlers(app, socket);
 
   socket.on('presence:active', (payload, ack) => {
     void respond(

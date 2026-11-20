@@ -1,5 +1,6 @@
 import type { SystemEvent } from '@zuvo/protocol';
 import type { TFunction } from 'i18next';
+import { callSystemText } from '@/features/calls/wording';
 import { disappearingSystemText } from '@/features/disappearing/wording';
 
 type Person = { id: string; name: string };
@@ -20,6 +21,7 @@ function settingsKey(value: string | null): string {
 /** What a system message says, in the reader's language, with "You" where it is them. */
 export function systemText(event: SystemEvent, me: string, t: TFunction): string {
   const { kind, actor, targets, value } = event;
+  if (kind === 'call') return callSystemText(event, me, t);
   const you = actor?.id === me;
   const params = {
     actor: you ? t('groups.you') : (actor?.name ?? ''),

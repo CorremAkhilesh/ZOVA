@@ -15,9 +15,16 @@ export function parsePushPayload(raw: unknown): PushPayload | null {
   if (data.v !== 1 || !str('tag') || !str('title') || !str('body') || !bool('silent')) return null;
   if (!str('sentAt') || Number.isNaN(Date.parse(data.sentAt as string))) return null;
   if (data.kind === 'test') return data as PushPayload;
+  if (data.kind === 'call') return isCall(data) ? (data as PushPayload) : null;
   if (data.kind !== 'message' || !str('chatId') || !bool('hidden')) return null;
   if (!count('seq', 1) || !count('count', 1) || !count('badge', 0)) return null;
   return data as PushPayload;
+}
+
+/** A call's notification: which call, in which chat, ringing or missed. */
+function isCall(data: Record<string, unknown>): boolean {
+  const state = data.state === 'incoming' || data.state === 'missed';
+  return state && typeof data.callId === 'string' && typeof data.chatId === 'string';
 }
 
 /** The JSON inside a push message, or null when it is missing or not JSON. */

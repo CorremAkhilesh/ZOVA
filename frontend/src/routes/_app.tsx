@@ -6,6 +6,8 @@ import { ErrorScreen, NotFound } from '@/components/common/StatusScreens';
 import { AppearanceHost } from '@/features/appearance/components/AppearanceHost';
 import { SessionGate } from '@/features/auth/components/SessionGate';
 import { requireCompleteSession } from '@/features/auth/guards';
+import { CallScreen } from '@/features/calls/components/CallScreen';
+import { OnCallBar } from '@/features/calls/components/OnCallBar';
 import { rememberJoinPath } from '@/features/groups/rules';
 import { LockHost } from '@/features/lock/components/LockHost';
 import { MentionProfileHost } from '@/features/mentions/mention-marks';
@@ -63,6 +65,7 @@ function AppShell() {
       <LockHost />
       <AppearanceHost />
       <NotificationsHost />
+      <CallScreen />
     </>
   );
 
@@ -74,6 +77,7 @@ function AppShell() {
         <main className="flex min-w-0 flex-1 flex-col">
           <NotificationsNudge />
           <SessionGate />
+          <OnCallBar />
           <MiniPlayer />
           <div className="min-h-0 flex-1">
             <Outlet />
@@ -88,6 +92,7 @@ function AppShell() {
       <main className="glass flex min-h-0 flex-1 flex-col">
         <NotificationsNudge />
         <SessionGate />
+        <OnCallBar />
         <MiniPlayer />
         <div className="min-h-0 flex-1">
           <Outlet />

@@ -47,6 +47,8 @@ export const systemEventSchema = z.object({
     'pinned',
     /** The disappearing-messages timer changed; `value` is the new one (`off`, `24h`…). */
     'disappearing_changed',
+    /** A call in a 1:1 chat; `value` says how it went (see callSystemValue). Actor: the caller. */
+    'call',
   ]),
   /** Null when the system did it, such as passing on ownership from a deactivated account. */
   actor: z.object({ id: z.string(), name: z.string() }).nullable(),

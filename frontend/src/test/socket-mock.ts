@@ -79,12 +79,17 @@ vi.mock('socket.io-client', () => ({
         fake.emitted.push({ event, payload });
         return fake;
       },
-      timeout: () => ({
-        emitWithAck: async (event: string, payload: unknown) => {
-          fake.emitted.push({ event, payload });
-          return fake.respond(event, payload);
-        },
-      }),
+      // Like socket.io's: emitWithAck reads its socket from `this`, so calling it detached fails.
+      timeout() {
+        const timed = {
+          async emitWithAck(this: unknown, event: string, payload: unknown) {
+            if (this !== timed) throw new TypeError('emitWithAck called without its socket');
+            fake.emitted.push({ event, payload });
+            return fake.respond(event, payload);
+          },
+        };
+        return timed;
+      },
       connect() {
         fake.disconnected = false;
         return fake;

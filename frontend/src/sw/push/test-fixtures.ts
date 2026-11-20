@@ -1,4 +1,4 @@
-import { type PushPayload, pushTagFor } from '@zuvo/protocol';
+import { callPushTagFor, type PushPayload, pushTagFor } from '@zuvo/protocol';
 import { vi } from 'vitest';
 import type { WindowLike, WorkerDeps } from './handlers';
 import { swStrings } from './strings';
@@ -22,6 +22,23 @@ export const message = (overrides: Partial<Extract<PushPayload, { kind: 'message
     hidden: false,
     silent: false,
     sentAt: '2026-11-13T10:00:00.000Z',
+    ...overrides,
+  }) satisfies PushPayload;
+
+export const CALL = '64b7f0c2a1b2c3d4e5f60099';
+
+export const callPush = (overrides: Partial<Extract<PushPayload, { kind: 'call' }>> = {}) =>
+  ({
+    kind: 'call',
+    v: 1,
+    callId: CALL,
+    chatId: CHAT,
+    state: 'incoming',
+    tag: callPushTagFor(CALL),
+    title: 'Incoming voice call',
+    body: 'Asha Verma is calling you',
+    silent: false,
+    sentAt: '2026-11-20T10:00:00.000Z',
     ...overrides,
   }) satisfies PushPayload;
 

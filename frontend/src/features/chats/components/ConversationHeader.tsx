@@ -5,6 +5,7 @@ import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { useSession } from '@/features/auth/session';
+import { CallButton } from '@/features/calls/components/CallButton';
 import { ConnectionStatus } from '@/features/connection/ConnectionStatus';
 import { DisappearingBadge } from '@/features/disappearing/DisappearingBadge';
 import { memberNames, typingLine } from '@/features/groups/wording';
@@ -126,7 +127,8 @@ export function ConversationHeader({
         <DisappearingBadge timer={chat.disappearing} />
         {/* On phones the chat list, which also shows it, is hidden while a chat is open. */}
         {showBack ? <ConnectionStatus /> : null}
-        {/* Voice and video call buttons come back with the calls feature. */}
+        {/* Voice calls: 1:1 chats only, for accounts that have calls. Video comes later. */}
+        <CallButton chatId={chat.id} name={chat.name} direct={chat.kind === 'personal'} />
         <ScheduledButton chatId={chat.id} />
         <Button
           variant="ghost"

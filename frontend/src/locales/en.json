@@ -114,9 +114,7 @@
   },
   "placeholder": {
     "updatesTitle": "Updates",
-    "updatesBody": "Status updates and channels are planned for a later version.",
-    "callsTitle": "Calls",
-    "callsBody": "Voice and video calls are planned for a later version."
+    "updatesBody": "Status updates and channels are planned for a later version."
   },
   "status": {
     "connected": "Connected",
@@ -1580,5 +1578,72 @@
     "retry": "The share didn’t reach {{brand}}. Open {{brand}} once, then share again.",
     "failed": "This share couldn’t be read. Try sharing again.",
     "nothing": "Nothing to share here. Share a file, photo or text from another app."
+  },
+  "calls": {
+    "call": "Voice call",
+    "callName": "Voice call with {{name}}",
+    "calling": "Calling…",
+    "ringing": "Ringing…",
+    "incoming": "Incoming voice call",
+    "connecting": "Connecting…",
+    "reconnecting": "Reconnecting…",
+    "silent": "Quiet hours: ringing silently",
+    "accept": "Accept",
+    "decline": "Decline",
+    "end": "End call",
+    "mute": "Mute",
+    "unmute": "Unmute",
+    "speaker": "Speaker",
+    "minimize": "Back to the app",
+    "onCall": "On call",
+    "returnToCall": "Return to call",
+    "screen": "Call with {{name}}",
+    "unknownPerson": "Someone",
+    "endReason": {
+      "answered": "Call ended",
+      "missed": "No answer",
+      "declined": "Declined",
+      "busy": "On another call",
+      "cancelled": "Call cancelled",
+      "failed": "Call dropped",
+      "elsewhere": "Answered on another device",
+      "error": "The call could not connect"
+    },
+    "quality": {
+      "good": "Good connection",
+      "fair": "Fair connection",
+      "poor": "Poor connection"
+    },
+    "errors": {
+      "CALLS_UNAVAILABLE": "Calls aren’t available for this person yet.",
+      "BLOCKED": "Unblock this contact to call them.",
+      "CANNOT_MESSAGE": "You can’t call this person.",
+      "CALL_IN_PROGRESS": "You’re already on a call.",
+      "RATE_LIMITED": "Too many calls. Try again in a minute.",
+      "generic": "The call could not be started.",
+      "microphone": "Allow the microphone to make and answer calls.",
+      "offline": "You’re offline. Connect to the internet to call."
+    },
+    "history": {
+      "title": "Calls",
+      "empty": "No calls yet",
+      "emptyBody": "Start a voice call from the phone button in a chat.",
+      "error": "Your calls could not be loaded.",
+      "incoming": "Incoming",
+      "outgoing": "Outgoing",
+      "missed": "Missed",
+      "declined": "Declined",
+      "busy": "Busy",
+      "noAnswer": "No answer",
+      "callBack": "Call {{name}}",
+      "more": "Show older calls"
+    },
+    "system": {
+      "answered": "Voice call · {{duration}}",
+      "missed": "Missed voice call",
+      "declined": "Declined voice call",
+      "noAnswer": "Voice call · No answer",
+      "busy": "Voice call · Busy"
+    }
   }
 }

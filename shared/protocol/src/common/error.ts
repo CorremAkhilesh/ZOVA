@@ -57,6 +57,10 @@ export const errorCodeSchema = z.enum([
   'STATUS_LIMIT_REACHED',
   /** A video status longer than 60 seconds. */
   'STATUS_VIDEO_TOO_LONG',
+  /** Calls are not open to this account (or to the person called) yet. */
+  'CALLS_UNAVAILABLE',
+  /** I am already in a call. */
+  'CALL_IN_PROGRESS',
 ]);
 
 export type ErrorCode = z.infer<typeof errorCodeSchema>;
