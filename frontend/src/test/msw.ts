@@ -1,4 +1,4 @@
-import type { MyProfile, PrivacySettings, SessionResponse } from '@zuvo/protocol';
+import type { MyProfile, PrivacySettings, SessionResponse, StorageUsage } from '@zuvo/protocol';
 import { DEFAULT_APPEARANCE, DEFAULT_PUSH_SETTINGS, DEFAULT_QUIET_HOURS } from '@zuvo/protocol';
 import { HttpResponse, http } from 'msw';
 import { setupServer } from 'msw/node';
@@ -85,6 +85,17 @@ export const privacyFixture: PrivacySettings = {
 };
 
 /** Username availability: "taken" is taken; everything that passes the rules is free. */
+
+const GB = 1024 ** 3;
+/** Settings → Storage: a little used of the default 3 GB. */
+export const storageFixture = (overrides: Partial<StorageUsage> = {}): StorageUsage => ({
+  usedBytes: 0,
+  pendingBytes: 0,
+  quotaBytes: 3 * GB,
+  byKind: { image: 0, video: 0, audio: 0, voice: 0, document: 0 },
+  ...overrides,
+});
+
 const availability = http.get('*/v1/users/username-availability', ({ request }) => {
   const username = new URL(request.url).searchParams.get('username') ?? '';
   const taken = username === 'taken';
@@ -102,6 +113,7 @@ export const server = setupServer(
   http.get('*/v1/me/username-suggestion', () => HttpResponse.json({ username: 'kiran' })),
   http.get('*/v1/me/privacy', () => HttpResponse.json({ privacy: privacyFixture })),
   http.get('*/v1/me/blocks', () => HttpResponse.json({ items: [] })),
+  http.get('*/v1/me/storage', () => HttpResponse.json(storageFixture())),
   http.get('*/v1/me/folders', () => HttpResponse.json({ folders: [] })),
   http.get('*/v1/me/scheduled', () => HttpResponse.json({ items: [] })),
   http.get('*/v1/me/lock', () =>

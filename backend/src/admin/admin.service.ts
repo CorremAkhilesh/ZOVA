@@ -4,6 +4,7 @@ import { Types } from 'mongoose';
 import { chatModels } from '../chats/chats.service.ts';
 import { registerSecurityModels } from '../db/security-models.ts';
 import { AppError } from '../lib/errors.ts';
+import { quotaBytesOf } from '../media/quota.ts';
 import { escapeRegex, loadUser, type UserDoc, usersModel } from '../users/user-record.ts';
 
 export interface Actor {
@@ -66,6 +67,7 @@ export async function listUsers(app: FastifyInstance, q: string, limit: number, 
     items: items.map((user) => ({
       ...toAdminUser(user),
       storageBytes: stored.get(user._id.toString()) ?? 0,
+      quotaBytes: quotaBytesOf(app, user),
     })),
     nextCursor: next,
   };
@@ -105,6 +107,21 @@ export async function setRole(
     await audit(app, actor, role === 'admin' ? 'user.promote' : 'user.demote', target);
   }
   return toAdminUser({ ...target, role });
+}
+
+/** One person's storage limit in MiB; null puts the default back. Audited when it changes. */
+export async function setStorageQuota(
+  app: FastifyInstance,
+  actor: Actor,
+  id: string,
+  quotaMb: number | null,
+) {
+  const target = await findTarget(app, id);
+  if ((target.storageQuotaMb ?? null) !== quotaMb) {
+    await usersModel(app).updateOne({ _id: target._id }, { $set: { storageQuotaMb: quotaMb } });
+    await audit(app, actor, 'storage.quota', target);
+  }
+  return { quotaBytes: quotaBytesOf(app, { storageQuotaMb: quotaMb }), custom: quotaMb !== null };
 }
 
 export async function audit(

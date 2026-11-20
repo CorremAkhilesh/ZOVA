@@ -15,7 +15,7 @@ export const PENDING_ORDER_BASE = 1e12;
 
 export type MessageStatus = 'pending' | 'failed' | 'sent';
 /** Why a file was not sent, when the person can do something about it. */
-export type UploadFailReason = 'fileLost' | 'diskFull' | 'overLimit';
+export type UploadFailReason = 'fileLost' | 'diskFull' | 'overLimit' | 'quotaFull';
 
 export interface MessageRow extends Omit<Message, 'id' | 'seq'> {
   /** Stable across send and ack, so re-applying a message can never duplicate it. */

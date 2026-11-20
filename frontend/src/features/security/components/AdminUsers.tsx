@@ -13,6 +13,7 @@ import { authErrorMessage } from '@/features/auth/errors';
 import { useSession } from '@/features/auth/session';
 import { formatBytes } from '@/features/media/process';
 import { SettingsSection } from '@/features/settings/SettingsPage';
+import { StorageQuotaDialog } from '@/features/storage/StorageQuotaDialog';
 import { useDebouncedValue } from '@/lib/hooks';
 import { adminApi } from '../api';
 
@@ -22,10 +23,12 @@ function UserRow({
   user,
   self,
   onAction,
+  onQuota,
 }: {
   user: AdminUserRow;
   self: boolean;
   onAction: (action: Action) => void;
+  onQuota: (user: AdminUserRow) => void;
 }) {
   const { t, i18n } = useTranslation();
   const deactivated = user.status === 'deactivated';
@@ -43,7 +46,17 @@ function UserRow({
           {user.username ? ` · @${user.username}` : ''}
         </p>
         <p className="text-xs text-text-muted">
-          {t('admin.storageUsed', { size: formatBytes(user.storageBytes, i18n.language) })}
+          {t('admin.storageUsedOf', {
+            size: formatBytes(user.storageBytes, i18n.language),
+            limit: formatBytes(user.quotaBytes, i18n.language),
+          })}{' '}
+          <button
+            type="button"
+            onClick={() => onQuota(user)}
+            className="font-medium text-brand-text underline-offset-2 hover:underline"
+          >
+            {t('storage.admin.change')}
+          </button>
         </p>
       </div>
       {self ? (
@@ -78,6 +91,7 @@ export function AdminUsers() {
   const [search, setSearch] = useState('');
   const q = useDebouncedValue(search.trim(), 300);
   const [action, setAction] = useState<Action | null>(null);
+  const [quotaFor, setQuotaFor] = useState<AdminUserRow | null>(null);
 
   const users = useInfiniteQuery({
     queryKey: ['admin', 'users', q],
@@ -141,7 +155,13 @@ export function AdminUsers() {
         ) : (
           <ul className="divide-y">
             {items.map((user) => (
-              <UserRow key={user.id} user={user} self={user.id === me?.id} onAction={setAction} />
+              <UserRow
+                key={user.id}
+                user={user}
+                self={user.id === me?.id}
+                onAction={setAction}
+                onQuota={setQuotaFor}
+              />
             ))}
           </ul>
         )}
@@ -155,6 +175,11 @@ export function AdminUsers() {
           </Button>
         ) : null}
       </SettingsSection>
+      <StorageQuotaDialog
+        key={quotaFor?.id ?? 'none'}
+        user={quotaFor}
+        onClose={() => setQuotaFor(null)}
+      />
       <ConfirmDialog
         open={action !== null}
         onOpenChange={(open) => (open ? null : setAction(null))}

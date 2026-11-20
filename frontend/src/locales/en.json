@@ -565,9 +565,11 @@
       "report.view": "{{actor}} viewed a report about {{target}}",
       "report.resolve": "{{actor}} resolved a report about {{target}}",
       "status.remove": "{{actor}} removed a status of {{target}}",
-      "notifications.remind": "{{actor}} reminded {{target}} to turn on notifications"
+      "notifications.remind": "{{actor}} reminded {{target}} to turn on notifications",
+      "storage.quota": "{{actor}} changed the storage limit of {{target}}"
     },
-    "storageUsed": "Storage used: {{size}}"
+    "storageUsed": "Storage used: {{size}}",
+    "storageUsedOf": "Storage used: {{size}} of {{limit}}"
   },
   "people": {
     "title": "New chat",
@@ -659,7 +661,8 @@
     "fileLostRemove": "Remove",
     "fileLostChoose": "Choose again",
     "diskFull": "The server is low on storage, so this file wasn’t uploaded.",
-    "overLimit": "This file is over the size limit."
+    "overLimit": "This file is over the size limit.",
+    "quotaFull": "Your storage is full, so this file wasn’t uploaded. Free up space in Settings → Storage."
   },
   "voice": {
     "preview": "Voice message",
@@ -1650,5 +1653,39 @@
       "busy": "Voice call · Busy"
     },
     "rerouting": "Trying another route…"
+  },
+  "storage": {
+    "title": "Storage",
+    "subtitle": "How much space your photos, videos, voice notes, documents and statuses use.",
+    "menuHint": "Space your files use, and your limit",
+    "usedOf": "{{used}} of {{limit}} used",
+    "meterLabel": "Storage used",
+    "percentUsed": "{{percent}}% used",
+    "free": "{{size}} free",
+    "uploading": "{{size}} uploading",
+    "loadFailed": "Couldn’t load your storage. Check your connection and try again.",
+    "nearlyFullHint": "Your storage is nearly full. When it is full, new files can’t be sent.",
+    "fullHint": "Your storage is full. New files can’t be sent until you free up space.",
+    "byKind": "What uses it",
+    "empty": "You haven’t sent any files yet.",
+    "kinds": {
+      "image": "Photos",
+      "video": "Videos",
+      "voice": "Voice notes",
+      "audio": "Audio",
+      "document": "Documents"
+    },
+    "howToFree": "To free up space, delete messages with files you sent using “Delete for everyone”. If you need more space, ask an admin.",
+    "toastNearlyFull": "Your storage is nearly full",
+    "toastFull": "Your storage is full",
+    "open": "View",
+    "admin": {
+      "change": "Change limit",
+      "title": "Storage limit for {{name}}",
+      "current": "Using {{used}} of {{limit}}.",
+      "label": "New limit (GB)",
+      "hint": "Between {{min}} GB and {{max}} GB.",
+      "useDefault": "Use default"
+    }
   }
 }

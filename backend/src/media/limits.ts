@@ -8,10 +8,13 @@ import {
 import type { FastifyInstance } from 'fastify';
 import type { Env } from '../config/env.ts';
 import { AppError } from '../lib/errors.ts';
+import { DISK_STOP_PERCENT, diskAlertEmail } from '../mail/templates/disk-alert-email.ts';
 import type { StorageSpace } from '../storage/driver.ts';
 
 /** Above this the disk is too full to accept more files. */
-export const DISK_MAX_USED_RATIO = 0.9;
+export const DISK_MAX_USED_RATIO = DISK_STOP_PERCENT / 100;
+/** One "uploads stopped" email to the admins per this many seconds, however many refusals. */
+const DISK_FULL_ALERT_EVERY_SECONDS = 6 * 3600;
 
 export const mediaMaxBytes = (env: Pick<Env, 'MEDIA_MAX_FILE_MB'>) =>
   env.MEDIA_MAX_FILE_MB * 1024 * 1024;
@@ -62,9 +65,30 @@ export async function assertRoomFor(app: FastifyInstance, incoming: number): Pro
   }
   if (space && wouldOverfill(space, incoming)) {
     app.log.warn({ total: space.total, free: space.free, incoming }, 'upload refused: disk full');
+    void alertAdmins(app, space).catch((error: unknown) => {
+      app.log.error({ err: error }, 'could not send the disk-full alert');
+    });
     throw new AppError(
       'STORAGE_FULL',
       'The server is low on storage, so this file cannot be uploaded right now.',
     );
+  }
+}
+
+/** Tells every ADMIN_EMAILS address that uploads have stopped, at most once per six hours. */
+async function alertAdmins(app: FastifyInstance, { total, free }: StorageSpace): Promise<void> {
+  const first = await app.counterStore.setIfAbsent(
+    'zuvo:alert:disk-full',
+    DISK_FULL_ALERT_EVERY_SECONDS,
+  );
+  if (!first) return;
+  const alert = {
+    percent: Math.round(((total - free) / total) * 100),
+    path: 'media storage',
+    freeGiB: free / 1024 ** 3,
+    stopped: true,
+  };
+  for (const to of app.env.ADMIN_EMAILS) {
+    await app.emailDispatcher.dispatch(diskAlertEmail(to, alert, new Date()), 'disk-alert');
   }
 }

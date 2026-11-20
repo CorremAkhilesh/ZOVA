@@ -153,7 +153,8 @@ CORP `same-site` and a `connect-src` entry.
   signature and by extension.
 - Limits: `MEDIA_MAX_FILE_MB` (default 1024) per file, pictures 100 MB, voice 64 MB and
   `VOICE_MAX_SECONDS`, avatars 5 MB, wallpapers 10 MB, 8 MB per upload chunk; checked before bytes
-  move and again while they arrive. New uploads are refused above 90 % disk use (`507 STORAGE_FULL`).
+  move and again while they arrive. New uploads are refused above 85 % disk use (`507 STORAGE_FULL`, admins emailed) and past
+  a person's storage limit (`413 STORAGE_QUOTA_EXCEEDED`, default 3 GB).
 - Pictures (photos, avatars, group photos, wallpapers, video posters, link-preview images) are
   decoded with a pixel limit and **re-encoded to WebP**, which strips EXIF/GPS and anything hidden.
 - Storage keys are random (`ab/cd/<32 hex>`), validated by a strict pattern and resolved inside the

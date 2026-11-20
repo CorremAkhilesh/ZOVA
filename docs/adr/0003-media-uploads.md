@@ -51,7 +51,8 @@ it failed. Pictures stay at 100 MB, since both sides decode them; a larger one g
 
 - **Chunks:** 4 MB, or the 8 MB maximum above 100 MB, which keeps a 1 GB file to about 128 requests.
   Chunks have their own rate limit (1200 a minute), since a whole office can share one address.
-- **Disk:** an upload is refused if it would take the disk above 90%. Each chunk checks again with the
+- **Disk:** an upload is refused if it would take the disk above 85% (the admins get an email), or its
+  owner past their storage limit (`MEDIA_USER_QUOTA_MB`, default 3 GB, counting uploads on their way). Each chunk checks again with the
   bytes still to come, because uploads running side by side can all pass at the start. The partial file
   stays, so a later retry continues from it.
 - **Finishing:** `complete` hashes and copies the file as streams, which can take minutes on a slow disk.
