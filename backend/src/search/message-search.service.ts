@@ -3,7 +3,7 @@ import type { FastifyInstance } from 'fastify';
 import { Types } from 'mongoose';
 import { chatModels } from '../chats/chats.service.ts';
 import { withStars } from '../chats/history.service.ts';
-import { hideQuote, toMessage } from '../chats/message-format.ts';
+import { forMember, toMessage } from '../chats/message-format.ts';
 import { requireParticipant, visibleSeqs } from '../chats/visibility.ts';
 import type { ChatMemberDoc } from '../db/chat-models.ts';
 import { AppError } from '../lib/errors.ts';
@@ -137,7 +137,7 @@ export async function searchMessages(app: FastifyInstance, userId: string, input
     userId,
     page.flatMap((doc) => {
       const member = memberOf.get(doc.chatId.toString());
-      return member ? [hideQuote(toMessage(doc, userId), member)] : [];
+      return member ? [forMember(toMessage(doc, userId), member)] : [];
     }),
   );
   const items: MessageSearchHit[] = messages.map((message) => ({

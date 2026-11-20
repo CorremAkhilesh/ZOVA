@@ -7,7 +7,7 @@ import { isHiddenAdmin } from '../users/hidden-admins.ts';
 import { type UserDoc, usersModel } from '../users/user-record.ts';
 import { chatModels } from './chats.service.ts';
 import { assertActionable } from './message-actions.service.ts';
-import { hideQuote, toMessage } from './message-format.ts';
+import { forMember, toMessage } from './message-format.ts';
 import {
   announceMessageUpdate,
   logMessageUpdate,
@@ -30,7 +30,7 @@ async function requirePoll(
 }
 
 const view = (doc: MessageDoc, userId: string, member: ChatMemberDoc): { message: Message } => ({
-  message: hideQuote(toMessage(doc, userId), member),
+  message: forMember(toMessage(doc, userId), member),
 });
 
 /** The options chosen: every one a real option, and one at most unless the poll allows several. */

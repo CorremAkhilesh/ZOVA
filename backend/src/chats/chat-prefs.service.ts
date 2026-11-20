@@ -4,7 +4,7 @@ import { Types } from 'mongoose';
 import type { ChatMemberDoc, StarDoc } from '../db/chat-models.ts';
 import { AppError } from '../lib/errors.ts';
 import { chatModels, getChat, oid } from './chats.service.ts';
-import { hideQuote, toMessage } from './message-format.ts';
+import { forMember, toMessage } from './message-format.ts';
 import { logUpdates } from './updates.ts';
 import { canSeeSeq, requireParticipant } from './visibility.ts';
 
@@ -196,7 +196,7 @@ export async function listStars(
     }
     return [
       {
-        message: { ...hideQuote(toMessage(doc, userId), member), starred: true },
+        message: { ...forMember(toMessage(doc, userId), member), starred: true },
         starredAt: star.at.toISOString(),
       },
     ];
