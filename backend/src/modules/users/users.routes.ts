@@ -7,6 +7,7 @@ import {
   userSearchQuerySchema,
   userSearchResponseSchema,
 } from '@zuvo/protocol';
+import type { FastifyInstance } from 'fastify';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { currentUserId, requireSession } from '../../auth/session.ts';
@@ -14,13 +15,21 @@ import { chatModels, pairKeyOf } from '../../chats/chats.service.ts';
 import { AppError } from '../../lib/errors.ts';
 import { blockersAmong } from '../../moderation/blocks.service.ts';
 import { hiddenAmong } from '../../users/hidden-admins.ts';
-import { privacyOf, toPublicProfile } from '../../users/user-record.ts';
+import { privacyOf, toPublicProfile, type UserDoc } from '../../users/user-record.ts';
 import { requireUser, searchUsers, usernameAvailability } from '../../users/users.service.ts';
 
 /** Other people: search, public profiles, username availability and profile photos. */
+/** A hidden admin is "not found", except to someone they already have a chat with. */
+async function hiddenAdminFrom(app: FastifyInstance, viewer: string, user: UserDoc) {
+  if ((await hiddenAmong(app, viewer, [user])).size === 0) return false;
+  const pairKey = pairKeyOf(viewer, user._id.toString());
+  return !(await chatModels(app).Chat.exists({ type: 'direct', pairKey }));
+}
+
 export const usersRoutes: FastifyPluginAsyncZod = async (app) => {
   // onRequest: authentication is decided before any body is parsed or validated (401 before 400).
   app.addHook('onRequest', requireSession);
+  const hiddenFrom = (viewer: string, user: UserDoc) => hiddenAdminFrom(app, viewer, user);
 
   app.get(
     '/users/search',
@@ -68,12 +77,7 @@ export const usersRoutes: FastifyPluginAsyncZod = async (app) => {
     async (request) => {
       const viewer = currentUserId(request);
       const user = await requireUser(app, request.params.id);
-      // A hidden admin is "not found", except to someone they already have a chat with.
-      if ((await hiddenAmong(app, viewer, [user])).size > 0) {
-        const pairKey = pairKeyOf(viewer, user._id.toString());
-        const shared = await chatModels(app).Chat.exists({ type: 'direct', pairKey });
-        if (!shared) throw new AppError('NOT_FOUND', 'User not found.');
-      }
+      if (await hiddenFrom(viewer, user)) throw new AppError('NOT_FOUND', 'User not found.');
       const blockers = await blockersAmong(app, viewer, [user._id]);
       return {
         user: toPublicProfile(user, viewer, { blockedViewer: blockers.size > 0 }),
@@ -101,7 +105,8 @@ export const usersRoutes: FastifyPluginAsyncZod = async (app) => {
       const hidden =
         other &&
         (privacyOf(user).profilePhoto === 'nobody' ||
-          (await blockersAmong(app, viewer, [user._id])).size > 0);
+          (await blockersAmong(app, viewer, [user._id])).size > 0 ||
+          (await hiddenFrom(viewer, user)));
       if (!user.avatar || hidden || user.status === 'deactivated') {
         throw new AppError('NOT_FOUND', 'No photo.');
       }

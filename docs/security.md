@@ -65,6 +65,10 @@ API (Fastify + Socket.IO) — authn on every route/event, authz per resource, Zo
   "This wasn't me" revokes all of them. Deactivation revokes all sessions at once.
 - Sockets: authenticated from the session cookie; the `Origin` header is checked against the
   allow-list (cross-site WebSocket hijacking).
+- Socket limits: handshakes per client IP per minute (`SOCKET_HANDSHAKES_PER_MINUTE`, default 600,
+  counted before the session lookup); at most 10 sockets per session (across instances); and every
+  event has a per-socket limit per 10 s (`realtime/socket-limit.ts`), checked before validation and
+  the session lookup. `presence:active` allows 6, since each change is announced to every contact.
 
 ### Hidden admins
 
