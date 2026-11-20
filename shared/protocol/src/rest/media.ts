@@ -89,6 +89,28 @@ export const mediaLinkResponseSchema = z.object({
   expiresAt: z.iso.datetime(),
 });
 
+/** At this share of the limit the app warns that storage is nearly full. */
+export const STORAGE_WARN_RATIO = 0.9;
+
+/**
+ * GET /v1/me/storage. `usedBytes`: my finished files (photos, videos, voice notes, documents and
+ * statuses), by kind in `byKind`. `pendingBytes`: uploads on their way, which count against
+ * `quotaBytes` too.
+ */
+export const storageUsageSchema = z.object({
+  usedBytes: z.number().int().nonnegative(),
+  pendingBytes: z.number().int().nonnegative(),
+  quotaBytes: z.number().int().positive(),
+  byKind: z.object({
+    image: z.number().int().nonnegative(),
+    video: z.number().int().nonnegative(),
+    audio: z.number().int().nonnegative(),
+    voice: z.number().int().nonnegative(),
+    document: z.number().int().nonnegative(),
+  }),
+});
+
 export type MediaKind = z.infer<typeof mediaKindSchema>;
+export type StorageUsage = z.infer<typeof storageUsageSchema>;
 export type MediaInfo = z.infer<typeof mediaInfoSchema>;
 export type CreateUploadBody = z.infer<typeof createUploadBodySchema>;

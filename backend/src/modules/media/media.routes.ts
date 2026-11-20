@@ -8,6 +8,7 @@ import {
   mediaLinkQuerySchema,
   mediaLinkResponseSchema,
   POSTER_MAX_BYTES,
+  storageUsageSchema,
   UPLOAD_CHUNK_MAX_BYTES,
   uploadParamsSchema,
   uploadStateSchema,
@@ -31,6 +32,7 @@ import {
 } from '../../media/media.service.ts';
 import { isViewOnceMedia, requireReadable } from '../../media/media-access.ts';
 import { assertSignedLink, mediaLink } from '../../media/media-links.ts';
+import { myStorage } from '../../media/quota.ts';
 import { StorageError } from '../../storage/driver.ts';
 
 /** A gallery can ask for many thumbnails at once; each is one small read. */
@@ -105,6 +107,17 @@ export const mediaRoutes: FastifyPluginAsyncZod = async (app) => {
         },
       },
       (request) => createUpload(app, currentUserId(request), request.body),
+    );
+    authed.get(
+      '/me/storage',
+      {
+        schema: {
+          tags: ['media'],
+          summary: 'How much I store, by kind, and my limit',
+          response: { 200: storageUsageSchema },
+        },
+      },
+      (request) => myStorage(app, currentUserId(request)),
     );
     authed.get(
       '/uploads/:id',

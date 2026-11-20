@@ -272,6 +272,14 @@ describe('when the server refuses', () => {
     await uploader.run();
     expect(await onlyMessage()).toMatchObject({ status: 'failed', failReason: 'overLimit' });
   });
+
+  it('says my own storage is full, apart from the server’s disk', async () => {
+    refuseWith = refusal(413, 'STORAGE_QUOTA_EXCEEDED');
+    const { outbox, uploader } = build();
+    await enqueue(outbox);
+    await uploader.run();
+    expect(await onlyMessage()).toMatchObject({ status: 'failed', failReason: 'quotaFull' });
+  });
 });
 
 describe('helpers', () => {

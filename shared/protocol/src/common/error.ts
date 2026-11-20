@@ -61,6 +61,8 @@ export const errorCodeSchema = z.enum([
   'CALLS_UNAVAILABLE',
   /** I am already in a call. */
   'CALL_IN_PROGRESS',
+  /** My files would go past my storage limit; `details` has `usedBytes` and `quotaBytes`. */
+  'STORAGE_QUOTA_EXCEEDED',
 ]);
 
 export type ErrorCode = z.infer<typeof errorCodeSchema>;

@@ -132,6 +132,7 @@ describe('Admin screens', () => {
       lastLoginAt: null,
       createdAt: new Date(now).toISOString(),
       storageBytes: 3 * 1024 * 1024,
+      quotaBytes: 3 * 1024 ** 3,
     });
     server.use(
       http.get('*/v1/auth/me', () => HttpResponse.json(adminSession())),
@@ -149,7 +150,7 @@ describe('Admin screens', () => {
     );
     const { container } = await renderApp('/settings/admin/users');
     expect(await screen.findByText('Meera Nair')).toBeInTheDocument();
-    expect(screen.getByText('Storage used: 3 MB')).toBeInTheDocument();
+    expect(screen.getByText(/Storage used: 3 MB of 3 GB/)).toBeInTheDocument();
     expect(await axe(container)).toHaveNoViolations();
 
     await user.type(screen.getByRole('searchbox', { name: /Search by name/ }), 'mee');
