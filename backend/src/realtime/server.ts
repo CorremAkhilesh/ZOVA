@@ -11,6 +11,7 @@ import { Server, type Socket } from 'socket.io';
 import { type AuthSessionRecord, trackActivity } from '../auth/session.ts';
 import type { Env } from '../config/env.ts';
 import { loadUser, privacyOf } from '../users/user-record.ts';
+import { handshakeAllowed, sessionHasRoom } from './connection-limits.ts';
 import { registerHandlers } from './handlers.ts';
 import { createPresence, PRESENCE_TTL_MS, type Presence } from './presence.ts';
 import { memoryPresenceStore, redisPresenceStore } from './presence-store.ts';
@@ -59,7 +60,9 @@ interface RealtimeOptions {
   adapterKey?: string;
 }
 
-function authError(code: 'UNAUTHENTICATED' | 'SESSION_EXPIRED' | 'ACCOUNT_DEACTIVATED') {
+function authError(
+  code: 'UNAUTHENTICATED' | 'SESSION_EXPIRED' | 'ACCOUNT_DEACTIVATED' | 'RATE_LIMITED',
+) {
   return Object.assign(new Error(code), { data: { code } });
 }
 
@@ -79,6 +82,15 @@ async function authenticate(app: FastifyInstance, socket: ZuvoSocket): Promise<v
   socket.data.userId = user._id.toString();
   socket.data.hideLastSeen = privacyOf(user).lastSeen === 'nobody';
   socket.data.session = { ...session, expiresAt: new Date(session.expiresAt) };
+}
+
+/** Handshake limits, then who is connecting, then room for one more socket of that session. */
+async function admit(app: FastifyInstance, io: ZuvoServer, socket: ZuvoSocket): Promise<void> {
+  if (!(await handshakeAllowed(app, socket))) throw authError('RATE_LIMITED');
+  await authenticate(app, socket);
+  if (!(await sessionHasRoom(io, sessionRoom(socket.data.session.id)))) {
+    throw authError('RATE_LIMITED');
+  }
 }
 
 async function setupRealtime(app: FastifyInstance, options: RealtimeOptions) {
@@ -117,7 +129,7 @@ async function setupRealtime(app: FastifyInstance, options: RealtimeOptions) {
   }
 
   io.use((socket, next) => {
-    authenticate(app, socket).then(
+    admit(app, io, socket).then(
       () => next(),
       (error: unknown) => {
         if (error instanceof Error && 'data' in error) {

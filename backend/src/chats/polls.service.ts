@@ -14,6 +14,7 @@ import {
   requireVisibleMessage,
 } from './message-updates.ts';
 import { notifyPollVote } from './poll-push.ts';
+import { assertChatNotBlocked } from './send-rules.ts';
 
 /** A poll this member may see and act on: a live message of type `poll`. */
 async function requirePoll(
@@ -108,6 +109,7 @@ export async function votePoll(
 ) {
   const { doc, member, poll } = await requirePoll(app, userId, chatId, messageId);
   if (poll.closedAt) throw pollClosed();
+  await assertChatNotBlocked(app, userId, chatId);
   const chosen = checkChoice(poll, optionIds);
   const before = myChoice(poll, member.userId);
   // Sent again by a device catching up: nothing changes.
