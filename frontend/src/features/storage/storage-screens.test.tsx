@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { toast } from 'sonner';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -115,7 +115,8 @@ describe('the warning near the limit', () => {
       await screen.findByText('Your storage is nearly full', undefined, { timeout: 5000 }),
     ).toBeInTheDocument();
     expect(screen.getByText('2.8 GB of 3 GB used')).toBeInTheDocument();
-    await userEvent.setup().click(screen.getByRole('button', { name: 'View' }));
+    // A plain click: jsdom has no pointer capture, which the toast's swipe handling asks for.
+    fireEvent.click(screen.getByRole('button', { name: 'View' }));
     expect(await screen.findByRole('heading', { name: 'Storage', level: 1 })).toBeInTheDocument();
   });
 });
