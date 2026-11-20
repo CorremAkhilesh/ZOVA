@@ -124,7 +124,6 @@
     "unreachable": "Server unreachable",
     "offlineShort": "Offline",
     "connectingHint": "Trying to reach the server…",
-    "offlineHint": "You’re offline. Check your network connection.",
     "offline": "You are offline. Messages will send when you reconnect.",
     "unreachableShort": "Can’t reach server",
     "unreachableHint": "You’re online, but the server isn’t responding. We’ll keep trying."
@@ -135,7 +134,9 @@
     "retry": "Try again",
     "notFoundTitle": "Page not found",
     "notFoundBody": "The page you are looking for does not exist.",
-    "goHome": "Go to chats"
+    "goHome": "Go to chats",
+    "chatNotFoundTitle": "Chat not found",
+    "chatNotFoundBody": "This chat doesn’t exist, or you’re not in it."
   },
   "install": {
     "install": "Install",
@@ -204,7 +205,13 @@
       "expired": "This code has expired. Request a new code.",
       "invalid": "Enter a valid email address."
     },
-    "latestCodeOnly": "Only the most recent code works."
+    "latestCodeOnly": "Only the most recent code works.",
+    "signOutConfirm": {
+      "title": "Sign out of this device?",
+      "body": "You’ll need a new code from your email to sign in again.",
+      "unsent_one": "{{count}} message hasn’t been sent yet and will be lost.",
+      "unsent_other": "{{count}} messages haven’t been sent yet and will be lost."
+    }
   },
   "common": {
     "close": "Close",
@@ -1430,7 +1437,7 @@
     "muted": "Muted",
     "empty": "No status updates from colleagues right now.",
     "emptyHint": "Share a photo, a video or a few words: it disappears after 24 hours.",
-    "addHint": "Tap to add a status update",
+    "addHint": "Add a status update",
     "updates_one": "{{count}} update · {{time}}",
     "updates_other": "{{count}} updates · {{time}}",
     "unseen": "new",
@@ -1514,7 +1521,7 @@
     "next": "Next status",
     "deleteConfirm": "Delete",
     "paneTitle": "Status updates",
-    "paneHint": "Click on a contact to view their status updates",
+    "paneHint": "Choose a colleague to see their status updates",
     "paneNote": "Status updates disappear after 24 hours."
   },
   "adminPush": {

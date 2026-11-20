@@ -199,6 +199,10 @@ test('signing out leaves nothing of the user in the browser', async ({ browser }
 
   await open(page, '/settings');
   await page.getByRole('button', { name: 'Sign out' }).click();
+  await page
+    .getByRole('dialog', { name: 'Sign out of this device?' })
+    .getByRole('button', { name: 'Sign out' })
+    .click();
   await expect(page.getByRole('heading', { name: /Welcome to/ })).toBeVisible(SLOW);
   await expect.poll(() => localDatabases(page), SLOW).toEqual([]);
   await asha.context.close();

@@ -18,12 +18,11 @@ export function useConnectionState(): ConnectionState {
 }
 
 const PILL: Record<
-  Exclude<ConnectionState, 'connected'>,
+  Exclude<ConnectionState, 'connected' | 'offline'>,
   { label: string; hint: string; amber: boolean }
 > = {
   connecting: { label: 'status.connecting', hint: 'status.connectingHint', amber: true },
   unreachable: { label: 'status.unreachableShort', hint: 'status.unreachableHint', amber: false },
-  offline: { label: 'status.offlineShort', hint: 'status.offlineHint', amber: false },
 };
 
 /** Silent when connected; otherwise a small amber or red pill with an explanatory tooltip. */
@@ -31,11 +30,12 @@ export function ConnectionStatus() {
   const { t } = useTranslation();
   const state = useConnectionState();
 
-  if (state === 'connected') {
-    // Keep a live region so screen readers hear when the connection comes back.
+  if (state === 'connected' || state === 'offline') {
+    // Keep a live region so screen readers hear the change. Offline shows nothing more here: the
+    // banner at the top of every screen already says so (one indicator, not two).
     return (
       <span role="status" className="sr-only">
-        {t('status.connected')}
+        {t(state === 'offline' ? 'status.offlineShort' : 'status.connected')}
       </span>
     );
   }

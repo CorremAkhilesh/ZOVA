@@ -71,7 +71,7 @@ for (const device of DEVICES) {
     // The last one gone: back to the list, with nothing of mine left.
     await expect(viewer).toBeHidden(SLOW);
     await expect(
-      asha.page.getByRole('button', { name: /^My status Tap to add a status update/ }),
+      asha.page.getByRole('button', { name: /^My status Add a status update/ }),
     ).toBeVisible(SLOW);
     await expect(bharat.page.getByRole('button', { name: new RegExp(`^${name}`) })).toHaveCount(
       0,

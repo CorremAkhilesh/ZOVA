@@ -215,7 +215,10 @@ describe('code step', () => {
 
   it('goes back to change the email', async () => {
     const { user, router } = await startAtCode();
-    await user.click(screen.getByRole('link', { name: 'Change email' }));
+    const change = screen.getByRole('link', { name: 'Change email' });
+    // Touch screens give it 44×44 px to tap (globals.css, .tap-target).
+    expect(change).toHaveClass('tap-target');
+    await user.click(change);
     await waitFor(() => expect(router.state.location.pathname).toBe('/'));
     expect(screen.getByRole('textbox', { name: 'Work email' })).toHaveValue(
       'asha@corremadvisory.com',

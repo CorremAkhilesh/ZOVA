@@ -9,6 +9,7 @@ import { useNewChat } from '@/features/chats/new-chat-store';
 import { resetLiveStatus } from '@/features/sync/live-status';
 import { wipeLocalDatabases } from '@/features/sync/local-db';
 import { INITIAL_SYNC_STATE, useSyncStore } from '@/features/sync/store';
+import { localDataSettled } from '@/features/sync/wipe';
 import { i18n, initI18n } from '@/lib/i18n';
 import { axeMatchers } from './axe';
 import { installMatchMedia, resetMedia } from './media';
@@ -52,6 +53,8 @@ afterEach(async () => {
   useNewChat.setState({ isOpen: false });
   resetLiveStatus();
   await wipeLocalDatabases();
+  // A sign-out in the test may have started its own wipe: the next test must not meet it.
+  await localDataSettled();
   server.resetHandlers();
   // An `offline` event in one test must not pause queries in the next (global in TanStack Query).
   onlineManager.setOnline(true);
