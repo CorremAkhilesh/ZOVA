@@ -65,6 +65,24 @@ describe('wiping local data', () => {
     expect(result).toEqual({ complete: true });
   });
 
+  it('a second wipe ends only after an earlier one, so it never deletes what comes next', async () => {
+    await seed('u-one');
+    // Sign-out started a wipe that is slow to list the databases; then another wipe is asked for.
+    const list = Dexie.getDatabaseNames.bind(Dexie);
+    const slow = vi
+      .spyOn(Dexie, 'getDatabaseNames')
+      .mockImplementationOnce(() => new Promise((done) => setTimeout(() => done(list()), 200)));
+    const first = wipeLocalDatabases();
+    await wipeLocalDatabases();
+    slow.mockRestore();
+    // The next person's data, saved once the wipes are done: the earlier wipe must not take it.
+    const db = getUserDb('u-one');
+    await db.open();
+    await db.drafts.put({ chatId: 'c1', text: 'next person' });
+    await first;
+    expect(await db.drafts.count()).toBe(1);
+  });
+
   it('keeps each user in a separate database', async () => {
     const one = await seed('u-one');
     const two = getUserDb('u-two');

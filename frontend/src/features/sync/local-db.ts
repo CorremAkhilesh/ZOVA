@@ -198,9 +198,24 @@ const remember = (names: string[]) => {
  * this tab has is closed for good first. A delete another tab blocks is asked again a few times; if
  * it still has not happened, that is reported and remembered, never silently left behind.
  */
-export async function wipeLocalDatabases(): Promise<WipeResult> {
-  const { attemptMs } = wipeTiming;
+export function wipeLocalDatabases(): Promise<WipeResult> {
+  // One at a time: a wipe that ended while an earlier one still ran (sign-out and a revoke at once)
+  // would let the next person open a database that the earlier wipe then deletes.
   wipesRunning += 1;
+  const run = wipeQueue.then(wipeOnce);
+  wipeQueue = run.catch(() => undefined);
+  return run;
+}
+
+let wipeQueue: Promise<unknown> = Promise.resolve();
+
+/** Resolves once no wipe is running or queued (tests: a sign-out's wipe outlives its screen). */
+export async function wipesSettled(): Promise<void> {
+  while (wipesRunning > 0) await wipeQueue;
+}
+
+async function wipeOnce(): Promise<WipeResult> {
+  const { attemptMs } = wipeTiming;
   try {
     releaseAllFiles();
     for (const db of open.values()) closedForGood(db);

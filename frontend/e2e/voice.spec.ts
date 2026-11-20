@@ -58,7 +58,18 @@ test('a voice note reaches the other person, who plays it, and the sender sees t
   await expect(playButton(bharat.page, 'Asha')).toBeVisible({ timeout: 60_000 });
   const theirs = thread(bharat.page, 'Asha');
   await expect(theirs.getByRole('slider', { name: 'Position' })).toBeVisible();
-  await expect(theirs.getByRole('slider', { name: 'Position' }).locator('span')).toHaveCount(64);
+  // Its shape: up to 64 bars, as many as fit the bubble, none outside it.
+  const slider = theirs.getByRole('slider', { name: 'Position' });
+  const bars = slider.locator('span');
+  await expect(bars.first()).toBeVisible();
+  const count = await bars.count();
+  expect(count).toBeGreaterThanOrEqual(16);
+  expect(count).toBeLessThanOrEqual(64);
+  const sliderBox = await slider.boundingBox();
+  const lastBox = await bars.last().boundingBox();
+  expect((lastBox?.x ?? 0) + (lastBox?.width ?? 0)).toBeLessThanOrEqual(
+    (sliderBox?.x ?? 0) + (sliderBox?.width ?? 0) + 0.5,
+  );
   await expect(theirs.getByText(/^0:0[3-4]$/)).toBeVisible();
   await expect(theirs.getByRole('img', { name: 'Not played yet' })).toBeVisible();
   await expect(asha.page.getByRole('link', { name: /Bharat/ })).toContainText(
