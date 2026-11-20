@@ -2,7 +2,7 @@ import type { Message } from '@zuvo/protocol';
 import type { FastifyInstance } from 'fastify';
 import { chatModels, oid } from './chats.service.ts';
 import { forMember, toMessage } from './message-format.ts';
-import { requireParticipant, visibleSeqs } from './visibility.ts';
+import { notExpired, requireParticipant, visibleSeqs } from './visibility.ts';
 
 /** What I hid in this chat. A person's own short list, so this stays cheap. */
 export async function hiddenIds(app: FastifyInstance, userId: string, chatId: string) {
@@ -46,6 +46,7 @@ export async function getHistory(
       chatId: oid(chatId),
       ...(Object.keys(seq).length ? { seq } : {}),
       _id: { $nin: await hiddenIds(app, userId, chatId) },
+      expiresAt: notExpired(),
     })
     .sort({ seq: forward ? 1 : -1 })
     .limit(limit + 1)
@@ -82,6 +83,7 @@ export async function chatGallery(
       // View once is never kept in the gallery: it can be seen once, from its message only.
       viewOnce: { $ne: true },
       _id: { $nin: await hiddenIds(app, userId, chatId) },
+      expiresAt: notExpired(),
       ...(Object.keys(seq).length ? { seq } : {}),
     })
     .sort({ seq: -1 })

@@ -4,7 +4,7 @@ import { Types } from 'mongoose';
 import { chatModels } from '../chats/chats.service.ts';
 import { withStars } from '../chats/history.service.ts';
 import { forMember, toMessage } from '../chats/message-format.ts';
-import { requireParticipant, visibleSeqs } from '../chats/visibility.ts';
+import { notExpired, requireParticipant, visibleSeqs } from '../chats/visibility.ts';
 import type { ChatMemberDoc } from '../db/chat-models.ts';
 import { AppError } from '../lib/errors.ts';
 import { blockedByMe } from '../moderation/blocks.service.ts';
@@ -101,6 +101,7 @@ export async function buildSearchQuery(app: FastifyInstance, userId: string, inp
     ...(text ? { $text: { $search: text } } : {}),
     $or: clauses,
     deletedForEveryoneAt: null,
+    expiresAt: notExpired(),
     ...(Object.keys(ids).length ? { _id: ids } : {}),
     // Messages from people I blocked stay out of my results.
     ...(blocked.length ? { senderId: { $nin: blocked } } : {}),

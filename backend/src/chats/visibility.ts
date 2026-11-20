@@ -35,3 +35,12 @@ export function canSeeSeq(
     (typeof member.leftSeq !== 'number' || seq <= member.leftSeq)
   );
 }
+
+/**
+ * A disappearing message whose time is up is gone at once for every reader, even before the sweep
+ * (every 30 s) deletes it. For a query: missing or null (not disappearing), or still in the future.
+ */
+export const notExpired = (now: Date = new Date()) => ({ $not: { $lte: now } });
+
+export const isExpiredDoc = (doc: { expiresAt?: Date | null }, now: Date = new Date()) =>
+  doc.expiresAt != null && doc.expiresAt.getTime() <= now.getTime();

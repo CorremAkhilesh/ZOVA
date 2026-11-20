@@ -75,6 +75,7 @@ export async function admitMembers(
             lastActivityAt: at,
             leftAt: null,
             leftSeq: null,
+            removedAt: null,
           },
           $unset: { leftView: 1 },
         },
@@ -142,6 +143,7 @@ async function dismiss(
   userId: string,
   seq: number,
   lastMessage: LastMessageSnapshot,
+  removed: boolean,
 ) {
   const { ChatMember, Chat } = chatModels(app);
   const memberCount = (chat.group?.memberCount ?? 1) - 1;
@@ -152,6 +154,7 @@ async function dismiss(
       $set: {
         leftAt: lastMessage.createdAt,
         leftSeq: seq,
+        removedAt: removed ? lastMessage.createdAt : null,
         role: 'member',
         leftView: {
           lastMessage,
@@ -191,7 +194,7 @@ export async function removeMember(
       { kind: 'removed', actor: name(userId), targets: [name(targetId)], value: null },
       {
         alsoTell: [targetId],
-        apply: (seq, last) => dismiss(app, session, chat, targetId, seq, last),
+        apply: (seq, last) => dismiss(app, session, chat, targetId, seq, last, true),
       },
     ),
   );
@@ -214,7 +217,7 @@ export async function leaveGroup(app: FastifyInstance, userId: string, chatId: s
       { kind: 'left', actor: name(userId), targets: [], value: null },
       {
         alsoTell: [userId],
-        apply: (seq, last) => dismiss(app, session, chat, userId, seq, last),
+        apply: (seq, last) => dismiss(app, session, chat, userId, seq, last, false),
       },
     ),
   );

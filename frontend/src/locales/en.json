@@ -802,6 +802,7 @@
     "join": "Join",
     "openGroup": "Open group",
     "inviteInvalid": "This invite link is no longer valid. Ask for a new one.",
+    "joinRemoved": "An admin removed you from this group. Only an admin can add you back.",
     "messageInfo": "Message info",
     "readBy": "Read by",
     "deliveredTo": "Delivered to",

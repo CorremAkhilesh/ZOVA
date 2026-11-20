@@ -88,12 +88,18 @@ export async function joinByInvite(app: FastifyInstance, userId: string, code: s
   }
   const chat = await findByCode(app, code);
   const chatId = chat._id.toString();
-  const already = await chatModels(app).ChatMember.exists({
-    chatId: chat._id,
-    userId: oid(userId),
-    leftAt: null,
-  });
-  if (already) return getChat(app, chatId, userId);
+  // Index: { chatId, userId } unique.
+  const mine = await chatModels(app)
+    .ChatMember.findOne({ chatId: chat._id, userId: oid(userId) })
+    .select({ leftAt: 1, removedAt: 1 })
+    .lean();
+  if (mine && !mine.leftAt) return getChat(app, chatId, userId);
+  if (mine?.removedAt) {
+    throw new AppError(
+      'FORBIDDEN',
+      'You were removed from this group. Only an admin can add you back.',
+    );
+  }
   assertRoomFor(chat, 1);
   const name = await namesOf(app, [userId]);
   const at = new Date();
