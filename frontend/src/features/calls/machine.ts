@@ -25,6 +25,8 @@ export interface CallState {
   silent: boolean;
   /** The audio path dropped; trying to get it back. */
   reconnecting: boolean;
+  /** No direct route in time: trying the relay ("Trying another route…"). */
+  rerouting: boolean;
   muted: boolean;
   speaker: boolean;
   /** When audio first flowed (ms), for the timer. */
@@ -41,6 +43,7 @@ export const IDLE: CallState = {
   peerRinging: false,
   silent: false,
   reconnecting: false,
+  rerouting: false,
   muted: false,
   speaker: false,
   connectedAt: null,
@@ -56,6 +59,7 @@ export type CallEvent =
   | { type: 'accept' }
   | { type: 'connected'; at: number }
   | { type: 'media-lost' }
+  | { type: 'rerouting' }
   | { type: 'media-back' }
   | { type: 'end'; reason: EndReason; at: number }
   | { type: 'mute'; muted: boolean }
@@ -112,8 +116,12 @@ export function callReducer(state: CallState, event: CallEvent): CallState {
       return onUpdate(state, event.call);
     case 'accept':
       return state.phase === 'incoming' ? { ...state, phase: 'connecting' } : state;
+    case 'rerouting':
+      return state.phase === 'connecting' ? { ...state, rerouting: true } : state;
     case 'connected':
-      if (state.phase === 'connecting') return { ...state, phase: 'active', connectedAt: event.at };
+      if (state.phase === 'connecting') {
+        return { ...state, phase: 'active', connectedAt: event.at, rerouting: false };
+      }
       return state.phase === 'active' ? { ...state, reconnecting: false } : state;
     case 'media-lost':
       return state.phase === 'active' ? { ...state, reconnecting: true } : state;

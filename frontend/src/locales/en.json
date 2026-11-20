@@ -1647,6 +1647,7 @@
       "declined": "Declined voice call",
       "noAnswer": "Voice call · No answer",
       "busy": "Voice call · Busy"
-    }
+    },
+    "rerouting": "Trying another route…"
   }
 }

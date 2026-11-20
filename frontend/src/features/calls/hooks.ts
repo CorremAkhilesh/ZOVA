@@ -68,7 +68,7 @@ export function useCallStatusLine(state: CallState): string {
     case 'incoming':
       return t('calls.incoming');
     case 'connecting':
-      return t('calls.connecting');
+      return state.rerouting ? t('calls.rerouting') : t('calls.connecting');
     case 'active':
       return state.reconnecting
         ? t('calls.reconnecting')

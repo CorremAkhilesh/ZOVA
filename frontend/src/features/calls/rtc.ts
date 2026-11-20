@@ -57,6 +57,7 @@ export function judgeQuality(rttSeconds: number | null, lossRatio: number | null
  */
 export class PeerLink {
   private readonly pc: RTCPeerConnection;
+  private readonly config: RTCConfiguration;
   private readonly options: PeerLinkOptions;
   private pending: RTCIceCandidateInit[] = [];
   private lastLoss = { lost: 0, received: 0 };
@@ -71,6 +72,7 @@ export class PeerLink {
       ...(credential === undefined ? {} : { credential }),
     }));
     const config: RTCConfiguration = { iceServers, bundlePolicy: 'max-bundle' };
+    this.config = config;
     this.pc = options.createPeer ? options.createPeer(config) : new RTCPeerConnection(config);
     this.pc.onicecandidate = ({ candidate }) => {
       if (!candidate || this.closed) return;
@@ -144,6 +146,23 @@ export class PeerLink {
   }
 
   /** A new network (WiFi ↔ mobile data) or a dropped path: find a new route without hanging up. */
+  /** Whether a TURN relay was offered (only then is there another route to try). */
+  hasRelay(): boolean {
+    return (this.config.iceServers ?? []).some((server) =>
+      [server.urls].flat().some((url) => /^turns?:/.test(url)),
+    );
+  }
+
+  /**
+   * Direct routes did not connect in time (CGNAT, symmetric NAT, strict firewalls): from now on only
+   * the TURN relay, and the caller looks for a route again (an ICE restart).
+   */
+  async relayOnly(): Promise<void> {
+    if (this.closed || !this.hasRelay()) return;
+    this.pc.setConfiguration({ ...this.config, iceTransportPolicy: 'relay' });
+    await this.restart();
+  }
+
   async restart(): Promise<void> {
     if (this.closed) return;
     if (this.options.role === 'caller') {

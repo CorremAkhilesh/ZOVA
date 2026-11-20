@@ -38,6 +38,34 @@ function stored(page: Page, chatId: string) {
   }, chatId);
 }
 
+/** What waits in this device's outbox (state and label), for a failure report. */
+function outbox(page: Page) {
+  return page.evaluate(async () => {
+    const names = (await indexedDB.databases()).map((db) => db.name ?? '');
+    const name = names.find((candidate) => candidate.startsWith('zuvo-user-')) ?? '';
+    const db = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open(name);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    const rows = await new Promise<Array<Record<string, unknown>>>((resolve) => {
+      const request = db.transaction('outbox').objectStore('outbox').getAll();
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => resolve([]);
+    });
+    db.close();
+    return rows.map((row) => ({
+      state: row.state,
+      clientMsgId: row.clientMsgId,
+      label: (row.media as { name?: string } | undefined)?.name ?? (row.text as string) ?? '',
+      attempts: row.attempts,
+      uploadId: row.uploadId ?? null,
+      mediaId: row.mediaId ?? null,
+      heldInTab: row.heldInTab ?? false,
+    }));
+  });
+}
+
 async function sendFiles(page: Page, count: number) {
   await page.getByRole('button', { name: 'Attach a file' }).click();
   await page.getByTestId('pick-document').setInputFiles(
@@ -93,7 +121,31 @@ test('50 messages at once from three people, one of them offline halfway: all, i
       .map((item) => [item.seq, item.media?.name ?? item.text ?? ''] as const)
       .filter(([, label]) => label.startsWith('stress-'));
   };
-  await expect.poll(async () => (await fromServer()).length, LONG).toBe(50);
+  try {
+    await expect.poll(async () => (await fromServer()).length, LONG).toBe(50);
+  } catch (error) {
+    // Say exactly which messages never reached the server, and what each device still holds.
+    const have = new Set((await fromServer()).map(([, label]) => label));
+    const expected = [
+      ...Array.from({ length: 20 }, (_, i) => `stress-asha-${String(i + 1).padStart(2, '0')}`),
+      ...Array.from({ length: 20 }, (_, i) => `stress-bharat-${String(i + 1).padStart(2, '0')}`),
+      ...Array.from({ length: 10 }, (_, i) => `stress-file-${String(i + 1).padStart(2, '0')}.pdf`),
+    ];
+    const report = {
+      missing: expected.filter((label) => !have.has(label)),
+      outbox: {
+        asha: await outbox(asha.page).catch(() => 'unreadable'),
+        bharat: await outbox(bharat.page).catch(() => 'unreadable'),
+        chitra: await outbox(chitra.page).catch(() => 'unreadable'),
+      },
+    };
+    console.log(`[sync-stress] ${JSON.stringify(report)}`);
+    await test.info().attach('sync-stress-report.json', {
+      body: JSON.stringify(report, null, 2),
+      contentType: 'application/json',
+    });
+    throw error;
+  }
   const truth = await fromServer();
 
   for (const person of [asha, bharat, chitra]) {
