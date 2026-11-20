@@ -72,6 +72,34 @@ async function storedPositions(db: LocalDb, chatId: string): Promise<number[]> {
 }
 
 /**
+ * One hole, page by page (each page is the newest part of what is left), at most `budget` requests.
+ * Positions the server skipped are added to `absent`. Returns [messages stored, requests made].
+ */
+async function fillHole(
+  db: LocalDb,
+  me: string,
+  chatId: string,
+  hole: Hole,
+  context: { api: RangeApi; absent: Set<number>; budget: number },
+): Promise<[number, number]> {
+  let before = hole.before;
+  let fetched = 0;
+  let requests = 0;
+  while (requests < context.budget && before - hole.after > 1) {
+    requests += 1;
+    const page = await context.api.range(chatId, hole.after, before);
+    await applyHistory(db, me, page.items);
+    fetched += page.items.length;
+    const got = new Set(page.items.map((item) => item.seq));
+    const lowest = page.hasMore ? (page.items[0]?.seq ?? before) : hole.after + 1;
+    for (let seq = lowest; seq < before; seq++) if (!got.has(seq)) context.absent.add(seq);
+    if (!page.hasMore || page.items.length === 0) break;
+    before = lowest;
+  }
+  return [fetched, requests];
+}
+
+/**
  * Checks one chat and fills what is missing. Returns how many messages came back. `force` skips the
  * recheck pause (opening a chat).
  */
@@ -90,21 +118,12 @@ export async function fillGaps(
   const absent = absentByChat.get(chatId) ?? new Set<number>();
   absentByChat.set(chatId, absent);
   let fetched = 0;
-  let requests = 0;
+  let budget = MAX_FETCHES;
   for (const hole of findHoles(await storedPositions(db, chatId), chat.seq, absent)) {
-    let before = hole.before;
-    while (requests < MAX_FETCHES && before - hole.after > 1) {
-      requests += 1;
-      const page = await api.range(chatId, hole.after, before);
-      await applyHistory(db, me, page.items);
-      fetched += page.items.length;
-      const got = new Set(page.items.map((item) => item.seq));
-      // The page holds the newest of the range: what it skipped down to its oldest is absent here.
-      const lowest = page.hasMore ? (page.items[0]?.seq ?? before) : hole.after + 1;
-      for (let seq = lowest; seq < before; seq++) if (!got.has(seq)) absent.add(seq);
-      if (!page.hasMore || page.items.length === 0) break;
-      before = lowest;
-    }
+    if (budget <= 0) break;
+    const [stored, used] = await fillHole(db, me, chatId, hole, { api, absent, budget });
+    fetched += stored;
+    budget -= used;
   }
   return fetched;
 }
