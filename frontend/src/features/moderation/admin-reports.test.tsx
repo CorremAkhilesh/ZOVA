@@ -4,7 +4,7 @@ import type { ReportSummary } from '@zuvo/protocol';
 import { describe, expect, it, vi } from 'vitest';
 import { axe } from '@/test/axe';
 import { HttpResponse, http, server, sessionFixture } from '@/test/msw';
-import { renderApp } from '@/test/render-app';
+import { DESKTOP_WIDTH, renderApp } from '@/test/render-app';
 
 const SLOW = { timeout: 15_000 };
 vi.setConfig({ testTimeout: 30_000 });
@@ -58,7 +58,7 @@ const evidence = [
 
 describe('Admin → Reports', () => {
   it('is closed to non-admins', async () => {
-    const { router } = await renderApp('/settings/admin/reports');
+    const { router } = await renderApp('/admin/reports');
     await waitFor(() => expect(router.state.location.pathname).toBe('/settings'));
   });
 
@@ -82,7 +82,7 @@ describe('Admin → Reports', () => {
       }),
     );
     const user = userEvent.setup();
-    const { container } = await renderApp('/settings/admin/reports');
+    const { container } = await renderApp('/admin/reports');
     const list = await screen.findByRole('list', { name: 'Reports' }, SLOW);
     expect(asked[0]).toBe('open');
     expect(within(list).getByText('Messages from Ravi Kumar')).toBeInTheDocument();
@@ -109,16 +109,29 @@ describe('Admin → Reports', () => {
       http.get('*/v1/auth/me', () => HttpResponse.json(adminSession())),
       http.get('*/v1/admin/reports', () => HttpResponse.json({}, { status: 500 })),
     );
-    await renderApp('/settings/admin/reports');
+    await renderApp('/admin/reports');
     expect(await screen.findByRole('alert', {}, SLOW)).toHaveTextContent('Couldn’t load reports.');
   });
 
-  it('is in the admin menu', async () => {
-    server.use(http.get('*/v1/auth/me', () => HttpResponse.json(adminSession())));
-    await renderApp('/settings');
-    expect(await screen.findByRole('link', { name: /What people reported/ }, SLOW)).toHaveAttribute(
-      'href',
-      '/settings/admin/reports',
+  it('is a section of the admin panel', async () => {
+    server.use(
+      http.get('*/v1/auth/me', () => HttpResponse.json(adminSession())),
+      http.get('*/v1/admin/reports', () => HttpResponse.json({ items: [], nextCursor: null })),
     );
+    await renderApp('/admin/reports', { width: DESKTOP_WIDTH });
+    const sections = await screen.findByRole('navigation', { name: 'Admin sections' }, SLOW);
+    expect(within(sections).getByRole('link', { name: 'Reports' })).toHaveAttribute(
+      'href',
+      '/admin/reports',
+    );
+  });
+
+  it('old links from Settings still arrive', async () => {
+    server.use(
+      http.get('*/v1/auth/me', () => HttpResponse.json(adminSession())),
+      http.get('*/v1/admin/reports', () => HttpResponse.json({ items: [], nextCursor: null })),
+    );
+    const { router } = await renderApp('/settings/admin/reports');
+    await waitFor(() => expect(router.state.location.pathname).toBe('/admin/reports'));
   });
 });

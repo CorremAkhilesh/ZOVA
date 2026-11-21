@@ -1,22 +1,8 @@
-import { createFileRoute } from '@tanstack/react-router';
-import { lazy, Suspense } from 'react';
-import { useTranslation } from 'react-i18next';
-import { requireAdmin } from '@/features/auth/guards';
-import { SettingsPage } from '@/features/settings/SettingsPage';
+import { createFileRoute, redirect } from '@tanstack/react-router';
 
-/** Admins only, so its code stays out of everyone else's download. */
-const AdminReports = lazy(() => import('@/features/moderation/components/AdminReports'));
-
+/** Moved into the admin panel: old links and bookmarks still arrive. */
 export const Route = createFileRoute('/_app/settings/admin/reports')({
-  beforeLoad: ({ context }) => requireAdmin(context.queryClient),
-  component: function ReportsScreen() {
-    const { t } = useTranslation();
-    return (
-      <SettingsPage title={t('adminReports.title')} description={t('adminReports.subtitle')}>
-        <Suspense fallback={<p className="text-sm text-text-muted">{t('common.loading')}</p>}>
-          <AdminReports />
-        </Suspense>
-      </SettingsPage>
-    );
+  beforeLoad: () => {
+    throw redirect({ to: '/admin/reports', replace: true });
   },
 });

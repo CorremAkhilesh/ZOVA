@@ -1,17 +1,14 @@
 import { Link } from '@tanstack/react-router';
 import {
-  BellRing,
   ChevronRight,
-  Flag,
   HardDrive,
+  LayoutDashboard,
   LifeBuoy,
   MessagesSquare,
   MonitorSmartphone,
   Moon,
   Palette,
-  ScrollText,
   Shield,
-  Users,
 } from 'lucide-react';
 import type { ComponentType } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -26,10 +23,7 @@ type Entry = {
     | '/settings/notifications'
     | '/settings/devices'
     | '/settings/storage'
-    | '/settings/admin/users'
-    | '/settings/admin/reports'
-    | '/settings/admin/audit'
-    | '/settings/admin/notifications'
+    | '/admin'
     | '/help';
   label: string;
   hint: string;
@@ -127,28 +121,10 @@ export function SettingsMenu() {
           label={t('admin.menu')}
           entries={[
             {
-              to: '/settings/admin/users',
-              label: t('admin.usersTitle'),
-              hint: t('admin.usersSubtitle'),
-              icon: Users,
-            },
-            {
-              to: '/settings/admin/reports',
-              label: t('adminReports.title'),
-              hint: t('adminReports.subtitle'),
-              icon: Flag,
-            },
-            {
-              to: '/settings/admin/notifications',
-              label: t('adminPush.title'),
-              hint: t('adminPush.menuHint'),
-              icon: BellRing,
-            },
-            {
-              to: '/settings/admin/audit',
-              label: t('admin.auditTitle'),
-              hint: t('admin.auditSubtitle'),
-              icon: ScrollText,
+              to: '/admin',
+              label: t('adminPanel.open'),
+              hint: t('adminPanel.openHint'),
+              icon: LayoutDashboard,
             },
           ]}
         />

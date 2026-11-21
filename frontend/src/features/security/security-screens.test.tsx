@@ -107,13 +107,13 @@ describe('Admin screens', () => {
       http.get('*/v1/auth/me', () => HttpResponse.json(adminSession())),
       http.get('*/v1/admin/users', () => HttpResponse.json({ items: [], nextCursor: null })),
     );
-    const { router } = await renderApp('/settings/admin/users');
+    const { router } = await renderApp('/admin/users');
     expect(await screen.findByRole('searchbox')).toBeInTheDocument();
-    expect(router.state.location.pathname).toBe('/settings/admin/users');
+    expect(router.state.location.pathname).toBe('/admin/users');
   });
 
   it('are hidden from and closed to non-admins', async () => {
-    const { router } = await renderApp('/settings/admin/users');
+    const { router } = await renderApp('/admin/users');
     await waitFor(() => expect(router.state.location.pathname).toBe('/settings'));
     expect(screen.queryByRole('link', { name: /Users/ })).not.toBeInTheDocument();
   });
@@ -148,7 +148,7 @@ describe('Admin screens', () => {
         });
       }),
     );
-    const { container } = await renderApp('/settings/admin/users');
+    const { container } = await renderApp('/admin/users');
     expect(await screen.findByText('Meera Nair')).toBeInTheDocument();
     expect(screen.getByText(/Storage used: 3 MB of 3 GB/)).toBeInTheDocument();
     expect(await axe(container)).toHaveNoViolations();
@@ -182,7 +182,7 @@ describe('Admin screens', () => {
         }),
       ),
     );
-    const { container } = await renderApp('/settings/admin/audit');
+    const { container } = await renderApp('/admin/audit');
     expect(
       await screen.findByText('kiran@corremadvisory.com deactivated meera@corremadvisory.com'),
     ).toBeInTheDocument();
@@ -191,17 +191,17 @@ describe('Admin screens', () => {
     server.use(
       http.get('*/v1/admin/audit-log', () => HttpResponse.json({ items: [], nextCursor: null })),
     );
-    await renderApp('/settings/admin/audit');
+    await renderApp('/admin/audit');
     expect(await screen.findByText('No admin actions yet.')).toBeInTheDocument();
   });
 
   it('links admins to the admin screens from Settings', async () => {
     server.use(http.get('*/v1/auth/me', () => HttpResponse.json(adminSession())));
     await renderApp('/settings');
-    expect(screen.getByRole('navigation', { name: 'Administration' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Audit log/ })).toHaveAttribute(
+    const admin = screen.getByRole('navigation', { name: 'Administration' });
+    expect(within(admin).getByRole('link', { name: /Admin panel/ })).toHaveAttribute(
       'href',
-      '/settings/admin/audit',
+      '/admin',
     );
   });
 });

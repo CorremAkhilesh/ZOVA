@@ -56,6 +56,9 @@ export const mediaSchema = new Schema<MediaDoc>(
 mediaSchema.index({ ownerId: 1, status: 1, createdAt: -1 });
 // Serves: Admin → Users, how much each person stores. Holds `size`, so no document is read.
 mediaSchema.index({ ownerId: 1, status: 1, size: 1 });
+// Serves: Admin → Dashboard, everyone's storage and the top users (status equality, grouped by
+// owner). Holds `size`, so no document is read.
+mediaSchema.index({ status: 1, ownerId: 1, size: 1 });
 // Serves: the cleanup of files whose message was deleted. Partial: almost none are.
 mediaSchema.index(
   { deleteRequestedAt: 1 },

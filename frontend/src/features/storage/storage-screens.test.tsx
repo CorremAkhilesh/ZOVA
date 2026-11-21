@@ -158,7 +158,7 @@ describe('Admin → Users: storage limit', () => {
         });
       }),
     );
-    await renderApp('/settings/admin/users');
+    await renderApp('/admin/users');
     await user.click(await screen.findByRole('button', { name: 'Change limit' }));
     const dialog = await screen.findByRole('dialog', { name: 'Storage limit for Meera Nair' });
     expect(dialog).toHaveTextContent('Using 2 GB of 3 GB.');

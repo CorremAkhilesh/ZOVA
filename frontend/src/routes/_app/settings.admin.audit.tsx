@@ -1,17 +1,8 @@
-import { createFileRoute } from '@tanstack/react-router';
-import { useTranslation } from 'react-i18next';
-import { requireAdmin } from '@/features/auth/guards';
-import { AdminAuditLog } from '@/features/security/components/AdminAuditLog';
-import { SettingsPage } from '@/features/settings/SettingsPage';
+import { createFileRoute, redirect } from '@tanstack/react-router';
 
+/** Moved into the admin panel: old links and bookmarks still arrive. */
 export const Route = createFileRoute('/_app/settings/admin/audit')({
-  beforeLoad: ({ context }) => requireAdmin(context.queryClient),
-  component: function AuditScreen() {
-    const { t } = useTranslation();
-    return (
-      <SettingsPage title={t('admin.auditTitle')} description={t('admin.auditSubtitle')}>
-        <AdminAuditLog />
-      </SettingsPage>
-    );
+  beforeLoad: () => {
+    throw redirect({ to: '/admin/audit', replace: true });
   },
 });
