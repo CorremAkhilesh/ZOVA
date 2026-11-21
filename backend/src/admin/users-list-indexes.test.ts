@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { expectIndexedQuery } from '../../test/expect-indexed-query.ts';
 import { connectTestDb } from '../../test/helpers.ts';
 import { registerAuthModels } from '../db/auth-models.ts';
-import { csvCell, usersCsv } from './users-list.ts';
+import { baseFilter, csvCell, usersCsv } from './users-list.ts';
 
 // Admin → Users reads people through an index whatever the filter (CLAUDE.md §8).
 
@@ -15,16 +15,24 @@ afterAll(async () => {
 });
 
 describe('Admin → Users list indexes', () => {
-  it('every filter, newest first', async () => {
+  it('every filter and search, newest first', async () => {
     const { AuthUser } = registerAuthModels(db.connection);
-    const sorted = (filter: Record<string, unknown>) => AuthUser.find(filter).sort({ _id: -1 });
-    await expectIndexedQuery(sorted({}));
-    await expectIndexedQuery(sorted({ status: 'deactivated' }));
-    await expectIndexedQuery(sorted({ status: { $ne: 'deactivated' } }));
-    await expectIndexedQuery(sorted({ role: 'admin' }));
-    await expectIndexedQuery(sorted({ suspendedUntil: { $gt: new Date(), $type: 'date' } }));
-    await expectIndexedQuery(sorted({ email: /^asha/ }));
-    await expectIndexedQuery(sorted({ searchTerms: { $all: [/^asha/] }, status: 'deactivated' }));
+    const filters = [
+      'all',
+      'active',
+      'deactivated',
+      'admins',
+      'suspended',
+      'pushOff',
+      'storageHigh',
+    ] as const;
+    for (const filter of filters) {
+      for (const q of ['', 'asha', 'asha@corr']) {
+        await expectIndexedQuery(
+          AuthUser.find(baseFilter({ q, filter, sort: 'newest' })).sort({ _id: -1 }),
+        );
+      }
+    }
   });
 });
 

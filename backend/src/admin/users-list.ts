@@ -20,7 +20,7 @@ export const LIST_MAX = 5000;
 export const STORAGE_HIGH_RATIO = 0.8;
 
 /** What MongoDB can filter on: text, status and role (indexes: email, searchTerms, status, role). */
-function baseFilter({ q, filter }: ListQuery): Record<string, unknown> {
+export function baseFilter({ q, filter }: ListQuery): Record<string, unknown> {
   const where: Record<string, unknown> = {};
   const text = q.trim().toLocaleLowerCase();
   if (text.includes('@')) where.email = new RegExp(`^${escapeRegex(text)}`);

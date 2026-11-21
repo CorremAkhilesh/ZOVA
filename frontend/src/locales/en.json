@@ -1712,7 +1712,8 @@
       "users": "Users",
       "reports": "Reports",
       "notifications": "Notifications",
-      "audit": "Audit log"
+      "audit": "Audit log",
+      "settings": "Settings"
     },
     "dashboard": {
       "title": "Dashboard",
@@ -1916,6 +1917,108 @@
         "untilDate": "Until a date",
         "dateLabel": "Until (your time)",
         "dateHint": "From 5 minutes to a year from now."
+      }
+    },
+    "settings": {
+      "title": "Settings",
+      "subtitle": "What the organization can change without code. Each setting starts at its default.",
+      "updated": "Last changed {{when}} by {{by}}.",
+      "default": "Default: {{value}}.",
+      "reset": "Reset to default",
+      "on": "On",
+      "off": "Off",
+      "never": "Never",
+      "gb": "{{value}} GB",
+      "days_one": "{{count}} day",
+      "days_other": "{{count}} days",
+      "calls": {
+        "all": "Everyone",
+        "admins": "Admins only",
+        "off": "Off for everyone"
+      },
+      "sections": {
+        "storage": "Storage",
+        "features": "Features",
+        "signIn": "Sign-in security",
+        "cleanup": "Auto-cleanup of old files"
+      },
+      "cleanupWarning": "When on, every hour the oldest files past the chosen age are deleted for good, for everyone. Their messages stay and show “Media not available”. Backups still have them for 14 days.",
+      "changes_one": "{{count}} change not saved",
+      "changes_other": "{{count}} changes not saved",
+      "fixFirst": "Fix the highlighted values first.",
+      "discard": "Discard",
+      "save": "Save changes",
+      "confirmTitle_one": "Save {{count}} change?",
+      "confirmTitle_other": "Save {{count}} changes?",
+      "changeLine": "{{setting}}: {{from}} → {{to}}",
+      "resetLine": "{{setting}}: back to the default ({{to}})",
+      "fields": {
+        "mediaUserQuotaMb": {
+          "label": "Storage per person",
+          "hint": "Photos, videos, voice notes, documents and statuses together. An admin can give one person their own limit.",
+          "invalid": "Between 0.1 and 1024 GB.",
+          "unit": "GB"
+        },
+        "mediaMaxFileMb": {
+          "label": "Largest file",
+          "hint": "The biggest single file anyone can send. Pictures stay at 100 MB.",
+          "invalid": "Between 0.001 and 100 GB.",
+          "unit": "GB"
+        },
+        "storageGuardPercent": {
+          "label": "Stop uploads at disk",
+          "hint": "New uploads are refused when the server disk would go past this, and the admins get an email.",
+          "invalid": "A whole number from 50 to 99.",
+          "unit": "%"
+        },
+        "calls": {
+          "label": "Voice and video calls",
+          "hint": "Who can make and receive calls.",
+          "invalid": "",
+          "unit": ""
+        },
+        "status": {
+          "label": "Status updates",
+          "hint": "The Updates tab. Off: nobody can post a new status.",
+          "invalid": "",
+          "unit": ""
+        },
+        "linkPreviews": {
+          "label": "Link previews",
+          "hint": "Show a preview card for links in messages. Off: no page is fetched.",
+          "invalid": "",
+          "unit": ""
+        },
+        "adminChatUserCanReply": {
+          "label": "Replies to hidden admins",
+          "hint": "Whether people can reply when a hidden admin messages them.",
+          "invalid": "",
+          "unit": ""
+        },
+        "groupMaxMembers": {
+          "label": "Group size",
+          "hint": "The most people one group can have. Groups already bigger keep their members.",
+          "invalid": "A whole number from 2 to 256.",
+          "unit": "people"
+        },
+        "otpIpLimitPerHour": {
+          "label": "Codes per network per hour",
+          "hint": "Sign-in codes one network address can ask for in an hour.",
+          "invalid": "A whole number from 5 to 10,000.",
+          "unit": "codes"
+        },
+        "otpFailuresPerEmailPerDay": {
+          "label": "Wrong codes before a lock",
+          "hint": "Wrong codes for one email in a day before it is locked until the next day.",
+          "invalid": "A whole number from 5 to 100.",
+          "unit": "tries"
+        },
+        "autoCleanupDays": {
+          "label": "Delete files older than",
+          "hint": "Leave empty to keep files for ever.",
+          "invalid": "Empty, or a whole number of days from 30 to 3650.",
+          "unit": "days"
+        }
       }
     }
   }

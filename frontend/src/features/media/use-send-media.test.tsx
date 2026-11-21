@@ -23,6 +23,7 @@ describe('the file size limit', () => {
             voiceMaxSeconds: 900,
             userQuotaBytes: 3 * 1024 ** 3,
           },
+          features: { status: true, linkPreviews: true, groupMaxMembers: 256 },
         }),
       ),
     );

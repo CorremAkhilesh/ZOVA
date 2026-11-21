@@ -125,6 +125,7 @@ describe('Share to the app', () => {
       http.get('*/v1/config', () =>
         HttpResponse.json({
           media: { maxFileBytes: 1024, voiceMaxSeconds: 900, userQuotaBytes: 3 * 1024 ** 3 },
+          features: { status: true, linkPreviews: true, groupMaxMembers: 256 },
         }),
       ),
     );

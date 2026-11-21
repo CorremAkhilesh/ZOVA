@@ -108,6 +108,7 @@ export const server = setupServer(
   http.get('*/v1/config', () =>
     HttpResponse.json({
       media: { maxFileBytes: 1024 ** 3, voiceMaxSeconds: 900, userQuotaBytes: 3 * 1024 ** 3 },
+      features: { status: true, linkPreviews: true, groupMaxMembers: 256 },
     }),
   ),
   http.get('*/v1/auth/me', () => HttpResponse.json(sessionFixture())),

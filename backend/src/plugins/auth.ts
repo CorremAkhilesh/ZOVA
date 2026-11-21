@@ -82,7 +82,8 @@ async function setupAuth(app: FastifyInstance, options: AuthPluginOptions) {
     ? new RedisCounterStore(redis)
     : new MemoryCounterStore();
   const throttle = new OtpThrottle(counterStore, {
-    ipLimitPerHour: env.OTP_IP_LIMIT_PER_HOUR,
+    ipLimitPerHour: () => app.settings.current().otpIpLimitPerHour,
+    failuresPerDay: () => app.settings.current().otpFailuresPerEmailPerDay,
   });
 
   const dispatcher = options.dispatcher ?? (await createDispatcher(app, env));

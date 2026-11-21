@@ -100,7 +100,7 @@ export async function joinByInvite(app: FastifyInstance, userId: string, code: s
       'You were removed from this group. Only an admin can add you back.',
     );
   }
-  assertRoomFor(chat, 1);
+  assertRoomFor(app, chat, 1);
   const name = await namesOf(app, [userId]);
   const at = new Date();
   const stored = await app.mongo.transaction((session) =>

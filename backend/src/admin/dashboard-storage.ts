@@ -28,7 +28,7 @@ async function diskOf(app: FastifyInstance): Promise<AdminDashboard['storage']['
       totalBytes: space.total,
       usedBytes,
       percent: Math.round((usedBytes / space.total) * 1000) / 10,
-      guardPercent: app.env.STORAGE_GUARD_PERCENT,
+      guardPercent: app.settings.current().storageGuardPercent,
     };
   } catch (error) {
     app.log.warn({ err: error }, 'admin dashboard: could not read disk space');

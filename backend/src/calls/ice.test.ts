@@ -61,19 +61,18 @@ describe('ICE servers', () => {
 });
 
 describe('who has calls', () => {
-  const env = {
-    CALLS_ENABLED_FOR: 'admins' as const,
-    CALLS_TEST_EMAILS: ['tester@corremadvisory.com'],
+  const setting = {
+    calls: 'admins' as const,
+    testEmails: ['tester@corremadvisory.com'],
   };
-  it('admins and the test accounts while testing; everyone with "all"', () => {
-    expect(callsAllowed(env, { role: 'admin', email: 'a@corremadvisory.com' })).toBe(true);
-    expect(callsAllowed(env, { role: 'user', email: 'Tester@corremadvisory.com' })).toBe(true);
-    expect(callsAllowed(env, { role: 'user', email: 'u@corremadvisory.com' })).toBe(false);
-    expect(
-      callsAllowed(
-        { ...env, CALLS_ENABLED_FOR: 'all' },
-        { role: 'user', email: 'u@corremadvisory.com' },
-      ),
-    ).toBe(true);
+  it('admins and the test accounts while testing; everyone with "all"; nobody with "off"', () => {
+    expect(callsAllowed(setting, { role: 'admin', email: 'a@corremadvisory.com' })).toBe(true);
+    expect(callsAllowed(setting, { role: 'user', email: 'Tester@corremadvisory.com' })).toBe(true);
+    expect(callsAllowed(setting, { role: 'user', email: 'u@corremadvisory.com' })).toBe(false);
+    const user = { role: 'user', email: 'u@corremadvisory.com' };
+    expect(callsAllowed({ ...setting, calls: 'all' }, user)).toBe(true);
+    expect(callsAllowed({ ...setting, calls: 'off' }, { role: 'admin', email: 'a@x.com' })).toBe(
+      false,
+    );
   });
 });

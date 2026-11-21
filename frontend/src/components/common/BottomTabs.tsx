@@ -1,16 +1,17 @@
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
-import { NAV_ITEMS } from './nav-items';
+import { useNavItems } from './use-nav-items';
 
 /** Mobile navigation: bottom tab bar. */
 export function BottomTabs() {
   const { t } = useTranslation();
+  const navItems = useNavItems();
   return (
     <nav
       aria-label={t('nav.main')}
       className="glass grid shrink-0 grid-cols-4 border-t pb-[env(safe-area-inset-bottom)]"
     >
-      {NAV_ITEMS.map(({ to, labelKey, icon: Icon }) => (
+      {navItems.map(({ to, labelKey, icon: Icon }) => (
         <Link
           key={to}
           to={to}

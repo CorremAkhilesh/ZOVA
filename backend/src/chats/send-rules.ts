@@ -63,7 +63,8 @@ export async function assertMaySend(
   if (peer?.status === 'deactivated') {
     throw new AppError('FORBIDDEN', 'This account has been deactivated.');
   }
-  if (peer && !app.env.ADMIN_CHAT_USER_CAN_REPLY && (await hiddenAmong(app, userId, [peer])).size) {
+  const canReply = app.settings.current().adminChatUserCanReply;
+  if (peer && !canReply && (await hiddenAmong(app, userId, [peer])).size) {
     throw new AppError('FORBIDDEN', 'Only the admin can send messages in this chat.');
   }
   if (other) await assertNotBlocked(app, userId, other.userId.toString());

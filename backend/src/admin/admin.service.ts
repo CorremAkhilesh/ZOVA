@@ -93,7 +93,11 @@ export async function setStorageQuota(
     // null on either side: the default limit at the time.
     await audit(app, actor, 'storage.quota', target, {
       reason,
-      details: { fromMb: before, toMb: quotaMb, defaultMb: app.env.MEDIA_USER_QUOTA_MB },
+      details: {
+        fromMb: before,
+        toMb: quotaMb,
+        defaultMb: app.settings.current().mediaUserQuotaMb,
+      },
     });
   }
   return { quotaBytes: quotaBytesOf(app, { storageQuotaMb: quotaMb }), custom: quotaMb !== null };

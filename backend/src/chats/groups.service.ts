@@ -1,10 +1,5 @@
 import { Readable } from 'node:stream';
-import {
-  type ChatSummary,
-  DEFAULT_GROUP_SETTINGS,
-  GROUP_MEMBERS_MAX,
-  type GroupSettings,
-} from '@zuvo/protocol';
+import { type ChatSummary, DEFAULT_GROUP_SETTINGS, type GroupSettings } from '@zuvo/protocol';
 import type { FastifyInstance } from 'fastify';
 import { Types } from 'mongoose';
 import { AppError } from '../lib/errors.ts';
@@ -21,6 +16,7 @@ import {
   namesOf,
   requireGroupMember,
 } from './group-core.ts';
+import { groupMaxOf } from './group-members.service.ts';
 import { assertAllowed, groupRules } from './group-permissions.ts';
 
 const GROUPS_PER_HOUR = 10;
@@ -52,8 +48,9 @@ export async function createGroup(
     throw new AppError('RATE_LIMITED', 'Too many new groups. Try again later.');
   }
   const others = [...new Set(input.memberIds)].filter((id) => id !== userId);
-  if (others.length + 1 > GROUP_MEMBERS_MAX) {
-    throw new AppError('GROUP_FULL', `A group can have at most ${GROUP_MEMBERS_MAX} members.`);
+  const max = groupMaxOf(app);
+  if (others.length + 1 > max) {
+    throw new AppError('GROUP_FULL', `A group can have at most ${max} members.`);
   }
   await requireActiveUsers(app, userId, others);
   const name = await namesOf(app, [userId, ...others]);

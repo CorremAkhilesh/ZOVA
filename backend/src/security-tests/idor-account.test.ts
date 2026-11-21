@@ -147,6 +147,12 @@ describe('admin routes and reports', () => {
           payload: { until: new Date(Date.now() + 86_400_000).toISOString(), ...WHY },
         },
         { method: 'POST', url: `/v1/admin/users/${asha.id}/unsuspend`, payload: WHY },
+        { method: 'GET', url: '/v1/admin/settings' },
+        {
+          method: 'PUT',
+          url: '/v1/admin/settings',
+          payload: { changes: { status: false }, ...WHY },
+        },
         {
           method: 'POST',
           url: '/v1/admin/users/bulk',

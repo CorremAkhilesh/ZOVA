@@ -13,21 +13,20 @@ does not prove the operators match (e.g. a partial index needs the same `$type`/
 tests themselves run `explain()` and are the real check.
 | Status | Sites |
 | --- | --- |
-| covered by an `expectIndexedQuery()` test of the same model + filter shape | 185 |
-| covered by the `_id` index (filter on `_id`) | 212 |
+| covered by an `expectIndexedQuery()` test of the same model + filter shape | 187 |
+| covered by the `_id` index (filter on `_id`) | 215 |
 | reviewed by hand (see the note) | 16 |
 | **gap** (no test) | 0 |
-| **total** | 413 |
+| **total** | 418 |
 
 ### `src/admin/admin.service.ts`
 
 | Line | Model | Method | Filter | Sort | Status | By |
 | --- | --- | --- | --- | --- | --- | --- |
-| 56 | AuthUser | find | ?_id, ?email, ?searchTerms, … | _id | covered (`_id`) | `_id` index |
-| 85 | AuthUser | countDocuments | role, status |  | covered | src/admin/dashboard-indexes.test.ts:26 |
-| 106 | AuthUser | updateOne | _id |  | covered (`_id`) | `_id` index |
-| 121 | AuthUser | updateOne | _id |  | covered (`_id`) | `_id` index |
-| 159 | AuditLog | find | ?$or._id:range, ?$or.at | _id, at | covered | src/modules/admin/admin.test.ts:152 + `_id` index |
+| 51 | AuthUser | countDocuments | role, status |  | covered | src/admin/dashboard-indexes.test.ts:26 |
+| 73 | AuthUser | updateOne | _id |  | covered (`_id`) | `_id` index |
+| 92 | AuthUser | updateOne | _id |  | covered (`_id`) | `_id` index |
+| 147 | AuditLog | find | ?$or._id:range, ?$or.at | _id, at | covered | src/modules/admin/admin.test.ts:156 + `_id` index |
 
 ### `src/admin/dashboard-activity.ts`
 
@@ -60,11 +59,24 @@ tests themselves run `explain()` and are the real check.
 | 53 | AuthUser | countDocuments | _id:range, role, status |  | covered | src/admin/dashboard-indexes.test.ts:26 |
 | 63 | AuthUser | updateOne | _id |  | covered (`_id`) | `_id` index |
 
+### `src/admin/suspend.ts`
+
+| Line | Model | Method | Filter | Sort | Status | By |
+| --- | --- | --- | --- | --- | --- | --- |
+| 47 | AuthUser | updateOne | _id |  | covered (`_id`) | `_id` index |
+| 68 | AuthUser | updateOne | _id |  | covered (`_id`) | `_id` index |
+
 ### `src/admin/user-status.ts`
 
 | Line | Model | Method | Filter | Sort | Status | By |
 | --- | --- | --- | --- | --- | --- | --- |
-| 32 | AuthUser | updateOne | _id |  | covered (`_id`) | `_id` index |
+| 33 | AuthUser | updateOne | _id |  | covered (`_id`) | `_id` index |
+
+### `src/admin/users-list.ts`
+
+| Line | Model | Method | Filter | Sort | Status | By |
+| --- | --- | --- | --- | --- | --- | --- |
+| 83 | AuthUser | find | fn:baseFilter | _id | covered | filter from `baseFilter()` tested |
 
 ### `src/appearance/appearance.service.ts`
 
@@ -90,13 +102,13 @@ tests themselves run `explain()` and are the real check.
 
 | Line | Model | Method | Filter | Sort | Status | By |
 | --- | --- | --- | --- | --- | --- | --- |
-| 76 | AuthSession | updateOne | token |  | covered | src/db/auth-models.test.ts:30 |
+| 77 | AuthSession | updateOne | token |  | covered | src/db/auth-models.test.ts:30 |
 
 ### `src/calls/access.ts`
 
 | Line | Model | Method | Filter | Sort | Status | By |
 | --- | --- | --- | --- | --- | --- | --- |
-| 22 | AuthUser | findById | _id |  | covered (`_id`) | `_id` index |
+| 33 | AuthUser | findById | _id |  | covered (`_id`) | `_id` index |
 
 ### `src/calls/call-finish.ts`
 
@@ -252,12 +264,12 @@ tests themselves run `explain()` and are the real check.
 | 32 | AuthUser | find | _id |  | covered (`_id`) | `_id` index |
 | 62 | ChatMember | bulkWrite | chatId, userId |  | covered | src/chats/chat-indexes.test.ts:46 |
 | 87 | Chat | updateOne | _id |  | covered (`_id`) | `_id` index |
-| 111 | ChatMember | find | chatId, leftAt, userId |  | covered | src/chats/chat-indexes.test.ts:26 |
-| 151 | ChatMember | updateOne | chatId, userId |  | covered | src/chats/chat-indexes.test.ts:46 |
-| 172 | Chat | updateOne | _id |  | covered (`_id`) | `_id` index |
-| 184 | ChatMember | findOne | chatId, leftAt, userId |  | covered | src/chats/chat-indexes.test.ts:26 |
-| 239 | ChatMember | findOne | chatId, leftAt, userId |  | covered | src/chats/chat-indexes.test.ts:26 |
-| 261 | ChatMember | updateOne | _id |  | covered (`_id`) | `_id` index |
+| 116 | ChatMember | find | chatId, leftAt, userId |  | covered | src/chats/chat-indexes.test.ts:26 |
+| 156 | ChatMember | updateOne | chatId, userId |  | covered | src/chats/chat-indexes.test.ts:46 |
+| 177 | Chat | updateOne | _id |  | covered (`_id`) | `_id` index |
+| 189 | ChatMember | findOne | chatId, leftAt, userId |  | covered | src/chats/chat-indexes.test.ts:26 |
+| 244 | ChatMember | findOne | chatId, leftAt, userId |  | covered | src/chats/chat-indexes.test.ts:26 |
+| 266 | ChatMember | updateOne | _id |  | covered (`_id`) | `_id` index |
 
 ### `src/chats/group-ownership.service.ts`
 
@@ -288,10 +300,10 @@ tests themselves run `explain()` and are the real check.
 
 | Line | Model | Method | Filter | Sort | Status | By |
 | --- | --- | --- | --- | --- | --- | --- |
-| 31 | AuthUser | find | _id |  | covered (`_id`) | `_id` index |
-| 130 | Chat | updateOne | _id |  | covered (`_id`) | `_id` index |
-| 157 | Chat | updateOne | _id |  | covered (`_id`) | `_id` index |
-| 196 | Chat | updateOne | _id |  | covered (`_id`) | `_id` index |
+| 27 | AuthUser | find | _id |  | covered (`_id`) | `_id` index |
+| 127 | Chat | updateOne | _id |  | covered (`_id`) | `_id` index |
+| 154 | Chat | updateOne | _id |  | covered (`_id`) | `_id` index |
+| 193 | Chat | updateOne | _id |  | covered (`_id`) | `_id` index |
 
 ### `src/chats/hidden-members.ts`
 
@@ -467,8 +479,8 @@ tests themselves run `explain()` and are the real check.
 | 47 | Chat | findById | _id |  | covered (`_id`) | `_id` index |
 | 54 | ChatMember | findOne | chatId, userId |  | covered | src/chats/chat-indexes.test.ts:46 |
 | 59 | AuthUser | findById | _id |  | covered (`_id`) | `_id` index |
-| 84 | ChatMember | findOne | chatId, userId |  | covered | src/chats/chat-indexes.test.ts:46 |
-| 92 | Chat | findById | _id |  | covered (`_id`) | `_id` index |
+| 85 | ChatMember | findOne | chatId, userId |  | covered | src/chats/chat-indexes.test.ts:46 |
+| 93 | Chat | findById | _id |  | covered (`_id`) | `_id` index |
 
 ### `src/chats/sender-name.ts`
 
@@ -604,7 +616,7 @@ tests themselves run `explain()` and are the real check.
 | 42 | Chat | find | _id |  | covered (`_id`) | `_id` index |
 | 86 | Report | find | … | _id, createdAt | covered (`_id`) | `_id` index |
 | 112 | Report | findById | _id |  | covered (`_id`) | `_id` index |
-| 156 | Report | updateOne | _id, status |  | covered (`_id`) | `_id` index |
+| 157 | Report | updateOne | _id, status |  | covered (`_id`) | `_id` index |
 
 ### `src/moderation/blocks.service.ts`
 
@@ -694,19 +706,19 @@ tests themselves run `explain()` and are the real check.
 
 | Line | Model | Method | Filter | Sort | Status | By |
 | --- | --- | --- | --- | --- | --- | --- |
-| 72 | LinkPreview | findOne | expiresAt, key |  | covered | src/db/token-preview-indexes.test.ts:28 |
-| 81 | LinkPreview | findOneAndUpdate | key |  | covered | src/db/token-preview-indexes.test.ts:28 |
-| 88 | LinkPreview | findOne | key |  | covered | src/db/token-preview-indexes.test.ts:28 |
-| 105 | LinkPreview | findById | _id |  | covered (`_id`) | `_id` index |
-| 125 | LinkPreviewImage | findById | _id |  | covered (`_id`) | `_id` index |
+| 74 | LinkPreview | findOne | expiresAt, key |  | covered | src/db/token-preview-indexes.test.ts:28 |
+| 83 | LinkPreview | findOneAndUpdate | key |  | covered | src/db/token-preview-indexes.test.ts:28 |
+| 90 | LinkPreview | findOne | key |  | covered | src/db/token-preview-indexes.test.ts:28 |
+| 107 | LinkPreview | findById | _id |  | covered (`_id`) | `_id` index |
+| 127 | LinkPreviewImage | findById | _id |  | covered (`_id`) | `_id` index |
 
 ### `src/push/admin-overview.ts`
 
 | Line | Model | Method | Filter | Sort | Status | By |
 | --- | --- | --- | --- | --- | --- | --- |
-| 61 | AuthUser | find | ?_id, status, … | _id | covered | src/admin/dashboard-indexes.test.ts:26 |
-| 69 | AuthSession | find | expiresAt, userId | expiresAt | covered | src/db/auth-models.test.ts:34 |
-| 76 | PushSubscription | find | userId |  | covered | src/push/push-indexes.test.ts:24 |
+| 58 | AuthSession | find | expiresAt, userId | expiresAt | covered | src/db/auth-models.test.ts:34 |
+| 65 | PushSubscription | find | userId |  | covered | src/push/push-indexes.test.ts:24 |
+| 90 | AuthUser | find | ?_id, status, … | _id | covered | src/admin/dashboard-indexes.test.ts:26 |
 
 ### `src/push/client-state.ts`
 
@@ -818,7 +830,7 @@ tests themselves run `explain()` and are the real check.
 
 | Line | Model | Method | Filter | Sort | Status | By |
 | --- | --- | --- | --- | --- | --- | --- |
-| 19 | ? | find | {} | _id | covered (`_id`) | `_id` index |
+| 20 | ? | find | {} | _id | covered (`_id`) | `_id` index |
 
 ### `src/security/security-tokens.ts`
 
@@ -826,6 +838,19 @@ tests themselves run `explain()` and are the real check.
 | --- | --- | --- | --- | --- | --- | --- |
 | 36 | SecurityToken | findOneAndUpdate | expiresAt, tokenHash, usedAt |  | covered | src/db/token-preview-indexes.test.ts:21 |
 | 43 | SecurityToken | findOne | tokenHash |  | covered | src/db/token-preview-indexes.test.ts:23 |
+
+### `src/settings/admin-settings.ts`
+
+| Line | Model | Method | Filter | Sort | Status | By |
+| --- | --- | --- | --- | --- | --- | --- |
+| 90 | Media | find | createdAt, status | createdAt | covered | src/admin/dashboard-indexes.test.ts:52 |
+
+### `src/settings/app-settings.ts`
+
+| Line | Model | Method | Filter | Sort | Status | By |
+| --- | --- | --- | --- | --- | --- | --- |
+| 87 | ? | findById | _id |  | covered (`_id`) | `_id` index |
+| 110 | ? | updateOne | _id |  | covered (`_id`) | `_id` index |
 
 ### `src/settings/quiet-hours.service.ts`
 
@@ -886,7 +911,7 @@ tests themselves run `explain()` and are the real check.
 
 | Line | Model | Method | Filter | Sort | Status | By |
 | --- | --- | --- | --- | --- | --- | --- |
-| 44 | AuthUser | findById | _id |  | covered (`_id`) | `_id` index |
+| 48 | AuthUser | findById | _id |  | covered (`_id`) | `_id` index |
 
 ### `src/users/users.service.ts`
 

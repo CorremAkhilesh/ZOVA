@@ -64,6 +64,8 @@ mediaSchema.index(
   { deleteRequestedAt: 1 },
   { partialFilterExpression: { deleteRequestedAt: { $type: 'date' } } },
 );
+// Serves: Admin → Settings auto-cleanup, finished files older than N days, oldest first.
+mediaSchema.index({ status: 1, createdAt: 1 });
 // Serves: the hourly cleanup of uploads never attached to a message.
 mediaSchema.index({ messageId: 1, createdAt: 1 });
 

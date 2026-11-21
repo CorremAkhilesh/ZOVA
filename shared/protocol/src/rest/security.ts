@@ -130,6 +130,8 @@ export const auditActionSchema = z.enum([
   /** An admin suspended someone until a date (details.until), or ended it early. */
   'user.suspend',
   'user.unsuspend',
+  /** An admin changed an organization setting. Target: the admin; details: setting, from, to. */
+  'settings.change',
 ]);
 export const auditLogEntrySchema = z.object({
   id: z.string(),

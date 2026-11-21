@@ -10,6 +10,12 @@ export const appConfigResponseSchema = z.object({
     /** Everyone's storage limit unless an admin gave them their own. From MEDIA_USER_QUOTA_MB. */
     userQuotaBytes: z.number().int().positive(),
   }),
+  /** Switched on or off in Admin → Settings. */
+  features: z.object({
+    status: z.boolean(),
+    linkPreviews: z.boolean(),
+    groupMaxMembers: z.number().int().positive(),
+  }),
 });
 
 export type AppConfig = z.infer<typeof appConfigResponseSchema>;

@@ -1,5 +1,13 @@
 import { Link, Outlet } from '@tanstack/react-router';
-import { ArrowLeft, Bell, Flag, LayoutDashboard, ScrollText, Users } from 'lucide-react';
+import {
+  ArrowLeft,
+  Bell,
+  Flag,
+  LayoutDashboard,
+  ScrollText,
+  SlidersHorizontal,
+  Users,
+} from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -8,6 +16,7 @@ export const ADMIN_SECTIONS = [
   { to: '/admin/users', key: 'users', icon: Users, exact: false },
   { to: '/admin/reports', key: 'reports', icon: Flag, exact: false },
   { to: '/admin/notifications', key: 'notifications', icon: Bell, exact: false },
+  { to: '/admin/settings', key: 'settings', icon: SlidersHorizontal, exact: false },
   { to: '/admin/audit', key: 'audit', icon: ScrollText, exact: false },
 ] as const;
 
