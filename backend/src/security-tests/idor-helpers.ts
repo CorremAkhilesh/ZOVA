@@ -4,9 +4,10 @@ import { headers } from '../../test/auth-helpers.ts';
 
 /**
  * Collections an ordinary signed-in request may touch without changing anyone's data: the
- * session's "last active" stamp and Better Auth's verification rows.
+ * session's "last active" stamp, the day someone was active (Admin → Dashboard) and Better Auth's
+ * verification rows.
  */
-const VOLATILE = new Set(['session', 'verification']);
+const VOLATILE = new Set(['session', 'activity_days', 'verification']);
 
 /** Every document of every collection (volatile ones left out), to prove nothing changed. */
 export async function dbSnapshot(app: FastifyInstance): Promise<Record<string, unknown[]>> {
