@@ -132,6 +132,9 @@ export const auditActionSchema = z.enum([
   'user.unsuspend',
   /** An admin changed an organization setting. Target: the admin; details: setting, from, to. */
   'settings.change',
+  /** An admin made an announcement, or ended its banner early. Target: the admin. */
+  'announcement.create',
+  'announcement.end',
 ]);
 export const auditLogEntrySchema = z.object({
   id: z.string(),

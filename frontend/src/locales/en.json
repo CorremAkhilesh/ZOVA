@@ -1713,7 +1713,8 @@
       "reports": "Reports",
       "notifications": "Notifications",
       "audit": "Audit log",
-      "settings": "Settings"
+      "settings": "Settings",
+      "announcements": "Announcements"
     },
     "dashboard": {
       "title": "Dashboard",
@@ -2020,6 +2021,46 @@
           "unit": "days"
         }
       }
+    },
+    "announcements": {
+      "title": "Announcements",
+      "subtitle": "Tell everyone, or chosen people, something: a banner at the top of the app and/or a chat message from you.",
+      "new": "New announcement",
+      "newTitle": "New announcement",
+      "newHint": "It goes out as soon as you send it.",
+      "titleLabel": "Title",
+      "bodyLabel": "Message",
+      "levelLabel": "Kind",
+      "level": {
+        "info": "Information",
+        "warning": "Important"
+      },
+      "toLabel": "To",
+      "everyone": "Everyone",
+      "chosen": "Chosen people",
+      "howLabel": "How",
+      "asBanner": "Banner at the top of the app",
+      "asMessage": "Chat message from me",
+      "untilLabel": "Show the banner until (your time)",
+      "untilHint": "Leave empty to keep it up until you end it (at most 90 days).",
+      "send": "Send",
+      "sent_one": "Sent to {{count}} person.",
+      "sent_other": "Sent to {{count}} people.",
+      "empty": "No announcements yet.",
+      "active": "Showing",
+      "banner": "banner",
+      "message": "message",
+      "meta_one": "{{when}} · {{by}} · {{how}} · {{count}} person",
+      "meta_other": "{{when}} · {{by}} · {{how}} · {{count}} people",
+      "until": "until {{when}}",
+      "end": "End now",
+      "endTitle": "End “{{title}}”?",
+      "endBody": "The banner goes away for everyone at once. Messages already sent stay."
     }
+  },
+  "announcements": {
+    "label": "Announcements from the admins",
+    "until": "Until {{when}}",
+    "close": "Close “{{title}}”"
   }
 }

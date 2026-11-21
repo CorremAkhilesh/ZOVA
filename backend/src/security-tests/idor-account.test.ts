@@ -148,6 +148,19 @@ describe('admin routes and reports', () => {
         },
         { method: 'POST', url: `/v1/admin/users/${asha.id}/unsuspend`, payload: WHY },
         { method: 'GET', url: '/v1/admin/settings' },
+        { method: 'GET', url: '/v1/admin/announcements' },
+        {
+          method: 'POST',
+          url: '/v1/admin/announcements',
+          payload: {
+            title: 'x',
+            body: 'y',
+            audience: { kind: 'all' },
+            banner: true,
+            message: false,
+            ...WHY,
+          },
+        },
         {
           method: 'PUT',
           url: '/v1/admin/settings',

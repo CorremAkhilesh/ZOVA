@@ -56,6 +56,8 @@ export interface QuerySite {
 
 const MODELS = [
   'ActivityDay',
+  'Announcement',
+  'AnnouncementDismissal',
   'AppSettings',
   'AuditLog',
   'AuthAccount',

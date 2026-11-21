@@ -116,6 +116,7 @@ export const server = setupServer(
   http.get('*/v1/me/username-suggestion', () => HttpResponse.json({ username: 'kiran' })),
   http.get('*/v1/me/privacy', () => HttpResponse.json({ privacy: privacyFixture })),
   http.get('*/v1/me/blocks', () => HttpResponse.json({ items: [] })),
+  http.get('*/v1/announcements', () => HttpResponse.json({ items: [] })),
   http.get('*/v1/me/storage', () => HttpResponse.json(storageFixture())),
   http.get('*/v1/me/folders', () => HttpResponse.json({ folders: [] })),
   http.get('*/v1/me/scheduled', () => HttpResponse.json({ items: [] })),

@@ -13,11 +13,11 @@ does not prove the operators match (e.g. a partial index needs the same `$type`/
 tests themselves run `explain()` and are the real check.
 | Status | Sites |
 | --- | --- |
-| covered by an `expectIndexedQuery()` test of the same model + filter shape | 187 |
-| covered by the `_id` index (filter on `_id`) | 215 |
+| covered by an `expectIndexedQuery()` test of the same model + filter shape | 191 |
+| covered by the `_id` index (filter on `_id`) | 219 |
 | reviewed by hand (see the note) | 16 |
 | **gap** (no test) | 0 |
-| **total** | 418 |
+| **total** | 426 |
 
 ### `src/admin/admin.service.ts`
 
@@ -27,6 +27,19 @@ tests themselves run `explain()` and are the real check.
 | 73 | AuthUser | updateOne | _id |  | covered (`_id`) | `_id` index |
 | 92 | AuthUser | updateOne | _id |  | covered (`_id`) | `_id` index |
 | 147 | AuditLog | find | ?$or._id:range, ?$or.at | _id, at | covered | src/modules/admin/admin.test.ts:156 + `_id` index |
+
+### `src/admin/announcements.ts`
+
+| Line | Model | Method | Filter | Sort | Status | By |
+| --- | --- | --- | --- | --- | --- | --- |
+| 49 | AuthUser | find | ?_id, status, … |  | covered | src/admin/dashboard-indexes.test.ts:26 |
+| 128 | Announcement | find | … | _id | covered (`_id`) | `_id` index |
+| 147 | Announcement | findById | _id |  | covered (`_id`) | `_id` index |
+| 152 | Announcement | updateOne | _id |  | covered (`_id`) | `_id` index |
+| 173 | Announcement | find | banner, endedAt | createdAt | covered | src/admin/announcement-indexes.test.ts:21 |
+| 183 | AnnouncementDismissal | find | announcementId, userId |  | covered | src/admin/announcement-indexes.test.ts:24 |
+| 205 | Announcement | exists | _id |  | covered (`_id`) | `_id` index |
+| 207 | AnnouncementDismissal | updateOne | announcementId, userId |  | covered | src/admin/announcement-indexes.test.ts:24 |
 
 ### `src/admin/dashboard-activity.ts`
 
