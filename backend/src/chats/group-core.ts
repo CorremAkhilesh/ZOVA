@@ -36,14 +36,28 @@ export function groupView(chat: ChatDoc, member: ChatMemberDoc, hiddenMembers = 
     settings: { ...DEFAULT_GROUP_SETTINGS, ...group?.settings },
     myRole: member.role,
     active: member.leftAt === null,
+    ...(group?.adminArchived ? { archivedByAdmin: true } : {}),
   };
 }
 
+/** Refuses any change to a group an organization admin archived (reading and leaving still work). */
+export function assertNotArchived(chat: Pick<ChatDoc, 'type' | 'group'> | null): void {
+  if (chat?.type === 'group' && chat.group?.adminArchived) {
+    throw new AppError('GROUP_ARCHIVED', 'An admin archived this group. It can only be read.');
+  }
+}
+
 /** A group I belong to, or the answer for any chat I do not. */
-export async function requireGroupMember(app: FastifyInstance, chatId: string, userId: string) {
+export async function requireGroupMember(
+  app: FastifyInstance,
+  chatId: string,
+  userId: string,
+  purpose: 'read' | 'change' = 'change',
+) {
   const member = await requireMember(app, chatId, userId);
   const chat = await chatModels(app).Chat.findById(chatId).lean();
   if (chat?.type !== 'group') throw new AppError('NOT_FOUND', 'Group not found.');
+  if (purpose === 'change') assertNotArchived(chat);
   const settings = { ...DEFAULT_GROUP_SETTINGS, ...chat.group?.settings };
   return { chat, member, settings, role: member.role as GroupRole };
 }

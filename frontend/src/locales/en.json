@@ -838,12 +838,15 @@
       "announcementOff": "{{actor}} set the group so everyone can send messages",
       "owner_changed": "{{actor}} made {{targets}} the owner",
       "pinned": "{{actor}} pinned a message",
-      "owner_auto": "{{targets}} is now the owner"
+      "owner_auto": "{{targets}} is now the owner",
+      "admin_archived": "An administrator archived this group. It can be read, but no one can write in it.",
+      "admin_restored": "An administrator restored this group."
     },
     "roleBadge": {
       "owner": "Owner",
       "admin": "Group admin"
-    }
+    },
+    "archivedByAdmin": "An administrator archived this group. You can read it and leave it."
   },
   "messages": {
     "forwarded": "Forwarded",
@@ -1714,7 +1717,8 @@
       "notifications": "Notifications",
       "audit": "Audit log",
       "settings": "Settings",
-      "announcements": "Announcements"
+      "announcements": "Announcements",
+      "groups": "Groups"
     },
     "dashboard": {
       "title": "Dashboard",
@@ -2056,6 +2060,36 @@
       "end": "End now",
       "endTitle": "End “{{title}}”?",
       "endBody": "The banner goes away for everyone at once. Messages already sent stay."
+    },
+    "groups": {
+      "title": "Groups",
+      "subtitle": "Every group in the organization: size, admins, activity and storage. You never see their messages.",
+      "search": "Search by group name",
+      "filterAll": "All groups",
+      "filterArchived": "Archived",
+      "archived": "Archived",
+      "counts": "{{members}} members · {{admins}} admins",
+      "owner": "owner {{name}}",
+      "meta": "Created {{created}} · active {{active}} · {{storage}} of files",
+      "empty": "No groups found.",
+      "archive": "Archive",
+      "restore": "Restore",
+      "delete": "Delete for everyone",
+      "typeName": "Type the group’s name to confirm: {{name}}",
+      "confirm": {
+        "archive": {
+          "title": "Archive “{{name}}”?",
+          "body": "Members can still read it and leave, but no one can write, react, join or change it. You can restore it."
+        },
+        "restore": {
+          "title": "Restore “{{name}}”?",
+          "body": "Members can write and change it again."
+        },
+        "delete": {
+          "title": "Delete “{{name}}” for everyone?",
+          "body": "It disappears from every member’s list and its messages and files are deleted. This cannot be undone."
+        }
+      }
     }
   },
   "announcements": {

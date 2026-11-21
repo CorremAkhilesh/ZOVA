@@ -8,6 +8,7 @@ import {
   ScrollText,
   SlidersHorizontal,
   Users,
+  UsersRound,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -15,6 +16,7 @@ import { useTranslation } from 'react-i18next';
 export const ADMIN_SECTIONS = [
   { to: '/admin', key: 'dashboard', icon: LayoutDashboard, exact: true },
   { to: '/admin/users', key: 'users', icon: Users, exact: false },
+  { to: '/admin/groups', key: 'groups', icon: UsersRound, exact: false },
   { to: '/admin/reports', key: 'reports', icon: Flag, exact: false },
   { to: '/admin/announcements', key: 'announcements', icon: Megaphone, exact: false },
   { to: '/admin/notifications', key: 'notifications', icon: Bell, exact: false },

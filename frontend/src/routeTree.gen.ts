@@ -32,6 +32,7 @@ import { Route as WelcomeNameRouteImport } from './routes/welcome.name'
 import { Route as AppAdminIndexRouteImport } from './routes/_app/admin.index'
 import { Route as AppAdminAnnouncementsRouteImport } from './routes/_app/admin.announcements'
 import { Route as AppAdminAuditRouteImport } from './routes/_app/admin.audit'
+import { Route as AppAdminGroupsRouteImport } from './routes/_app/admin.groups'
 import { Route as AppAdminNotificationsRouteImport } from './routes/_app/admin.notifications'
 import { Route as AppAdminReportsRouteImport } from './routes/_app/admin.reports'
 import { Route as AppAdminSettingsRouteImport } from './routes/_app/admin.settings'
@@ -167,6 +168,11 @@ const AppAdminAuditRoute = AppAdminAuditRouteImport.update({
   path: '/audit',
   getParentRoute: () => AppAdminRoute,
 } as any)
+const AppAdminGroupsRoute = AppAdminGroupsRouteImport.update({
+  id: '/groups',
+  path: '/groups',
+  getParentRoute: () => AppAdminRoute,
+} as any)
 const AppAdminNotificationsRoute = AppAdminNotificationsRouteImport.update({
   id: '/notifications',
   path: '/notifications',
@@ -292,6 +298,7 @@ export interface FileRoutesByFullPath {
   '/help/': typeof HelpIndexRoute
   '/admin/announcements': typeof AppAdminAnnouncementsRoute
   '/admin/audit': typeof AppAdminAuditRoute
+  '/admin/groups': typeof AppAdminGroupsRoute
   '/admin/notifications': typeof AppAdminNotificationsRoute
   '/admin/reports': typeof AppAdminReportsRoute
   '/admin/settings': typeof AppAdminSettingsRoute
@@ -333,6 +340,7 @@ export interface FileRoutesByTo {
   '/help': typeof HelpIndexRoute
   '/admin/announcements': typeof AppAdminAnnouncementsRoute
   '/admin/audit': typeof AppAdminAuditRoute
+  '/admin/groups': typeof AppAdminGroupsRoute
   '/admin/notifications': typeof AppAdminNotificationsRoute
   '/admin/reports': typeof AppAdminReportsRoute
   '/admin/settings': typeof AppAdminSettingsRoute
@@ -379,6 +387,7 @@ export interface FileRoutesById {
   '/help/': typeof HelpIndexRoute
   '/_app/admin/announcements': typeof AppAdminAnnouncementsRoute
   '/_app/admin/audit': typeof AppAdminAuditRoute
+  '/_app/admin/groups': typeof AppAdminGroupsRoute
   '/_app/admin/notifications': typeof AppAdminNotificationsRoute
   '/_app/admin/reports': typeof AppAdminReportsRoute
   '/_app/admin/settings': typeof AppAdminSettingsRoute
@@ -425,6 +434,7 @@ export interface FileRouteTypes {
     | '/help/'
     | '/admin/announcements'
     | '/admin/audit'
+    | '/admin/groups'
     | '/admin/notifications'
     | '/admin/reports'
     | '/admin/settings'
@@ -466,6 +476,7 @@ export interface FileRouteTypes {
     | '/help'
     | '/admin/announcements'
     | '/admin/audit'
+    | '/admin/groups'
     | '/admin/notifications'
     | '/admin/reports'
     | '/admin/settings'
@@ -511,6 +522,7 @@ export interface FileRouteTypes {
     | '/help/'
     | '/_app/admin/announcements'
     | '/_app/admin/audit'
+    | '/_app/admin/groups'
     | '/_app/admin/notifications'
     | '/_app/admin/reports'
     | '/_app/admin/settings'
@@ -706,6 +718,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminAuditRouteImport
       parentRoute: typeof AppAdminRoute
     }
+    '/_app/admin/groups': {
+      id: '/_app/admin/groups'
+      path: '/groups'
+      fullPath: '/admin/groups'
+      preLoaderRoute: typeof AppAdminGroupsRouteImport
+      parentRoute: typeof AppAdminRoute
+    }
     '/_app/admin/notifications': {
       id: '/_app/admin/notifications'
       path: '/notifications'
@@ -852,6 +871,7 @@ declare module '@tanstack/react-router' {
 interface AppAdminRouteChildren {
   AppAdminAnnouncementsRoute: typeof AppAdminAnnouncementsRoute
   AppAdminAuditRoute: typeof AppAdminAuditRoute
+  AppAdminGroupsRoute: typeof AppAdminGroupsRoute
   AppAdminNotificationsRoute: typeof AppAdminNotificationsRoute
   AppAdminReportsRoute: typeof AppAdminReportsRoute
   AppAdminSettingsRoute: typeof AppAdminSettingsRoute
@@ -863,6 +883,7 @@ interface AppAdminRouteChildren {
 const AppAdminRouteChildren: AppAdminRouteChildren = {
   AppAdminAnnouncementsRoute: AppAdminAnnouncementsRoute,
   AppAdminAuditRoute: AppAdminAuditRoute,
+  AppAdminGroupsRoute: AppAdminGroupsRoute,
   AppAdminNotificationsRoute: AppAdminNotificationsRoute,
   AppAdminReportsRoute: AppAdminReportsRoute,
   AppAdminSettingsRoute: AppAdminSettingsRoute,

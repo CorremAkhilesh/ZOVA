@@ -135,6 +135,10 @@ export const auditActionSchema = z.enum([
   /** An admin made an announcement, or ended its banner early. Target: the admin. */
   'announcement.create',
   'announcement.end',
+  /** An admin archived, restored or deleted a group. Target: the admin; details: group, members. */
+  'group.archive',
+  'group.restore',
+  'group.delete',
 ]);
 export const auditLogEntrySchema = z.object({
   id: z.string(),

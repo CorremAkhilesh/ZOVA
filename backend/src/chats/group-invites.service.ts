@@ -5,6 +5,7 @@ import { AppError } from '../lib/errors.ts';
 import { chatModels, getChat, oid } from './chats.service.ts';
 import {
   appendSystemMessage,
+  assertNotArchived,
   deliverSystemMessage,
   namesOf,
   requireGroupMember,
@@ -87,6 +88,7 @@ export async function joinByInvite(app: FastifyInstance, userId: string, code: s
     throw new AppError('RATE_LIMITED', 'Too many attempts. Try again later.');
   }
   const chat = await findByCode(app, code);
+  assertNotArchived(chat);
   const chatId = chat._id.toString();
   // Index: { chatId, userId } unique.
   const mine = await chatModels(app)

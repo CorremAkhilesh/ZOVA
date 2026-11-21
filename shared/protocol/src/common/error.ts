@@ -32,6 +32,8 @@ export const errorCodeSchema = z.enum([
   'UPLOAD_OFFSET_MISMATCH',
   'STORAGE_FULL',
   'GROUP_FULL',
+  /** An organization admin archived this group: it can be read and left, nothing else. */
+  'GROUP_ARCHIVED',
   'OWNER_MUST_TRANSFER',
   'INVITE_INVALID',
   'EDIT_WINDOW_PASSED',

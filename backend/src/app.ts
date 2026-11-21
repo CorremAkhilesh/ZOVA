@@ -16,6 +16,7 @@ import { createMailer, type Mailer } from './mail/mailer.ts';
 import { createMemoryMailer, isMemoryMailer } from './mail/memory-mailer.ts';
 import { adminRoutes } from './modules/admin/admin.routes.ts';
 import { adminDashboardRoutes } from './modules/admin/admin-dashboard.routes.ts';
+import { adminGroupsRoutes } from './modules/admin/admin-groups.routes.ts';
 import { adminNotificationsRoutes } from './modules/admin/admin-notifications.routes.ts';
 import { adminSettingsRoutes } from './modules/admin/admin-settings.routes.ts';
 import { adminUsersRoutes } from './modules/admin/admin-users.routes.ts';
@@ -186,6 +187,7 @@ export async function buildApp(env: Env, deps: Partial<AppDeps> = {}) {
   await app.register(adminUsersRoutes, { prefix: '/v1' });
   await app.register(adminSettingsRoutes, { prefix: '/v1' });
   await app.register(adminAnnouncementsRoutes, { prefix: '/v1' });
+  await app.register(adminGroupsRoutes, { prefix: '/v1' });
   await app.register(announcementsRoutes, { prefix: '/v1' });
   await app.register(blocksRoutes, { prefix: '/v1' });
   await app.register(reportsRoutes, { prefix: '/v1' });

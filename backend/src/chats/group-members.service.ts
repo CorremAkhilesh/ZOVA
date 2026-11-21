@@ -23,7 +23,7 @@ export async function listMembers(
   userId: string,
   chatId: string,
 ): Promise<GroupMember[]> {
-  await requireGroupMember(app, chatId, userId);
+  await requireGroupMember(app, chatId, userId, 'read');
   const rows = await chatModels(app)
     .ChatMember.find({ chatId: oid(chatId), leftAt: null })
     .sort({ joinedAt: 1 })
@@ -209,7 +209,8 @@ export async function removeMember(
 }
 
 export async function leaveGroup(app: FastifyInstance, userId: string, chatId: string) {
-  const { chat, role } = await requireGroupMember(app, chatId, userId);
+  // Leaving works even in an archived group.
+  const { chat, role } = await requireGroupMember(app, chatId, userId, 'read');
   if (role === 'owner' && (chat.group?.memberCount ?? 0) > 1) {
     throw new AppError('OWNER_MUST_TRANSFER', 'Make someone else the owner before you leave.');
   }
