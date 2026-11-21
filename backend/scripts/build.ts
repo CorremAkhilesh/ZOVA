@@ -22,6 +22,8 @@ const result = await build({
     'src/scripts/admin-role.ts',
     // Daily backup: node dist/scripts/disk-alert.js --percent <n> (emails ADMIN_EMAILS from 80%)
     'src/scripts/disk-alert.ts',
+    // Daily backup, at the end: node dist/scripts/backup-done.js --files <n> (Admin → Dashboard)
+    'src/scripts/backup-done.ts',
   ],
   outbase: 'src',
   outdir: 'dist',

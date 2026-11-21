@@ -14,10 +14,10 @@ tests themselves run `explain()` and are the real check.
 | Status | Sites |
 | --- | --- |
 | covered by an `expectIndexedQuery()` test of the same model + filter shape | 201 |
-| covered by the `_id` index (filter on `_id`) | 226 |
+| covered by the `_id` index (filter on `_id`) | 228 |
 | reviewed by hand (see the note) | 19 |
 | **gap** (no test) | 0 |
-| **total** | 446 |
+| **total** | 448 |
 
 ### `src/admin/admin.service.ts`
 
@@ -571,6 +571,13 @@ tests themselves run `explain()` and are the real check.
 | Line | Model | Method | Filter | Sort | Status | By |
 | --- | --- | --- | --- | --- | --- | --- |
 | 13 | ChatMember | findOne | chatId, userId |  | covered | src/chats/chat-indexes.test.ts:46 |
+
+### `src/db/system-status.ts`
+
+| Line | Model | Method | Filter | Sort | Status | By |
+| --- | --- | --- | --- | --- | --- | --- |
+| 30 | SystemStatus | updateOne | _id |  | covered (`_id`) | `_id` index |
+| 38 | SystemStatus | findById | _id |  | covered (`_id`) | `_id` index |
 
 ### `src/lock/attempts.ts`
 

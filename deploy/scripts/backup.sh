@@ -91,4 +91,7 @@ if [ "$percent" -ge 80 ]; then
   compose exec -T api node dist/scripts/disk-alert.js --percent "$percent" --free-gib "$free_gib" \
     --path "$DATA_ROOT" || log "WARNING: the disk alert email could not be sent"
 fi
+# Admin → Dashboard shows when the last backup finished well.
+compose exec -T api node dist/scripts/backup-done.js --files "$files" \
+  || log "WARNING: the backup could not be recorded for the dashboard"
 log "OK: $dir"

@@ -82,6 +82,7 @@ const MODELS = [
   'SecurityEvent',
   'SecurityToken',
   'Star',
+  'SystemStatus',
   'UserSync',
   'UserUpdate',
   'WallpaperImage',
