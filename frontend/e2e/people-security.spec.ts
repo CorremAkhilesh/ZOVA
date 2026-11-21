@@ -113,7 +113,7 @@ test('an admin deactivates someone, who is signed out, and it is audited', async
   await open(admin, '/admin/users');
   await admin.getByRole('searchbox').fill(emailB);
   const row = admin.getByRole('listitem').filter({ hasText: emailB });
-  await row.getByRole('link', { name: 'Bharat Rao' }).click(SLOW);
+  await row.getByRole('link', { name: 'Bharat Rao', exact: true }).click(SLOW);
   await admin.getByRole('button', { name: 'Deactivate' }).click(SLOW);
   const dialog = admin.getByRole('dialog');
   await dialog.getByLabel('Reason').fill('Left the company');

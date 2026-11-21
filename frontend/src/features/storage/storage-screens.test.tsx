@@ -120,5 +120,3 @@ describe('the warning near the limit', () => {
     expect(await screen.findByRole('heading', { name: 'Storage', level: 1 })).toBeInTheDocument();
   });
 });
-
-describe('Admin → Users: storage limit', () => {});

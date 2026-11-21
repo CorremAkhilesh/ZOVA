@@ -33,7 +33,7 @@ test('an admin finds a person, changes their limit and signs them out', async ({
   await page.getByRole('searchbox').fill(email);
   const row = page.getByRole('listitem').filter({ hasText: email });
   await expect(row).toBeVisible(SLOW);
-  await row.getByRole('link', { name: 'Bina' }).click();
+  await row.getByRole('link', { name: 'Bina', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Bina', level: 1 })).toBeVisible(SLOW);
   await expect(page.getByRole('heading', { name: /device/ })).toBeVisible();
 
@@ -63,7 +63,13 @@ test('bulk storage limit for two people, and the CSV download', async ({ page, b
   await open(page, '/admin/users');
   await page.getByRole('searchbox').fill('chandra');
   for (const email of emails) {
-    await page.getByRole('listitem').filter({ hasText: email }).getByRole('checkbox').check(SLOW);
+    // The label is the touch target (44 px), as a finger would use it.
+    const item = page.getByRole('listitem').filter({ hasText: email });
+    await item
+      .locator('label')
+      .filter({ has: page.getByRole('checkbox') })
+      .click(SLOW);
+    await expect(item.getByRole('checkbox')).toBeChecked();
   }
   await expect(page.getByText('2 selected')).toBeVisible();
   await page
