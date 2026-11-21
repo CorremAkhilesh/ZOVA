@@ -118,7 +118,7 @@ export function UserRowItem({
           <Link
             to="/admin/users/$userId"
             params={{ userId: user.id }}
-            className="min-w-0 break-words hover:underline"
+            className="tap-target min-w-0 break-words hover:underline"
           >
             {name}
           </Link>

@@ -65,7 +65,12 @@ export function AdminLayout() {
           <SectionLinks />
         </nav>
       </aside>
-      <div className="min-h-0 min-w-0 flex-1 overflow-y-auto">
+      {/* Focusable, so a keyboard can scroll the section even where it holds no control. */}
+      <div
+        // biome-ignore lint/a11y/noNoninteractiveTabindex: a scrolling region must take focus (WCAG 2.1.1)
+        tabIndex={0}
+        className="min-h-0 min-w-0 flex-1 overflow-y-auto focus-visible:outline-none"
+      >
         <Outlet />
       </div>
     </div>

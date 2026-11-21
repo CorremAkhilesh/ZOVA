@@ -110,8 +110,11 @@ test('post a status, a colleague sees it, views it and replies; the excluded one
   await shot(asha.page, 'reply-in-chat');
 
   await toStatus(asha.page);
+  // After the reload the feed comes back first: until then "My status" would open the editor.
+  const myStatus = asha.page.getByRole('button', { name: /^My status 2 updates/ });
+  await expect(myStatus).toBeVisible(SLOW);
   await shot(asha.page, 'list-desktop');
-  await asha.page.getByRole('button', { name: /^My status/ }).click();
+  await myStatus.click();
   const mine = asha.page.getByRole('dialog', { name: 'My status' });
   await expect(mine.getByText('Standup moved to 11 today')).toBeVisible(SLOW);
   await shot(asha.page, 'viewer-own-desktop');

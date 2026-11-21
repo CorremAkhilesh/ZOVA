@@ -121,8 +121,11 @@ test('the status viewer at desktop, tablet and phone widths', async ({ browser }
     expect(await axeViolations(page), viewport.name).toEqual([]);
     await page.mouse.up();
 
-    await page.keyboard.press('ArrowRight');
+    // On a touch screen that release can count as a tap on the right half, which already moves
+    // to the next status; the arrow key then would skip past it.
     const words = viewer.getByText('Team lunch at 1');
+    await page.waitForTimeout(300);
+    if (!(await words.isVisible())) await page.keyboard.press('ArrowRight');
     await expect(words).toBeVisible(SLOW);
     const size = await words.evaluate((element) =>
       Number.parseFloat(getComputedStyle(element).fontSize),
