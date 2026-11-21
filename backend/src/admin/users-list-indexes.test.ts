@@ -22,6 +22,7 @@ describe('Admin → Users list indexes', () => {
     await expectIndexedQuery(sorted({ status: 'deactivated' }));
     await expectIndexedQuery(sorted({ status: { $ne: 'deactivated' } }));
     await expectIndexedQuery(sorted({ role: 'admin' }));
+    await expectIndexedQuery(sorted({ suspendedUntil: { $gt: new Date(), $type: 'date' } }));
     await expectIndexedQuery(sorted({ email: /^asha/ }));
     await expectIndexedQuery(sorted({ searchTerms: { $all: [/^asha/] }, status: 'deactivated' }));
   });
@@ -55,12 +56,14 @@ describe('CSV', () => {
         lastActiveAt: null,
         deviceCount: 0,
         pushOn: false,
+        suspendedUntil: null,
+        suspendReason: null,
       },
     ]);
     expect(csv.startsWith('﻿"Name","Email"')).toBe(true);
     const lines = csv.trim().split('\r\n');
     expect(lines).toHaveLength(2);
     expect(lines[1]).toContain('"आशा","asha@corremadvisory.com","","user","active"');
-    expect(lines[1]).toContain('"off","5","3072"');
+    expect(lines[1]).toContain('"off","","5","3072"');
   });
 });

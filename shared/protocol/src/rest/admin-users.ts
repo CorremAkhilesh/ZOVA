@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { isoDateTimeSchema } from '../common/id.ts';
 import { adminPushDeviceSchema } from './admin-notifications.ts';
 import { storageUsageSchema } from './media.ts';
 import { adminReasonSchema, adminStorageQuotaBodySchema, adminUserRowSchema } from './security.ts';
@@ -22,15 +23,26 @@ export const adminSignOutResponseSchema = z.object({
 /** Most people one bulk action may touch. */
 export const ADMIN_BULK_MAX = 100;
 
+/** POST /v1/admin/users/:id/suspend: until when (5 minutes to a year from now), and why. */
+export const adminSuspendBodySchema = z.object({
+  until: isoDateTimeSchema,
+  reason: adminReasonSchema,
+});
+export const adminSuspendResponseSchema = z.object({
+  suspendedUntil: isoDateTimeSchema.nullable(),
+});
+
 export const adminBulkActionSchema = z.enum([
   'deactivate',
   'reactivate',
   'signOut',
   'storageQuota',
+  'suspend',
+  'unsuspend',
 ]);
 export type AdminBulkAction = z.infer<typeof adminBulkActionSchema>;
 
-/** POST /v1/admin/users/bulk. `quotaMb` only with `storageQuota` (null: the default limit). */
+/** POST /v1/admin/users/bulk. `quotaMb` with `storageQuota` (null: the default), `until` with `suspend`. */
 export const adminBulkBodySchema = z
   .object({
     userIds: z
@@ -40,11 +52,16 @@ export const adminBulkBodySchema = z
       .refine((ids) => new Set(ids).size === ids.length, 'Each person once'),
     action: adminBulkActionSchema,
     quotaMb: adminStorageQuotaBodySchema.shape.quotaMb.optional(),
+    until: isoDateTimeSchema.optional(),
     reason: adminReasonSchema,
   })
   .refine((body) => body.action !== 'storageQuota' || body.quotaMb !== undefined, {
     message: 'Choose a storage limit',
     path: ['quotaMb'],
+  })
+  .refine((body) => body.action !== 'suspend' || body.until !== undefined, {
+    message: 'Choose until when',
+    path: ['until'],
   });
 export type AdminBulkBody = z.infer<typeof adminBulkBodySchema>;
 

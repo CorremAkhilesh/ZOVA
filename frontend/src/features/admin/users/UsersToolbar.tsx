@@ -10,6 +10,7 @@ export const FILTERS: UserFilter[] = [
   'active',
   'deactivated',
   'admins',
+  'suspended',
   'pushOff',
   'storageHigh',
 ];

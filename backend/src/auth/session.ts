@@ -5,6 +5,7 @@ import { registerAuthModels } from '../db/auth-models.ts';
 import { AppError } from '../lib/errors.ts';
 import { loadUser, toSessionUser, type UserDoc } from '../users/user-record.ts';
 import { CLIENT_IP_HEADER, COOKIE_PREFIX } from './auth.ts';
+import { suspensionOf } from './policy.ts';
 
 export interface AuthSessionRecord {
   id: string;
@@ -90,7 +91,8 @@ export async function resolveSession(request: FastifyRequest): Promise<RequestAu
   const app = request.server;
   const result = await app.auth.api.getSession({ headers: toWebHeaders(request) });
   const record = result ? await loadUser(app, result.user.id) : null;
-  if (!result || !record || record.status === 'deactivated') {
+  // Deactivated or suspended: their sessions were ended; any left over count as ended too.
+  if (!result || !record || record.status === 'deactivated' || suspensionOf(record)) {
     throw hasSessionCookie(request)
       ? new AppError('SESSION_EXPIRED', 'Your session has ended. Please sign in again.')
       : new AppError('UNAUTHENTICATED', 'Please sign in.');

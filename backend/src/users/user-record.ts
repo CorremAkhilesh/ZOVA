@@ -33,6 +33,10 @@ export interface UserDoc {
   lastSeenAt?: Date | null;
   /** This person's own storage limit in MiB, set by an admin; null or absent: the default. */
   storageQuotaMb?: number | null;
+  /** Suspended by an admin until then (a past date: no longer). Sign-in is refused until then. */
+  suspendedUntil?: Date | null;
+  /** The admin's reason, shown to the person when they try to sign in. */
+  suspendReason?: string | null;
   createdAt: Date;
 }
 

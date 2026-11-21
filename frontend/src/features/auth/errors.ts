@@ -1,4 +1,4 @@
-import type { TFunction } from 'i18next';
+import i18n, { type TFunction } from 'i18next';
 import { ApiClientError } from '@/lib/api-client';
 
 /** "45 seconds", "3 minutes", "1 hour" — for rate-limit messages. */
@@ -8,12 +8,27 @@ export function formatWait(seconds: number, t: TFunction): string {
   return t('auth.wait.hours', { count: Math.ceil(seconds / 3600) });
 }
 
+/** "Your account is suspended until 28 Nov, 6:00 pm. Reason: …" in the reader's language. */
+export function suspendedMessage(
+  until: string | undefined,
+  reason: string | undefined,
+  t: TFunction,
+): string {
+  const date = until
+    ? new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium', timeStyle: 'short' }).format(
+        new Date(until),
+      )
+    : '';
+  const text = t('auth.errors.suspended', { until: date });
+  return reason ? `${text} ${t('auth.errors.suspendedReason', { reason })}` : text;
+}
+
 /** Human message for an auth API error, in the current language. */
 export function authErrorMessage(error: unknown, t: TFunction): string {
   if (!(error instanceof ApiClientError)) return t('auth.errors.generic');
   if (error.isNetworkError) return t('auth.errors.network');
   const details = error.apiError?.details as
-    | { retryAfterSeconds?: number; attemptsRemaining?: number }
+    | { retryAfterSeconds?: number; attemptsRemaining?: number; until?: string; reason?: string }
     | undefined;
   switch (error.apiError?.code) {
     case 'RATE_LIMITED':
@@ -24,6 +39,8 @@ export function authErrorMessage(error: unknown, t: TFunction): string {
       return t('auth.errors.domain');
     case 'ACCOUNT_DEACTIVATED':
       return t('auth.errors.deactivated');
+    case 'ACCOUNT_SUSPENDED':
+      return suspendedMessage(details?.until, details?.reason, t);
     case 'OTP_INVALID':
       return t('auth.errors.wrongCode', { count: details?.attemptsRemaining ?? 0 });
     case 'OTP_ATTEMPTS_EXCEEDED':

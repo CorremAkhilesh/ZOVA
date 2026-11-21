@@ -25,10 +25,22 @@ export function useWhen() {
 }
 
 export function StatusBadges({ user }: { user: AdminUserRow }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   return (
     <>
       {user.role === 'admin' ? <Badge>{t('admin.roleAdmin')}</Badge> : null}
+      {user.suspendedUntil ? (
+        <Badge variant="muted">
+          {t('adminPanel.users.suspendedUntil', {
+            date: new Intl.DateTimeFormat(i18n.language, {
+              day: 'numeric',
+              month: 'short',
+              hour: 'numeric',
+              minute: '2-digit',
+            }).format(new Date(user.suspendedUntil)),
+          })}
+        </Badge>
+      ) : null}
       {user.status === 'deactivated' ? (
         <Badge variant="muted">{t('admin.deactivated')}</Badge>
       ) : null}

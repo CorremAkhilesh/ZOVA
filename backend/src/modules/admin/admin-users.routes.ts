@@ -3,6 +3,8 @@ import {
   adminBulkResponseSchema,
   adminReasonBodySchema,
   adminSignOutResponseSchema,
+  adminSuspendBodySchema,
+  adminSuspendResponseSchema,
   adminUserDetailSchema,
   adminUserParamsSchema,
   adminUsersExportQuerySchema,
@@ -10,6 +12,7 @@ import {
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { Types } from 'mongoose';
 import { audit } from '../../admin/admin.service.ts';
+import { suspendUser, unsuspendUser } from '../../admin/suspend.ts';
 import { bulkAction, signOutEverywhere, userDetail } from '../../admin/user-actions.ts';
 import { matchingRows, usersCsv } from '../../admin/users-list.ts';
 import { requireAdmin } from '../../auth/session.ts';
@@ -76,6 +79,41 @@ export const adminUsersRoutes: FastifyPluginAsyncZod = async (app) => {
     },
     async (request) =>
       signOutEverywhere(app, actorOf(request), request.params.id, request.body.reason),
+  );
+
+  app.post(
+    '/admin/users/:id/suspend',
+    {
+      schema: {
+        tags: ['admin'],
+        summary: 'Suspend until a date: signed out now, sign-in refused until then',
+        params: adminUserParamsSchema,
+        body: adminSuspendBodySchema,
+        response: { 200: adminSuspendResponseSchema },
+      },
+    },
+    async (request) =>
+      suspendUser(
+        app,
+        actorOf(request),
+        request.params.id,
+        new Date(request.body.until),
+        request.body.reason,
+      ),
+  );
+
+  app.post(
+    '/admin/users/:id/unsuspend',
+    {
+      schema: {
+        tags: ['admin'],
+        summary: 'End a suspension early',
+        params: adminUserParamsSchema,
+        body: adminReasonBodySchema,
+        response: { 200: adminSuspendResponseSchema },
+      },
+    },
+    async (request) => unsuspendUser(app, actorOf(request), request.params.id, request.body.reason),
   );
 
   app.post(

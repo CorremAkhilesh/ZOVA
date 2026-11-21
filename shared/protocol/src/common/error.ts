@@ -16,6 +16,8 @@ export const errorCodeSchema = z.enum([
   'OTP_ATTEMPTS_EXCEEDED',
   'SESSION_EXPIRED',
   'ACCOUNT_DEACTIVATED',
+  /** Suspended by an admin until a date; `details`: { until, reason }. */
+  'ACCOUNT_SUSPENDED',
   'INTERNAL_ERROR',
   'SERVICE_UNAVAILABLE',
   'UNSUPPORTED_MEDIA_TYPE',

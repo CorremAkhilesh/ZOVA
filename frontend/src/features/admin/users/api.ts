@@ -3,6 +3,7 @@ import {
   adminBulkResponseSchema,
   adminSignOutResponseSchema,
   adminStorageQuotaResponseSchema,
+  adminSuspendResponseSchema,
   adminUserDetailSchema,
   type adminUserFilterSchema,
   adminUserResponseSchema,
@@ -43,6 +44,10 @@ export const adminUsersApi = {
     ),
   signOut: (id: string, reason: string) =>
     apiPost(`/v1/admin/users/${id}/sign-out`, { reason }, adminSignOutResponseSchema),
+  suspend: (id: string, until: string, reason: string) =>
+    apiPost(`/v1/admin/users/${id}/suspend`, { until, reason }, adminSuspendResponseSchema),
+  unsuspend: (id: string, reason: string) =>
+    apiPost(`/v1/admin/users/${id}/unsuspend`, { reason }, adminSuspendResponseSchema),
   bulk: (body: AdminBulkBody) => apiPost('/v1/admin/users/bulk', body, adminBulkResponseSchema),
 };
 

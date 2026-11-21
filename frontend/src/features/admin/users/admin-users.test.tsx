@@ -1,82 +1,13 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { AdminUserDetail, AdminUserRow } from '@zuvo/protocol';
 import { describe, expect, it, vi } from 'vitest';
 import { axe } from '@/test/axe';
-import { HttpResponse, http, server, sessionFixture } from '@/test/msw';
+import { HttpResponse, http, server } from '@/test/msw';
 import { DESKTOP_WIDTH, MOBILE_WIDTH, renderApp } from '@/test/render-app';
 import { quotaMbOf } from './QuotaPicker';
+import { adminSession, detail, ME, row, SLOW, serve } from './test-fixtures';
 
 vi.setConfig({ testTimeout: 30_000 });
-const SLOW = { timeout: 15_000 };
-const MB = 1024 ** 2;
-const GB = 1024 ** 3;
-
-const adminSession = () => {
-  const base = sessionFixture();
-  return { ...base, user: { ...base.user, role: 'admin' as const } };
-};
-const ME = adminSession().user.id;
-const AT = new Date(Date.now() - 2 * 3_600_000).toISOString();
-
-const row = (id: string, name: string, overrides: Partial<AdminUserRow> = {}): AdminUserRow => ({
-  id,
-  email: `${id}@corremadvisory.com`,
-  displayName: name,
-  username: id,
-  role: 'user',
-  status: 'active',
-  lastLoginAt: AT,
-  createdAt: '2026-10-01T09:00:00.000Z',
-  storageBytes: 300 * MB,
-  quotaBytes: 3 * GB,
-  quotaCustom: false,
-  lastActiveAt: AT,
-  deviceCount: 2,
-  pushOn: true,
-  ...overrides,
-});
-
-const PEOPLE = [
-  row('meera', 'Meera Nair', { storageBytes: Math.round(2.8 * GB) }),
-  row('ravi', 'Ravi Shah', { pushOn: false, deviceCount: 1 }),
-  row(ME, 'Kiran Rao', { role: 'admin' }),
-];
-
-function serve(people = PEOPLE) {
-  const queries: URLSearchParams[] = [];
-  const posted: Array<{ url: string; body: unknown }> = [];
-  const record = async ({ request }: { request: Request }) => {
-    posted.push({ url: new URL(request.url).pathname, body: await request.json() });
-  };
-  server.use(
-    http.get('*/v1/auth/me', () => HttpResponse.json(adminSession())),
-    http.get('*/v1/admin/users', ({ request }) => {
-      queries.push(new URL(request.url).searchParams);
-      return HttpResponse.json({ items: people, nextCursor: null });
-    }),
-    http.post('*/v1/admin/users/bulk', async (info) => {
-      await record(info);
-      const { userIds } = (posted.at(-1)?.body ?? { userIds: [] }) as { userIds: string[] };
-      return HttpResponse.json({
-        results: userIds.map((id, index) => ({
-          id,
-          ok: index === 0,
-          code: index === 0 ? null : 'LAST_ADMIN',
-        })),
-      });
-    }),
-    http.post('*/v1/admin/users/:id/sign-out', async (info) => {
-      await record(info);
-      return HttpResponse.json({ revokedSessions: 2 });
-    }),
-    http.put('*/v1/admin/users/:id/storage-quota', async (info) => {
-      await record(info);
-      return HttpResponse.json({ quotaBytes: 5 * GB, custom: true });
-    }),
-  );
-  return { queries, posted };
-}
 
 describe('Admin → Users list', () => {
   it('shows people with push, last active and storage; filters, sorts and searches', async () => {
@@ -183,28 +114,6 @@ describe('Admin → Users list', () => {
     await screen.findByRole('link', { name: 'Meera Nair' }, SLOW);
     expect(await axe(container)).toHaveNoViolations();
   });
-});
-
-const detail = (overrides: Partial<AdminUserRow> = {}): AdminUserDetail => ({
-  user: row('meera', 'Meera Nair', overrides),
-  storage: {
-    usedBytes: 2 * GB,
-    pendingBytes: 0,
-    quotaBytes: 3 * GB,
-    custom: false,
-    byKind: { image: GB, video: 512 * MB, audio: 0, voice: 12 * MB, document: 500 * MB },
-  },
-  devices: [
-    {
-      id: 's1',
-      label: 'Chrome on Android',
-      platform: 'android',
-      installed: true,
-      permission: 'granted',
-      pushOn: true,
-      lastActiveAt: AT,
-    },
-  ],
 });
 
 describe('Admin → Users → one person', () => {

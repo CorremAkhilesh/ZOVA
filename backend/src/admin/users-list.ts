@@ -2,6 +2,7 @@ import type { AdminUserRow, adminUsersQuerySchema } from '@zuvo/protocol';
 import type { FastifyInstance } from 'fastify';
 import { Types } from 'mongoose';
 import type { z } from 'zod';
+import { suspensionOf } from '../auth/policy.ts';
 import { quotaBytesOf } from '../media/quota.ts';
 import { devicesByUser } from '../push/admin-overview.ts';
 import { escapeRegex, type UserDoc, usersModel } from '../users/user-record.ts';
@@ -30,6 +31,8 @@ function baseFilter({ q, filter }: ListQuery): Record<string, unknown> {
   if (filter === 'deactivated') where.status = 'deactivated';
   if (filter === 'active' || filter === 'pushOff') where.status = { $ne: 'deactivated' };
   if (filter === 'admins') where.role = 'admin';
+  // Partial index on suspendedUntil; an ended suspension is just a past date.
+  if (filter === 'suspended') where.suspendedUntil = { $gt: new Date(), $type: 'date' };
   return where;
 }
 
@@ -47,6 +50,7 @@ export async function toRows(app: FastifyInstance, users: UserDoc[]): Promise<Ad
   return users.map((user) => {
     const key = user._id.toString();
     const own = devices.get(key) ?? [];
+    const suspension = suspensionOf(user);
     return {
       ...toAdminUser(user),
       storageBytes: stored.get(key) ?? 0,
@@ -55,6 +59,8 @@ export async function toRows(app: FastifyInstance, users: UserDoc[]): Promise<Ad
       lastActiveAt: latest(user.lastSeenAt, ...own.map((device) => device.lastActiveAt)),
       deviceCount: own.length,
       pushOn: own.some((device) => device.pushOn),
+      suspendedUntil: suspension ? suspension.until.toISOString() : null,
+      suspendReason: suspension ? suspension.reason : null,
     };
   });
 }
@@ -125,6 +131,7 @@ const CSV_HEADER = [
   'Last active',
   'Devices',
   'Notifications',
+  'Suspended until',
   'Storage used (MB)',
   'Storage limit (MB)',
 ];
@@ -143,6 +150,7 @@ export function usersCsv(rows: AdminUserRow[]): string {
       row.lastActiveAt,
       row.deviceCount,
       row.pushOn ? 'on' : 'off',
+      row.suspendedUntil,
       Math.round(row.storageBytes / MB),
       Math.round(row.quotaBytes / MB),
     ]

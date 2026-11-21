@@ -203,7 +203,9 @@
       "wrongCode_other": "That code is not right. {{count}} attempts left.",
       "tooManyAttempts": "Too many wrong codes. Request a new code.",
       "expired": "This code has expired. Request a new code.",
-      "invalid": "Enter a valid email address."
+      "invalid": "Enter a valid email address.",
+      "suspended": "Your account is suspended until {{until}}.",
+      "suspendedReason": "Reason: {{reason}}"
     },
     "latestCodeOnly": "Only the most recent code works.",
     "signOutConfirm": {
@@ -1781,7 +1783,8 @@
         "deactivated": "Deactivated",
         "admins": "Admins",
         "pushOff": "Notifications off",
-        "storageHigh": "Storage 80%+"
+        "storageHigh": "Storage 80%+",
+        "suspended": "Suspended"
       },
       "sort": {
         "newest": "Newest",
@@ -1886,7 +1889,33 @@
           },
           "body": "Files already stored stay. Over the new limit, new uploads are refused.",
           "confirm": "Change storage limit"
+        },
+        "suspend": {
+          "title": {
+            "one": "Suspend {{name}}?",
+            "many": "Suspend {{count}} people?"
+          },
+          "body": "They are signed out of every device now. Until the date, sign-in shows that the account is suspended, with your reason.",
+          "confirm": "Suspend"
+        },
+        "unsuspend": {
+          "title": {
+            "one": "End the suspension of {{name}}?",
+            "many": "End the suspension of {{count}} people?"
+          },
+          "body": "They can sign in again at once.",
+          "confirm": "End suspension"
         }
+      },
+      "suspendedUntil": "Suspended until {{date}}",
+      "suspendedNotice": "Suspended until {{date}}. Sign-in is refused until then; it ends on its own.",
+      "suspend": {
+        "label": "Suspend for",
+        "oneDay": "1 day",
+        "sevenDays": "7 days",
+        "untilDate": "Until a date",
+        "dateLabel": "Until (your time)",
+        "dateHint": "From 5 minutes to a year from now."
       }
     }
   }

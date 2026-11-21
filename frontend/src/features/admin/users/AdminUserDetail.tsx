@@ -120,7 +120,7 @@ function Devices({ detail }: { detail: Detail }) {
 
 /** Admin → Users → one person: facts, storage, devices and every action, each with a reason. */
 export default function AdminUserDetail({ userId }: { userId: string }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const me = useSession()?.user;
   const defaultGb = Math.round((useAppConfig()?.media.userQuotaBytes ?? 3 * GB) / GB);
   const [action, setAction] = useState<PendingAction | null>(null);
@@ -179,6 +179,26 @@ export default function AdminUserDetail({ userId }: { userId: string }) {
           {user.username ? <p className="text-sm text-text-muted">@{user.username}</p> : null}
         </div>
       </div>
+      {user.suspendedUntil ? (
+        <div
+          role="status"
+          className="space-y-1 rounded-2xl border border-danger/40 bg-danger/5 p-4 text-sm"
+        >
+          <p className="font-medium">
+            {t('adminPanel.users.suspendedNotice', {
+              date: new Intl.DateTimeFormat(i18n.language, {
+                dateStyle: 'medium',
+                timeStyle: 'short',
+              }).format(new Date(user.suspendedUntil)),
+            })}
+          </p>
+          {user.suspendReason ? (
+            <p className="break-words text-text-muted">
+              {t('admin.auditReason', { reason: user.suspendReason })}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
       <Facts detail={detail} />
       <div className="grid gap-4 lg:grid-cols-2 [&>*]:min-w-0">
         <Storage detail={detail} onChange={() => open('storageQuota')} />
@@ -192,6 +212,17 @@ export default function AdminUserDetail({ userId }: { userId: string }) {
             {t('adminPanel.users.actionsTitle')}
           </h2>
           <div className="flex flex-wrap gap-2">
+            {deactivated ? null : (
+              <Button
+                variant={user.suspendedUntil ? 'outline' : 'danger-outline'}
+                onClick={() => open(user.suspendedUntil ? 'unsuspend' : 'suspend')}
+                className="pointer-coarse:h-11"
+              >
+                {t(
+                  `adminPanel.users.actions.${user.suspendedUntil ? 'unsuspend' : 'suspend'}.confirm`,
+                )}
+              </Button>
+            )}
             <Button
               variant="outline"
               onClick={() => open('signOut')}

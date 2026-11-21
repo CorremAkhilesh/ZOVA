@@ -143,6 +143,12 @@ describe('admin routes and reports', () => {
         { method: 'POST', url: `/v1/admin/users/${asha.id}/sign-out`, payload: WHY },
         {
           method: 'POST',
+          url: `/v1/admin/users/${asha.id}/suspend`,
+          payload: { until: new Date(Date.now() + 86_400_000).toISOString(), ...WHY },
+        },
+        { method: 'POST', url: `/v1/admin/users/${asha.id}/unsuspend`, payload: WHY },
+        {
+          method: 'POST',
           url: '/v1/admin/users/bulk',
           payload: { userIds: [asha.id], action: 'signOut', ...WHY },
         },

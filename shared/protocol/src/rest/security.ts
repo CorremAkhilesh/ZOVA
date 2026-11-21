@@ -64,6 +64,7 @@ export const adminUserFilterSchema = z.enum([
   'active',
   'deactivated',
   'admins',
+  'suspended',
   'pushOff',
   'storageHigh',
 ]);
@@ -89,6 +90,9 @@ export const adminUserRowSchema = adminUserSchema.extend({
   /** Signed-in devices, and whether any has notifications on. */
   deviceCount: z.number().int().nonnegative(),
   pushOn: z.boolean(),
+  /** A suspension still running: until when, and the admin's reason. Null otherwise. */
+  suspendedUntil: isoDateTimeSchema.nullable(),
+  suspendReason: z.string().nullable(),
 });
 /** PUT /v1/admin/users/:id/storage-quota. `null` puts the default limit back. 100 MB to 1 TB. */
 export const adminStorageQuotaBodySchema = z.object({
@@ -123,6 +127,9 @@ export const auditActionSchema = z.enum([
   'user.signout',
   /** An admin downloaded the list of people as CSV. Target: the admin. */
   'users.export',
+  /** An admin suspended someone until a date (details.until), or ended it early. */
+  'user.suspend',
+  'user.unsuspend',
 ]);
 export const auditLogEntrySchema = z.object({
   id: z.string(),

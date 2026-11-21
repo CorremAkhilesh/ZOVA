@@ -5,6 +5,7 @@ import { quotaBytesOf, storageUsage } from '../media/quota.ts';
 import { devicesByUser } from '../push/admin-overview.ts';
 import { deleteUserSubscriptions } from '../push/subscriptions.service.ts';
 import { type Actor, assertNotSelf, audit, findTarget, setStorageQuota } from './admin.service.ts';
+import { suspendUser, unsuspendUser } from './suspend.ts';
 import { setUserStatus } from './user-status.ts';
 import { toRows } from './users-list.ts';
 
@@ -24,6 +25,16 @@ export async function userDetail(app: FastifyInstance, id: string): Promise<Admi
   };
 }
 
+/** Closes every socket, session and push subscription of one person; returns how many sessions. */
+export async function endSessions(app: FastifyInstance, id: string): Promise<number> {
+  const context = await app.auth.$context;
+  app.realtime.revokeUser(id, 'revoked');
+  const count = (await context.internalAdapter.listSessions(id)).length;
+  await context.internalAdapter.deleteUserSessions(id);
+  await deleteUserSubscriptions(app.mongo, id);
+  return count;
+}
+
 /**
  * Signs someone out of every device now: sockets close, sessions and push subscriptions go. They
  * can sign in again (unlike deactivation). Never yourself: Settings → Devices does that.
@@ -36,11 +47,7 @@ export async function signOutEverywhere(
 ) {
   const target = await findTarget(app, id);
   assertNotSelf(actor, target, 'sign out');
-  const context = await app.auth.$context;
-  app.realtime.revokeUser(id, 'revoked');
-  const revokedSessions = (await context.internalAdapter.listSessions(id)).length;
-  await context.internalAdapter.deleteUserSessions(id);
-  await deleteUserSubscriptions(app.mongo, id);
+  const revokedSessions = await endSessions(app, id);
   await audit(app, actor, 'user.signout', target, {
     reason,
     details: { sessions: revokedSessions },
@@ -67,6 +74,10 @@ export async function bulkAction(
       if (body.action === 'storageQuota') {
         await setStorageQuota(app, actor, id, body.quotaMb ?? null, body.reason);
       }
+      if (body.action === 'suspend') {
+        await suspendUser(app, actor, id, new Date(body.until ?? 0), body.reason);
+      }
+      if (body.action === 'unsuspend') await unsuspendUser(app, actor, id, body.reason);
       results.push({ id, ok: true, code: null });
     } catch (error) {
       if (!(error instanceof AppError)) throw error;
