@@ -1,4 +1,5 @@
 import { Link } from '@tanstack/react-router';
+import { LayoutDashboard } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/ui/avatar';
 import { Tooltip } from '@/components/ui/tooltip';
@@ -6,7 +7,10 @@ import { useSession } from '@/features/auth/session';
 import { Logo } from './Logo';
 import { NAV_ITEMS } from './nav-items';
 
-/** Desktop navigation: a slim icon rail on the far left. */
+const RAIL_LINK =
+  'relative flex size-11 items-center justify-center rounded-xl text-text-muted transition-colors hover:bg-background hover:text-text data-[status=active]:bg-brand-subtle data-[status=active]:text-brand-text';
+
+/** Desktop navigation: a slim icon rail on the far left (and the admin panel, for admins). */
 export function AppRail() {
   const { t } = useTranslation();
   const user = useSession()?.user;
@@ -19,15 +23,18 @@ export function AppRail() {
       <Logo className="mb-4" />
       {NAV_ITEMS.map(({ to, labelKey, icon: Icon }) => (
         <Tooltip key={to} label={t(labelKey)}>
-          <Link
-            to={to}
-            aria-label={t(labelKey)}
-            className="relative flex size-11 items-center justify-center rounded-xl text-text-muted transition-colors hover:bg-background hover:text-text data-[status=active]:bg-brand-subtle data-[status=active]:text-brand-text"
-          >
+          <Link to={to} aria-label={t(labelKey)} className={RAIL_LINK}>
             <Icon className="size-5" aria-hidden />
           </Link>
         </Tooltip>
       ))}
+      {user?.role === 'admin' ? (
+        <Tooltip label={t('adminPanel.title')}>
+          <Link to="/admin" aria-label={t('adminPanel.title')} className={RAIL_LINK}>
+            <LayoutDashboard className="size-5" aria-hidden />
+          </Link>
+        </Tooltip>
+      ) : null}
       <Tooltip label={name}>
         <Link to="/settings" className="mt-auto rounded-full">
           <Avatar name={name || '?'} src={user?.avatar?.small} className="size-10" />

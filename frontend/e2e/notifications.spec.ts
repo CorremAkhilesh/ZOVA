@@ -92,7 +92,7 @@ test('admin: who has notifications off, and a reminder they receive', async ({ b
   const context = await browser.newContext();
   const admin = await context.newPage();
   await signInAdmin(admin);
-  await admin.goto('/settings/admin/notifications');
+  await admin.goto('/admin/notifications');
   const list = admin.getByRole('list', { name: 'People and their devices' });
   await expect(list.getByText(ravi.email)).toBeVisible(SLOW);
   await expect(list.getByText(asha.email)).toBeVisible();

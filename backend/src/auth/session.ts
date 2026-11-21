@@ -1,5 +1,6 @@
 import type { SessionResponse, SessionUser } from '@zuvo/protocol';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import { recordActivity } from '../admin/report-days.ts';
 import { registerAuthModels } from '../db/auth-models.ts';
 import { AppError } from '../lib/errors.ts';
 import { loadUser, toSessionUser, type UserDoc } from '../users/user-record.ts';
@@ -76,6 +77,8 @@ export async function trackActivity(
     { token: session.token },
     { $set: { lastActiveAt: new Date() } },
   );
+  // Admin → Dashboard: active people per day.
+  await recordActivity(app, session.userId);
 }
 
 /**

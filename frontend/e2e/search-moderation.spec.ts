@@ -119,7 +119,7 @@ test('A reports B, and an admin sees the report', async ({ browser, isMobile }) 
   const context = await browser.newContext();
   const admin = await context.newPage();
   await signInAdmin(admin);
-  await admin.goto('/settings/admin/reports');
+  await admin.goto('/admin/reports');
   const reports = admin.getByRole('list', { name: 'Reports' });
   const row = reports.getByRole('button', { name: new RegExp(`${bharat.name}.*by Asha`) }).first();
   await expect(row).toBeVisible(SLOW);

@@ -57,7 +57,7 @@ describe('Admin → Notifications', () => {
       [person('asha', 'Asha Verma', true)],
       [person('ravi', 'Ravi Shah', false), person('meera', 'Meera Nair', false)],
     ]);
-    const { container } = await renderApp('/settings/admin/notifications', {
+    const { container } = await renderApp('/admin/notifications', {
       width: DESKTOP_WIDTH,
     });
     const list = await screen.findByRole('list', { name: 'People and their devices' }, SLOW);
@@ -77,7 +77,7 @@ describe('Admin → Notifications', () => {
 
   it('on a phone too, and says so when everyone is on', async () => {
     serve([[person('asha', 'Asha Verma', true)]]);
-    await renderApp('/settings/admin/notifications', { width: MOBILE_WIDTH });
+    await renderApp('/admin/notifications', { width: MOBILE_WIDTH });
     await screen.findByText('Asha Verma', {}, SLOW);
     await userEvent.setup().click(screen.getByRole('switch', { name: /Notifications OFF only/ }));
     expect(await screen.findByText('Everyone has notifications on.')).toBeInTheDocument();
@@ -88,7 +88,7 @@ describe('Admin → Notifications', () => {
       http.get('*/v1/auth/me', () => HttpResponse.json(adminSession())),
       http.get('*/v1/admin/notifications', () => HttpResponse.json({}, { status: 500 })),
     );
-    await renderApp('/settings/admin/notifications', { width: DESKTOP_WIDTH });
+    await renderApp('/admin/notifications', { width: DESKTOP_WIDTH });
     expect(await screen.findByRole('alert', {}, SLOW)).toBeInTheDocument();
   });
 });

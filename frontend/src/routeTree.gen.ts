@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as HelpRouteImport } from './routes/help'
 import { Route as VerifyRouteImport } from './routes/verify'
+import { Route as AppAdminRouteImport } from './routes/_app/admin'
 import { Route as AppCallsRouteImport } from './routes/_app/calls'
 import { Route as AppChatsRouteImport } from './routes/_app/chats'
 import { Route as AppShareRouteImport } from './routes/_app/share'
@@ -28,6 +29,11 @@ import { Route as HelpPrivacyRouteImport } from './routes/help.privacy'
 import { Route as HelpShareRouteImport } from './routes/help.share'
 import { Route as SecurityNotMeRouteImport } from './routes/security.not-me'
 import { Route as WelcomeNameRouteImport } from './routes/welcome.name'
+import { Route as AppAdminIndexRouteImport } from './routes/_app/admin.index'
+import { Route as AppAdminAuditRouteImport } from './routes/_app/admin.audit'
+import { Route as AppAdminNotificationsRouteImport } from './routes/_app/admin.notifications'
+import { Route as AppAdminReportsRouteImport } from './routes/_app/admin.reports'
+import { Route as AppAdminUsersRouteImport } from './routes/_app/admin.users'
 import { Route as AppChatsIndexRouteImport } from './routes/_app/chats.index'
 import { Route as AppChatsChatIdRouteImport } from './routes/_app/chats.$chatId'
 import { Route as AppJoinCodeRouteImport } from './routes/_app/join.$code'
@@ -62,6 +68,11 @@ const VerifyRoute = VerifyRouteImport.update({
   id: '/verify',
   path: '/verify',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AppAdminRoute = AppAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppCallsRoute = AppCallsRouteImport.update({
   id: '/calls',
@@ -137,6 +148,31 @@ const WelcomeNameRoute = WelcomeNameRouteImport.update({
   id: '/welcome/name',
   path: '/welcome/name',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AppAdminIndexRoute = AppAdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppAdminRoute,
+} as any)
+const AppAdminAuditRoute = AppAdminAuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
+  getParentRoute: () => AppAdminRoute,
+} as any)
+const AppAdminNotificationsRoute = AppAdminNotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => AppAdminRoute,
+} as any)
+const AppAdminReportsRoute = AppAdminReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => AppAdminRoute,
+} as any)
+const AppAdminUsersRoute = AppAdminUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => AppAdminRoute,
 } as any)
 const AppChatsIndexRoute = AppChatsIndexRouteImport.update({
   id: '/',
@@ -220,6 +256,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/help': typeof HelpRouteWithChildren
   '/verify': typeof VerifyRoute
+  '/admin': typeof AppAdminRouteWithChildren
   '/calls': typeof AppCallsRoute
   '/chats': typeof AppChatsRouteWithChildren
   '/share': typeof AppShareRoute
@@ -235,6 +272,10 @@ export interface FileRoutesByFullPath {
   '/security/not-me': typeof SecurityNotMeRoute
   '/welcome/name': typeof WelcomeNameRoute
   '/help/': typeof HelpIndexRoute
+  '/admin/audit': typeof AppAdminAuditRoute
+  '/admin/notifications': typeof AppAdminNotificationsRoute
+  '/admin/reports': typeof AppAdminReportsRoute
+  '/admin/users': typeof AppAdminUsersRoute
   '/chats/$chatId': typeof AppChatsChatIdRoute
   '/join/$code': typeof AppJoinCodeRoute
   '/settings/appearance': typeof AppSettingsAppearanceRoute
@@ -244,6 +285,7 @@ export interface FileRoutesByFullPath {
   '/settings/privacy': typeof AppSettingsPrivacyRoute
   '/settings/profile': typeof AppSettingsProfileRoute
   '/settings/storage': typeof AppSettingsStorageRoute
+  '/admin/': typeof AppAdminIndexRoute
   '/chats/': typeof AppChatsIndexRoute
   '/settings/': typeof AppSettingsIndexRoute
   '/settings/admin/audit': typeof AppSettingsAdminAuditRoute
@@ -268,6 +310,10 @@ export interface FileRoutesByTo {
   '/security/not-me': typeof SecurityNotMeRoute
   '/welcome/name': typeof WelcomeNameRoute
   '/help': typeof HelpIndexRoute
+  '/admin/audit': typeof AppAdminAuditRoute
+  '/admin/notifications': typeof AppAdminNotificationsRoute
+  '/admin/reports': typeof AppAdminReportsRoute
+  '/admin/users': typeof AppAdminUsersRoute
   '/chats/$chatId': typeof AppChatsChatIdRoute
   '/join/$code': typeof AppJoinCodeRoute
   '/settings/appearance': typeof AppSettingsAppearanceRoute
@@ -277,6 +323,7 @@ export interface FileRoutesByTo {
   '/settings/privacy': typeof AppSettingsPrivacyRoute
   '/settings/profile': typeof AppSettingsProfileRoute
   '/settings/storage': typeof AppSettingsStorageRoute
+  '/admin': typeof AppAdminIndexRoute
   '/chats': typeof AppChatsIndexRoute
   '/settings': typeof AppSettingsIndexRoute
   '/settings/admin/audit': typeof AppSettingsAdminAuditRoute
@@ -290,6 +337,7 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/help': typeof HelpRouteWithChildren
   '/verify': typeof VerifyRoute
+  '/_app/admin': typeof AppAdminRouteWithChildren
   '/_app/calls': typeof AppCallsRoute
   '/_app/chats': typeof AppChatsRouteWithChildren
   '/_app/share': typeof AppShareRoute
@@ -305,6 +353,10 @@ export interface FileRoutesById {
   '/security/not-me': typeof SecurityNotMeRoute
   '/welcome/name': typeof WelcomeNameRoute
   '/help/': typeof HelpIndexRoute
+  '/_app/admin/audit': typeof AppAdminAuditRoute
+  '/_app/admin/notifications': typeof AppAdminNotificationsRoute
+  '/_app/admin/reports': typeof AppAdminReportsRoute
+  '/_app/admin/users': typeof AppAdminUsersRoute
   '/_app/chats/$chatId': typeof AppChatsChatIdRoute
   '/_app/join/$code': typeof AppJoinCodeRoute
   '/_app/settings/appearance': typeof AppSettingsAppearanceRoute
@@ -314,6 +366,7 @@ export interface FileRoutesById {
   '/_app/settings/privacy': typeof AppSettingsPrivacyRoute
   '/_app/settings/profile': typeof AppSettingsProfileRoute
   '/_app/settings/storage': typeof AppSettingsStorageRoute
+  '/_app/admin/': typeof AppAdminIndexRoute
   '/_app/chats/': typeof AppChatsIndexRoute
   '/_app/settings/': typeof AppSettingsIndexRoute
   '/_app/settings/admin/audit': typeof AppSettingsAdminAuditRoute
@@ -327,6 +380,7 @@ export interface FileRouteTypes {
     | '/'
     | '/help'
     | '/verify'
+    | '/admin'
     | '/calls'
     | '/chats'
     | '/share'
@@ -342,6 +396,10 @@ export interface FileRouteTypes {
     | '/security/not-me'
     | '/welcome/name'
     | '/help/'
+    | '/admin/audit'
+    | '/admin/notifications'
+    | '/admin/reports'
+    | '/admin/users'
     | '/chats/$chatId'
     | '/join/$code'
     | '/settings/appearance'
@@ -351,6 +409,7 @@ export interface FileRouteTypes {
     | '/settings/privacy'
     | '/settings/profile'
     | '/settings/storage'
+    | '/admin/'
     | '/chats/'
     | '/settings/'
     | '/settings/admin/audit'
@@ -375,6 +434,10 @@ export interface FileRouteTypes {
     | '/security/not-me'
     | '/welcome/name'
     | '/help'
+    | '/admin/audit'
+    | '/admin/notifications'
+    | '/admin/reports'
+    | '/admin/users'
     | '/chats/$chatId'
     | '/join/$code'
     | '/settings/appearance'
@@ -384,6 +447,7 @@ export interface FileRouteTypes {
     | '/settings/privacy'
     | '/settings/profile'
     | '/settings/storage'
+    | '/admin'
     | '/chats'
     | '/settings'
     | '/settings/admin/audit'
@@ -396,6 +460,7 @@ export interface FileRouteTypes {
     | '/_app'
     | '/help'
     | '/verify'
+    | '/_app/admin'
     | '/_app/calls'
     | '/_app/chats'
     | '/_app/share'
@@ -411,6 +476,10 @@ export interface FileRouteTypes {
     | '/security/not-me'
     | '/welcome/name'
     | '/help/'
+    | '/_app/admin/audit'
+    | '/_app/admin/notifications'
+    | '/_app/admin/reports'
+    | '/_app/admin/users'
     | '/_app/chats/$chatId'
     | '/_app/join/$code'
     | '/_app/settings/appearance'
@@ -420,6 +489,7 @@ export interface FileRouteTypes {
     | '/_app/settings/privacy'
     | '/_app/settings/profile'
     | '/_app/settings/storage'
+    | '/_app/admin/'
     | '/_app/chats/'
     | '/_app/settings/'
     | '/_app/settings/admin/audit'
@@ -466,6 +536,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/verify'
       preLoaderRoute: typeof VerifyRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_app/admin': {
+      id: '/_app/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AppAdminRouteImport
+      parentRoute: typeof AppRoute
     }
     '/_app/calls': {
       id: '/_app/calls'
@@ -571,6 +648,41 @@ declare module '@tanstack/react-router' {
       fullPath: '/welcome/name'
       preLoaderRoute: typeof WelcomeNameRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_app/admin/': {
+      id: '/_app/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AppAdminIndexRouteImport
+      parentRoute: typeof AppAdminRoute
+    }
+    '/_app/admin/audit': {
+      id: '/_app/admin/audit'
+      path: '/audit'
+      fullPath: '/admin/audit'
+      preLoaderRoute: typeof AppAdminAuditRouteImport
+      parentRoute: typeof AppAdminRoute
+    }
+    '/_app/admin/notifications': {
+      id: '/_app/admin/notifications'
+      path: '/notifications'
+      fullPath: '/admin/notifications'
+      preLoaderRoute: typeof AppAdminNotificationsRouteImport
+      parentRoute: typeof AppAdminRoute
+    }
+    '/_app/admin/reports': {
+      id: '/_app/admin/reports'
+      path: '/reports'
+      fullPath: '/admin/reports'
+      preLoaderRoute: typeof AppAdminReportsRouteImport
+      parentRoute: typeof AppAdminRoute
+    }
+    '/_app/admin/users': {
+      id: '/_app/admin/users'
+      path: '/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AppAdminUsersRouteImport
+      parentRoute: typeof AppAdminRoute
     }
     '/_app/chats/': {
       id: '/_app/chats/'
@@ -680,6 +792,26 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AppAdminRouteChildren {
+  AppAdminAuditRoute: typeof AppAdminAuditRoute
+  AppAdminNotificationsRoute: typeof AppAdminNotificationsRoute
+  AppAdminReportsRoute: typeof AppAdminReportsRoute
+  AppAdminUsersRoute: typeof AppAdminUsersRoute
+  AppAdminIndexRoute: typeof AppAdminIndexRoute
+}
+
+const AppAdminRouteChildren: AppAdminRouteChildren = {
+  AppAdminAuditRoute: AppAdminAuditRoute,
+  AppAdminNotificationsRoute: AppAdminNotificationsRoute,
+  AppAdminReportsRoute: AppAdminReportsRoute,
+  AppAdminUsersRoute: AppAdminUsersRoute,
+  AppAdminIndexRoute: AppAdminIndexRoute,
+}
+
+const AppAdminRouteWithChildren = AppAdminRoute._addFileChildren(
+  AppAdminRouteChildren,
+)
+
 interface AppChatsRouteChildren {
   AppChatsChatIdRoute: typeof AppChatsChatIdRoute
   AppChatsIndexRoute: typeof AppChatsIndexRoute
@@ -695,6 +827,7 @@ const AppChatsRouteWithChildren = AppChatsRoute._addFileChildren(
 )
 
 interface AppRouteChildren {
+  AppAdminRoute: typeof AppAdminRouteWithChildren
   AppCallsRoute: typeof AppCallsRoute
   AppChatsRoute: typeof AppChatsRouteWithChildren
   AppShareRoute: typeof AppShareRoute
@@ -716,6 +849,7 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppAdminRoute: AppAdminRouteWithChildren,
   AppCallsRoute: AppCallsRoute,
   AppChatsRoute: AppChatsRouteWithChildren,
   AppShareRoute: AppShareRoute,

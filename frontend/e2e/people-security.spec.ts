@@ -110,7 +110,7 @@ test('an admin deactivates someone, who is signed out, and it is audited', async
   const emailB = await signUpByApi(b, 'Bharat Rao');
   const adminEmail = await signUpByApi(admin, 'Ada Admin');
   await admin.request.post('/v1/test/promote', { data: { email: adminEmail } });
-  await open(admin, '/settings/admin/users');
+  await open(admin, '/admin/users');
   await admin.getByRole('searchbox').fill(emailB);
   const row = admin.getByRole('listitem').filter({ hasText: emailB });
   await row.getByRole('button', { name: 'Deactivate' }).click(SLOW);
@@ -119,6 +119,6 @@ test('an admin deactivates someone, who is signed out, and it is audited', async
   await expect(b.getByRole('heading', { name: /Welcome to/ })).toBeVisible({ timeout: 30_000 });
 
   // Every admin action is in the audit log.
-  await open(admin, '/settings/admin/audit');
+  await open(admin, '/admin/audit');
   await expect(admin.getByText(`${adminEmail} deactivated ${emailB}`)).toBeVisible(SLOW);
 });
