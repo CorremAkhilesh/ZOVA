@@ -6,6 +6,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { axe } from '@/test/axe';
 import { HttpResponse, http, server, sessionFixture } from '@/test/msw';
 import { DESKTOP_WIDTH, MOBILE_WIDTH, renderApp } from '@/test/render-app';
+import { ADMIN_SECTIONS } from './components/AdminLayout';
 import { shortDate } from './components/BarChart';
 
 vi.setConfig({ testTimeout: 30_000 });
@@ -155,7 +156,7 @@ describe('Admin → Dashboard', () => {
     serve(() => HttpResponse.json(dashboard()));
     const { container } = await renderApp('/admin', { width: MOBILE_WIDTH });
     const sections = await screen.findByRole('navigation', { name: 'Admin sections' }, SLOW);
-    expect(within(sections).getAllByRole('link')).toHaveLength(5);
+    expect(within(sections).getAllByRole('link')).toHaveLength(ADMIN_SECTIONS.length);
     expect(within(sections).getByRole('link', { name: 'Dashboard' })).toHaveAttribute(
       'data-status',
       'active',

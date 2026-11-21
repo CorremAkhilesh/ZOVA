@@ -1978,27 +1978,19 @@
         },
         "calls": {
           "label": "Voice and video calls",
-          "hint": "Who can make and receive calls.",
-          "invalid": "",
-          "unit": ""
+          "hint": "Who can make and receive calls."
         },
         "status": {
           "label": "Status updates",
-          "hint": "The Updates tab. Off: nobody can post a new status.",
-          "invalid": "",
-          "unit": ""
+          "hint": "The Updates tab. Off: nobody can post a new status."
         },
         "linkPreviews": {
           "label": "Link previews",
-          "hint": "Show a preview card for links in messages. Off: no page is fetched.",
-          "invalid": "",
-          "unit": ""
+          "hint": "Show a preview card for links in messages. Off: no page is fetched."
         },
         "adminChatUserCanReply": {
           "label": "Replies to hidden admins",
-          "hint": "Whether people can reply when a hidden admin messages them.",
-          "invalid": "",
-          "unit": ""
+          "hint": "Whether people can reply when a hidden admin messages them."
         },
         "groupMaxMembers": {
           "label": "Group size",
