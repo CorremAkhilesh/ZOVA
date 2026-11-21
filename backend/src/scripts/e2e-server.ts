@@ -51,6 +51,8 @@ const env = loadEnv({
   // Every browser project shares one IP; keep the per-IP OTP limit out of the way.
   OTP_IP_LIMIT_PER_HOUR: '10000',
   MEDIA_STORAGE_PATH: './storage/e2e',
+  // E2E never tests a full disk (the API tests do): a crowded shared dev PC must not stop uploads.
+  STORAGE_GUARD_PERCENT: process.env.E2E_STORAGE_GUARD_PERCENT ?? '99',
   // Calls for every test account, between browsers on this machine: no STUN on the internet.
   CALLS_ENABLED_FOR: 'all',
   CALLS_STUN_URLS: 'none',

@@ -124,6 +124,14 @@ const envSchema = z
       emptyToUndefined,
       z.coerce.number().int().min(100).max(1_048_576).default(3072),
     ),
+    /**
+     * New uploads are refused when they would take the media disk above this share, in percent
+     * (507 STORAGE_FULL, admins emailed). 85 in production; a crowded dev PC may set it higher.
+     */
+    STORAGE_GUARD_PERCENT: z.preprocess(
+      emptyToUndefined,
+      z.coerce.number().int().min(50).max(99).default(85),
+    ),
     /** The longest voice note, in seconds. The app reads it from GET /v1/config. */
     VOICE_MAX_SECONDS: z.preprocess(
       emptyToUndefined,

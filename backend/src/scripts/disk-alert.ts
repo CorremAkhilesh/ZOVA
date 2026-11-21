@@ -26,7 +26,12 @@ async function main() {
   const env = loadEnv();
   const mailer = createMailer(env);
   try {
-    const alert = { percent, path: values.path, freeGiB: Number(values['free-gib']) || 0 };
+    const alert = {
+      percent,
+      path: values.path,
+      freeGiB: Number(values['free-gib']) || 0,
+      stopPercent: env.STORAGE_GUARD_PERCENT,
+    };
     for (const to of env.ADMIN_EMAILS) {
       await mailer.send(diskAlertEmail(to, alert, new Date()));
     }

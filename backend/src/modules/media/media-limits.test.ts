@@ -177,6 +177,23 @@ describe('free disk space', () => {
   });
 });
 
+describe('a different disk guard (STORAGE_GUARD_PERCENT)', () => {
+  it('lets uploads through at 88% when the guard is set to 97, and stops them past it', async () => {
+    const roomy = await buildTestApp({}, { STORAGE_GUARD_PERCENT: '97' });
+    try {
+      const api = mediaClient(roomy.app);
+      const who = await signedIn(roomy.app, 'roomy@corremadvisory.com');
+      const space = vi.spyOn(roomy.app.storage, 'space');
+      space.mockResolvedValue({ total: 100 * GB, free: 12 * GB });
+      expect((await api.start(who, doc(10))).statusCode).toBe(200);
+      space.mockResolvedValue({ total: 100 * GB, free: 2 * GB });
+      expect((await api.start(who, doc(10))).statusCode).toBe(507);
+    } finally {
+      await roomy.cleanup();
+    }
+  });
+});
+
 describe('finishing a large upload', () => {
   it('processes it once when the client asks twice', async () => {
     const who = await person();

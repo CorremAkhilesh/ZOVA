@@ -11,8 +11,6 @@ import { AppError } from '../lib/errors.ts';
 import { DISK_STOP_PERCENT, diskAlertEmail } from '../mail/templates/disk-alert-email.ts';
 import type { StorageSpace } from '../storage/driver.ts';
 
-/** Above this the disk is too full to accept more files. */
-export const DISK_MAX_USED_RATIO = DISK_STOP_PERCENT / 100;
 /** One "uploads stopped" email to the admins per this many seconds, however many refusals. */
 const DISK_FULL_ALERT_EVERY_SECONDS = 6 * 3600;
 
@@ -47,8 +45,12 @@ export function assertWithinLimits(
   }
 }
 
-export const wouldOverfill = ({ total, free }: StorageSpace, incoming: number) =>
-  total - free + incoming > total * DISK_MAX_USED_RATIO;
+/** True when `incoming` bytes would take the disk above `stopPercent` (env STORAGE_GUARD_PERCENT). */
+export const wouldOverfill = (
+  { total, free }: StorageSpace,
+  incoming: number,
+  stopPercent: number = DISK_STOP_PERCENT,
+) => total - free + incoming > (total * stopPercent) / 100;
 
 /**
  * Refuses bytes the disk has no room for. Checked per chunk as well as at the start, because uploads
@@ -63,7 +65,7 @@ export async function assertRoomFor(app: FastifyInstance, incoming: number): Pro
     app.log.warn({ err: error }, 'could not read free disk space');
     return;
   }
-  if (space && wouldOverfill(space, incoming)) {
+  if (space && wouldOverfill(space, incoming, app.env.STORAGE_GUARD_PERCENT)) {
     app.log.warn({ total: space.total, free: space.free, incoming }, 'upload refused: disk full');
     void alertAdmins(app, space).catch((error: unknown) => {
       app.log.error({ err: error }, 'could not send the disk-full alert');
@@ -87,6 +89,7 @@ async function alertAdmins(app: FastifyInstance, { total, free }: StorageSpace):
     path: 'media storage',
     freeGiB: free / 1024 ** 3,
     stopped: true,
+    stopPercent: app.env.STORAGE_GUARD_PERCENT,
   };
   for (const to of app.env.ADMIN_EMAILS) {
     await app.emailDispatcher.dispatch(diskAlertEmail(to, alert, new Date()), 'disk-alert');

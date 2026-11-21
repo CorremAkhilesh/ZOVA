@@ -10,12 +10,14 @@ export interface DiskAlert {
   freeGiB: number;
   /** Sent by the API when it has just refused an upload, rather than by the daily check. */
   stopped?: boolean;
+  /** Where uploads stop (env STORAGE_GUARD_PERCENT); the default when not given. */
+  stopPercent?: number;
 }
 
-/** Above this share of the disk the API refuses new uploads (507 STORAGE_FULL). */
+/** Default share of the disk above which the API refuses new uploads (env STORAGE_GUARD_PERCENT). */
 export const DISK_STOP_PERCENT = 85;
 
-/** Disk usage at or above this many percent sends the daily alert (uploads stop at 85). */
+/** Disk usage at or above this many percent sends the daily alert (uploads stop at 85 by default). */
 export const DISK_ALERT_PERCENT = 80;
 
 export function shouldAlert(percent: number): boolean {
@@ -27,13 +29,14 @@ export function diskAlertEmail(to: string, alert: DiskAlert, sentAt: Date): Mail
   const subject = alert.stopped
     ? `${brand.name}: server disk ${alert.percent}% full, uploads stopped`
     : `${brand.name}: server disk ${alert.percent}% full`;
+  const stopAt = alert.stopPercent ?? DISK_STOP_PERCENT;
   const lines = [
     `The disk that holds ${brand.name}'s media (${alert.path}) is ${alert.percent}% full.`,
     `Free space: ${alert.freeGiB.toFixed(1)} GiB. Checked at ${sentAt.toISOString()}.`,
     '',
     alert.stopped
-      ? `New uploads are being refused now: the disk is past ${DISK_STOP_PERCENT}% (507 STORAGE_FULL).`
-      : `At ${DISK_STOP_PERCENT}% the app refuses new uploads (507 STORAGE_FULL).`,
+      ? `New uploads are being refused now: the disk is past ${stopAt}% (507 STORAGE_FULL).`
+      : `At ${stopAt}% the app refuses new uploads (507 STORAGE_FULL).`,
     'Free space or add disk soon. Steps: docs/runbooks/first-deploy.md, "Disk space".',
   ];
   const html = `<!doctype html>
