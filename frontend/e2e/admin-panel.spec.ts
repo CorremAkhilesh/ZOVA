@@ -60,7 +60,7 @@ test('an announcement reaches the chosen person as a banner they can close', asy
   await banner.getByRole('button', { name: `Close “${title}”` }).click();
   await expect(banner).toBeHidden(SLOW);
   await person.reload();
-  await expect(person.getByRole('heading', { name: 'Chats' })).toBeVisible(SLOW);
+  await expect(person.getByRole('heading', { name: 'Chats', exact: true })).toBeVisible(SLOW);
   await expect(banner).toBeHidden();
 });
 

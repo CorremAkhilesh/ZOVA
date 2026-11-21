@@ -19,7 +19,9 @@ export async function signInAdmin(page: Page) {
     .fill(await readOtp(page, ADMIN, before));
   // The first sign-in ever also asks for a name.
   const named = page.getByRole('heading', { name: 'What should we call you?' });
-  await expect(named.or(page.getByRole('heading', { name: 'Chats' }))).toBeVisible(SLOW);
+  await expect(named.or(page.getByRole('heading', { name: 'Chats', exact: true }))).toBeVisible(
+    SLOW,
+  );
   if (await named.isVisible()) {
     await page.getByRole('textbox', { name: 'Your name' }).fill('E2E Admin');
     await expect(page.getByRole('textbox', { name: 'Username' })).not.toHaveValue('', SLOW);
