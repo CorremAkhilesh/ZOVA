@@ -14,6 +14,16 @@ async function makeAdmin(page: Page) {
   return email;
 }
 
+/** A chip in a dialog: the visible label of its (screen-reader) radio, as a finger taps it. */
+async function pickChip(page: Page, name: string) {
+  const dialog = page.getByRole('dialog');
+  await dialog
+    .locator('label')
+    .filter({ hasText: new RegExp(`^${name}$`) })
+    .click();
+  await expect(dialog.getByRole('radio', { name })).toBeChecked();
+}
+
 async function confirmWithReason(page: Page, button: string, reason: string) {
   const dialog = page.getByRole('dialog');
   await dialog.getByLabel('Reason').fill(reason);
@@ -39,7 +49,7 @@ test('an admin finds a person, changes their limit and signs them out', async ({
 
   // Storage limit: a preset, with a reason.
   await page.getByRole('button', { name: 'Change storage limit' }).click();
-  await page.getByRole('dialog').getByRole('radio', { name: '5 GB' }).click();
+  await pickChip(page, '5 GB');
   await confirmWithReason(page, 'Change storage limit', 'Design files');
   await expect(page.getByText('Their own limit, set by an admin.')).toBeVisible(SLOW);
 
@@ -76,7 +86,7 @@ test('bulk storage limit for two people, and the CSV download', async ({ page, b
     .getByRole('region', { name: 'Actions for the selected people' })
     .getByRole('button', { name: 'Change storage limit' })
     .click();
-  await page.getByRole('dialog').getByRole('radio', { name: '10 GB' }).click();
+  await pickChip(page, '10 GB');
   await confirmWithReason(page, 'Change storage limit', 'Video team');
   await expect(page.getByText('2 selected')).toBeHidden(SLOW);
   for (const email of emails) {
