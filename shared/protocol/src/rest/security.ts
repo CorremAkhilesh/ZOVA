@@ -54,17 +54,46 @@ export const adminUserSchema = z.object({
   lastLoginAt: isoDateTimeSchema.nullable(),
   createdAt: isoDateTimeSchema,
 });
+/** Why an admin did something: required on every admin change, kept in the audit log. */
+export const adminReasonSchema = z.string().trim().min(3).max(500);
+export const adminReasonBodySchema = z.object({ reason: adminReasonSchema });
+
+/** Admin → Users filters. `pushOff`: no device with notifications; `storageHigh`: 80%+ of the limit. */
+export const adminUserFilterSchema = z.enum([
+  'all',
+  'active',
+  'deactivated',
+  'admins',
+  'pushOff',
+  'storageHigh',
+]);
+export const adminUserSortSchema = z.enum(['newest', 'oldest', 'name', 'lastActive', 'storage']);
 export const adminUsersQuerySchema = cursorPageQuerySchema.extend({
   q: z.string().trim().max(100).default(''),
+  filter: adminUserFilterSchema.default('all'),
+  sort: adminUserSortSchema.default('newest'),
+});
+/** Admin → Users → CSV: the same people as the list, every page. */
+export const adminUsersExportQuerySchema = adminUsersQuerySchema.omit({
+  limit: true,
+  cursor: true,
 });
 /** A row of Admin → Users. `storageBytes`: the person's finished files; `quotaBytes`: their limit. */
 export const adminUserRowSchema = adminUserSchema.extend({
   storageBytes: z.number().int().nonnegative(),
   quotaBytes: z.number().int().positive(),
+  /** A limit of their own rather than the default. */
+  quotaCustom: z.boolean(),
+  /** Newest activity on any device; null if never seen. */
+  lastActiveAt: isoDateTimeSchema.nullable(),
+  /** Signed-in devices, and whether any has notifications on. */
+  deviceCount: z.number().int().nonnegative(),
+  pushOn: z.boolean(),
 });
 /** PUT /v1/admin/users/:id/storage-quota. `null` puts the default limit back. 100 MB to 1 TB. */
 export const adminStorageQuotaBodySchema = z.object({
   quotaMb: z.number().int().min(100).max(1_048_576).nullable(),
+  reason: adminReasonSchema,
 });
 export const adminStorageQuotaResponseSchema = z.object({
   quotaBytes: z.number().int().positive(),
@@ -72,7 +101,7 @@ export const adminStorageQuotaResponseSchema = z.object({
   custom: z.boolean(),
 });
 export const adminUsersResponseSchema = cursorPageSchema(adminUserRowSchema);
-export const adminRoleBodySchema = z.object({ role: userRoleSchema });
+export const adminRoleBodySchema = z.object({ role: userRoleSchema, reason: adminReasonSchema });
 export const adminUserResponseSchema = z.object({ user: adminUserSchema });
 
 /** Admin → Audit log */
@@ -90,6 +119,10 @@ export const auditActionSchema = z.enum([
   'notifications.remind',
   /** An admin changed someone's storage limit. Target: that person. */
   'storage.quota',
+  /** An admin signed someone out of every device. Target: that person. */
+  'user.signout',
+  /** An admin downloaded the list of people as CSV. Target: the admin. */
+  'users.export',
 ]);
 export const auditLogEntrySchema = z.object({
   id: z.string(),
@@ -98,6 +131,10 @@ export const auditLogEntrySchema = z.object({
   target: z.object({ id: z.string(), email: z.string() }),
   ipAddress: z.string().nullable(),
   at: isoDateTimeSchema,
+  /** Why, in the admin's words; null for actions from before reasons were asked. */
+  reason: z.string().nullable(),
+  /** What changed, e.g. a storage limit from → to (MiB). */
+  details: z.record(z.string(), z.union([z.string(), z.number(), z.null()])).nullable(),
 });
 export const auditLogResponseSchema = cursorPageSchema(auditLogEntrySchema);
 

@@ -12,6 +12,7 @@ import { dbSnapshot, expectRefused } from './idor-helpers.ts';
  */
 /** Signing several people in through the real OTP flow is slow on a busy machine. */
 const SETUP_TIMEOUT = 600_000;
+const WHY = { reason: 'test' };
 let built: Awaited<ReturnType<typeof buildTestApp>>;
 const app = () => built.app;
 const { person, call, say } = groupClient(app);
@@ -130,9 +131,21 @@ describe('admin routes and reports', () => {
       [
         { method: 'GET', url: '/v1/admin/users' },
         { method: 'GET', url: '/v1/admin/audit-log' },
-        { method: 'POST', url: `/v1/admin/users/${asha.id}/deactivate` },
-        { method: 'POST', url: `/v1/admin/users/${asha.id}/reactivate` },
-        { method: 'PUT', url: `/v1/admin/users/${chetan.id}/role`, payload: { role: 'admin' } },
+        { method: 'POST', url: `/v1/admin/users/${asha.id}/deactivate`, payload: WHY },
+        { method: 'POST', url: `/v1/admin/users/${asha.id}/reactivate`, payload: WHY },
+        {
+          method: 'PUT',
+          url: `/v1/admin/users/${chetan.id}/role`,
+          payload: { role: 'admin', ...WHY },
+        },
+        { method: 'GET', url: `/v1/admin/users/${asha.id}` },
+        { method: 'GET', url: '/v1/admin/users/export' },
+        { method: 'POST', url: `/v1/admin/users/${asha.id}/sign-out`, payload: WHY },
+        {
+          method: 'POST',
+          url: '/v1/admin/users/bulk',
+          payload: { userIds: [asha.id], action: 'signOut', ...WHY },
+        },
         { method: 'GET', url: '/v1/admin/reports' },
         { method: 'GET', url: `/v1/admin/reports/${messageId}` },
         {

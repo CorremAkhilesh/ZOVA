@@ -140,7 +140,8 @@ export async function resolveReport(
   if (body.action === 'deactivate') {
     const reported = reportedUserId(report);
     if (!reported) throw new AppError('BAD_REQUEST', 'This report is not about a person.');
-    await setUserStatus(app, actor, reported, 'deactivated');
+    // The admin's note is the reason; without one, the report itself is.
+    await setUserStatus(app, actor, reported, 'deactivated', body.note?.trim() || `Report ${id}`);
   }
   if (body.action === 'removeStatus') {
     if (report.target.kind !== 'status') {

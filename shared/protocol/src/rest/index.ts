@@ -1,5 +1,6 @@
 export * from './admin-dashboard.ts';
 export * from './admin-notifications.ts';
+export * from './admin-users.ts';
 export * from './appearance.ts';
 export * from './auth.ts';
 export * from './calls.ts';

@@ -106,7 +106,9 @@ const availability = http.get('*/v1/users/username-availability', ({ request }) 
 export const server = setupServer(
   http.get('*/v1/health', healthyResponse),
   http.get('*/v1/config', () =>
-    HttpResponse.json({ media: { maxFileBytes: 1024 ** 3, voiceMaxSeconds: 900 } }),
+    HttpResponse.json({
+      media: { maxFileBytes: 1024 ** 3, voiceMaxSeconds: 900, userQuotaBytes: 3 * 1024 ** 3 },
+    }),
   ),
   http.get('*/v1/auth/me', () => HttpResponse.json(sessionFixture())),
   http.get('*/v1/me/profile', () => HttpResponse.json({ profile: profileFixture() })),

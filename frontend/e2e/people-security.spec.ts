@@ -113,12 +113,16 @@ test('an admin deactivates someone, who is signed out, and it is audited', async
   await open(admin, '/admin/users');
   await admin.getByRole('searchbox').fill(emailB);
   const row = admin.getByRole('listitem').filter({ hasText: emailB });
-  await row.getByRole('button', { name: 'Deactivate' }).click(SLOW);
-  await admin.getByRole('dialog').getByRole('button', { name: 'Deactivate' }).click(SLOW);
-  await expect(row.getByText('Deactivated')).toBeVisible(SLOW);
+  await row.getByRole('link', { name: 'Bharat Rao' }).click(SLOW);
+  await admin.getByRole('button', { name: 'Deactivate' }).click(SLOW);
+  const dialog = admin.getByRole('dialog');
+  await dialog.getByLabel('Reason').fill('Left the company');
+  await dialog.getByRole('button', { name: 'Deactivate' }).click(SLOW);
+  await expect(admin.getByText('Deactivated', { exact: true })).toBeVisible(SLOW);
   await expect(b.getByRole('heading', { name: /Welcome to/ })).toBeVisible({ timeout: 30_000 });
 
-  // Every admin action is in the audit log.
+  // Every admin action is in the audit log, with its reason.
   await open(admin, '/admin/audit');
   await expect(admin.getByText(`${adminEmail} deactivated ${emailB}`)).toBeVisible(SLOW);
+  await expect(admin.getByText('Reason: “Left the company”').first()).toBeVisible();
 });

@@ -7,6 +7,8 @@ export const appConfigResponseSchema = z.object({
     maxFileBytes: z.number().int().positive(),
     /** The longest voice note. From VOICE_MAX_SECONDS. */
     voiceMaxSeconds: z.number().int().positive(),
+    /** Everyone's storage limit unless an admin gave them their own. From MEDIA_USER_QUOTA_MB. */
+    userQuotaBytes: z.number().int().positive(),
   }),
 });
 

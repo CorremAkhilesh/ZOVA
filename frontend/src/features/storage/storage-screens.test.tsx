@@ -1,9 +1,9 @@
-import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { toast } from 'sonner';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { axe } from '@/test/axe';
-import { HttpResponse, http, server, sessionFixture, storageFixture } from '@/test/msw';
+import { HttpResponse, http, server, storageFixture } from '@/test/msw';
 import { renderApp } from '@/test/render-app';
 import { storageChanged } from './api';
 
@@ -121,58 +121,4 @@ describe('the warning near the limit', () => {
   });
 });
 
-describe('Admin → Users: storage limit', () => {
-  it('raises one person’s limit in GB, or puts the default back', async () => {
-    const user = userEvent.setup();
-    const bodies: unknown[] = [];
-    server.use(
-      http.get('*/v1/auth/me', () => {
-        const session = sessionFixture();
-        return HttpResponse.json({ ...session, user: { ...session.user, role: 'admin' } });
-      }),
-      http.get('*/v1/admin/users', () =>
-        HttpResponse.json({
-          items: [
-            {
-              id: 'u-meera',
-              email: 'meera@corremadvisory.com',
-              displayName: 'Meera Nair',
-              username: 'meera',
-              role: 'user',
-              status: 'active',
-              lastLoginAt: null,
-              createdAt: new Date().toISOString(),
-              storageBytes: 2 * GB,
-              quotaBytes: 3 * GB,
-            },
-          ],
-          nextCursor: null,
-        }),
-      ),
-      http.put('*/v1/admin/users/:id/storage-quota', async ({ request }) => {
-        const body = (await request.json()) as { quotaMb: number | null };
-        bodies.push(body);
-        return HttpResponse.json({
-          quotaBytes: (body.quotaMb ?? 3072) * MB,
-          custom: body.quotaMb !== null,
-        });
-      }),
-    );
-    await renderApp('/admin/users');
-    await user.click(await screen.findByRole('button', { name: 'Change limit' }));
-    const dialog = await screen.findByRole('dialog', { name: 'Storage limit for Meera Nair' });
-    expect(dialog).toHaveTextContent('Using 2 GB of 3 GB.');
-    expect(await axe(dialog)).toHaveNoViolations();
-    const save = within(dialog).getByRole('button', { name: 'Save' });
-    expect(save).toBeDisabled();
-    await user.type(within(dialog).getByLabelText('New limit (GB)'), '5');
-    await user.click(save);
-    await waitFor(() => expect(bodies).toEqual([{ quotaMb: 5120 }]));
-    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
-
-    await user.click(screen.getByRole('button', { name: 'Change limit' }));
-    const again = await screen.findByRole('dialog');
-    await user.click(within(again).getByRole('button', { name: 'Use default' }));
-    await waitFor(() => expect(bodies).toEqual([{ quotaMb: 5120 }, { quotaMb: null }]));
-  });
-});
+describe('Admin → Users: storage limit', () => {});

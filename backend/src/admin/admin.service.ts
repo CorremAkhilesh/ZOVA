@@ -5,7 +5,7 @@ import { chatModels } from '../chats/chats.service.ts';
 import { registerSecurityModels } from '../db/security-models.ts';
 import { AppError } from '../lib/errors.ts';
 import { quotaBytesOf } from '../media/quota.ts';
-import { escapeRegex, loadUser, type UserDoc, usersModel } from '../users/user-record.ts';
+import { loadUser, type UserDoc, usersModel } from '../users/user-record.ts';
 
 export interface Actor {
   id: string;
@@ -31,46 +31,12 @@ export const storageFilter = (ownerIds: Types.ObjectId[]) => ({
 });
 
 /** Total bytes of finished files per person (index: ownerId + status + size). */
-async function storageByOwner(app: FastifyInstance, ownerIds: Types.ObjectId[]) {
+export async function storageByOwner(app: FastifyInstance, ownerIds: Types.ObjectId[]) {
   const rows = await chatModels(app).Media.aggregate<{ _id: Types.ObjectId; bytes: number }>([
     { $match: storageFilter(ownerIds) },
     { $group: { _id: '$ownerId', bytes: { $sum: '$size' } } },
   ]);
   return new Map(rows.map((row) => [row._id.toString(), row.bytes]));
-}
-
-/**
- * Admin → Users, newest first, cursor on _id (default _id index). `q` with "@" is an email
- * prefix (unique email index), otherwise name/username word prefixes (searchTerms index).
- */
-export async function listUsers(app: FastifyInstance, q: string, limit: number, cursor?: string) {
-  const text = q.trim().toLocaleLowerCase();
-  const filter: Record<string, unknown> = {};
-  if (text.includes('@')) filter.email = new RegExp(`^${escapeRegex(text)}`);
-  else if (text) {
-    const words = text.split(/\s+/).slice(0, 5);
-    filter.searchTerms = { $all: words.map((word) => new RegExp(`^${escapeRegex(word)}`)) };
-  }
-  if (cursor && Types.ObjectId.isValid(cursor)) filter._id = { $lt: new Types.ObjectId(cursor) };
-  const docs = (await usersModel(app)
-    .find(filter)
-    .sort({ _id: -1 })
-    .limit(limit + 1)
-    .lean()) as UserDoc[];
-  const items = docs.slice(0, limit);
-  const next = docs.length > limit ? (items.at(-1)?._id.toString() ?? null) : null;
-  const stored = await storageByOwner(
-    app,
-    items.map((user) => user._id),
-  );
-  return {
-    items: items.map((user) => ({
-      ...toAdminUser(user),
-      storageBytes: stored.get(user._id.toString()) ?? 0,
-      quotaBytes: quotaBytesOf(app, user),
-    })),
-    nextCursor: next,
-  };
 }
 
 export async function findTarget(app: FastifyInstance, id: string): Promise<UserDoc> {
@@ -96,6 +62,7 @@ export async function setRole(
   actor: Actor,
   id: string,
   role: SessionUser['role'],
+  reason: string,
 ) {
   const target = await findTarget(app, id);
   if (role === 'user') {
@@ -104,7 +71,9 @@ export async function setRole(
   }
   if ((target.role ?? 'user') !== role) {
     await usersModel(app).updateOne({ _id: target._id }, { $set: { role } });
-    await audit(app, actor, role === 'admin' ? 'user.promote' : 'user.demote', target);
+    await audit(app, actor, role === 'admin' ? 'user.promote' : 'user.demote', target, {
+      reason,
+    });
   }
   return toAdminUser({ ...target, role });
 }
@@ -115,20 +84,33 @@ export async function setStorageQuota(
   actor: Actor,
   id: string,
   quotaMb: number | null,
+  reason: string,
 ) {
   const target = await findTarget(app, id);
-  if ((target.storageQuotaMb ?? null) !== quotaMb) {
+  const before = target.storageQuotaMb ?? null;
+  if (before !== quotaMb) {
     await usersModel(app).updateOne({ _id: target._id }, { $set: { storageQuotaMb: quotaMb } });
-    await audit(app, actor, 'storage.quota', target);
+    // null on either side: the default limit at the time.
+    await audit(app, actor, 'storage.quota', target, {
+      reason,
+      details: { fromMb: before, toMb: quotaMb, defaultMb: app.env.MEDIA_USER_QUOTA_MB },
+    });
   }
   return { quotaBytes: quotaBytesOf(app, { storageQuotaMb: quotaMb }), custom: quotaMb !== null };
+}
+
+/** Why and what changed, kept with the audit entry. */
+export interface AuditExtra {
+  reason?: string | null;
+  details?: Record<string, string | number | null> | null;
 }
 
 export async function audit(
   app: FastifyInstance,
   actor: Actor,
   action: AuditAction,
-  target: UserDoc,
+  target: Pick<UserDoc, 'email'> & { _id: { toString(): string } },
+  extra: AuditExtra = {},
 ) {
   await registerSecurityModels(app.mongo).AuditLog.create({
     action,
@@ -138,6 +120,8 @@ export async function audit(
     targetEmail: target.email,
     ipAddress: actor.ipAddress,
     at: new Date(),
+    reason: extra.reason ?? null,
+    details: extra.details ?? null,
   });
 }
 
@@ -171,6 +155,8 @@ export async function listAudit(app: FastifyInstance, limit: number, cursor?: st
         target: { id: doc.targetId, email: doc.targetEmail },
         ipAddress: doc.ipAddress,
         at: doc.at.toISOString(),
+        reason: doc.reason ?? null,
+        details: doc.details ?? null,
       }),
     ),
     nextCursor: docs.length > limit && last ? encodeCursor(last.at, last._id) : null,

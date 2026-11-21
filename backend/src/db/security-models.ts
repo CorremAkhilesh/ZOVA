@@ -37,6 +37,10 @@ export interface AuditLogDoc {
   targetEmail: string;
   ipAddress: string | null;
   at: Date;
+  /** Why, in the admin's words (required since the admin panel asks for it). */
+  reason?: string | null;
+  /** What changed, e.g. { fromMb, toMb } for a storage limit. */
+  details?: Record<string, string | number | null> | null;
 }
 
 const auditLogSchema = new Schema<AuditLogDoc>(
@@ -48,6 +52,8 @@ const auditLogSchema = new Schema<AuditLogDoc>(
     targetEmail: { type: String, required: true },
     ipAddress: { type: String, default: null },
     at: { type: Date, default: () => new Date() },
+    reason: { type: String, default: null },
+    details: { type: Schema.Types.Mixed, default: null },
   },
   { ...options, collection: 'audit_logs' },
 );

@@ -43,6 +43,11 @@ export function AdminAuditLog() {
                   target: entry.target.email,
                 })}
               </p>
+              {entry.reason ? (
+                <p className="text-sm text-text-muted break-words">
+                  {t('admin.auditReason', { reason: entry.reason })}
+                </p>
+              ) : null}
               <p className="text-xs text-text-muted">
                 <time dateTime={entry.at}>{date(entry.at)}</time>
                 {entry.ipAddress ? ` · ${entry.ipAddress}` : ''}

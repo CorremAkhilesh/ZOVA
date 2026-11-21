@@ -57,7 +57,7 @@ const setQuota = (by: Person, id: string, quotaMb: unknown) =>
     method: 'PUT',
     url: `/v1/admin/users/${id}/storage-quota`,
     headers: headers(by.cookie),
-    payload: { quotaMb },
+    payload: { quotaMb, reason: 'test' },
   });
 
 describe('3 GB per person', () => {
@@ -165,7 +165,7 @@ describe('an admin changes one person’s limit', () => {
       method: 'PUT',
       url: `/v1/admin/users/${who.id}/storage-quota`,
       headers: headers(),
-      payload: { quotaMb: 5120 },
+      payload: { quotaMb: 5120, reason: 'test' },
     });
     expect(anonymous.statusCode).toBe(401);
     expect((await setQuota(await admin(), '0123456789abcdef01234567', 5120)).statusCode).toBe(404);

@@ -1,16 +1,8 @@
-import {
-  adminStorageQuotaResponseSchema,
-  STORAGE_WARN_RATIO,
-  type StorageUsage,
-  storageUsageSchema,
-} from '@zuvo/protocol';
-import { apiGet, apiPut } from '@/lib/api-client';
+import { STORAGE_WARN_RATIO, type StorageUsage, storageUsageSchema } from '@zuvo/protocol';
+import { apiGet } from '@/lib/api-client';
 
 export const storageApi = {
   mine: () => apiGet('/v1/me/storage', storageUsageSchema),
-  /** Admin only. `null` puts the default limit back. */
-  setQuota: (userId: string, quotaMb: number | null) =>
-    apiPut(`/v1/admin/users/${userId}/storage-quota`, { quotaMb }, adminStorageQuotaResponseSchema),
 };
 
 export const storageQueryKey = ['me', 'storage'] as const;

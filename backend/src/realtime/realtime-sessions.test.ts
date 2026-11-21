@@ -128,6 +128,7 @@ describe('sessions end on the socket too', () => {
         method: 'POST',
         url: `/v1/admin/users/${ivan.id}/deactivate`,
         headers: headers(admin.cookie),
+        payload: { reason: 'test' },
       }),
     );
     expect(result.revoked[0]).toEqual({ reason: 'deactivated' });

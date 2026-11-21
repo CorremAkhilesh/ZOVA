@@ -573,10 +573,13 @@
       "report.resolve": "{{actor}} ने {{target}} के बारे में रिपोर्ट सुलझाई",
       "status.remove": "{{actor}} ने {{target}} का स्टेटस हटाया",
       "notifications.remind": "{{actor}} ने {{target}} को नोटिफ़िकेशन चालू करने की याद दिलाई",
-      "storage.quota": "{{actor}} ने {{target}} की स्टोरेज सीमा बदली"
+      "storage.quota": "{{actor}} ने {{target}} की स्टोरेज सीमा बदली",
+      "user.signout": "{{actor}} ने {{target}} को हर डिवाइस से साइन आउट किया",
+      "users.export": "{{actor}} ने लोगों की सूची डाउनलोड की"
     },
     "storageUsed": "इस्तेमाल की गई जगह: {{size}}",
-    "storageUsedOf": "इस्तेमाल हुई स्टोरेज: {{limit}} में से {{size}}"
+    "storageUsedOf": "इस्तेमाल हुई स्टोरेज: {{limit}} में से {{size}}",
+    "auditReason": "कारण: “{{reason}}”"
   },
   "people": {
     "title": "नई चैट",
@@ -1755,6 +1758,128 @@
       "builtAt": "बिल्ड",
       "lastBackup": "आख़िरी बैकअप",
       "lastBackupUnknown": "अभी रिपोर्ट नहीं हुआ"
+    },
+    "reason": {
+      "label": "कारण",
+      "hint": "ज़रूरी है। आपके नाम के साथ ऑडिट लॉग में रखा जाता है।"
+    },
+    "users": {
+      "subtitle": "लोगों को खोजें, उनका पेज खोलें, या कई लोगों को चुनकर एक साथ काम करें।",
+      "filterLabel": "दिखाएँ",
+      "sortLabel": "क्रम",
+      "filter": {
+        "all": "सभी",
+        "active": "सक्रिय",
+        "deactivated": "निष्क्रिय",
+        "admins": "एडमिन",
+        "pushOff": "नोटिफ़िकेशन बंद",
+        "storageHigh": "स्टोरेज 80%+"
+      },
+      "sort": {
+        "newest": "सबसे नए",
+        "oldest": "सबसे पुराने",
+        "name": "नाम",
+        "lastActive": "आख़िरी बार सक्रिय",
+        "storage": "स्टोरेज उपयोग"
+      },
+      "export": "CSV डाउनलोड करें",
+      "count_one": "{{count}} व्यक्ति",
+      "count_other": "{{count}} लोग",
+      "selectAll": "दिख रहे सभी को चुनें",
+      "select": "{{name}} को चुनें",
+      "selected_one": "{{count}} चुना गया",
+      "selected_other": "{{count}} चुने गए",
+      "clearSelection": "हटाएँ",
+      "bulkLabel": "चुने गए लोगों के लिए काम",
+      "bulkResult": "{{done}} हो गए, {{refused}} नहीं बदले (आप ख़ुद, आख़िरी एडमिन, या अब मौजूद नहीं)",
+      "open": "{{name}} खोलें",
+      "never": "कभी नहीं",
+      "lastActive": "{{when}} सक्रिय",
+      "pushOn_one": "नोटिफ़िकेशन चालू · {{count}} डिवाइस",
+      "pushOn_other": "नोटिफ़िकेशन चालू · {{count}} डिवाइस",
+      "pushOff_one": "नोटिफ़िकेशन बंद · {{count}} डिवाइस",
+      "pushOff_other": "नोटिफ़िकेशन बंद · {{count}} डिवाइस",
+      "storage": "स्टोरेज",
+      "joined": "जुड़े",
+      "lastSignIn": "आख़िरी साइन-इन",
+      "lastActiveLabel": "आख़िरी बार सक्रिय",
+      "quotaOwn": "एडमिन की तय की हुई उनकी अपनी सीमा।",
+      "quotaDefault": "सबके लिए डिफ़ॉल्ट सीमा।",
+      "kinds": {
+        "image": "फ़ोटो",
+        "video": "वीडियो",
+        "voice": "वॉइस नोट",
+        "audio": "ऑडियो",
+        "document": "दस्तावेज़"
+      },
+      "devices_one": "{{count}} डिवाइस",
+      "devices_other": "{{count}} डिवाइस",
+      "noDevices": "किसी डिवाइस पर साइन इन नहीं।",
+      "devicePushOn": "नोटिफ़िकेशन चालू",
+      "devicePushOff": "नोटिफ़िकेशन बंद",
+      "actionsTitle": "काम",
+      "selfNote": "यह आप हैं। अपने खाते के लिए साइन आउट, रोल और निष्क्रिय करना यहाँ उपलब्ध नहीं है।",
+      "loadingPerson": "लोड हो रहा है…",
+      "notFound": "व्यक्ति नहीं मिला",
+      "quota": {
+        "label": "स्टोरेज सीमा",
+        "gb_one": "{{count}} GB",
+        "gb_other": "{{count}} GB",
+        "default": "डिफ़ॉल्ट ({{gb}} GB)",
+        "custom": "अपनी सीमा",
+        "customLabel": "GB में आकार",
+        "customHint": "{{min}} से {{max}} GB तक।"
+      },
+      "actions": {
+        "deactivate": {
+          "title": {
+            "one": "{{name}} को निष्क्रिय करें?",
+            "many": "{{count}} लोगों को निष्क्रिय करें?"
+          },
+          "body": "उन्हें तुरंत हर जगह से साइन आउट कर दिया जाएगा, और दोबारा सक्रिय होने तक वे साइन इन नहीं कर सकेंगे।",
+          "confirm": "निष्क्रिय करें"
+        },
+        "reactivate": {
+          "title": {
+            "one": "{{name}} को फिर से सक्रिय करें?",
+            "many": "{{count}} लोगों को फिर से सक्रिय करें?"
+          },
+          "body": "वे फिर से साइन इन कर सकेंगे।",
+          "confirm": "फिर से सक्रिय करें"
+        },
+        "promote": {
+          "title": {
+            "one": "{{name}} को एडमिन बनाएँ?",
+            "many": "{{count}} लोगों को एडमिन बनाएँ?"
+          },
+          "body": "एडमिन यह पैनल खोल सकते हैं और दूसरों के खाते बदल सकते हैं।",
+          "confirm": "एडमिन बनाएँ"
+        },
+        "demote": {
+          "title": {
+            "one": "{{name}} से एडमिन हटाएँ?",
+            "many": "{{count}} लोगों से एडमिन हटाएँ?"
+          },
+          "body": "उनका खाता रहेगा, पर एडमिन पहुँच नहीं रहेगी।",
+          "confirm": "एडमिन हटाएँ"
+        },
+        "signOut": {
+          "title": {
+            "one": "{{name}} को हर जगह से साइन आउट करें?",
+            "many": "{{count}} लोगों को हर जगह से साइन आउट करें?"
+          },
+          "body": "हर डिवाइस अभी साइन आउट होगा। वे नए कोड से फिर साइन इन कर सकते हैं।",
+          "confirm": "सभी डिवाइस से साइन आउट करें"
+        },
+        "storageQuota": {
+          "title": {
+            "one": "{{name}} की स्टोरेज सीमा",
+            "many": "{{count}} लोगों की स्टोरेज सीमा"
+          },
+          "body": "पहले से रखी फ़ाइलें रहेंगी। नई सीमा से ऊपर नए अपलोड रुक जाएँगे।",
+          "confirm": "स्टोरेज सीमा बदलें"
+        }
+      }
     }
   }
 }

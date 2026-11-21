@@ -168,7 +168,12 @@ describe('admin deactivate / reactivate', () => {
   }
 
   const post = (app: TestApp['app'], path: string, cookie?: string) =>
-    app.inject({ method: 'POST', url: path, headers: headers(cookie) });
+    app.inject({
+      method: 'POST',
+      url: path,
+      headers: headers(cookie),
+      payload: { reason: 'test' },
+    });
 
   it('gives ADMIN_EMAILS the admin role on first login', async () => {
     const { app, adminCookie } = await setup();

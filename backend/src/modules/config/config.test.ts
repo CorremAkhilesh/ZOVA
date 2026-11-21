@@ -31,6 +31,13 @@ describe('GET /v1/config', () => {
     expect(appConfigResponseSchema.parse(response.json()).media.maxFileBytes).toBe(1024 ** 3);
   });
 
+  it('gives everyone’s default storage limit, from MEDIA_USER_QUOTA_MB', async () => {
+    expect((await read()).json().media.userQuotaBytes).toBe(3 * 1024 ** 3);
+    expect((await read({ MEDIA_USER_QUOTA_MB: '5120' })).json().media.userQuotaBytes).toBe(
+      5 * 1024 ** 3,
+    );
+  });
+
   it('follows MEDIA_MAX_FILE_MB', async () => {
     const response = await read({ MEDIA_MAX_FILE_MB: '5' });
     expect(response.json().media.maxFileBytes).toBe(5 * 1024 * 1024);

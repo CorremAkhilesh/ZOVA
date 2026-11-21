@@ -573,10 +573,13 @@
       "report.resolve": "{{actor}} resolved a report about {{target}}",
       "status.remove": "{{actor}} removed a status of {{target}}",
       "notifications.remind": "{{actor}} reminded {{target}} to turn on notifications",
-      "storage.quota": "{{actor}} changed the storage limit of {{target}}"
+      "storage.quota": "{{actor}} changed the storage limit of {{target}}",
+      "user.signout": "{{actor}} signed {{target}} out of every device",
+      "users.export": "{{actor}} downloaded the list of people"
     },
     "storageUsed": "Storage used: {{size}}",
-    "storageUsedOf": "Storage used: {{size}} of {{limit}}"
+    "storageUsedOf": "Storage used: {{size}} of {{limit}}",
+    "auditReason": "Reason: “{{reason}}”"
   },
   "people": {
     "title": "New chat",
@@ -1763,6 +1766,128 @@
       "builtAt": "Built",
       "lastBackup": "Last backup",
       "lastBackupUnknown": "Not reported yet"
+    },
+    "reason": {
+      "label": "Reason",
+      "hint": "Required. Kept in the audit log with your name."
+    },
+    "users": {
+      "subtitle": "Find people, open their page, or select several for one action.",
+      "filterLabel": "Show",
+      "sortLabel": "Sort by",
+      "filter": {
+        "all": "Everyone",
+        "active": "Active",
+        "deactivated": "Deactivated",
+        "admins": "Admins",
+        "pushOff": "Notifications off",
+        "storageHigh": "Storage 80%+"
+      },
+      "sort": {
+        "newest": "Newest",
+        "oldest": "Oldest",
+        "name": "Name",
+        "lastActive": "Last active",
+        "storage": "Storage used"
+      },
+      "export": "Download CSV",
+      "count_one": "{{count}} person",
+      "count_other": "{{count}} people",
+      "selectAll": "Select everyone shown",
+      "select": "Select {{name}}",
+      "selected_one": "{{count}} selected",
+      "selected_other": "{{count}} selected",
+      "clearSelection": "Clear",
+      "bulkLabel": "Actions for the selected people",
+      "bulkResult": "{{done}} done, {{refused}} not changed (yourself, the last admin, or already gone)",
+      "open": "Open {{name}}",
+      "never": "Never",
+      "lastActive": "Active {{when}}",
+      "pushOn_one": "Notifications on · {{count}} device",
+      "pushOn_other": "Notifications on · {{count}} devices",
+      "pushOff_one": "Notifications off · {{count}} device",
+      "pushOff_other": "Notifications off · {{count}} devices",
+      "storage": "Storage",
+      "joined": "Joined",
+      "lastSignIn": "Last sign-in",
+      "lastActiveLabel": "Last active",
+      "quotaOwn": "Their own limit, set by an admin.",
+      "quotaDefault": "The default limit for everyone.",
+      "kinds": {
+        "image": "Photos",
+        "video": "Videos",
+        "voice": "Voice notes",
+        "audio": "Audio",
+        "document": "Documents"
+      },
+      "devices_one": "{{count}} device",
+      "devices_other": "{{count}} devices",
+      "noDevices": "Not signed in on any device.",
+      "devicePushOn": "Notifications on",
+      "devicePushOff": "Notifications off",
+      "actionsTitle": "Actions",
+      "selfNote": "This is you. Signing out, roles and deactivation for your own account are not available here.",
+      "loadingPerson": "Loading…",
+      "notFound": "Person not found",
+      "quota": {
+        "label": "Storage limit",
+        "gb_one": "{{count}} GB",
+        "gb_other": "{{count}} GB",
+        "default": "Default ({{gb}} GB)",
+        "custom": "Custom",
+        "customLabel": "Size in GB",
+        "customHint": "From {{min}} to {{max}} GB."
+      },
+      "actions": {
+        "deactivate": {
+          "title": {
+            "one": "Deactivate {{name}}?",
+            "many": "Deactivate {{count}} people?"
+          },
+          "body": "They are signed out everywhere at once and can’t sign in until reactivated.",
+          "confirm": "Deactivate"
+        },
+        "reactivate": {
+          "title": {
+            "one": "Reactivate {{name}}?",
+            "many": "Reactivate {{count}} people?"
+          },
+          "body": "They will be able to sign in again.",
+          "confirm": "Reactivate"
+        },
+        "promote": {
+          "title": {
+            "one": "Make {{name}} an admin?",
+            "many": "Make {{count}} people admins?"
+          },
+          "body": "Admins can open this panel and change other people’s accounts.",
+          "confirm": "Make admin"
+        },
+        "demote": {
+          "title": {
+            "one": "Remove admin from {{name}}?",
+            "many": "Remove admin from {{count}} people?"
+          },
+          "body": "They keep their account but lose admin access.",
+          "confirm": "Remove admin"
+        },
+        "signOut": {
+          "title": {
+            "one": "Sign {{name}} out everywhere?",
+            "many": "Sign {{count}} people out everywhere?"
+          },
+          "body": "Every device is signed out now. They can sign in again with a new code.",
+          "confirm": "Sign out of all devices"
+        },
+        "storageQuota": {
+          "title": {
+            "one": "Storage limit for {{name}}",
+            "many": "Storage limit for {{count}} people"
+          },
+          "body": "Files already stored stay. Over the new limit, new uploads are refused.",
+          "confirm": "Change storage limit"
+        }
+      }
     }
   }
 }
