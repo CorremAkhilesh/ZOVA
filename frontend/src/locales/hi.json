@@ -577,7 +577,17 @@
       "notifications.remind": "{{actor}} ने {{target}} को नोटिफ़िकेशन चालू करने की याद दिलाई",
       "storage.quota": "{{actor}} ने {{target}} की स्टोरेज सीमा बदली",
       "user.signout": "{{actor}} ने {{target}} को हर डिवाइस से साइन आउट किया",
-      "users.export": "{{actor}} ने लोगों की सूची डाउनलोड की"
+      "users.export": "{{actor}} ने लोगों की सूची डाउनलोड की",
+      "user.suspend": "{{actor}} ने {{target}} को निलंबित किया",
+      "user.unsuspend": "{{actor}} ने {{target}} का निलंबन ख़त्म किया",
+      "settings.change": "{{actor}} ने संगठन की एक सेटिंग बदली",
+      "announcement.create": "{{actor}} ने एक घोषणा भेजी",
+      "announcement.end": "{{actor}} ने एक घोषणा ख़त्म की",
+      "group.archive": "{{actor}} ने एक ग्रुप आर्काइव किया",
+      "group.restore": "{{actor}} ने एक ग्रुप फिर से चालू किया",
+      "group.delete": "{{actor}} ने एक ग्रुप सबके लिए मिटाया",
+      "security.unlock": "{{actor}} ने एक ईमेल का साइन-इन अनलॉक किया",
+      "audit.export": "{{actor}} ने ऑडिट लॉग डाउनलोड किया"
     },
     "storageUsed": "इस्तेमाल की गई जगह: {{size}}",
     "storageUsedOf": "इस्तेमाल हुई स्टोरेज: {{limit}} में से {{size}}",
@@ -1710,7 +1720,8 @@
       "audit": "ऑडिट लॉग",
       "settings": "सेटिंग्स",
       "announcements": "घोषणाएँ",
-      "groups": "ग्रुप"
+      "groups": "ग्रुप",
+      "security": "सुरक्षा"
     },
     "dashboard": {
       "title": "डैशबोर्ड",
@@ -2074,6 +2085,58 @@
           "body": "यह हर सदस्य की सूची से हट जाएगा और इसके मैसेज और फ़ाइलें मिट जाएँगी। इसे वापस नहीं लाया जा सकता।"
         }
       }
+    },
+    "audit": {
+      "export": "CSV डाउनलोड करें",
+      "action": "काम",
+      "anyAction": "कोई भी काम",
+      "actor": "एडमिन",
+      "target": "व्यक्ति",
+      "from": "से",
+      "to": "तक",
+      "actions": {
+        "user.deactivate": "निष्क्रिय करना",
+        "user.reactivate": "फिर से सक्रिय करना",
+        "user.promote": "एडमिन बनाना",
+        "user.demote": "एडमिन हटाना",
+        "report.view": "रिपोर्ट खोलना",
+        "report.resolve": "रिपोर्ट निपटाना",
+        "status.remove": "स्टेटस हटाना",
+        "notifications.remind": "नोटिफ़िकेशन रिमाइंडर",
+        "storage.quota": "स्टोरेज सीमा",
+        "user.signout": "हर जगह से साइन आउट",
+        "users.export": "लोगों की CSV",
+        "user.suspend": "निलंबित करना",
+        "user.unsuspend": "निलंबन ख़त्म करना",
+        "settings.change": "सेटिंग्स",
+        "announcement.create": "घोषणा",
+        "announcement.end": "घोषणा ख़त्म करना",
+        "group.archive": "ग्रुप आर्काइव",
+        "group.restore": "ग्रुप फिर से चालू",
+        "group.delete": "ग्रुप मिटाना",
+        "security.unlock": "साइन-इन अनलॉक",
+        "audit.export": "ऑडिट CSV"
+      }
+    },
+    "security": {
+      "title": "सुरक्षा",
+      "subtitle": "कौन साइन इन है, ज़्यादा ग़लत कोड से लॉक हुए ईमेल, और हाल के ग़लत कोड।",
+      "devices": "साइन-इन डिवाइस",
+      "people": "साइन-इन लोग",
+      "locksTitle": "लॉक हुए ईमेल",
+      "locksHint": "एक दिन में बहुत ग़लत कोड से ईमेल अगले दिन तक लॉक हो जाता है। पक्का होने पर कि वही व्यक्ति है, अनलॉक करें।",
+      "noLocks": "कोई ईमेल लॉक नहीं है।",
+      "lockMeta": "{{since}} से {{until}} तक लॉक · नेटवर्क {{ip}}",
+      "unlock": "अनलॉक करें",
+      "unlockTitle": "{{email}} अनलॉक करें?",
+      "unlockBody": "वे तुरंत नया कोड माँग सकेंगे, ग़लत कोड की गिनती नए सिरे से।",
+      "unlocked": "{{email}} फिर से साइन इन कर सकते हैं।",
+      "failuresTitle": "हाल के ग़लत कोड",
+      "failuresHint": "आख़िरी 50, 30 दिन तक रखे जाते हैं। नेटवर्क पते छोटे किए जाते हैं, ताकि कोई एक डिवाइस पहचाना न जा सके।",
+      "noFailures": "हाल में कोई ग़लत कोड नहीं।",
+      "email": "ईमेल",
+      "network": "नेटवर्क",
+      "when": "कब"
     }
   },
   "announcements": {

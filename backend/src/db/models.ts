@@ -1,4 +1,5 @@
 import type { Connection } from 'mongoose';
+import { registerSecurityEventModels } from '../security/security-events.ts';
 import { registerSettingsModels } from '../settings/app-settings.ts';
 import { registerActivityModels } from './activity-models.ts';
 import { registerAnnouncementModels } from './announcement-models.ts';
@@ -37,6 +38,8 @@ export const modelRegistrations: Array<(connection: Connection) => IndexedModel[
   (connection) => Object.values(registerSettingsModels(connection)) as unknown as IndexedModel[],
   (connection) =>
     Object.values(registerAnnouncementModels(connection)) as unknown as IndexedModel[],
+  (connection) =>
+    Object.values(registerSecurityEventModels(connection)) as unknown as IndexedModel[],
 ];
 
 export function registerModels(connection: Connection): IndexedModel[] {

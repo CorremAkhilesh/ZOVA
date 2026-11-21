@@ -59,6 +59,11 @@ const auditLogSchema = new Schema<AuditLogDoc>(
 );
 // Serves: Admin → Audit log, newest first, cursor on (at, _id).
 auditLogSchema.index({ at: -1, _id: -1 });
+// Serves: Admin → Audit log filtered by action, by the admin's email, or by the person's email,
+// newest first (equality, then the sort).
+auditLogSchema.index({ action: 1, at: -1, _id: -1 });
+auditLogSchema.index({ actorEmail: 1, at: -1, _id: -1 });
+auditLogSchema.index({ targetEmail: 1, at: -1, _id: -1 });
 // Serves: history of actions on one user.
 auditLogSchema.index({ targetId: 1, at: -1 });
 // Serves: history of one admin's actions.

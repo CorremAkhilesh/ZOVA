@@ -139,6 +139,10 @@ export const auditActionSchema = z.enum([
   'group.archive',
   'group.restore',
   'group.delete',
+  /** An admin ended an email's sign-in lock early. Target: the admin; details: email. */
+  'security.unlock',
+  /** An admin downloaded the audit log as CSV. Target: the admin. */
+  'audit.export',
 ]);
 export const auditLogEntrySchema = z.object({
   id: z.string(),

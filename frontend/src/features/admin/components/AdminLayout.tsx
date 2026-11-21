@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   Megaphone,
   ScrollText,
+  ShieldCheck,
   SlidersHorizontal,
   Users,
   UsersRound,
@@ -20,6 +21,7 @@ export const ADMIN_SECTIONS = [
   { to: '/admin/reports', key: 'reports', icon: Flag, exact: false },
   { to: '/admin/announcements', key: 'announcements', icon: Megaphone, exact: false },
   { to: '/admin/notifications', key: 'notifications', icon: Bell, exact: false },
+  { to: '/admin/security', key: 'security', icon: ShieldCheck, exact: false },
   { to: '/admin/settings', key: 'settings', icon: SlidersHorizontal, exact: false },
   { to: '/admin/audit', key: 'audit', icon: ScrollText, exact: false },
 ] as const;

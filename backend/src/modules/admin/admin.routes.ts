@@ -8,12 +8,13 @@ import {
   adminUserStatusResponseSchema,
   adminUsersQuerySchema,
   adminUsersResponseSchema,
+  auditLogQuerySchema,
   auditLogResponseSchema,
-  cursorPageQuerySchema,
 } from '@zuvo/protocol';
 import type { FastifyRequest } from 'fastify';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
-import { type Actor, listAudit, setRole, setStorageQuota } from '../../admin/admin.service.ts';
+import { type Actor, setRole, setStorageQuota } from '../../admin/admin.service.ts';
+import { listAudit } from '../../admin/audit-log.ts';
 import { setUserStatus } from '../../admin/user-status.ts';
 import { listUsersPage } from '../../admin/users-list.ts';
 import { requireAdmin } from '../../auth/session.ts';
@@ -118,10 +119,10 @@ export const adminRoutes: FastifyPluginAsyncZod = async (app) => {
     {
       schema: {
         tags: ['admin'],
-        querystring: cursorPageQuerySchema,
+        querystring: auditLogQuerySchema,
         response: { 200: auditLogResponseSchema },
       },
     },
-    async (request) => listAudit(app, request.query.limit, request.query.cursor),
+    async (request) => listAudit(app, request.query),
   );
 };

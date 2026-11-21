@@ -577,7 +577,17 @@
       "notifications.remind": "{{actor}} reminded {{target}} to turn on notifications",
       "storage.quota": "{{actor}} changed the storage limit of {{target}}",
       "user.signout": "{{actor}} signed {{target}} out of every device",
-      "users.export": "{{actor}} downloaded the list of people"
+      "users.export": "{{actor}} downloaded the list of people",
+      "user.suspend": "{{actor}} suspended {{target}}",
+      "user.unsuspend": "{{actor}} ended the suspension of {{target}}",
+      "settings.change": "{{actor}} changed an organization setting",
+      "announcement.create": "{{actor}} sent an announcement",
+      "announcement.end": "{{actor}} ended an announcement",
+      "group.archive": "{{actor}} archived a group",
+      "group.restore": "{{actor}} restored a group",
+      "group.delete": "{{actor}} deleted a group for everyone",
+      "security.unlock": "{{actor}} unlocked sign-in for an email",
+      "audit.export": "{{actor}} downloaded the audit log"
     },
     "storageUsed": "Storage used: {{size}}",
     "storageUsedOf": "Storage used: {{size}} of {{limit}}",
@@ -1718,7 +1728,8 @@
       "audit": "Audit log",
       "settings": "Settings",
       "announcements": "Announcements",
-      "groups": "Groups"
+      "groups": "Groups",
+      "security": "Security"
     },
     "dashboard": {
       "title": "Dashboard",
@@ -2082,6 +2093,58 @@
           "body": "It disappears from every member’s list and its messages and files are deleted. This cannot be undone."
         }
       }
+    },
+    "audit": {
+      "export": "Download CSV",
+      "action": "Action",
+      "anyAction": "Any action",
+      "actor": "Admin",
+      "target": "Person",
+      "from": "From",
+      "to": "To",
+      "actions": {
+        "user.deactivate": "Deactivate",
+        "user.reactivate": "Reactivate",
+        "user.promote": "Make admin",
+        "user.demote": "Remove admin",
+        "report.view": "Open a report",
+        "report.resolve": "Resolve a report",
+        "status.remove": "Remove a status",
+        "notifications.remind": "Notification reminder",
+        "storage.quota": "Storage limit",
+        "user.signout": "Sign out everywhere",
+        "users.export": "People CSV",
+        "user.suspend": "Suspend",
+        "user.unsuspend": "End suspension",
+        "settings.change": "Settings",
+        "announcement.create": "Announcement",
+        "announcement.end": "End announcement",
+        "group.archive": "Archive group",
+        "group.restore": "Restore group",
+        "group.delete": "Delete group",
+        "security.unlock": "Unlock sign-in",
+        "audit.export": "Audit CSV"
+      }
+    },
+    "security": {
+      "title": "Security",
+      "subtitle": "Who is signed in, emails locked after too many wrong codes, and recent wrong codes.",
+      "devices": "Signed-in devices",
+      "people": "People signed in",
+      "locksTitle": "Locked emails",
+      "locksHint": "Too many wrong codes in a day lock an email until the next day. Unlock it once you know it is really them.",
+      "noLocks": "No email is locked.",
+      "lockMeta": "Locked {{since}} until {{until}} · network {{ip}}",
+      "unlock": "Unlock",
+      "unlockTitle": "Unlock {{email}}?",
+      "unlockBody": "They can ask for a new code at once, with a fresh count of wrong codes.",
+      "unlocked": "{{email}} can sign in again.",
+      "failuresTitle": "Recent wrong codes",
+      "failuresHint": "The last 50, kept for 30 days. Network addresses are shortened, so no one device can be traced.",
+      "noFailures": "No wrong codes lately.",
+      "email": "Email",
+      "network": "Network",
+      "when": "When"
     }
   },
   "announcements": {

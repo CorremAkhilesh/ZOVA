@@ -79,6 +79,7 @@ const MODELS = [
   'ReceiptEvent',
   'Report',
   'Scheduled',
+  'SecurityEvent',
   'SecurityToken',
   'Star',
   'UserSync',

@@ -1,4 +1,4 @@
-import type { AdminUser, AuditAction, AuditLogEntry, SessionUser } from '@zuvo/protocol';
+import type { AdminUser, AuditAction, SessionUser } from '@zuvo/protocol';
 import type { FastifyInstance } from 'fastify';
 import { Types } from 'mongoose';
 import { chatModels } from '../chats/chats.service.ts';
@@ -127,42 +127,4 @@ export async function audit(
     reason: extra.reason ?? null,
     details: extra.details ?? null,
   });
-}
-
-const encodeCursor = (at: Date, id: Types.ObjectId) => `${at.getTime()}_${id.toString()}`;
-
-function decodeCursor(cursor: string | undefined) {
-  const [time, id] = cursor?.split('_') ?? [];
-  if (!time || !id || !Types.ObjectId.isValid(id) || !/^\d+$/.test(time)) return null;
-  return { at: new Date(Number(time)), id: new Types.ObjectId(id) };
-}
-
-/** Admin → Audit log, newest first, cursor on (at, _id) — index { at: -1, _id: -1 }. */
-export async function listAudit(app: FastifyInstance, limit: number, cursor?: string) {
-  const after = decodeCursor(cursor);
-  const filter = after
-    ? { $or: [{ at: { $lt: after.at } }, { at: after.at, _id: { $lt: after.id } }] }
-    : {};
-  const docs = await registerSecurityModels(app.mongo)
-    .AuditLog.find(filter)
-    .sort({ at: -1, _id: -1 })
-    .limit(limit + 1)
-    .lean();
-  const items = docs.slice(0, limit);
-  const last = items.at(-1);
-  return {
-    items: items.map(
-      (doc): AuditLogEntry => ({
-        id: doc._id.toString(),
-        action: doc.action as AuditAction,
-        actor: { id: doc.actorId, email: doc.actorEmail },
-        target: { id: doc.targetId, email: doc.targetEmail },
-        ipAddress: doc.ipAddress,
-        at: doc.at.toISOString(),
-        reason: doc.reason ?? null,
-        details: doc.details ?? null,
-      }),
-    ),
-    nextCursor: docs.length > limit && last ? encodeCursor(last.at, last._id) : null,
-  };
 }

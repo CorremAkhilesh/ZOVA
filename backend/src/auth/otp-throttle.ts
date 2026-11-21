@@ -98,6 +98,22 @@ export class OtpThrottle {
     await this.store.remove(this.key('otp-fail', hashed(email)));
   }
 
+  /** Seconds left on this email's lock for the day; 0 when it is not locked. */
+  async lockedFor(email: string): Promise<number> {
+    return this.store.ttl(this.key('otp-locked', hashed(email)));
+  }
+
+  /**
+   * An admin ended the lock: the email may ask for a code at once, with a fresh daily count. The
+   * hourly cap on codes stays.
+   */
+  async unlock(email: string): Promise<void> {
+    const id = hashed(email);
+    for (const kind of ['otp-locked', 'otp-fail-day', 'otp-fail', 'otp-cooldown']) {
+      await this.store.remove(this.key(kind, id));
+    }
+  }
+
   /** Refuses codes and sign-ins for an email that used up its wrong guesses for the day. */
   async checkLocked(email: string): Promise<void> {
     const left = await this.store.ttl(this.key('otp-locked', hashed(email)));

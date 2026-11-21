@@ -35,6 +35,7 @@ import { Route as AppAdminAuditRouteImport } from './routes/_app/admin.audit'
 import { Route as AppAdminGroupsRouteImport } from './routes/_app/admin.groups'
 import { Route as AppAdminNotificationsRouteImport } from './routes/_app/admin.notifications'
 import { Route as AppAdminReportsRouteImport } from './routes/_app/admin.reports'
+import { Route as AppAdminSecurityRouteImport } from './routes/_app/admin.security'
 import { Route as AppAdminSettingsRouteImport } from './routes/_app/admin.settings'
 import { Route as AppChatsIndexRouteImport } from './routes/_app/chats.index'
 import { Route as AppChatsChatIdRouteImport } from './routes/_app/chats.$chatId'
@@ -183,6 +184,11 @@ const AppAdminReportsRoute = AppAdminReportsRouteImport.update({
   path: '/reports',
   getParentRoute: () => AppAdminRoute,
 } as any)
+const AppAdminSecurityRoute = AppAdminSecurityRouteImport.update({
+  id: '/security',
+  path: '/security',
+  getParentRoute: () => AppAdminRoute,
+} as any)
 const AppAdminSettingsRoute = AppAdminSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -301,6 +307,7 @@ export interface FileRoutesByFullPath {
   '/admin/groups': typeof AppAdminGroupsRoute
   '/admin/notifications': typeof AppAdminNotificationsRoute
   '/admin/reports': typeof AppAdminReportsRoute
+  '/admin/security': typeof AppAdminSecurityRoute
   '/admin/settings': typeof AppAdminSettingsRoute
   '/chats/$chatId': typeof AppChatsChatIdRoute
   '/join/$code': typeof AppJoinCodeRoute
@@ -343,6 +350,7 @@ export interface FileRoutesByTo {
   '/admin/groups': typeof AppAdminGroupsRoute
   '/admin/notifications': typeof AppAdminNotificationsRoute
   '/admin/reports': typeof AppAdminReportsRoute
+  '/admin/security': typeof AppAdminSecurityRoute
   '/admin/settings': typeof AppAdminSettingsRoute
   '/chats/$chatId': typeof AppChatsChatIdRoute
   '/join/$code': typeof AppJoinCodeRoute
@@ -390,6 +398,7 @@ export interface FileRoutesById {
   '/_app/admin/groups': typeof AppAdminGroupsRoute
   '/_app/admin/notifications': typeof AppAdminNotificationsRoute
   '/_app/admin/reports': typeof AppAdminReportsRoute
+  '/_app/admin/security': typeof AppAdminSecurityRoute
   '/_app/admin/settings': typeof AppAdminSettingsRoute
   '/_app/chats/$chatId': typeof AppChatsChatIdRoute
   '/_app/join/$code': typeof AppJoinCodeRoute
@@ -437,6 +446,7 @@ export interface FileRouteTypes {
     | '/admin/groups'
     | '/admin/notifications'
     | '/admin/reports'
+    | '/admin/security'
     | '/admin/settings'
     | '/chats/$chatId'
     | '/join/$code'
@@ -479,6 +489,7 @@ export interface FileRouteTypes {
     | '/admin/groups'
     | '/admin/notifications'
     | '/admin/reports'
+    | '/admin/security'
     | '/admin/settings'
     | '/chats/$chatId'
     | '/join/$code'
@@ -525,6 +536,7 @@ export interface FileRouteTypes {
     | '/_app/admin/groups'
     | '/_app/admin/notifications'
     | '/_app/admin/reports'
+    | '/_app/admin/security'
     | '/_app/admin/settings'
     | '/_app/chats/$chatId'
     | '/_app/join/$code'
@@ -739,6 +751,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminReportsRouteImport
       parentRoute: typeof AppAdminRoute
     }
+    '/_app/admin/security': {
+      id: '/_app/admin/security'
+      path: '/security'
+      fullPath: '/admin/security'
+      preLoaderRoute: typeof AppAdminSecurityRouteImport
+      parentRoute: typeof AppAdminRoute
+    }
     '/_app/admin/settings': {
       id: '/_app/admin/settings'
       path: '/settings'
@@ -874,6 +893,7 @@ interface AppAdminRouteChildren {
   AppAdminGroupsRoute: typeof AppAdminGroupsRoute
   AppAdminNotificationsRoute: typeof AppAdminNotificationsRoute
   AppAdminReportsRoute: typeof AppAdminReportsRoute
+  AppAdminSecurityRoute: typeof AppAdminSecurityRoute
   AppAdminSettingsRoute: typeof AppAdminSettingsRoute
   AppAdminIndexRoute: typeof AppAdminIndexRoute
   AppAdminUsersUserIdRoute: typeof AppAdminUsersUserIdRoute
@@ -886,6 +906,7 @@ const AppAdminRouteChildren: AppAdminRouteChildren = {
   AppAdminGroupsRoute: AppAdminGroupsRoute,
   AppAdminNotificationsRoute: AppAdminNotificationsRoute,
   AppAdminReportsRoute: AppAdminReportsRoute,
+  AppAdminSecurityRoute: AppAdminSecurityRoute,
   AppAdminSettingsRoute: AppAdminSettingsRoute,
   AppAdminIndexRoute: AppAdminIndexRoute,
   AppAdminUsersUserIdRoute: AppAdminUsersUserIdRoute,
