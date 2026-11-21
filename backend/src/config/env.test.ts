@@ -43,6 +43,17 @@ describe('loadEnv', () => {
     );
   });
 
+  it('stops uploads at 85% disk use unless set, and only takes a sensible percent', () => {
+    expect(loadEnv(testEnvSource()).STORAGE_GUARD_PERCENT).toBe(85);
+    expect(loadEnv(testEnvSource({ STORAGE_GUARD_PERCENT: '' })).STORAGE_GUARD_PERCENT).toBe(85);
+    expect(loadEnv(testEnvSource({ STORAGE_GUARD_PERCENT: '97' })).STORAGE_GUARD_PERCENT).toBe(97);
+    for (const bad of ['49', '100', '85.5', 'full']) {
+      expect(() => loadEnv(testEnvSource({ STORAGE_GUARD_PERCENT: bad }))).toThrow(
+        'STORAGE_GUARD_PERCENT',
+      );
+    }
+  });
+
   it('defaults the allowed email domains to the organization domain', () => {
     expect(loadEnv(testEnvSource({ ALLOWED_EMAIL_DOMAINS: '' })).ALLOWED_EMAIL_DOMAINS).toEqual([
       'corremadvisory.com',

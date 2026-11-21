@@ -34,4 +34,20 @@ describe('disk alert', () => {
     expect(mail.subject).toBe(`${brand.name}: server disk 86% full, uploads stopped`);
     expect(mail.text).toContain('New uploads are being refused now: the disk is past 85%');
   });
+
+  it('names the configured stop percent when it is not 85', () => {
+    const mail = diskAlertEmail(
+      'novaadmin@corremadvisory.com',
+      { percent: 98, path: 'media storage', freeGiB: 2, stopped: true, stopPercent: 97 },
+      new Date('2026-11-21T10:00:00Z'),
+    );
+    expect(mail.text).toContain('the disk is past 97%');
+    expect(
+      diskAlertEmail(
+        'a@corremadvisory.com',
+        { percent: 90, path: '/x', freeGiB: 1, stopPercent: 95 },
+        new Date(),
+      ).text,
+    ).toContain('At 95% the app');
+  });
 });

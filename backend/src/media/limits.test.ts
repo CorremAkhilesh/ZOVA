@@ -30,4 +30,10 @@ describe('the disk check', () => {
   it('refuses even an empty request on a disk already past 85%', () => {
     expect(wouldOverfill({ total: 1000, free: 140 }, 0)).toBe(true);
   });
+
+  it('stops at the configured percent instead', () => {
+    expect(wouldOverfill({ total: 1000, free: 120 }, 0, 85)).toBe(true);
+    expect(wouldOverfill({ total: 1000, free: 120 }, 0, 97)).toBe(false);
+    expect(wouldOverfill({ total: 1000, free: 120 }, 91, 97)).toBe(true);
+  });
 });
