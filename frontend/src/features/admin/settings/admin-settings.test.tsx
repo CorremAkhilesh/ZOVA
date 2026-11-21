@@ -58,7 +58,8 @@ describe('Admin → Settings', () => {
     expect(screen.getByRole('switch', { name: 'Status updates' })).toBeChecked();
     expect(screen.getByLabelText('Voice and video calls')).toHaveValue('admins');
     expect(screen.getByText(/Default: 85\./)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled();
+    // Nothing changed yet: no save bar.
+    expect(screen.queryByRole('button', { name: 'Save changes' })).not.toBeInTheDocument();
     expect(await axe(container)).toHaveNoViolations();
   });
 

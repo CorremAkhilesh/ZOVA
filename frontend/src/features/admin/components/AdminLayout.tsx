@@ -82,15 +82,19 @@ export function AdminPage({
   title,
   description,
   actions,
+  back,
   children,
 }: {
   title: string;
   description?: string;
   actions?: ReactNode;
+  /** A way back to the list this page belongs to, above the title. */
+  back?: ReactNode;
   children: ReactNode;
 }) {
   return (
     <div className="mx-auto w-full max-w-6xl space-y-5 p-4 md:p-8">
+      {back}
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="space-y-1">
           <h1 className="text-2xl font-bold tracking-tight">{title}</h1>

@@ -143,29 +143,31 @@ function Form({ data }: { data: AdminSettingsResponse }) {
         <p className="text-sm text-text-muted">{t('adminPanel.settings.cleanupWarning')}</p>
         <div className="divide-y">{row('autoCleanupDays')}</div>
       </section>
-      <div className="sticky bottom-0 -mx-4 flex flex-wrap items-center justify-end gap-3 border-t bg-background/95 px-4 py-3 backdrop-blur md:-mx-8 md:px-8">
-        <p className="mr-auto text-sm text-text-muted" aria-live="polite">
-          {pending.invalid.length > 0
-            ? t('adminPanel.settings.fixFirst')
-            : t('adminPanel.settings.changes', { count })}
-        </p>
-        <Button
-          variant="ghost"
-          disabled={count === 0 && pending.invalid.length === 0}
-          onClick={() => {
-            setDraft({});
-            setReset(new Set());
-          }}
-        >
-          {t('adminPanel.settings.discard')}
-        </Button>
-        <Button
-          disabled={count === 0 || pending.invalid.length > 0}
-          onClick={() => setConfirming(true)}
-        >
-          {t('adminPanel.settings.save')}
-        </Button>
-      </div>
+      {count > 0 || pending.invalid.length > 0 ? (
+        <div className="sticky bottom-0 -mx-4 flex flex-wrap items-center justify-end gap-3 border-t bg-background/95 px-4 py-3 backdrop-blur md:-mx-8 md:px-8">
+          <p className="mr-auto text-sm text-text-muted" aria-live="polite">
+            {pending.invalid.length > 0
+              ? t('adminPanel.settings.fixFirst')
+              : t('adminPanel.settings.changes', { count })}
+          </p>
+          <Button
+            variant="ghost"
+            disabled={count === 0 && pending.invalid.length === 0}
+            onClick={() => {
+              setDraft({});
+              setReset(new Set());
+            }}
+          >
+            {t('adminPanel.settings.discard')}
+          </Button>
+          <Button
+            disabled={count === 0 || pending.invalid.length > 0}
+            onClick={() => setConfirming(true)}
+          >
+            {t('adminPanel.settings.save')}
+          </Button>
+        </div>
+      ) : null}
       <ReasonDialog
         open={confirming}
         onClose={() => setConfirming(false)}

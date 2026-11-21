@@ -144,8 +144,7 @@ export default function AdminUserDetail({ userId }: { userId: string }) {
   );
   if (query.isPending) {
     return (
-      <AdminPage title={t('adminPanel.users.loadingPerson')}>
-        {back}
+      <AdminPage title={t('adminPanel.users.loadingPerson')} back={back}>
         <div role="status" aria-busy="true" aria-label={t('common.loading')} className="space-y-3">
           <Skeleton className="h-20 w-full rounded-2xl" />
           <Skeleton className="h-40 w-full rounded-2xl" />
@@ -155,8 +154,7 @@ export default function AdminUserDetail({ userId }: { userId: string }) {
   }
   if (!detail) {
     return (
-      <AdminPage title={t('adminPanel.users.notFound')}>
-        {back}
+      <AdminPage title={t('adminPanel.users.notFound')} back={back}>
         <p role="alert" className="text-sm text-text-muted">
           {t('admin.loadFailed')}
         </p>
@@ -166,8 +164,7 @@ export default function AdminUserDetail({ userId }: { userId: string }) {
   const { user } = detail;
   const deactivated = user.status === 'deactivated';
   return (
-    <AdminPage title={nameOf(user)}>
-      {back}
+    <AdminPage title={nameOf(user)} back={back}>
       <div className="flex flex-wrap items-center gap-4 rounded-2xl border bg-surface p-5 shadow-sm">
         <Avatar name={nameOf(user)} className="size-14" />
         <div className="min-w-0 flex-1">
