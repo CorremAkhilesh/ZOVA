@@ -16,6 +16,8 @@ export const errorCodeSchema = z.enum([
   'OTP_ATTEMPTS_EXCEEDED',
   'SESSION_EXPIRED',
   'ACCOUNT_DEACTIVATED',
+  /** Suspended by an admin until a date; `details`: { until, reason }. */
+  'ACCOUNT_SUSPENDED',
   'INTERNAL_ERROR',
   'SERVICE_UNAVAILABLE',
   'UNSUPPORTED_MEDIA_TYPE',
@@ -30,6 +32,8 @@ export const errorCodeSchema = z.enum([
   'UPLOAD_OFFSET_MISMATCH',
   'STORAGE_FULL',
   'GROUP_FULL',
+  /** An organization admin archived this group: it can be read and left, nothing else. */
+  'GROUP_ARCHIVED',
   'OWNER_MUST_TRANSFER',
   'INVITE_INVALID',
   'EDIT_WINDOW_PASSED',

@@ -41,6 +41,8 @@ export const groupInfoSchema = z.object({
   myRole: groupRoleSchema,
   /** False once I left or was removed: this is how the group looked at that moment. */
   active: z.boolean(),
+  /** An admin of the organization archived it: readable, but nobody can write or join. */
+  archivedByAdmin: z.boolean().optional(),
 });
 
 const groupNameSchema = z.string().trim().min(1).max(GROUP_NAME_MAX);

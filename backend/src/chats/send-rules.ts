@@ -15,6 +15,7 @@ import { assertNotBlocked } from '../moderation/blocks.service.ts';
 import { hiddenAmong } from '../users/hidden-admins.ts';
 import { type UserDoc, usersModel } from '../users/user-record.ts';
 import { chatModels, oid } from './chats.service.ts';
+import { assertNotArchived } from './group-core.ts';
 import { assertAllowed, groupRules } from './group-permissions.ts';
 import { toMessage } from './message-format.ts';
 import type { SendInput, SendResult } from './messages.service.ts';
@@ -46,6 +47,7 @@ export async function assertMaySend(
   const { Chat, ChatMember } = chatModels(app);
   const chat = await Chat.findById(chatId, { type: 1, group: 1 }).lean();
   if (chat?.type === 'group') {
+    assertNotArchived(chat);
     const settings = { ...DEFAULT_GROUP_SETTINGS, ...chat.group?.settings };
     assertAllowed(groupRules.sendMessages(member.role, settings), 'Only admins can send messages.');
     return null;
@@ -63,7 +65,8 @@ export async function assertMaySend(
   if (peer?.status === 'deactivated') {
     throw new AppError('FORBIDDEN', 'This account has been deactivated.');
   }
-  if (peer && !app.env.ADMIN_CHAT_USER_CAN_REPLY && (await hiddenAmong(app, userId, [peer])).size) {
+  const canReply = app.settings.current().adminChatUserCanReply;
+  if (peer && !canReply && (await hiddenAmong(app, userId, [peer])).size) {
     throw new AppError('FORBIDDEN', 'Only the admin can send messages in this chat.');
   }
   if (other) await assertNotBlocked(app, userId, other.userId.toString());
@@ -89,7 +92,12 @@ export async function assertDirectNotBlocked(
 
 /** The same, for a chat known by id only. */
 export async function assertChatNotBlocked(app: FastifyInstance, userId: string, chatId: string) {
-  const chat = await chatModels(app).Chat.findById(chatId).select({ type: 1 }).lean();
+  const chat = await chatModels(app)
+    .Chat.findById(chatId)
+    .select({ type: 1, 'group.adminArchived': 1 })
+    .lean();
+  // Reactions, votes, pins, edits and timers: none in a group an admin archived.
+  assertNotArchived(chat);
   if (chat) await assertDirectNotBlocked(app, userId, chat);
 }
 

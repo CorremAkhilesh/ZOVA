@@ -30,6 +30,8 @@ const userSchema = new Schema(
     role: String,
     status: String,
     lastLoginAt: Date,
+    suspendedUntil: Date,
+    suspendReason: String,
     createdAt: Date,
   },
   { ...options, collection: 'user' },
@@ -49,6 +51,11 @@ userSchema.index({ searchTerms: 1 });
 userSchema.index({ status: 1, lastLoginAt: -1 });
 // Serves: last-admin protection (count active admins).
 userSchema.index({ role: 1, status: 1 });
+// Serves: Admin → Users "Suspended" (suspendedUntil after now). Partial: almost nobody is.
+userSchema.index(
+  { suspendedUntil: 1 },
+  { partialFilterExpression: { suspendedUntil: { $type: 'date' } } },
+);
 
 const sessionSchema = new Schema(
   { token: String, userId: Schema.Types.ObjectId, expiresAt: Date },

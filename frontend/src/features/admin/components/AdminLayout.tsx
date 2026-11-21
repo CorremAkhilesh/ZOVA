@@ -1,13 +1,28 @@
 import { Link, Outlet } from '@tanstack/react-router';
-import { ArrowLeft, Bell, Flag, LayoutDashboard, ScrollText, Users } from 'lucide-react';
+import {
+  ArrowLeft,
+  Bell,
+  Flag,
+  LayoutDashboard,
+  Megaphone,
+  ScrollText,
+  ShieldCheck,
+  SlidersHorizontal,
+  Users,
+  UsersRound,
+} from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
 export const ADMIN_SECTIONS = [
   { to: '/admin', key: 'dashboard', icon: LayoutDashboard, exact: true },
   { to: '/admin/users', key: 'users', icon: Users, exact: false },
+  { to: '/admin/groups', key: 'groups', icon: UsersRound, exact: false },
   { to: '/admin/reports', key: 'reports', icon: Flag, exact: false },
+  { to: '/admin/announcements', key: 'announcements', icon: Megaphone, exact: false },
   { to: '/admin/notifications', key: 'notifications', icon: Bell, exact: false },
+  { to: '/admin/security', key: 'security', icon: ShieldCheck, exact: false },
+  { to: '/admin/settings', key: 'settings', icon: SlidersHorizontal, exact: false },
   { to: '/admin/audit', key: 'audit', icon: ScrollText, exact: false },
 ] as const;
 
@@ -50,7 +65,12 @@ export function AdminLayout() {
           <SectionLinks />
         </nav>
       </aside>
-      <div className="min-h-0 min-w-0 flex-1 overflow-y-auto">
+      {/* Focusable, so a keyboard can scroll the section even where it holds no control. */}
+      <div
+        // biome-ignore lint/a11y/noNoninteractiveTabindex: a scrolling region must take focus (WCAG 2.1.1)
+        tabIndex={0}
+        className="min-h-0 min-w-0 flex-1 overflow-y-auto focus-visible:outline-none"
+      >
         <Outlet />
       </div>
     </div>
@@ -62,15 +82,19 @@ export function AdminPage({
   title,
   description,
   actions,
+  back,
   children,
 }: {
   title: string;
   description?: string;
   actions?: ReactNode;
+  /** A way back to the list this page belongs to, above the title. */
+  back?: ReactNode;
   children: ReactNode;
 }) {
   return (
     <div className="mx-auto w-full max-w-6xl space-y-5 p-4 md:p-8">
+      {back}
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="space-y-1">
           <h1 className="text-2xl font-bold tracking-tight">{title}</h1>

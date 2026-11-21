@@ -103,11 +103,13 @@ test('admin: who has notifications off, and a reminder they receive', async ({ b
   await expect(list.getByText(asha.email)).toHaveCount(0);
   await expect(list.getByText(ravi.email)).toBeVisible();
   // Other tests make people called Ravi too: pick the row by its unique email.
-  await list
-    .getByRole('listitem')
-    .filter({ hasText: ravi.email })
-    .getByRole('checkbox', { name: `Select ${ravi.name}` })
-    .check();
+  // The checkbox's label is its 44 px touch target: tap it as a finger would.
+  const row = list.getByRole('listitem').filter({ hasText: ravi.email });
+  await row
+    .locator('label')
+    .filter({ has: admin.getByRole('checkbox') })
+    .click();
+  await expect(row.getByRole('checkbox', { name: `Select ${ravi.name}` })).toBeChecked();
   await admin.getByRole('button', { name: 'Remind (1)' }).click();
   await expect(admin.getByText('Reminder sent to 1 person.')).toBeVisible(SLOW);
 

@@ -64,6 +64,8 @@ async function fetchFresh(app: FastifyInstance, url: string) {
 
 /** A preview for the sender: from the cache when someone looked it up lately, else fetched now. */
 export async function lookupPreview(app: FastifyInstance, userId: string, raw: string) {
+  // Switched off in Admin → Settings: no page is fetched; messages go without a preview.
+  if (!app.settings.current().linkPreviews) throw unavailable();
   await assertPreviewLimit(app, userId);
   const url = normalizeUrl(raw);
   if (!url) throw unavailable();

@@ -64,6 +64,11 @@ mediaSchema.index(
   { deleteRequestedAt: 1 },
   { partialFilterExpression: { deleteRequestedAt: { $type: 'date' } } },
 );
+// Serves: Admin → Groups, the storage of each group (chatId $in, ready; covered), and deleting a
+// group's files (chatId).
+mediaSchema.index({ chatId: 1, status: 1, size: 1 });
+// Serves: Admin → Settings auto-cleanup, finished files older than N days, oldest first.
+mediaSchema.index({ status: 1, createdAt: 1 });
 // Serves: the hourly cleanup of uploads never attached to a message.
 mediaSchema.index({ messageId: 1, createdAt: 1 });
 

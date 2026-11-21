@@ -11,6 +11,7 @@ import { Camera } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
+import { useGroupMax } from '@/components/common/use-nav-items';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -24,6 +25,7 @@ import { PeopleSelect } from './PeopleSelect';
 /** New group: who is in it, then what it is called. */
 export function NewGroupDialog() {
   const { t } = useTranslation();
+  const groupMax = useGroupMax(GROUP_MEMBERS_MAX);
   const open = useNewGroup((state) => state.isOpen);
   const setOpen = useNewGroup((state) => state.setOpen);
   const [step, setStep] = useState<'people' | 'details'>('people');
@@ -75,7 +77,7 @@ export function NewGroupDialog() {
       >
         {step === 'people' ? (
           <>
-            <PeopleSelect selected={people} onChange={setPeople} max={GROUP_MEMBERS_MAX - 1} />
+            <PeopleSelect selected={people} onChange={setPeople} max={groupMax - 1} />
             <div className="flex items-center justify-between gap-2">
               <p className="text-sm text-text-muted">
                 {t('groups.memberPicked', { count: people.length })}

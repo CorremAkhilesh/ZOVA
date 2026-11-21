@@ -77,6 +77,10 @@ export interface ChatDoc {
     /** How far every member has received and read. See group-receipts.service.ts. */
     deliveredMark?: number;
     readMark?: number;
+    /** Archived by an organization admin: readable and leavable, nothing else (admin/groups.ts). */
+    adminArchived?: { at: Date; by: string; reason: string } | null;
+    /** Deleted by an organization admin: no members, no messages; kept for the audit trail. */
+    adminDeleted?: { at: Date; by: string; reason: string } | null;
   };
 }
 
@@ -96,6 +100,8 @@ const chatSchema = new Schema<ChatDoc>(
   },
   { ...options, collection: 'chats' },
 );
+// Serves: Admin → Groups, newest first (type equality, then _id order).
+chatSchema.index({ type: 1, _id: -1 });
 // Serves: get-or-create a 1:1 chat. Unique: decides the race when two people open it at once.
 // Partial: queries must include `type: 'direct'` for MongoDB to use it.
 chatSchema.index({ pairKey: 1 }, { unique: true, partialFilterExpression: { type: 'direct' } });

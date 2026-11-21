@@ -4,7 +4,7 @@ import { AppError } from '../lib/errors.ts';
 import { blockBetween } from '../moderation/blocks.service.ts';
 import { hiddenAmong } from '../users/hidden-admins.ts';
 import { type UserDoc, usersModel } from '../users/user-record.ts';
-import { callsAllowed, callsAllowedFor } from './access.ts';
+import { callsAllowed, callsAllowedFor, callsSetting } from './access.ts';
 
 /**
  * Who may call whom: both people have calls (the feature flag), a 1:1 chat they are both in, no block
@@ -46,7 +46,7 @@ export async function assertMayCall(
   const { byMe, byThem } = await blockBetween(app, callerId, peerId);
   if (byMe) throw new AppError('BLOCKED', 'You blocked this contact. Unblock them to call.');
   if (byThem) throw new AppError('CANNOT_MESSAGE', 'You can’t call this person.');
-  if (!callsAllowed(app.env, peer)) {
+  if (!callsAllowed(callsSetting(app), peer)) {
     throw new AppError('CALLS_UNAVAILABLE', 'Calls are not available for this person yet.');
   }
   return peerId;

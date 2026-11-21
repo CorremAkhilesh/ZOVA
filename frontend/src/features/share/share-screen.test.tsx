@@ -123,7 +123,10 @@ describe('Share to the app', () => {
   it('a file over the limit says so and cannot be sent', async () => {
     server.use(
       http.get('*/v1/config', () =>
-        HttpResponse.json({ media: { maxFileBytes: 1024, voiceMaxSeconds: 900 } }),
+        HttpResponse.json({
+          media: { maxFileBytes: 1024, voiceMaxSeconds: 900, userQuotaBytes: 3 * 1024 ** 3 },
+          features: { status: true, linkPreviews: true, groupMaxMembers: 256 },
+        }),
       ),
     );
     shares.set('s1', share({ files: [file('huge.mp4', 'video/mp4', 5 * 1024)] }));

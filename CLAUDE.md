@@ -177,6 +177,9 @@
     Settings → Storage shows the usage, and the app warns at 90%.
   - New uploads are refused (`507 STORAGE_FULL`) if the disk would go above 85% (env
     `STORAGE_GUARD_PERCENT`, default 85); the admins get an email (at most one every 6 hours).
+  - **Admin → Settings** (`app_settings`, `GET/PUT /v1/admin/settings`) can override these env values
+    and a few more (calls, status, link previews, group size, OTP limits, auto-cleanup of old files):
+    the env stays the default, a saved value wins, every change is audited (`settings.change`).
   - Voice notes: at most `VOICE_MAX_SECONDS` long (default 900) and 64 MB. Formats and browser support:
     `docs/adr/0004-voice-notes.md`.
   - MIME type allow-list, verified by file signature (magic bytes), never by extension.

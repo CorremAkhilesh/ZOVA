@@ -1,6 +1,7 @@
 import { linkPreviewResponseSchema } from '@zuvo/protocol';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { findLinks } from '@/features/formatting/links';
+import { useAppConfig } from '@/features/media/use-app-config';
 import type { AttachedPreview } from '@/features/sync/outbox';
 import { apiPost } from '@/lib/api-client';
 
@@ -24,7 +25,9 @@ export function firstWebLink(text: string): string | null {
  * changes, and never asked for again once the person removed it. Offline or refused: no preview.
  */
 export function useLinkPreviewDraft(text: string, enabled: boolean) {
-  const url = enabled ? firstWebLink(text) : null;
+  // Switched off in Admin → Settings: no preview is asked for.
+  const allowed = useAppConfig()?.features.linkPreviews !== false;
+  const url = enabled && allowed ? firstWebLink(text) : null;
   const [state, setState] = useState<{ url: string; attached: AttachedPreview | null } | null>(
     null,
   );

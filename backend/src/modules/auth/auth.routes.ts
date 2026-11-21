@@ -18,6 +18,7 @@ import {
   toWebHeaders,
 } from '../../auth/session.ts';
 import { AppError } from '../../lib/errors.ts';
+import { recordOtpFailure } from '../../security/security-events.ts';
 import { loadUser } from '../../users/user-record.ts';
 
 /** Tight per-IP limit on the OTP endpoints, on top of the per-email OTP throttle. */
@@ -86,6 +87,8 @@ export const authRoutes: FastifyPluginAsyncZod = async (app) => {
       if (!response.ok) {
         if (body.code === 'INVALID_OTP') {
           const attemptsRemaining = await app.otpThrottle.recordFailure(email);
+          // Admin → Security: the failure (masked IP), and the lock if this one caused it.
+          await recordOtpFailure(app, email, request.ip, await app.otpThrottle.lockedFor(email));
           throw attemptsRemaining > 0
             ? new AppError('OTP_INVALID', 'That code is not right. Check it and try again.', {
                 attemptsRemaining,

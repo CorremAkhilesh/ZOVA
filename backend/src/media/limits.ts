@@ -17,6 +17,12 @@ const DISK_FULL_ALERT_EVERY_SECONDS = 6 * 3600;
 export const mediaMaxBytes = (env: Pick<Env, 'MEDIA_MAX_FILE_MB'>) =>
   env.MEDIA_MAX_FILE_MB * 1024 * 1024;
 
+/** The env with what Admin → Settings decides now (largest file). */
+export const limitsOf = (app: FastifyInstance): Env => ({
+  ...app.env,
+  MEDIA_MAX_FILE_MB: app.settings.current().mediaMaxFileMb,
+});
+
 const KIND_MAX_BYTES: Partial<Record<MediaKind, number>> = {
   image: IMAGE_MAX_BYTES,
   voice: VOICE_MAX_BYTES,
@@ -65,7 +71,8 @@ export async function assertRoomFor(app: FastifyInstance, incoming: number): Pro
     app.log.warn({ err: error }, 'could not read free disk space');
     return;
   }
-  if (space && wouldOverfill(space, incoming, app.env.STORAGE_GUARD_PERCENT)) {
+  const guard = app.settings.current().storageGuardPercent;
+  if (space && wouldOverfill(space, incoming, guard)) {
     app.log.warn({ total: space.total, free: space.free, incoming }, 'upload refused: disk full');
     void alertAdmins(app, space).catch((error: unknown) => {
       app.log.error({ err: error }, 'could not send the disk-full alert');
@@ -89,7 +96,7 @@ async function alertAdmins(app: FastifyInstance, { total, free }: StorageSpace):
     path: 'media storage',
     freeGiB: free / 1024 ** 3,
     stopped: true,
-    stopPercent: app.env.STORAGE_GUARD_PERCENT,
+    stopPercent: app.settings.current().storageGuardPercent,
   };
   for (const to of app.env.ADMIN_EMAILS) {
     await app.emailDispatcher.dispatch(diskAlertEmail(to, alert, new Date()), 'disk-alert');

@@ -12,7 +12,18 @@ const PNG =
   'iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAIAAAACUFjqAAAAEklEQVR4nGNk+M+ABIwMDAwAFAoBAX1Nz8QAAAAASUVORK5CYII=';
 const PHONE = { width: 375, height: 812 };
 
+const handled = new WeakSet<Page>();
+
 async function toStatus(page: Page) {
+  // Firefox now and then reports a waiting service worker even in a fresh profile; the persistent
+  // "New version available" toast then sits over the colour swatches. Close it as a person would.
+  const update = page.locator('[data-sonner-toast]').filter({ hasText: 'New version available' });
+  if (!handled.has(page)) {
+    handled.add(page);
+    await page.addLocatorHandler(update, () =>
+      update.getByRole('button', { name: /close/i }).click(),
+    );
+  }
   await page.goto('/updates');
   await expect(page.getByRole('heading', { name: 'Status', level: 1 })).toBeVisible(SLOW);
 }
@@ -110,8 +121,11 @@ test('post a status, a colleague sees it, views it and replies; the excluded one
   await shot(asha.page, 'reply-in-chat');
 
   await toStatus(asha.page);
+  // After the reload the feed comes back first: until then "My status" would open the editor.
+  const myStatus = asha.page.getByRole('button', { name: /^My status 2 updates/ });
+  await expect(myStatus).toBeVisible(SLOW);
   await shot(asha.page, 'list-desktop');
-  await asha.page.getByRole('button', { name: /^My status/ }).click();
+  await myStatus.click();
   const mine = asha.page.getByRole('dialog', { name: 'My status' });
   await expect(mine.getByText('Standup moved to 11 today')).toBeVisible(SLOW);
   await shot(asha.page, 'viewer-own-desktop');

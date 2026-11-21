@@ -41,17 +41,20 @@ export function PushUserRow(props: {
   const name = row.user.displayName ?? row.user.email;
   return (
     <li className="flex items-start gap-3 py-3">
-      <input
-        type="checkbox"
-        className="mt-1 size-4 accent-brand"
-        aria-label={t('adminPush.select', { name })}
-        checked={props.selected}
-        onChange={(event) => props.onSelect(event.target.checked)}
-      />
+      {/* The label is the 44 px touch target; the box stays small to look at. */}
+      <label className="tap-target mt-0.5 flex size-6 shrink-0 items-center justify-center">
+        <input
+          type="checkbox"
+          className="size-4 accent-brand"
+          aria-label={t('adminPush.select', { name })}
+          checked={props.selected}
+          onChange={(event) => props.onSelect(event.target.checked)}
+        />
+      </label>
       <div className="min-w-0 flex-1 space-y-1">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="font-medium">{name}</span>
-          <span className="text-xs text-text-muted">{row.user.email}</span>
+          <span className="min-w-0 font-medium break-all">{name}</span>
+          <span className="min-w-0 text-xs break-all text-text-muted">{row.user.email}</span>
           <span
             className={cn(
               'rounded-full px-2 py-0.5 font-medium text-xs',

@@ -10,6 +10,7 @@ import { MoreVertical, UserPlus } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
+import { useGroupMax } from '@/components/common/use-nav-items';
 import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -97,6 +98,7 @@ function MemberActions(props: {
 
 function AddMembers(props: { chatId: string; members: GroupMember[]; onClose: () => void }) {
   const { t } = useTranslation();
+  const groupMax = useGroupMax(GROUP_MEMBERS_MAX);
   const { chatId, members, onClose } = props;
   const [people, setPeople] = useState<PublicProfile[]>([]);
   const queryClient = useQueryClient();
@@ -118,7 +120,7 @@ function AddMembers(props: { chatId: string; members: GroupMember[]; onClose: ()
           selected={people}
           onChange={setPeople}
           excludeIds={new Set(members.map((member) => member.user.id))}
-          max={GROUP_MEMBERS_MAX - members.length}
+          max={groupMax - members.length}
         />
         {add.isError ? (
           <p role="alert" className="text-sm text-danger">

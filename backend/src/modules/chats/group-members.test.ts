@@ -178,7 +178,9 @@ describe('ownership', () => {
       await person(),
     ];
     const chatId = await group(asha, [bharat]);
-    const off = await call(admin, 'POST', `/v1/admin/users/${asha.id}/deactivate`, {});
+    const off = await call(admin, 'POST', `/v1/admin/users/${asha.id}/deactivate`, {
+      reason: 'left',
+    });
     expect(off.statusCode).toBe(200);
     expect(await roleOf(bharat, chatId, bharat.id)).toBe('owner');
   });

@@ -65,4 +65,9 @@ afterEach(async () => {
   document.documentElement.removeAttribute('data-theme');
   await i18n.changeLanguage('en');
 });
-afterAll(() => server.close());
+afterAll(async () => {
+  server.close();
+  // A closing toast removes itself 200 ms later (sonner's timer outlives unmount): let it finish
+  // while this file's window still exists.
+  await new Promise((resolve) => setTimeout(resolve, 250));
+});

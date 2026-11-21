@@ -95,8 +95,8 @@ export function DashboardStorage({ storage }: { storage: AdminDashboard['storage
         {storage.topUsers.length === 0 ? (
           <p className="text-sm text-text-muted">{t('adminPanel.dashboard.topUsersEmpty')}</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[28rem] text-sm">
+          <div>
+            <table className="w-full table-fixed text-sm">
               <thead className="text-left text-xs text-text-muted">
                 <tr>
                   <th scope="col" className="py-2 pr-3 font-medium">
@@ -116,8 +116,8 @@ export function DashboardStorage({ storage }: { storage: AdminDashboard['storage
                   return (
                     <tr key={user.id}>
                       <td className="py-2 pr-3">
-                        <p className="font-medium">{user.displayName ?? user.email}</p>
-                        <p className="text-xs text-text-muted">{user.email}</p>
+                        <p className="font-medium break-words">{user.displayName ?? user.email}</p>
+                        <p className="text-xs break-all text-text-muted">{user.email}</p>
                       </td>
                       <td className="py-2 pr-3 tabular-nums">{size(user.usedBytes)}</td>
                       <td className="space-y-1 py-2">

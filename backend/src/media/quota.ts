@@ -9,7 +9,7 @@ const MB = 1024 * 1024;
 
 /** This person's limit in bytes: their own, set by an admin, or the default. */
 export const quotaBytesOf = (app: FastifyInstance, user: Pick<UserDoc, 'storageQuotaMb'> | null) =>
-  (user?.storageQuotaMb ?? app.env.MEDIA_USER_QUOTA_MB) * MB;
+  (user?.storageQuotaMb ?? app.settings.current().mediaUserQuotaMb) * MB;
 
 const EMPTY: StorageUsage['byKind'] = { image: 0, video: 0, audio: 0, voice: 0, document: 0 };
 

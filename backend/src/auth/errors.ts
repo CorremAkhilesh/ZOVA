@@ -14,6 +14,8 @@ interface AuthErrorBody {
   code?: string;
   message?: string;
   retryAfterSeconds?: number;
+  until?: string;
+  reason?: string;
 }
 
 /** Maps a Better Auth error body (thrown APIError or JSON Response) to our AppError. */
@@ -29,6 +31,12 @@ export function authErrorFromBody(status: number, body: AuthErrorBody): AppError
   if (body.code === 'TOO_MANY_ATTEMPTS') {
     return new AppError('OTP_ATTEMPTS_EXCEEDED', 'Too many wrong codes. Request a new one.', {
       attemptsRemaining: 0,
+    });
+  }
+  if (body.code === 'ACCOUNT_SUSPENDED') {
+    return new AppError('ACCOUNT_SUSPENDED', message, {
+      until: body.until ?? null,
+      reason: body.reason ?? '',
     });
   }
   if (body.code && KNOWN_CODES.has(body.code as ErrorCode)) {

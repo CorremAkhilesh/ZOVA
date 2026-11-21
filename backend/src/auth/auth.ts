@@ -19,8 +19,10 @@ import { type OtpThrottle, ThrottledError } from './otp-throttle.ts';
 import {
   type AccessPolicy,
   accountDeactivated,
+  accountSuspended,
   assertAllowedEmail,
   isAdminEmail,
+  suspensionOf,
 } from './policy.ts';
 
 /** Header our Fastify layer sets from `request.ip` (proxy-aware); client values are overwritten. */
@@ -81,6 +83,8 @@ async function guardOtpRequest(ctx: HookContext, { policy, throttle }: AuthOptio
     if ((found?.user as { status?: string } | undefined)?.status === 'deactivated') {
       throw accountDeactivated();
     }
+    const suspended = suspensionOf(found?.user as Parameters<typeof suspensionOf>[0]);
+    if (suspended) throw accountSuspended(suspended);
     await throttle.checkLocked(email);
     await throttle.checkEmail(email);
     await throttle.resetAttempts(email);
@@ -124,6 +128,9 @@ export function createAuth(options: AuthOptions) {
         role: { type: 'string', required: false, defaultValue: 'user', input: false },
         status: { type: 'string', required: false, defaultValue: 'active', input: false },
         lastLoginAt: { type: 'date', required: false, input: false },
+        // Read at sign-in: an admin's suspension (until, and why).
+        suspendedUntil: { type: 'date', required: false, input: false },
+        suspendReason: { type: 'string', required: false, input: false },
         // Read here for the language of the OTP and new-login emails (set by PATCH /v1/me/profile).
         language: { type: 'string', required: false, input: false },
       },
@@ -248,6 +255,8 @@ export function createAuth(options: AuthOptions) {
               });
             assertAllowedEmail(user.email, policy);
             if ((user as { status?: string }).status === 'deactivated') throw accountDeactivated();
+            const suspended = suspensionOf(user as Parameters<typeof suspensionOf>[0]);
+            if (suspended) throw accountSuspended(suspended);
           },
           after: async (session, ctx) => {
             const adapter = ctx?.context.internalAdapter;

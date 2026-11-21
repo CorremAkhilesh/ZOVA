@@ -113,7 +113,7 @@ export function FolderChips(props: {
           aria-label={t('folders.newTitle')}
           title={t('folders.newTitle')}
           onClick={() => openEditor({ folder: null })}
-          className="flex shrink-0 items-center rounded-full border bg-surface px-2.5 py-1 text-text-muted transition-colors hover:text-text"
+          className="tap-target flex shrink-0 items-center rounded-full border bg-surface px-2.5 py-1 text-text-muted transition-colors hover:text-text"
         >
           <Plus className="size-4" aria-hidden />
         </button>

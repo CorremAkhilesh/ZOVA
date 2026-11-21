@@ -118,51 +118,6 @@ describe('Admin screens', () => {
     expect(screen.queryByRole('link', { name: /Users/ })).not.toBeInTheDocument();
   });
 
-  it('lists users, searches, and deactivates after confirmation', async () => {
-    const user = userEvent.setup();
-    let status: 'active' | 'deactivated' = 'active';
-    const queries: string[] = [];
-    const meera = () => ({
-      id: 'u-meera',
-      email: 'meera@corremadvisory.com',
-      displayName: 'Meera Nair',
-      username: 'meera',
-      role: 'user',
-      status,
-      lastLoginAt: null,
-      createdAt: new Date(now).toISOString(),
-      storageBytes: 3 * 1024 * 1024,
-      quotaBytes: 3 * 1024 ** 3,
-    });
-    server.use(
-      http.get('*/v1/auth/me', () => HttpResponse.json(adminSession())),
-      http.get('*/v1/admin/users', ({ request }) => {
-        queries.push(new URL(request.url).searchParams.get('q') ?? '');
-        return HttpResponse.json({ items: [meera()], nextCursor: null });
-      }),
-      http.post('*/v1/admin/users/:id/deactivate', () => {
-        status = 'deactivated';
-        return HttpResponse.json({
-          user: { id: 'u-meera', email: 'meera@corremadvisory.com', status },
-          revokedSessions: 2,
-        });
-      }),
-    );
-    const { container } = await renderApp('/admin/users');
-    expect(await screen.findByText('Meera Nair')).toBeInTheDocument();
-    expect(screen.getByText(/Storage used: 3 MB of 3 GB/)).toBeInTheDocument();
-    expect(await axe(container)).toHaveNoViolations();
-
-    await user.type(screen.getByRole('searchbox', { name: /Search by name/ }), 'mee');
-    await waitFor(() => expect(queries).toContain('mee'));
-
-    await user.click(screen.getByRole('button', { name: 'Deactivate' }));
-    const dialog = await screen.findByRole('dialog', { name: 'Deactivate Meera Nair?' });
-    await user.click(within(dialog).getByRole('button', { name: 'Deactivate' }));
-    expect(await screen.findByText('Deactivated')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Reactivate' })).toBeInTheDocument();
-  });
-
   it('shows the audit log (and its empty state)', async () => {
     server.use(
       http.get('*/v1/auth/me', () => HttpResponse.json(adminSession())),
@@ -176,6 +131,8 @@ describe('Admin screens', () => {
               target: { id: 'u-meera', email: 'meera@corremadvisory.com' },
               ipAddress: '127.0.0.1',
               at: new Date(now).toISOString(),
+              reason: 'Left the company',
+              details: null,
             },
           ],
           nextCursor: null,

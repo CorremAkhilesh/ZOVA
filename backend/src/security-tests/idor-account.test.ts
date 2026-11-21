@@ -12,6 +12,7 @@ import { dbSnapshot, expectRefused } from './idor-helpers.ts';
  */
 /** Signing several people in through the real OTP flow is slow on a busy machine. */
 const SETUP_TIMEOUT = 600_000;
+const WHY = { reason: 'test' };
 let built: Awaited<ReturnType<typeof buildTestApp>>;
 const app = () => built.app;
 const { person, call, say } = groupClient(app);
@@ -130,9 +131,49 @@ describe('admin routes and reports', () => {
       [
         { method: 'GET', url: '/v1/admin/users' },
         { method: 'GET', url: '/v1/admin/audit-log' },
-        { method: 'POST', url: `/v1/admin/users/${asha.id}/deactivate` },
-        { method: 'POST', url: `/v1/admin/users/${asha.id}/reactivate` },
-        { method: 'PUT', url: `/v1/admin/users/${chetan.id}/role`, payload: { role: 'admin' } },
+        { method: 'POST', url: `/v1/admin/users/${asha.id}/deactivate`, payload: WHY },
+        { method: 'POST', url: `/v1/admin/users/${asha.id}/reactivate`, payload: WHY },
+        {
+          method: 'PUT',
+          url: `/v1/admin/users/${chetan.id}/role`,
+          payload: { role: 'admin', ...WHY },
+        },
+        { method: 'GET', url: `/v1/admin/users/${asha.id}` },
+        { method: 'GET', url: '/v1/admin/users/export' },
+        { method: 'POST', url: `/v1/admin/users/${asha.id}/sign-out`, payload: WHY },
+        {
+          method: 'POST',
+          url: `/v1/admin/users/${asha.id}/suspend`,
+          payload: { until: new Date(Date.now() + 86_400_000).toISOString(), ...WHY },
+        },
+        { method: 'POST', url: `/v1/admin/users/${asha.id}/unsuspend`, payload: WHY },
+        { method: 'GET', url: '/v1/admin/settings' },
+        { method: 'GET', url: '/v1/admin/groups' },
+        { method: 'GET', url: '/v1/admin/security' },
+        { method: 'GET', url: '/v1/admin/audit-log/export' },
+        { method: 'GET', url: '/v1/admin/announcements' },
+        {
+          method: 'POST',
+          url: '/v1/admin/announcements',
+          payload: {
+            title: 'x',
+            body: 'y',
+            audience: { kind: 'all' },
+            banner: true,
+            message: false,
+            ...WHY,
+          },
+        },
+        {
+          method: 'PUT',
+          url: '/v1/admin/settings',
+          payload: { changes: { status: false }, ...WHY },
+        },
+        {
+          method: 'POST',
+          url: '/v1/admin/users/bulk',
+          payload: { userIds: [asha.id], action: 'signOut', ...WHY },
+        },
         { method: 'GET', url: '/v1/admin/reports' },
         { method: 'GET', url: `/v1/admin/reports/${messageId}` },
         {

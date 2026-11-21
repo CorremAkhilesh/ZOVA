@@ -16,7 +16,15 @@ import { createMailer, type Mailer } from './mail/mailer.ts';
 import { createMemoryMailer, isMemoryMailer } from './mail/memory-mailer.ts';
 import { adminRoutes } from './modules/admin/admin.routes.ts';
 import { adminDashboardRoutes } from './modules/admin/admin-dashboard.routes.ts';
+import { adminGroupsRoutes } from './modules/admin/admin-groups.routes.ts';
 import { adminNotificationsRoutes } from './modules/admin/admin-notifications.routes.ts';
+import { adminSecurityRoutes } from './modules/admin/admin-security.routes.ts';
+import { adminSettingsRoutes } from './modules/admin/admin-settings.routes.ts';
+import { adminUsersRoutes } from './modules/admin/admin-users.routes.ts';
+import {
+  adminAnnouncementsRoutes,
+  announcementsRoutes,
+} from './modules/announcements/announcements.routes.ts';
 import { appearanceRoutes } from './modules/appearance/appearance.routes.ts';
 import { authRoutes } from './modules/auth/auth.routes.ts';
 import { callsRoutes } from './modules/calls/calls.routes.ts';
@@ -63,12 +71,14 @@ import { securityPlugin } from './plugins/security.ts';
 import { servicesPlugin } from './plugins/services.ts';
 import { isMemoryPushSender, type PushSender } from './push/sender.ts';
 import { realtimePlugin } from './realtime/server.ts';
+import { createSettingsStore, type SettingsStore } from './settings/app-settings.ts';
 import type { StorageDriver } from './storage/driver.ts';
 import { LocalDiskDriver } from './storage/local-disk-driver.ts';
 
 declare module 'fastify' {
   interface FastifyInstance {
     env: Env;
+    settings: SettingsStore;
   }
 }
 
@@ -125,6 +135,11 @@ export async function buildApp(env: Env, deps: Partial<AppDeps> = {}) {
     autoIndex: env.NODE_ENV !== 'production',
     compress: env.NODE_ENV === 'production',
   });
+  // Organization settings (Admin → Settings) over the env defaults; read without waiting.
+  const settings = createSettingsStore(app.mongo, env);
+  await settings.refresh();
+  app.decorate('settings', settings);
+  app.addHook('onClose', async () => settings.close());
   await app.register(servicesPlugin, {
     storage: deps.storage ?? new LocalDiskDriver(env.MEDIA_STORAGE_PATH),
     // Tests never talk to SMTP: an in-memory mailer lets them read the OTP.
@@ -170,6 +185,12 @@ export async function buildApp(env: Env, deps: Partial<AppDeps> = {}) {
   await app.register(adminRoutes, { prefix: '/v1' });
   await app.register(adminNotificationsRoutes, { prefix: '/v1' });
   await app.register(adminDashboardRoutes, { prefix: '/v1' });
+  await app.register(adminUsersRoutes, { prefix: '/v1' });
+  await app.register(adminSettingsRoutes, { prefix: '/v1' });
+  await app.register(adminAnnouncementsRoutes, { prefix: '/v1' });
+  await app.register(adminGroupsRoutes, { prefix: '/v1' });
+  await app.register(adminSecurityRoutes, { prefix: '/v1' });
+  await app.register(announcementsRoutes, { prefix: '/v1' });
   await app.register(blocksRoutes, { prefix: '/v1' });
   await app.register(reportsRoutes, { prefix: '/v1' });
   await app.register(adminReportsRoutes, { prefix: '/v1' });

@@ -31,12 +31,24 @@ const hashed = (email: string) => createHash('sha256').update(email).digest('hex
  */
 export class OtpThrottle {
   private readonly store: CounterStore;
-  private readonly ipLimitPerHour: number;
+  private readonly ipLimit: () => number;
+  private readonly failuresPerDay: () => number;
   private readonly prefix: string;
 
-  constructor(store: CounterStore, options: { ipLimitPerHour: number; prefix?: string }) {
+  /** Limits may be functions: Admin → Settings can change them while the server runs. */
+  constructor(
+    store: CounterStore,
+    options: {
+      ipLimitPerHour: number | (() => number);
+      failuresPerDay?: number | (() => number);
+      prefix?: string;
+    },
+  ) {
+    const read = (value: number | (() => number)) =>
+      typeof value === 'function' ? value : () => value;
     this.store = store;
-    this.ipLimitPerHour = options.ipLimitPerHour;
+    this.ipLimit = read(options.ipLimitPerHour);
+    this.failuresPerDay = read(options.failuresPerDay ?? OTP_FAILURES_PER_EMAIL_PER_DAY);
     this.prefix = options.prefix ?? 'zuvo:auth:';
   }
 
@@ -47,7 +59,7 @@ export class OtpThrottle {
   /** Counts every OTP request from an IP, including rejected ones. */
   async checkIp(ip: string): Promise<void> {
     const key = this.key('otp-ip', ip);
-    if ((await this.store.increment(key, HOUR)) > this.ipLimitPerHour) {
+    if ((await this.store.increment(key, HOUR)) > this.ipLimit()) {
       throw new ThrottledError(
         'Too many code requests from this network.',
         await this.store.ttl(key),
@@ -86,6 +98,22 @@ export class OtpThrottle {
     await this.store.remove(this.key('otp-fail', hashed(email)));
   }
 
+  /** Seconds left on this email's lock for the day; 0 when it is not locked. */
+  async lockedFor(email: string): Promise<number> {
+    return this.store.ttl(this.key('otp-locked', hashed(email)));
+  }
+
+  /**
+   * An admin ended the lock: the email may ask for a code at once, with a fresh daily count. The
+   * hourly cap on codes stays.
+   */
+  async unlock(email: string): Promise<void> {
+    const id = hashed(email);
+    for (const kind of ['otp-locked', 'otp-fail-day', 'otp-fail', 'otp-cooldown']) {
+      await this.store.remove(this.key(kind, id));
+    }
+  }
+
   /** Refuses codes and sign-ins for an email that used up its wrong guesses for the day. */
   async checkLocked(email: string): Promise<void> {
     const left = await this.store.ttl(this.key('otp-locked', hashed(email)));
@@ -101,7 +129,7 @@ export class OtpThrottle {
   async recordFailure(email: string): Promise<number> {
     const id = hashed(email);
     const daily = this.key('otp-fail-day', id);
-    if ((await this.store.increment(daily, DAY)) >= OTP_FAILURES_PER_EMAIL_PER_DAY) {
+    if ((await this.store.increment(daily, DAY)) >= this.failuresPerDay()) {
       await this.store.setIfAbsent(this.key('otp-locked', id), await this.store.ttl(daily));
     }
     const failures = await this.store.increment(this.key('otp-fail', id), OTP_TTL_SECONDS);

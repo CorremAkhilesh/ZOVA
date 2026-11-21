@@ -8,6 +8,7 @@ import type { FastifyInstance } from 'fastify';
 import fp from 'fastify-plugin';
 import { Redis } from 'ioredis';
 import { Server, type Socket } from 'socket.io';
+import { suspensionOf } from '../auth/policy.ts';
 import { type AuthSessionRecord, trackActivity } from '../auth/session.ts';
 import type { Env } from '../config/env.ts';
 import { loadUser, privacyOf } from '../users/user-record.ts';
@@ -79,6 +80,7 @@ async function authenticate(app: FastifyInstance, socket: ZuvoSocket): Promise<v
   const user = await loadUser(app, result.user.id);
   if (!user) throw authError('SESSION_EXPIRED');
   if (user.status === 'deactivated') throw authError('ACCOUNT_DEACTIVATED');
+  if (suspensionOf(user)) throw authError('SESSION_EXPIRED');
   socket.data.userId = user._id.toString();
   socket.data.hideLastSeen = privacyOf(user).lastSeen === 'nobody';
   socket.data.session = { ...session, expiresAt: new Date(session.expiresAt) };

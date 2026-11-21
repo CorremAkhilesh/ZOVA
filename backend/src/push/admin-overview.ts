@@ -46,24 +46,13 @@ function toDevice(session: SessionRow, subscribed: Set<string>): AdminPushDevice
 }
 
 /**
- * Admin → Notifications: active people, oldest account first, cursor on _id (default _id index),
- * each with their signed-in devices (sessions: index userId + expiresAt) and whether each has a push
- * subscription (index userId + createdAt).
+ * Each person's signed-in devices (sessions: index userId + expiresAt), and whether each has a push
+ * subscription (index userId + createdAt). Used by Admin → Notifications and Admin → Users.
  */
-export async function adminPushOverview(
+export async function devicesByUser(
   app: FastifyInstance,
-  limit: number,
-  cursor?: string,
-): Promise<AdminPushPage> {
-  const filter: Record<string, unknown> = { status: { $ne: 'deactivated' } };
-  if (cursor && Types.ObjectId.isValid(cursor)) filter._id = { $gt: new Types.ObjectId(cursor) };
-  const docs = (await usersModel(app)
-    .find(filter)
-    .sort({ _id: 1 })
-    .limit(limit + 1)
-    .lean()) as UserDoc[];
-  const users = docs.slice(0, limit);
-  const ids = users.map((user) => user._id);
+  ids: Types.ObjectId[],
+): Promise<Map<string, AdminPushDevice[]>> {
   const sessions = (await registerAuthModels(app.mongo)
     // Better Auth may store the user id as an ObjectId or as a string: ask for both.
     .AuthSession.find({
@@ -82,6 +71,31 @@ export async function adminPushOverview(
     const key = String(session.userId);
     byUser.set(key, [...(byUser.get(key) ?? []), toDevice(session, subscribed)]);
   }
+  return byUser;
+}
+
+/**
+ * Admin → Notifications: active people, oldest account first, cursor on _id (default _id index),
+ * each with their signed-in devices (sessions: index userId + expiresAt) and whether each has a push
+ * subscription (index userId + createdAt).
+ */
+export async function adminPushOverview(
+  app: FastifyInstance,
+  limit: number,
+  cursor?: string,
+): Promise<AdminPushPage> {
+  const filter: Record<string, unknown> = { status: { $ne: 'deactivated' } };
+  if (cursor && Types.ObjectId.isValid(cursor)) filter._id = { $gt: new Types.ObjectId(cursor) };
+  const docs = (await usersModel(app)
+    .find(filter)
+    .sort({ _id: 1 })
+    .limit(limit + 1)
+    .lean()) as UserDoc[];
+  const users = docs.slice(0, limit);
+  const byUser = await devicesByUser(
+    app,
+    users.map((user) => user._id),
+  );
   return {
     items: users.map((user) => {
       const devices = byUser.get(user._id.toString()) ?? [];

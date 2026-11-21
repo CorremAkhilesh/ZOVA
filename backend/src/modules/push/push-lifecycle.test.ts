@@ -76,12 +76,9 @@ describe('a subscription ends with its session', () => {
   it('when an admin deactivates the account', async () => {
     const { laptop } = await twoDevices();
     const admin = await signedIn(app(), 'admin@corremadvisory.com');
-    const response = await send(
-      admin.cookie,
-      'POST',
-      `/v1/admin/users/${laptop.id}/deactivate`,
-      {},
-    );
+    const response = await send(admin.cookie, 'POST', `/v1/admin/users/${laptop.id}/deactivate`, {
+      reason: 'test',
+    });
     expect(response.statusCode).toBe(200);
     expect(await subscriptionsOf(laptop.id)).toEqual([]);
   });

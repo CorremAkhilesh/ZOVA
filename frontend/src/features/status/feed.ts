@@ -56,6 +56,15 @@ async function storeFeed(db: LocalDb, feed: StatusFeedResponse) {
   await db.meta.put({ key: FEED_KEY, value: JSON.stringify(withoutExpired(feed)) });
 }
 
+/**
+ * Signed out (or the account changed) while the feed was on its way: this device's database is
+ * closed for good and nothing is kept. Anything else is a real failure and is reported.
+ */
+function ignoreClosed(error: unknown) {
+  if ((error as { name?: string } | null)?.name === 'DatabaseClosedError') return;
+  console.error('[status] could not keep the feed', error);
+}
+
 let inFlight: Promise<void> | null = null;
 let again = false;
 
@@ -72,7 +81,7 @@ export function refreshStatuses(db: LocalDb): Promise<void> {
     do {
       again = false;
       const feed = await statusApi.feed().catch(() => null);
-      if (feed) await storeFeed(db, feed);
+      if (feed) await storeFeed(db, feed).catch(ignoreClosed);
     } while (again);
   })().finally(() => {
     inFlight = null;

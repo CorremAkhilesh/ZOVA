@@ -9,6 +9,7 @@ import { dayKey, lastDays, recordActivity } from '../../admin/report-days.ts';
 import { callModels } from '../../calls/call-finish.ts';
 import { chatModels } from '../../chats/chats.service.ts';
 import { registerActivityModels } from '../../db/activity-models.ts';
+import { recordBackup, registerSystemStatusModels } from '../../db/system-status.ts';
 
 // Admin → Dashboard: admin only, counts that add up, and never any content.
 
@@ -140,6 +141,17 @@ describe('privacy', () => {
     for (const secret of ['merger', 'salaries-2026', 'Secret project', 'aa/', 'sha256']) {
       expect(text).not.toContain(secret);
     }
+  });
+});
+
+describe('the last backup', () => {
+  it('is unknown until the nightly backup reports, then shows when it finished', async () => {
+    const { SystemStatus } = registerSystemStatusModels(app().mongo);
+    await SystemStatus.deleteMany({});
+    expect((await fresh()).lastBackupAt).toBeNull();
+    const at = new Date('2026-11-21T02:31:00.000Z');
+    await recordBackup(app().mongo, at, 120);
+    expect((await fresh()).lastBackupAt).toBe(at.toISOString());
   });
 });
 

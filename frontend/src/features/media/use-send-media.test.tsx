@@ -17,7 +17,14 @@ describe('the file size limit', () => {
   it('comes from the server', async () => {
     server.use(
       http.get('*/v1/config', () =>
-        HttpResponse.json({ media: { maxFileBytes: 5 * 1024 * 1024, voiceMaxSeconds: 900 } }),
+        HttpResponse.json({
+          media: {
+            maxFileBytes: 5 * 1024 * 1024,
+            voiceMaxSeconds: 900,
+            userQuotaBytes: 3 * 1024 ** 3,
+          },
+          features: { status: true, linkPreviews: true, groupMaxMembers: 256 },
+        }),
       ),
     );
     const { result } = setup();

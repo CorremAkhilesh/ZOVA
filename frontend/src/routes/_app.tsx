@@ -3,6 +3,7 @@ import { AppRail } from '@/components/common/AppRail';
 import { BottomTabs } from '@/components/common/BottomTabs';
 import { ChatListSkeleton } from '@/components/common/ChatListSkeleton';
 import { ErrorScreen, NotFound } from '@/components/common/StatusScreens';
+import { AnnouncementBar } from '@/features/announcements/AnnouncementBar';
 import { AppearanceHost } from '@/features/appearance/components/AppearanceHost';
 import { SessionGate } from '@/features/auth/components/SessionGate';
 import { requireCompleteSession } from '@/features/auth/guards';
@@ -77,6 +78,7 @@ function AppShell() {
         {hosts}
         <AppRail />
         <main className="flex min-w-0 flex-1 flex-col">
+          <AnnouncementBar />
           <NotificationsNudge />
           <SessionGate />
           <OnCallBar />
@@ -92,6 +94,7 @@ function AppShell() {
     <div className="flex h-full flex-col">
       {hosts}
       <main className="glass flex min-h-0 flex-1 flex-col">
+        <AnnouncementBar />
         <NotificationsNudge />
         <SessionGate />
         <OnCallBar />

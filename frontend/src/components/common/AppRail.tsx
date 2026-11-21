@@ -5,7 +5,7 @@ import { Avatar } from '@/components/ui/avatar';
 import { Tooltip } from '@/components/ui/tooltip';
 import { useSession } from '@/features/auth/session';
 import { Logo } from './Logo';
-import { NAV_ITEMS } from './nav-items';
+import { useNavItems } from './use-nav-items';
 
 const RAIL_LINK =
   'relative flex size-11 items-center justify-center rounded-xl text-text-muted transition-colors hover:bg-background hover:text-text data-[status=active]:bg-brand-subtle data-[status=active]:text-brand-text';
@@ -13,6 +13,7 @@ const RAIL_LINK =
 /** Desktop navigation: a slim icon rail on the far left (and the admin panel, for admins). */
 export function AppRail() {
   const { t } = useTranslation();
+  const navItems = useNavItems();
   const user = useSession()?.user;
   const name = user?.displayName ?? user?.email ?? '';
   return (
@@ -21,7 +22,7 @@ export function AppRail() {
       className="glass flex w-[72px] shrink-0 flex-col items-center gap-2 border-r py-4"
     >
       <Logo className="mb-4" />
-      {NAV_ITEMS.map(({ to, labelKey, icon: Icon }) => (
+      {navItems.map(({ to, labelKey, icon: Icon }) => (
         <Tooltip key={to} label={t(labelKey)}>
           <Link to={to} aria-label={t(labelKey)} className={RAIL_LINK}>
             <Icon className="size-5" aria-hidden />

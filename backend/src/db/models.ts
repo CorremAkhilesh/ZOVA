@@ -1,5 +1,8 @@
 import type { Connection } from 'mongoose';
+import { registerSecurityEventModels } from '../security/security-events.ts';
+import { registerSettingsModels } from '../settings/app-settings.ts';
 import { registerActivityModels } from './activity-models.ts';
+import { registerAnnouncementModels } from './announcement-models.ts';
 import { registerAppearanceModels } from './appearance-models.ts';
 import { registerAuthModels } from './auth-models.ts';
 import { registerCallModels } from './call-models.ts';
@@ -13,6 +16,7 @@ import { registerScheduledModels } from './scheduled-models.ts';
 import { registerSecurityModels } from './security-models.ts';
 import { registerStatusModels } from './status-models.ts';
 import type { IndexedModel } from './sync-indexes.ts';
+import { registerSystemStatusModels } from './system-status.ts';
 
 /**
  * Every Mongoose model, registered on a connection. `db:sync-indexes` syncs exactly these.
@@ -32,6 +36,13 @@ export const modelRegistrations: Array<(connection: Connection) => IndexedModel[
   (connection) => Object.values(registerStatusModels(connection)) as unknown as IndexedModel[],
   (connection) => Object.values(registerCallModels(connection)) as unknown as IndexedModel[],
   (connection) => Object.values(registerActivityModels(connection)) as unknown as IndexedModel[],
+  (connection) => Object.values(registerSettingsModels(connection)) as unknown as IndexedModel[],
+  (connection) =>
+    Object.values(registerAnnouncementModels(connection)) as unknown as IndexedModel[],
+  (connection) =>
+    Object.values(registerSecurityEventModels(connection)) as unknown as IndexedModel[],
+  (connection) =>
+    Object.values(registerSystemStatusModels(connection)) as unknown as IndexedModel[],
 ];
 
 export function registerModels(connection: Connection): IndexedModel[] {

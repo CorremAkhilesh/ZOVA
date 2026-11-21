@@ -37,6 +37,10 @@ export interface AuditLogDoc {
   targetEmail: string;
   ipAddress: string | null;
   at: Date;
+  /** Why, in the admin's words (required since the admin panel asks for it). */
+  reason?: string | null;
+  /** What changed, e.g. { fromMb, toMb } for a storage limit. */
+  details?: Record<string, string | number | null> | null;
 }
 
 const auditLogSchema = new Schema<AuditLogDoc>(
@@ -48,11 +52,18 @@ const auditLogSchema = new Schema<AuditLogDoc>(
     targetEmail: { type: String, required: true },
     ipAddress: { type: String, default: null },
     at: { type: Date, default: () => new Date() },
+    reason: { type: String, default: null },
+    details: { type: Schema.Types.Mixed, default: null },
   },
   { ...options, collection: 'audit_logs' },
 );
 // Serves: Admin → Audit log, newest first, cursor on (at, _id).
 auditLogSchema.index({ at: -1, _id: -1 });
+// Serves: Admin → Audit log filtered by action, by the admin's email, or by the person's email,
+// newest first (equality, then the sort).
+auditLogSchema.index({ action: 1, at: -1, _id: -1 });
+auditLogSchema.index({ actorEmail: 1, at: -1, _id: -1 });
+auditLogSchema.index({ targetEmail: 1, at: -1, _id: -1 });
 // Serves: history of actions on one user.
 auditLogSchema.index({ targetId: 1, at: -1 });
 // Serves: history of one admin's actions.

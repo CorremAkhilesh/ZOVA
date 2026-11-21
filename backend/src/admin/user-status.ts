@@ -19,6 +19,7 @@ export async function setUserStatus(
   actor: Actor,
   id: string,
   status: 'active' | 'deactivated',
+  reason: string,
 ) {
   const target = await findTarget(app, id);
   if (status === 'deactivated') {
@@ -35,6 +36,7 @@ export async function setUserStatus(
       actor,
       status === 'deactivated' ? 'user.deactivate' : 'user.reactivate',
       target,
+      { reason },
     );
   }
   if (status === 'deactivated') {

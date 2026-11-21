@@ -12,6 +12,7 @@ import {
 } from '@zuvo/protocol';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { currentUserId, requireSession } from '../../auth/session.ts';
+import { AppError } from '../../lib/errors.ts';
 import { setStatusPrivacy, statusPrivacyOf } from '../../status/audience.ts';
 import { createStatus, deleteStatus } from '../../status/status.service.ts';
 import { setStatusMute, statusFeed, statusViewers, viewStatus } from '../../status/status-feed.ts';
@@ -48,9 +49,12 @@ export const statusRoutes: FastifyPluginAsyncZod = async (app) => {
         response: { 200: statusResponseSchema },
       },
     },
-    async (request) => ({
-      status: await createStatus(app, currentUserId(request), request.body),
-    }),
+    async (request) => {
+      if (!app.settings.current().status) {
+        throw new AppError('FORBIDDEN', 'Status updates are switched off for the organization.');
+      }
+      return { status: await createStatus(app, currentUserId(request), request.body) };
+    },
   );
 
   app.delete(

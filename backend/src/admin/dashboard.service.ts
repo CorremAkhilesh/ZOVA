@@ -1,6 +1,7 @@
 import type { AdminDashboard, CheckStatus } from '@zuvo/protocol';
 import { Queue } from 'bullmq';
 import type { FastifyInstance } from 'fastify';
+import { lastBackup } from '../db/system-status.ts';
 import { EMAIL_QUEUE } from '../jobs/email-queue.ts';
 import { getBuildInfo } from '../lib/build-info.ts';
 import { withTimeout } from '../lib/timeout.ts';
@@ -61,8 +62,8 @@ export async function adminDashboard(
     storage,
     health: checks,
     build: { version: APP_VERSION, commit, builtAt },
-    // The nightly backup runs on the host; it does not report here yet.
-    lastBackupAt: null,
+    // Recorded by the nightly backup on the host (deploy/scripts/backup.sh → backup-done.js).
+    lastBackupAt: (await lastBackup(app.mongo))?.finishedAt.toISOString() ?? null,
   };
   cache.set(app, { at: now.getTime(), value });
   return value;

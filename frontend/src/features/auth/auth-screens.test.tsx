@@ -102,6 +102,23 @@ describe('email step', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('deactivated');
   });
 
+  it('says until when an account is suspended, and why', async () => {
+    const { user, email } = await startAtEmail();
+    server.use(
+      http.post('*/v1/auth/otp/request', () =>
+        apiError('ACCOUNT_SUSPENDED', 403, {
+          until: '2026-11-28T12:30:00.000Z',
+          reason: 'Policy review',
+        }),
+      ),
+    );
+    await user.type(email, 'asha@corremadvisory.com');
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent(/Your account is suspended until Nov 28, 2026/);
+    expect(alert).toHaveTextContent('Reason: Policy review');
+  });
+
   it('greets users whose session ended', async () => {
     useAuthFlow.setState({ signedOutReason: 'expired' });
     await startAtEmail();

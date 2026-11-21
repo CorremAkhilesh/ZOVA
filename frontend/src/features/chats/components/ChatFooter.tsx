@@ -13,6 +13,7 @@ export function footerNotice(chat: ChatSummary): string | null {
   if (chat.deactivated) return 'people.deactivated';
   if (!chat.group) return null;
   if (!chat.group.active) return 'groups.noLongerMember';
+  if (chat.group.archivedByAdmin) return 'groups.archivedByAdmin';
   return groupAbilities(chat.group).send ? null : 'groups.onlyAdminsSend';
 }
 

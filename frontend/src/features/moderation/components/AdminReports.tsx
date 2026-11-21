@@ -79,7 +79,7 @@ export default function AdminReports() {
             tabIndex={filter === value ? 0 : -1}
             onClick={() => setFilter(value)}
             className={cn(
-              'rounded-lg border px-3 py-1.5 text-sm font-medium',
+              'tap-target rounded-lg border px-3 py-1.5 text-sm font-medium',
               filter === value
                 ? 'border-brand bg-brand-subtle text-brand-text'
                 : 'text-text-muted hover:text-text',

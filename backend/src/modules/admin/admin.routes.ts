@@ -1,4 +1,5 @@
 import {
+  adminReasonBodySchema,
   adminRoleBodySchema,
   adminStorageQuotaBodySchema,
   adminStorageQuotaResponseSchema,
@@ -7,19 +8,15 @@ import {
   adminUserStatusResponseSchema,
   adminUsersQuerySchema,
   adminUsersResponseSchema,
+  auditLogQuerySchema,
   auditLogResponseSchema,
-  cursorPageQuerySchema,
 } from '@zuvo/protocol';
 import type { FastifyRequest } from 'fastify';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
-import {
-  type Actor,
-  listAudit,
-  listUsers,
-  setRole,
-  setStorageQuota,
-} from '../../admin/admin.service.ts';
+import { type Actor, setRole, setStorageQuota } from '../../admin/admin.service.ts';
+import { listAudit } from '../../admin/audit-log.ts';
 import { setUserStatus } from '../../admin/user-status.ts';
+import { listUsersPage } from '../../admin/users-list.ts';
 import { requireAdmin } from '../../auth/session.ts';
 import { AppError } from '../../lib/errors.ts';
 
@@ -37,8 +34,8 @@ export const adminRoutes: FastifyPluginAsyncZod = async (app) => {
   // onRequest: authentication is decided before any body is parsed or validated (401 before 400).
   app.addHook('onRequest', requireAdmin);
 
-  const setStatus = (actor: Actor, id: string, status: 'active' | 'deactivated') =>
-    setUserStatus(app, actor, id, status);
+  const setStatus = (actor: Actor, id: string, status: 'active' | 'deactivated', reason: string) =>
+    setUserStatus(app, actor, id, status, reason);
 
   app.get(
     '/admin/users',
@@ -49,26 +46,29 @@ export const adminRoutes: FastifyPluginAsyncZod = async (app) => {
         response: { 200: adminUsersResponseSchema },
       },
     },
-    async (request) => listUsers(app, request.query.q, request.query.limit, request.query.cursor),
+    async (request) => listUsersPage(app, request.query),
   );
 
   const statusSchema = (summary: string) => ({
     tags: ['admin'],
     summary,
     params: adminUserParamsSchema,
+    body: adminReasonBodySchema,
     response: { 200: adminUserStatusResponseSchema },
   });
 
   app.post(
     '/admin/users/:id/deactivate',
     { schema: statusSchema('Deactivate a user and revoke all their sessions') },
-    async (request) => setStatus(actorOf(request), request.params.id, 'deactivated'),
+    async (request) =>
+      setStatus(actorOf(request), request.params.id, 'deactivated', request.body.reason),
   );
 
   app.post(
     '/admin/users/:id/reactivate',
     { schema: statusSchema('Reactivate a deactivated user') },
-    async (request) => setStatus(actorOf(request), request.params.id, 'active'),
+    async (request) =>
+      setStatus(actorOf(request), request.params.id, 'active', request.body.reason),
   );
 
   app.put(
@@ -83,7 +83,13 @@ export const adminRoutes: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (request) => ({
-      user: await setRole(app, actorOf(request), request.params.id, request.body.role),
+      user: await setRole(
+        app,
+        actorOf(request),
+        request.params.id,
+        request.body.role,
+        request.body.reason,
+      ),
     }),
   );
 
@@ -99,7 +105,13 @@ export const adminRoutes: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (request) =>
-      setStorageQuota(app, actorOf(request), request.params.id, request.body.quotaMb),
+      setStorageQuota(
+        app,
+        actorOf(request),
+        request.params.id,
+        request.body.quotaMb,
+        request.body.reason,
+      ),
   );
 
   app.get(
@@ -107,10 +119,10 @@ export const adminRoutes: FastifyPluginAsyncZod = async (app) => {
     {
       schema: {
         tags: ['admin'],
-        querystring: cursorPageQuerySchema,
+        querystring: auditLogQuerySchema,
         response: { 200: auditLogResponseSchema },
       },
     },
-    async (request) => listAudit(app, request.query.limit, request.query.cursor),
+    async (request) => listAudit(app, request.query),
   );
 };

@@ -13,21 +13,39 @@ does not prove the operators match (e.g. a partial index needs the same `$type`/
 tests themselves run `explain()` and are the real check.
 | Status | Sites |
 | --- | --- |
-| covered by an `expectIndexedQuery()` test of the same model + filter shape | 185 |
-| covered by the `_id` index (filter on `_id`) | 212 |
-| reviewed by hand (see the note) | 16 |
+| covered by an `expectIndexedQuery()` test of the same model + filter shape | 201 |
+| covered by the `_id` index (filter on `_id`) | 228 |
+| reviewed by hand (see the note) | 19 |
 | **gap** (no test) | 0 |
-| **total** | 413 |
+| **total** | 448 |
 
 ### `src/admin/admin.service.ts`
 
 | Line | Model | Method | Filter | Sort | Status | By |
 | --- | --- | --- | --- | --- | --- | --- |
-| 56 | AuthUser | find | ?_id, ?email, ?searchTerms, … | _id | covered (`_id`) | `_id` index |
-| 85 | AuthUser | countDocuments | role, status |  | covered | src/admin/dashboard-indexes.test.ts:26 |
-| 106 | AuthUser | updateOne | _id |  | covered (`_id`) | `_id` index |
-| 121 | AuthUser | updateOne | _id |  | covered (`_id`) | `_id` index |
-| 159 | AuditLog | find | ?$or._id:range, ?$or.at | _id, at | covered | src/modules/admin/admin.test.ts:152 + `_id` index |
+| 51 | AuthUser | countDocuments | role, status |  | covered | src/admin/dashboard-indexes.test.ts:26 |
+| 73 | AuthUser | updateOne | _id |  | covered (`_id`) | `_id` index |
+| 92 | AuthUser | updateOne | _id |  | covered (`_id`) | `_id` index |
+
+### `src/admin/announcements.ts`
+
+| Line | Model | Method | Filter | Sort | Status | By |
+| --- | --- | --- | --- | --- | --- | --- |
+| 49 | AuthUser | find | ?_id, status, … |  | covered | src/admin/dashboard-indexes.test.ts:26 |
+| 128 | Announcement | find | … | _id | covered (`_id`) | `_id` index |
+| 147 | Announcement | findById | _id |  | covered (`_id`) | `_id` index |
+| 152 | Announcement | updateOne | _id |  | covered (`_id`) | `_id` index |
+| 173 | Announcement | find | banner, endedAt | createdAt | covered | src/admin/announcement-indexes.test.ts:21 |
+| 183 | AnnouncementDismissal | find | announcementId, userId |  | covered | src/admin/announcement-indexes.test.ts:24 |
+| 205 | Announcement | exists | _id |  | covered (`_id`) | `_id` index |
+| 207 | AnnouncementDismissal | updateOne | announcementId, userId |  | covered | src/admin/announcement-indexes.test.ts:24 |
+
+### `src/admin/audit-log.ts`
+
+| Line | Model | Method | Filter | Sort | Status | By |
+| --- | --- | --- | --- | --- | --- | --- |
+| 60 | ? | find | fn:auditFilterOf | _id, at | covered | filter from `auditFilterOf()` tested |
+| 78 | ? | find | fn:auditFilterOf | _id, at | covered | filter from `auditFilterOf()` tested |
 
 ### `src/admin/dashboard-activity.ts`
 
@@ -46,6 +64,23 @@ tests themselves run `explain()` and are the real check.
 | --- | --- | --- | --- | --- | --- | --- |
 | 44 | AuthUser | find | _id |  | covered (`_id`) | `_id` index |
 
+### `src/admin/groups.ts`
+
+| Line | Model | Method | Filter | Sort | Status | By |
+| --- | --- | --- | --- | --- | --- | --- |
+| 19 | ChatMember | find | chatId, leftAt, role |  | covered | src/admin/group-indexes.test.ts:26 |
+| 29 | AuthUser | find | _id |  | covered (`_id`) | `_id` index |
+| 67 | Chat | find | ?_id, group.adminDeleted, type, … | _id | covered | src/admin/group-indexes.test.ts:23 |
+| 76 | Chat | findById | _id |  | covered (`_id`) | `_id` index |
+| 102 | Chat | updateOne | _id |  | covered (`_id`) | `_id` index |
+| 120 | Chat | updateOne | _id |  | covered (`_id`) | `_id` index |
+| 155 | ChatMember | find | chatId, leftAt |  | covered | src/chats/chat-indexes.test.ts:27 |
+| 160 | ChatMember | updateMany | chatId, leftAt |  | covered | src/chats/chat-indexes.test.ts:27 |
+| 174 | Chat | updateOne | _id |  | covered (`_id`) | `_id` index |
+| 186 | Media | updateMany | chatId |  | covered | src/admin/group-indexes.test.ts:29 |
+| 191 | Message | deleteMany | chatId |  | covered | src/admin/group-indexes.test.ts:31 |
+| 192 | Star | deleteMany | chatId |  | covered | src/admin/group-indexes.test.ts:32 |
+
 ### `src/admin/report-days.ts`
 
 | Line | Model | Method | Filter | Sort | Status | By |
@@ -60,11 +95,31 @@ tests themselves run `explain()` and are the real check.
 | 53 | AuthUser | countDocuments | _id:range, role, status |  | covered | src/admin/dashboard-indexes.test.ts:26 |
 | 63 | AuthUser | updateOne | _id |  | covered (`_id`) | `_id` index |
 
+### `src/admin/security.ts`
+
+| Line | Model | Method | Filter | Sort | Status | By |
+| --- | --- | --- | --- | --- | --- | --- |
+| 25 | AuthSession | countDocuments | expiresAt |  | covered | src/admin/security-indexes.test.ts:22 |
+| 26 | AuthSession | distinct | expiresAt |  | covered | src/admin/security-indexes.test.ts:22 |
+
+### `src/admin/suspend.ts`
+
+| Line | Model | Method | Filter | Sort | Status | By |
+| --- | --- | --- | --- | --- | --- | --- |
+| 47 | AuthUser | updateOne | _id |  | covered (`_id`) | `_id` index |
+| 68 | AuthUser | updateOne | _id |  | covered (`_id`) | `_id` index |
+
 ### `src/admin/user-status.ts`
 
 | Line | Model | Method | Filter | Sort | Status | By |
 | --- | --- | --- | --- | --- | --- | --- |
-| 32 | AuthUser | updateOne | _id |  | covered (`_id`) | `_id` index |
+| 33 | AuthUser | updateOne | _id |  | covered (`_id`) | `_id` index |
+
+### `src/admin/users-list.ts`
+
+| Line | Model | Method | Filter | Sort | Status | By |
+| --- | --- | --- | --- | --- | --- | --- |
+| 83 | AuthUser | find | fn:baseFilter | _id | covered | filter from `baseFilter()` tested |
 
 ### `src/appearance/appearance.service.ts`
 
@@ -90,13 +145,13 @@ tests themselves run `explain()` and are the real check.
 
 | Line | Model | Method | Filter | Sort | Status | By |
 | --- | --- | --- | --- | --- | --- | --- |
-| 76 | AuthSession | updateOne | token |  | covered | src/db/auth-models.test.ts:30 |
+| 77 | AuthSession | updateOne | token |  | covered | src/db/auth-models.test.ts:30 |
 
 ### `src/calls/access.ts`
 
 | Line | Model | Method | Filter | Sort | Status | By |
 | --- | --- | --- | --- | --- | --- | --- |
-| 22 | AuthUser | findById | _id |  | covered (`_id`) | `_id` index |
+| 33 | AuthUser | findById | _id |  | covered (`_id`) | `_id` index |
 
 ### `src/calls/call-finish.ts`
 
@@ -137,7 +192,7 @@ tests themselves run `explain()` and are the real check.
 | 83 | ChatMember | updateOne | _id |  | covered (`_id`) | `_id` index |
 | 107 | Chat | findById | _id |  | covered (`_id`) | `_id` index |
 | 114 | ChatMember | updateOne | _id |  | covered (`_id`) | `_id` index |
-| 126 | Star | deleteMany | chatId, userId |  | covered | src/chats/message-action-indexes.test.ts:29 |
+| 126 | Star | deleteMany | chatId, userId |  | covered | src/admin/group-indexes.test.ts:32 |
 | 168 | Star | find | userId, … | _id, at | covered | src/chats/message-action-indexes.test.ts:29 |
 | 179 | Message | find | _id |  | covered (`_id`) | `_id` index |
 | 181 | ChatMember | find | chatId, userId |  | covered | src/chats/chat-indexes.test.ts:46 |
@@ -183,12 +238,12 @@ tests themselves run `explain()` and are the real check.
 | Line | Model | Method | Filter | Sort | Status | By |
 | --- | --- | --- | --- | --- | --- | --- |
 | 17 | Message | find | expiresAt | expiresAt | covered | helper `dueMessagesQuery()` tested |
-| 60 | Star | deleteMany | chatId, messageId |  | covered | src/chats/message-action-indexes.test.ts:36 |
+| 60 | Star | deleteMany | chatId, messageId |  | covered | src/admin/group-indexes.test.ts:32 |
 | 61 | MessageHidden | deleteMany | chatId, messageId |  | covered | src/chats/message-action-indexes.test.ts:50 |
 | 64 | Media | updateMany | _id |  | covered (`_id`) | `_id` index |
 | 70 | ChatMember | updateMany | chatId, … |  | covered | src/chats/message-action-indexes.test.ts:72 |
 | 85 | Chat | findById | _id |  | covered (`_id`) | `_id` index |
-| 87 | Message | findOne | chatId | seq | covered | src/chats/chat-indexes.test.ts:59 |
+| 87 | Message | findOne | chatId | seq | covered | src/admin/group-indexes.test.ts:31 |
 | 89 | Chat | updateOne | _id |  | covered (`_id`) | `_id` index |
 | 137 | Message | find | _id, chatId |  | covered (`_id`) | `_id` index |
 | 142 | Message | deleteMany | _id |  | covered (`_id`) | `_id` index |
@@ -226,23 +281,23 @@ tests themselves run `explain()` and are the real check.
 
 | Line | Model | Method | Filter | Sort | Status | By |
 | --- | --- | --- | --- | --- | --- | --- |
-| 45 | Chat | findById | _id |  | covered (`_id`) | `_id` index |
-| 54 | AuthUser | find | _id |  | covered (`_id`) | `_id` index |
-| 95 | Chat | findOneAndUpdate | _id |  | covered (`_id`) | `_id` index |
-| 126 | Chat | updateOne | _id |  | covered (`_id`) | `_id` index |
-| 133 | ChatMember | updateMany | $or.leftAt, $or.userId, chatId |  | covered | src/chats/message-action-indexes.test.ts:72 |
-| 138 | ChatMember | find | $or.leftAt, $or.userId, chatId |  | covered | src/chats/message-action-indexes.test.ts:72 |
-| 151 | Chat | findById | _id |  | covered (`_id`) | `_id` index |
+| 58 | Chat | findById | _id |  | covered (`_id`) | `_id` index |
+| 68 | AuthUser | find | _id |  | covered (`_id`) | `_id` index |
+| 109 | Chat | findOneAndUpdate | _id |  | covered (`_id`) | `_id` index |
+| 140 | Chat | updateOne | _id |  | covered (`_id`) | `_id` index |
+| 147 | ChatMember | updateMany | $or.leftAt, $or.userId, chatId |  | covered | src/chats/message-action-indexes.test.ts:72 |
+| 152 | ChatMember | find | $or.leftAt, $or.userId, chatId |  | covered | src/chats/message-action-indexes.test.ts:72 |
+| 165 | Chat | findById | _id |  | covered (`_id`) | `_id` index |
 
 ### `src/chats/group-invites.service.ts`
 
 | Line | Model | Method | Filter | Sort | Status | By |
 | --- | --- | --- | --- | --- | --- | --- |
-| 33 | Chat | updateOne | _id |  | covered (`_id`) | `_id` index |
-| 39 | Chat | updateOne | _id |  | covered (`_id`) | `_id` index |
-| 45 | Chat | findOne | group.inviteCode, type |  | covered | src/modules/chats/group-invites.test.ts:155 |
-| 58 | ChatMember | exists | chatId, leftAt, userId |  | covered | src/chats/chat-indexes.test.ts:26 |
-| 93 | ChatMember | findOne | chatId, userId |  | covered | src/chats/chat-indexes.test.ts:46 |
+| 34 | Chat | updateOne | _id |  | covered (`_id`) | `_id` index |
+| 40 | Chat | updateOne | _id |  | covered (`_id`) | `_id` index |
+| 46 | Chat | findOne | group.inviteCode, type |  | covered | src/modules/chats/group-invites.test.ts:155 |
+| 59 | ChatMember | exists | chatId, leftAt, userId |  | covered | src/chats/chat-indexes.test.ts:26 |
+| 95 | ChatMember | findOne | chatId, userId |  | covered | src/chats/chat-indexes.test.ts:46 |
 
 ### `src/chats/group-members.service.ts`
 
@@ -252,12 +307,12 @@ tests themselves run `explain()` and are the real check.
 | 32 | AuthUser | find | _id |  | covered (`_id`) | `_id` index |
 | 62 | ChatMember | bulkWrite | chatId, userId |  | covered | src/chats/chat-indexes.test.ts:46 |
 | 87 | Chat | updateOne | _id |  | covered (`_id`) | `_id` index |
-| 111 | ChatMember | find | chatId, leftAt, userId |  | covered | src/chats/chat-indexes.test.ts:26 |
-| 151 | ChatMember | updateOne | chatId, userId |  | covered | src/chats/chat-indexes.test.ts:46 |
-| 172 | Chat | updateOne | _id |  | covered (`_id`) | `_id` index |
-| 184 | ChatMember | findOne | chatId, leftAt, userId |  | covered | src/chats/chat-indexes.test.ts:26 |
-| 239 | ChatMember | findOne | chatId, leftAt, userId |  | covered | src/chats/chat-indexes.test.ts:26 |
-| 261 | ChatMember | updateOne | _id |  | covered (`_id`) | `_id` index |
+| 116 | ChatMember | find | chatId, leftAt, userId |  | covered | src/chats/chat-indexes.test.ts:26 |
+| 156 | ChatMember | updateOne | chatId, userId |  | covered | src/chats/chat-indexes.test.ts:46 |
+| 177 | Chat | updateOne | _id |  | covered (`_id`) | `_id` index |
+| 189 | ChatMember | findOne | chatId, leftAt, userId |  | covered | src/chats/chat-indexes.test.ts:26 |
+| 245 | ChatMember | findOne | chatId, leftAt, userId |  | covered | src/chats/chat-indexes.test.ts:26 |
+| 267 | ChatMember | updateOne | _id |  | covered (`_id`) | `_id` index |
 
 ### `src/chats/group-ownership.service.ts`
 
@@ -268,7 +323,7 @@ tests themselves run `explain()` and are the real check.
 | 64 | ChatMember | findOne | chatId, leftAt, userId |  | covered | src/chats/chat-indexes.test.ts:26 |
 | 78 | ChatMember | updateMany | leftAt, userId |  | covered | src/modules/chats/group-receipts.test.ts:257 |
 | 79 | ChatMember | find | leftAt, userId |  | covered | src/modules/chats/group-receipts.test.ts:257 |
-| 86 | ChatMember | findOne | chatId, leftAt, role, suspended | joinedAt | covered | src/chats/chat-indexes.test.ts:27 |
+| 86 | ChatMember | findOne | chatId, leftAt, role, suspended | joinedAt | covered | src/admin/group-indexes.test.ts:26 |
 | 88 | ChatMember | findOne | chatId, leftAt, suspended | joinedAt | covered | src/chats/chat-indexes.test.ts:27 |
 | 96 | ChatMember | updateMany | leftAt, userId |  | covered | src/modules/chats/group-receipts.test.ts:257 |
 
@@ -288,10 +343,10 @@ tests themselves run `explain()` and are the real check.
 
 | Line | Model | Method | Filter | Sort | Status | By |
 | --- | --- | --- | --- | --- | --- | --- |
-| 31 | AuthUser | find | _id |  | covered (`_id`) | `_id` index |
-| 130 | Chat | updateOne | _id |  | covered (`_id`) | `_id` index |
-| 157 | Chat | updateOne | _id |  | covered (`_id`) | `_id` index |
-| 196 | Chat | updateOne | _id |  | covered (`_id`) | `_id` index |
+| 27 | AuthUser | find | _id |  | covered (`_id`) | `_id` index |
+| 127 | Chat | updateOne | _id |  | covered (`_id`) | `_id` index |
+| 154 | Chat | updateOne | _id |  | covered (`_id`) | `_id` index |
+| 193 | Chat | updateOne | _id |  | covered (`_id`) | `_id` index |
 
 ### `src/chats/hidden-members.ts`
 
@@ -308,8 +363,8 @@ tests themselves run `explain()` and are the real check.
 | --- | --- | --- | --- | --- | --- | --- |
 | 10 | MessageHidden | find | chatId, userId |  | covered | src/chats/chat-indexes.test.ts:65 |
 | 20 | Star | find | messageId, userId |  | covered | src/chats/message-action-indexes.test.ts:27 |
-| 45 | Message | find | _id:range, chatId, expiresAt, … | seq | covered | src/chats/chat-indexes.test.ts:59 |
-| 79 | Message | find | _id:range, chatId, deletedForEveryoneAt, expiresAt, viewOnce, … | seq | covered | src/chats/chat-indexes.test.ts:59 |
+| 45 | Message | find | _id:range, chatId, expiresAt, … | seq | covered | src/admin/group-indexes.test.ts:31 |
+| 79 | Message | find | _id:range, chatId, deletedForEveryoneAt, expiresAt, viewOnce, … | seq | covered | src/admin/group-indexes.test.ts:31 |
 
 ### `src/chats/mentions.ts`
 
@@ -331,7 +386,7 @@ tests themselves run `explain()` and are the real check.
 | 90 | Chat | updateOne | _id, lastMessage.seq |  | covered (`_id`) | `_id` index |
 | 127 | Chat | findById | _id |  | covered (`_id`) | `_id` index |
 | 144 | Message | updateOne | _id |  | covered (`_id`) | `_id` index |
-| 145 | Star | deleteMany | chatId, messageId |  | covered | src/chats/message-action-indexes.test.ts:36 |
+| 145 | Star | deleteMany | chatId, messageId |  | covered | src/admin/group-indexes.test.ts:32 |
 | 147 | Media | updateOne | _id |  | covered (`_id`) | `_id` index |
 | 153 | Chat | updateOne | _id, lastMessage.seq |  | covered (`_id`) | `_id` index |
 | 163 | ChatMember | updateOne | chatId, lastReaction.seq, userId |  | covered | src/chats/chat-indexes.test.ts:46 |
@@ -351,7 +406,7 @@ tests themselves run `explain()` and are the real check.
 
 | Line | Model | Method | Filter | Sort | Status | By |
 | --- | --- | --- | --- | --- | --- | --- |
-| 26 | Message | findOne | _id:range, chatId, seq | seq | covered | src/chats/chat-indexes.test.ts:59 |
+| 26 | Message | findOne | _id:range, chatId, seq | seq | covered | src/admin/group-indexes.test.ts:31 |
 | 64 | Chat | findById | _id |  | covered (`_id`) | `_id` index |
 | 70 | MessageHidden | updateOne | chatId, messageId, userId |  | covered | src/chats/chat-indexes.test.ts:65 |
 | 75 | Star | deleteMany | messageId, userId |  | covered | src/chats/message-action-indexes.test.ts:27 |
@@ -463,12 +518,12 @@ tests themselves run `explain()` and are the real check.
 
 | Line | Model | Method | Filter | Sort | Status | By |
 | --- | --- | --- | --- | --- | --- | --- |
-| 27 | Message | findOne | clientMsgId, senderId |  | covered | src/chats/chat-indexes.test.ts:63 |
-| 47 | Chat | findById | _id |  | covered (`_id`) | `_id` index |
-| 54 | ChatMember | findOne | chatId, userId |  | covered | src/chats/chat-indexes.test.ts:46 |
-| 59 | AuthUser | findById | _id |  | covered (`_id`) | `_id` index |
-| 84 | ChatMember | findOne | chatId, userId |  | covered | src/chats/chat-indexes.test.ts:46 |
-| 92 | Chat | findById | _id |  | covered (`_id`) | `_id` index |
+| 28 | Message | findOne | clientMsgId, senderId |  | covered | src/chats/chat-indexes.test.ts:63 |
+| 48 | Chat | findById | _id |  | covered (`_id`) | `_id` index |
+| 56 | ChatMember | findOne | chatId, userId |  | covered | src/chats/chat-indexes.test.ts:46 |
+| 61 | AuthUser | findById | _id |  | covered (`_id`) | `_id` index |
+| 87 | ChatMember | findOne | chatId, userId |  | covered | src/chats/chat-indexes.test.ts:46 |
+| 96 | Chat | findById | _id |  | covered (`_id`) | `_id` index |
 
 ### `src/chats/sender-name.ts`
 
@@ -516,6 +571,13 @@ tests themselves run `explain()` and are the real check.
 | Line | Model | Method | Filter | Sort | Status | By |
 | --- | --- | --- | --- | --- | --- | --- |
 | 13 | ChatMember | findOne | chatId, userId |  | covered | src/chats/chat-indexes.test.ts:46 |
+
+### `src/db/system-status.ts`
+
+| Line | Model | Method | Filter | Sort | Status | By |
+| --- | --- | --- | --- | --- | --- | --- |
+| 30 | SystemStatus | updateOne | _id |  | covered (`_id`) | `_id` index |
+| 38 | SystemStatus | findById | _id |  | covered (`_id`) | `_id` index |
 
 ### `src/lock/attempts.ts`
 
@@ -604,7 +666,7 @@ tests themselves run `explain()` and are the real check.
 | 42 | Chat | find | _id |  | covered (`_id`) | `_id` index |
 | 86 | Report | find | … | _id, createdAt | covered (`_id`) | `_id` index |
 | 112 | Report | findById | _id |  | covered (`_id`) | `_id` index |
-| 156 | Report | updateOne | _id, status |  | covered (`_id`) | `_id` index |
+| 157 | Report | updateOne | _id, status |  | covered (`_id`) | `_id` index |
 
 ### `src/moderation/blocks.service.ts`
 
@@ -626,7 +688,7 @@ tests themselves run `explain()` and are the real check.
 | Line | Model | Method | Filter | Sort | Status | By |
 | --- | --- | --- | --- | --- | --- | --- |
 | 23 | Report | countDocuments | createdAt, reporterId |  | covered | src/modules/moderation/reports.test.ts:251 |
-| 41 | Message | find | _id:range, chatId, … | seq | covered | src/chats/chat-indexes.test.ts:59 |
+| 41 | Message | find | _id:range, chatId, … | seq | covered | src/admin/group-indexes.test.ts:31 |
 | 55 | AuthUser | find | _id |  | covered (`_id`) | `_id` index |
 | 86 | AuthUser | findById | _id |  | covered (`_id`) | `_id` index |
 | 111 | AuthUser | exists | _id |  | covered (`_id`) | `_id` index |
@@ -643,14 +705,14 @@ tests themselves run `explain()` and are the real check.
 
 | Line | Model | Method | Filter | Sort | Status | By |
 | --- | --- | --- | --- | --- | --- | --- |
-| 42 | AuthSession | find | expiresAt, userId | expiresAt | covered | src/db/auth-models.test.ts:34 |
+| 42 | AuthSession | find | expiresAt, userId | expiresAt | covered | src/admin/security-indexes.test.ts:22 |
 | 112 | AuthSession | updateOne | _id |  | covered (`_id`) | `_id` index |
 
 ### `src/modules/test-support/expire.routes.ts`
 
 | Line | Model | Method | Filter | Sort | Status | By |
 | --- | --- | --- | --- | --- | --- | --- |
-| 22 | Message | updateMany | chatId, expiresAt |  | covered | src/chats/chat-indexes.test.ts:59 |
+| 22 | Message | updateMany | chatId, expiresAt |  | covered | src/admin/group-indexes.test.ts:31 |
 
 ### `src/modules/test-support/outbox.routes.ts`
 
@@ -694,19 +756,19 @@ tests themselves run `explain()` and are the real check.
 
 | Line | Model | Method | Filter | Sort | Status | By |
 | --- | --- | --- | --- | --- | --- | --- |
-| 72 | LinkPreview | findOne | expiresAt, key |  | covered | src/db/token-preview-indexes.test.ts:28 |
-| 81 | LinkPreview | findOneAndUpdate | key |  | covered | src/db/token-preview-indexes.test.ts:28 |
-| 88 | LinkPreview | findOne | key |  | covered | src/db/token-preview-indexes.test.ts:28 |
-| 105 | LinkPreview | findById | _id |  | covered (`_id`) | `_id` index |
-| 125 | LinkPreviewImage | findById | _id |  | covered (`_id`) | `_id` index |
+| 74 | LinkPreview | findOne | expiresAt, key |  | covered | src/db/token-preview-indexes.test.ts:28 |
+| 83 | LinkPreview | findOneAndUpdate | key |  | covered | src/db/token-preview-indexes.test.ts:28 |
+| 90 | LinkPreview | findOne | key |  | covered | src/db/token-preview-indexes.test.ts:28 |
+| 107 | LinkPreview | findById | _id |  | covered (`_id`) | `_id` index |
+| 127 | LinkPreviewImage | findById | _id |  | covered (`_id`) | `_id` index |
 
 ### `src/push/admin-overview.ts`
 
 | Line | Model | Method | Filter | Sort | Status | By |
 | --- | --- | --- | --- | --- | --- | --- |
-| 61 | AuthUser | find | ?_id, status, … | _id | covered | src/admin/dashboard-indexes.test.ts:26 |
-| 69 | AuthSession | find | expiresAt, userId | expiresAt | covered | src/db/auth-models.test.ts:34 |
-| 76 | PushSubscription | find | userId |  | covered | src/push/push-indexes.test.ts:24 |
+| 58 | AuthSession | find | expiresAt, userId | expiresAt | covered | src/admin/security-indexes.test.ts:22 |
+| 65 | PushSubscription | find | userId |  | covered | src/push/push-indexes.test.ts:24 |
+| 90 | AuthUser | find | ?_id, status, … | _id | covered | src/admin/dashboard-indexes.test.ts:26 |
 
 ### `src/push/client-state.ts`
 
@@ -732,7 +794,7 @@ tests themselves run `explain()` and are the real check.
 | 36 | Lock | findById | _id |  | covered (`_id`) | `_id` index |
 | 51 | ChatMember | findOne | chatId, userId |  | covered | src/chats/chat-indexes.test.ts:46 |
 | 53 | Chat | findById | _id |  | covered (`_id`) | `_id` index |
-| 82 | Message | find | chatId, seq | seq | covered | src/chats/chat-indexes.test.ts:59 |
+| 82 | Message | find | chatId, seq | seq | covered | src/admin/group-indexes.test.ts:31 |
 | 98 | MessageHidden | find | chatId, messageId, userId |  | covered | src/chats/chat-indexes.test.ts:65 |
 | 112 | Block | exists | blockedId, userId |  | covered | src/modules/moderation/blocks.test.ts:253 |
 | 113 | Block | exists | blockedId, userId |  | covered | src/modules/moderation/blocks.test.ts:253 |
@@ -779,7 +841,7 @@ tests themselves run `explain()` and are the real check.
 
 | Line | Model | Method | Filter | Sort | Status | By |
 | --- | --- | --- | --- | --- | --- | --- |
-| 39 | AuthSession | exists | expiresAt, token |  | covered | src/db/auth-models.test.ts:30 |
+| 39 | AuthSession | exists | expiresAt, token |  | covered | src/admin/security-indexes.test.ts:22 |
 
 ### `src/realtime/presence.ts`
 
@@ -818,7 +880,17 @@ tests themselves run `explain()` and are the real check.
 
 | Line | Model | Method | Filter | Sort | Status | By |
 | --- | --- | --- | --- | --- | --- | --- |
-| 19 | ? | find | {} | _id | covered (`_id`) | `_id` index |
+| 20 | ? | find | {} | _id | covered (`_id`) | `_id` index |
+
+### `src/security/security-events.ts`
+
+| Line | Model | Method | Filter | Sort | Status | By |
+| --- | --- | --- | --- | --- | --- | --- |
+| 74 | ? | exists | email, kind, unlockedAt, until |  | reviewed | model not resolved |
+| 96 | ? | find | kind, unlockedAt, until | until | reviewed | model not resolved |
+| 103 | ? | find | kind | at | reviewed | model not resolved |
+| 107 | ? | findById | _id |  | covered (`_id`) | `_id` index |
+| 111 | ? | updateOne | _id |  | covered (`_id`) | `_id` index |
 
 ### `src/security/security-tokens.ts`
 
@@ -826,6 +898,19 @@ tests themselves run `explain()` and are the real check.
 | --- | --- | --- | --- | --- | --- | --- |
 | 36 | SecurityToken | findOneAndUpdate | expiresAt, tokenHash, usedAt |  | covered | src/db/token-preview-indexes.test.ts:21 |
 | 43 | SecurityToken | findOne | tokenHash |  | covered | src/db/token-preview-indexes.test.ts:23 |
+
+### `src/settings/admin-settings.ts`
+
+| Line | Model | Method | Filter | Sort | Status | By |
+| --- | --- | --- | --- | --- | --- | --- |
+| 90 | Media | find | createdAt, status | createdAt | covered | src/admin/dashboard-indexes.test.ts:52 |
+
+### `src/settings/app-settings.ts`
+
+| Line | Model | Method | Filter | Sort | Status | By |
+| --- | --- | --- | --- | --- | --- | --- |
+| 87 | ? | findById | _id |  | covered (`_id`) | `_id` index |
+| 110 | ? | updateOne | _id |  | covered (`_id`) | `_id` index |
 
 ### `src/settings/quiet-hours.service.ts`
 
@@ -886,7 +971,7 @@ tests themselves run `explain()` and are the real check.
 
 | Line | Model | Method | Filter | Sort | Status | By |
 | --- | --- | --- | --- | --- | --- | --- |
-| 44 | AuthUser | findById | _id |  | covered (`_id`) | `_id` index |
+| 48 | AuthUser | findById | _id |  | covered (`_id`) | `_id` index |
 
 ### `src/users/users.service.ts`
 

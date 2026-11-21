@@ -23,7 +23,7 @@ export async function listMembers(
   userId: string,
   chatId: string,
 ): Promise<GroupMember[]> {
-  await requireGroupMember(app, chatId, userId);
+  await requireGroupMember(app, chatId, userId, 'read');
   const rows = await chatModels(app)
     .ChatMember.find({ chatId: oid(chatId), leftAt: null })
     .sort({ joinedAt: 1 })
@@ -91,9 +91,14 @@ export async function admitMembers(
   );
 }
 
-export function assertRoomFor(chat: ChatDoc, joining: number): void {
-  if ((chat.group?.memberCount ?? 0) + joining > GROUP_MEMBERS_MAX) {
-    throw new AppError('GROUP_FULL', `A group can have at most ${GROUP_MEMBERS_MAX} members.`);
+/** The most people a group may have now (Admin → Settings; never above GROUP_MEMBERS_MAX). */
+export const groupMaxOf = (app: FastifyInstance) =>
+  Math.min(GROUP_MEMBERS_MAX, app.settings.current().groupMaxMembers);
+
+export function assertRoomFor(app: FastifyInstance, chat: ChatDoc, joining: number): void {
+  const max = groupMaxOf(app);
+  if ((chat.group?.memberCount ?? 0) + joining > max) {
+    throw new AppError('GROUP_FULL', `A group can have at most ${max} members.`);
   }
 }
 
@@ -118,7 +123,7 @@ export async function addMembers(
   const already = new Set(present.map((row) => row.userId.toString()));
   const fresh = wanted.filter((id) => !already.has(id));
   if (fresh.length > 0) {
-    assertRoomFor(chat, fresh.length);
+    assertRoomFor(app, chat, fresh.length);
     const name = await namesOf(app, [userId, ...fresh]);
     const at = new Date();
     const stored = await app.mongo.transaction((session) =>
@@ -204,7 +209,8 @@ export async function removeMember(
 }
 
 export async function leaveGroup(app: FastifyInstance, userId: string, chatId: string) {
-  const { chat, role } = await requireGroupMember(app, chatId, userId);
+  // Leaving works even in an archived group.
+  const { chat, role } = await requireGroupMember(app, chatId, userId, 'read');
   if (role === 'owner' && (chat.group?.memberCount ?? 0) > 1) {
     throw new AppError('OWNER_MUST_TRANSFER', 'Make someone else the owner before you leave.');
   }

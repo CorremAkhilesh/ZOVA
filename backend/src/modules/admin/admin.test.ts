@@ -31,6 +31,7 @@ afterAll(async () => {
   await ctx.cleanup();
 });
 
+const WHY = { reason: 'test' };
 const call = (method: 'GET' | 'POST' | 'PUT', url: string, cookie?: string, payload?: object) =>
   app().inject({ method, url, headers: headers(cookie), ...(payload ? { payload } : {}) });
 
@@ -81,18 +82,21 @@ describe('Admin → Users', () => {
   it('promotes and demotes, but never yourself and never the last admin', async () => {
     const self = await call('PUT', `/v1/admin/users/${admin.id}/role`, admin.cookie, {
       role: 'user',
+      reason: 'test',
     });
     expect(self.statusCode).toBe(409);
-    const selfOff = await call('POST', `/v1/admin/users/${admin.id}/deactivate`, admin.cookie);
+    const selfOff = await call('POST', `/v1/admin/users/${admin.id}/deactivate`, admin.cookie, WHY);
     expect(selfOff.statusCode).toBe(409);
 
     const promoted = await call('PUT', `/v1/admin/users/${user.id}/role`, admin.cookie, {
       role: 'admin',
+      reason: 'test',
     });
     expect(adminUserResponseSchema.parse(promoted.json()).user.role).toBe('admin');
     // Now dev@ is an admin too; demote dev@ back — two admins exist, so it is allowed.
     const demoted = await call('PUT', `/v1/admin/users/${user.id}/role`, admin.cookie, {
       role: 'user',
+      reason: 'test',
     });
     expect(demoted.json().user.role).toBe('user');
   });
@@ -111,12 +115,12 @@ describe('Admin → Users', () => {
   });
 
   it('deactivates (revoking sessions) and reactivates, auditing every change', async () => {
-    const off = await call('POST', `/v1/admin/users/${user.id}/deactivate`, admin.cookie);
+    const off = await call('POST', `/v1/admin/users/${user.id}/deactivate`, admin.cookie, WHY);
     expect(off.json()).toMatchObject({ user: { status: 'deactivated' } });
     expect((await me(app(), user.cookie)).statusCode).toBe(401);
-    await call('POST', `/v1/admin/users/${user.id}/reactivate`, admin.cookie);
+    await call('POST', `/v1/admin/users/${user.id}/reactivate`, admin.cookie, WHY);
     expect(
-      (await call('POST', '/v1/admin/users/000000000000000000000000/reactivate', admin.cookie))
+      (await call('POST', '/v1/admin/users/000000000000000000000000/reactivate', admin.cookie, WHY))
         .statusCode,
     ).toBe(404);
 
