@@ -42,7 +42,9 @@ export function LinkPreviewCard({ preview, mine }: { preview: LinkPreview; mine:
   const { t } = useTranslation();
   const className = cn(
     'mb-1 block overflow-hidden rounded-lg border-l-4 text-left',
-    mine ? 'border-white/60 bg-black/10' : 'border-brand bg-black/5 dark:bg-white/5',
+    mine
+      ? 'border-bubble-outgoing-accent bg-black/5 dark:border-white/60 dark:bg-black/10'
+      : 'border-brand bg-black/5 dark:bg-white/5',
   );
   if (!isWeb(preview.url)) return null;
   return (

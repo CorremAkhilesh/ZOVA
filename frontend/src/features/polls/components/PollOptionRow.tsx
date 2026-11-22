@@ -8,14 +8,17 @@ import type { PollPerson } from '../use-poll-people';
 /** At most this many faces next to an option; the count says the rest. */
 export const FACES = 3;
 
-/** Colours for my own (brand) bubble and for everyone else's, so both read well (AA). */
+/**
+ * Colours for my own bubble and for everyone else's, so both read well (AA). In mine the accent
+ * marks bars and my choice: the accent on its soft tint (light), white on the muted accent (dark).
+ */
 export const POLL_TONES = {
   outgoing: {
-    track: 'bg-bubble-outgoing-text/25',
-    fill: 'bg-bubble-outgoing-text/70',
-    mine: 'bg-bubble-outgoing-text',
+    track: 'bg-bubble-outgoing-accent/20',
+    fill: 'bg-bubble-outgoing-accent/60',
+    mine: 'bg-bubble-outgoing-accent',
     ring: 'ring-bubble-outgoing',
-    chosen: 'border-bubble-outgoing-text bg-bubble-outgoing-text text-bubble-outgoing',
+    chosen: 'border-bubble-outgoing-accent bg-bubble-outgoing-accent text-bubble-outgoing',
   },
   incoming: {
     track: 'bg-text-muted/25',

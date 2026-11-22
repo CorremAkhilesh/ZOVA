@@ -16,6 +16,15 @@ export const WALLPAPER_COLOR_VALUES: Record<WallpaperColorId, Record<ResolvedThe
   slate: { light: '#E4E7ED', dark: '#1A1F2B' },
 };
 
+/**
+ * Behind a pattern: in the light theme a soft grey a step darker than the page, so white incoming
+ * bubbles and the tinted outgoing ones both stand out from it; in the dark theme the page itself.
+ */
+export const CHAT_BACKGROUND: Record<ResolvedTheme, string> = {
+  light: '#ECEEF3',
+  dark: 'var(--color-background)',
+};
+
 /** Drawn in the text color at a whisper, so a pattern never competes with the messages. */
 const INK: Record<ResolvedTheme, { color: string; opacity: number }> = {
   light: { color: '#0F172A', opacity: 0.08 },
@@ -85,7 +94,7 @@ export function wallpaperStyle(
   if (wallpaper.kind === 'pattern') {
     const image = patternImage(wallpaper.id, theme);
     return {
-      backgroundColor: 'var(--color-background)',
+      backgroundColor: CHAT_BACKGROUND[theme],
       backgroundImage: image ?? 'none',
     };
   }

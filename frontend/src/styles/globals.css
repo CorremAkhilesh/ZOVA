@@ -43,6 +43,7 @@
   --color-bubble-outgoing-text: var(--color-bubble-outgoing-text);
   --color-bubble-outgoing-meta: var(--color-bubble-outgoing-meta);
   --color-bubble-outgoing-read: var(--color-bubble-outgoing-read);
+  --color-bubble-outgoing-accent: var(--color-bubble-outgoing-accent);
   --color-bubble-incoming: var(--color-bubble-incoming);
   --color-bubble-incoming-text: var(--color-bubble-incoming-text);
   --color-bubble-incoming-meta: var(--color-bubble-incoming-meta);
@@ -212,16 +213,20 @@
 }
 
 /*
- * @mentions in message text. Their colour depends on the bubble: the accent on an incoming bubble,
- * and the bubble's own text colour (underlined, so it still stands out) on my outgoing bubble, which
- * is itself the accent colour. Every pair is AA: shared/ui-tokens/src/accents.test.ts.
+ * @mentions, links and "Read more" in message text. On an incoming bubble a mention takes the accent
+ * text colour; on my outgoing bubble all three take bubble-outgoing-accent: the accent on its soft
+ * tint (light). In the dark theme that is white on the muted accent, so a mention is also underlined
+ * to stand out from the text. Every pair is AA: shared/ui-tokens/src/accents.test.ts.
  */
 .mention {
   color: var(--color-accent-text);
 }
 
-[data-bubble="out"] .mention {
-  color: var(--color-bubble-outgoing-text);
+[data-bubble="out"] :is(.mention, .bubble-link) {
+  color: var(--color-bubble-outgoing-accent);
+}
+
+[data-theme="dark"] [data-bubble="out"] .mention {
   text-decoration: underline;
   text-decoration-thickness: 1px;
   text-underline-offset: 2px;
