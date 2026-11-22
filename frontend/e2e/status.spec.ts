@@ -12,18 +12,7 @@ const PNG =
   'iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAIAAAACUFjqAAAAEklEQVR4nGNk+M+ABIwMDAwAFAoBAX1Nz8QAAAAASUVORK5CYII=';
 const PHONE = { width: 375, height: 812 };
 
-const handled = new WeakSet<Page>();
-
 async function toStatus(page: Page) {
-  // Firefox now and then reports a waiting service worker even in a fresh profile; the persistent
-  // "New version available" toast then sits over the colour swatches. Close it as a person would.
-  const update = page.locator('[data-sonner-toast]').filter({ hasText: 'New version available' });
-  if (!handled.has(page)) {
-    handled.add(page);
-    await page.addLocatorHandler(update, () =>
-      update.getByRole('button', { name: /close/i }).click(),
-    );
-  }
   await page.goto('/updates');
   await expect(page.getByRole('heading', { name: 'Status', level: 1 })).toBeVisible(SLOW);
 }
