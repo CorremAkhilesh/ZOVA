@@ -149,6 +149,13 @@ export function MessageList({
     floatingTimer.current = setTimeout(() => setFloatingDay(null), FLOATING_DAY_MS);
   }
 
+  // A touch or click in the list: the day steps aside at once, so it never hides what is tapped
+  // (it lets taps through anyway: pointer-events none).
+  function hideFloatingDay() {
+    clearTimeout(floatingTimer.current);
+    setFloatingDay(null);
+  }
+
   function handleScroll() {
     const element = viewport.current;
     if (!element) return;
@@ -163,7 +170,7 @@ export function MessageList({
   }
 
   return (
-    <div className="relative h-full">
+    <div className="relative h-full" onPointerDownCapture={hideFloatingDay}>
       <FloatingDay date={floatingDay} />
       <ScrollArea
         viewportRef={viewport}
