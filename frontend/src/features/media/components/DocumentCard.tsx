@@ -43,10 +43,13 @@ export function DocumentCard({ message }: { message: ChatMessage }) {
     <div
       className={cn(
         'flex w-64 max-w-full items-center gap-3 rounded-xl p-2',
-        mine ? 'bg-black/15' : 'bg-background',
+        mine ? 'bg-black/5 dark:bg-black/15' : 'bg-background',
       )}
     >
-      <FileText className="size-9 shrink-0" aria-hidden />
+      <FileText
+        className={cn('size-9 shrink-0', mine && 'text-bubble-outgoing-accent')}
+        aria-hidden
+      />
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium">{media.name}</p>
         <p className="text-xs opacity-80">

@@ -13,8 +13,10 @@ import { SLOW } from './helpers';
 import { createPoll, pollCard } from './poll-helpers';
 
 // Everything inside a chat bubble must be readable (WCAG AA) on both sides of the conversation, in
-// light and dark, with every accent: mentions, links, `code`, bold and italic, replies, "edited",
-// times, file cards and polls. Live bug (Nov 2026): a mention in my own (indigo) bubble was indigo on indigo.
+// light and dark, with every accent: mentions, links, "Read more", `code`, bold and italic, replies,
+// "edited", times, file cards, polls and voice notes. Live bug (Nov 2026): a mention in my own
+// (indigo) bubble was indigo on indigo. In the light theme my bubble is a soft tint of the accent
+// with dark text (as easy on the eye as an incoming one); in the dark theme a muted accent.
 
 test.describe.configure({ timeout: 300_000 });
 
@@ -54,6 +56,8 @@ async function conversation(page: Page, me: string, them: Person) {
     page,
     `${me}: see https://example.com/docs and \`npm run build\` with *bold* and _italic_`,
   );
+  // Long enough to be cut: "Read more" is a link-coloured button in the bubble.
+  await send(page, `${me}'s long note: ${'the plan for the week, step by step. '.repeat(30)}`);
   await send(page, `${me} wrote this, then edited it`);
   await expectSent(page, GROUP, `${me} wrote this, then edited it`);
   await thread(page).getByText(`${me} wrote this, then edited it`).click({ button: 'right' });
@@ -80,6 +84,67 @@ async function conversation(page: Page, me: string, them: Person) {
   await expect(pollCard(page, question).getByRole('radio', { name: /^Dosa, 1 vote/ })).toBeChecked(
     SLOW,
   );
+  // A voice note: the play button and waveform take the bubble's accent.
+  await page.getByRole('button', { name: 'Record a voice note' }).click();
+  const allow = page.getByRole('button', { name: 'Continue' });
+  await expect(allow.or(page.getByRole('timer'))).toBeVisible(SLOW);
+  if (await allow.isVisible()) await allow.click();
+  await expect(page.getByRole('timer')).toHaveText('0:02', { timeout: 30_000 });
+  await page.getByRole('button', { name: 'Send voice message' }).click();
+}
+
+/** Relative luminance (WCAG) of a computed `rgb(r, g, b)` colour. */
+function luminance(rgb: string): number {
+  const [r = 0, g = 0, b = 0] = (rgb.match(/\d+(\.\d+)?/g) ?? []).map((part) => {
+    const c = Number(part) / 255;
+    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+/** My bubble per theme and accent: its background, its text, and a mention in it. */
+async function outgoingLook(page: Page) {
+  // The list is virtual: scroll to the start, where my first message (with a mention) is.
+  await thread(page).evaluate((list) => {
+    let box: Element | null = list;
+    while (box && box.scrollHeight <= box.clientHeight) box = box.parentElement;
+    box?.scrollTo({ top: 0 });
+  });
+  await expect(thread(page).locator('[data-bubble="out"] .mention').first()).toBeVisible(SLOW);
+  const looks: {
+    theme: string;
+    accent: string;
+    bubble: number;
+    text: number;
+    underline: string;
+  }[] = [];
+  for (const theme of THEMES) {
+    for (const accent of ACCENTS) {
+      const look = await thread(page).evaluate(
+        async (list, { theme, accent }) => {
+          document.documentElement.dataset.theme = theme;
+          document.documentElement.dataset.accent = accent;
+          await new Promise((resolve) => setTimeout(resolve, 150));
+          const bubble = list.querySelector('[data-bubble="out"]') as HTMLElement;
+          const mention = list.querySelector('[data-bubble="out"] .mention') as HTMLElement;
+          return {
+            bubble: getComputedStyle(bubble).backgroundColor,
+            text: getComputedStyle(bubble).color,
+            underline: getComputedStyle(mention).textDecorationLine,
+          };
+        },
+        { theme, accent },
+      );
+      looks.push({
+        theme,
+        accent,
+        bubble: luminance(look.bubble),
+        text: luminance(look.text),
+        underline: look.underline,
+      });
+    }
+  }
+  return looks;
 }
 
 interface Problem {
@@ -149,6 +214,26 @@ test('every bubble is readable in light and dark with every accent (axe color-co
   await replyTo(asha.page, 'replying to your edit', 'and a reply back');
   await expect(thread(bharat.page).getByText('and a reply back')).toBeVisible(SLOW);
   await expect(thread(asha.page).getByText('standup-notes.pdf')).toHaveCount(2, SLOW);
+  await expect(thread(asha.page).getByRole('button', { name: 'Play voice message' })).toHaveCount(
+    2,
+    SLOW,
+  );
+  await expect(thread(asha.page).getByRole('button', { name: 'Read more' })).toHaveCount(2, SLOW);
+
+  // Light: a soft tint with dark text and a plain (accent-coloured) mention. Dark: a muted accent
+  // with white text, where the white mention is underlined to stand out.
+  for (const look of await outgoingLook(asha.page)) {
+    const where = `${look.theme}/${look.accent}`;
+    if (look.theme === 'light') {
+      expect(look.bubble, `${where}: my bubble is a soft tint`).toBeGreaterThan(0.7);
+      expect(look.text, `${where}: dark text`).toBeLessThan(0.05);
+      expect(look.underline, `${where}: mention`).toBe('none');
+    } else {
+      expect(look.bubble, `${where}: a muted accent`).toBeLessThan(0.1);
+      expect(look.text, `${where}: white text`).toBeGreaterThan(0.9);
+      expect(look.underline, `${where}: mention`).toBe('underline');
+    }
+  }
 
   // For design reviews: CONTRAST_SHOTS=<folder> keeps light and dark pictures of both sides.
   const shots = process.env.CONTRAST_SHOTS;

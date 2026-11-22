@@ -20,8 +20,9 @@ const PAIRS: Array<[text: AccentKey | ColorName, background: AccentKey | ColorNa
   ['bubbleOutgoingText', 'bubbleOutgoing'],
   ['bubbleOutgoingMeta', 'bubbleOutgoing'],
   ['bubbleOutgoingRead', 'bubbleOutgoing'],
-  // Inside an incoming bubble: its text, its time, and an @mention (accentText). In my own bubble a
-  // mention takes bubbleOutgoingText (globals.css, [data-bubble]), checked above.
+  // In my own bubble: @mentions, links and "Read more" (globals.css, [data-bubble="out"]).
+  ['bubbleOutgoingAccent', 'bubbleOutgoing'],
+  // Inside an incoming bubble: its text, its time, and an @mention (accentText).
   ['bubbleIncomingText', 'bubbleIncoming'],
   ['bubbleIncomingMeta', 'bubbleIncoming'],
   ['accentText', 'bubbleIncoming'],

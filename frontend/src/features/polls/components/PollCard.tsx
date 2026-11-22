@@ -58,6 +58,7 @@ export function PollCard({ message }: { message: ChatMessage }) {
   const results = pollResults(poll);
   const disabled = closed || !message.serverId || selecting;
   const outgoing = message.authorId === ME;
+  const linkClass = cn(LINK, outgoing && 'text-bubble-outgoing-accent');
 
   return (
     // Taps on the poll are votes, not the bubble's own clicks (except while selecting messages).
@@ -93,12 +94,15 @@ export function PollCard({ message }: { message: ChatMessage }) {
       <div
         className={cn(
           'mt-2 border-t pt-2',
-          outgoing ? 'border-bubble-outgoing-text/25' : 'border-border',
+          outgoing ? 'border-bubble-outgoing-accent/25' : 'border-border',
         )}
       >
         <button
           type="button"
-          className="tap-target w-full rounded py-1 text-center text-sm font-semibold hover:underline"
+          className={cn(
+            'tap-target w-full rounded py-1 text-center text-sm font-semibold hover:underline',
+            outgoing && 'text-bubble-outgoing-accent',
+          )}
           onClick={() => setViewing(true)}
         >
           {t('polls.viewVotes')}
@@ -110,14 +114,14 @@ export function PollCard({ message }: { message: ChatMessage }) {
       </div>
       <div className="mt-1 flex justify-center gap-4">
         {chosen.length > 0 && !disabled ? (
-          <button type="button" className={LINK} onClick={() => void vote(() => [])}>
+          <button type="button" className={linkClass} onClick={() => void vote(() => [])}>
             {t('polls.removeVote')}
           </button>
         ) : null}
         {mayClose && !closed && message.serverId ? (
           <button
             type="button"
-            className={LINK}
+            className={linkClass}
             disabled={closing}
             onClick={() => setConfirming(true)}
           >

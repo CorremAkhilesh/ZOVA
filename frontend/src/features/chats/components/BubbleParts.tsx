@@ -90,7 +90,7 @@ function Caption(props: {
         <p>
           <button
             type="button"
-            className="font-semibold underline underline-offset-2"
+            className="bubble-link font-semibold underline underline-offset-2"
             onClick={(event) => {
               event.stopPropagation();
               setExpanded(true);

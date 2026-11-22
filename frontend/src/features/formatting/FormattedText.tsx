@@ -112,7 +112,7 @@ function renderInline(nodes: InlineNode[], mark: Marker, prefix: string): ReactN
             href={node.href}
             target="_blank"
             rel="noopener noreferrer nofollow"
-            className="underline underline-offset-2 [overflow-wrap:anywhere] hover:opacity-80"
+            className="bubble-link underline underline-offset-2 [overflow-wrap:anywhere] hover:opacity-80"
           >
             {mark(node.text, key)}
           </a>

@@ -32,11 +32,13 @@ export const lightColors = {
   danger: '#DC2626',
   info: '#0369A1',
 
-  // Chat bubbles
-  bubbleOutgoing: '#4F46E5',
-  bubbleOutgoingText: '#FFFFFF',
-  bubbleOutgoingMeta: '#E0E7FF',
-  bubbleOutgoingRead: '#99F6E4',
+  // Chat bubbles. Mine: a soft tint of the accent with dark text; the accent itself marks what is
+  // active inside it (mentions, links, poll bars, the voice waveform and play button).
+  bubbleOutgoing: '#E9E6FF',
+  bubbleOutgoingText: '#0F172A',
+  bubbleOutgoingMeta: '#555B70',
+  bubbleOutgoingRead: '#0369A1',
+  bubbleOutgoingAccent: '#4338CA',
   bubbleIncoming: '#FFFFFF',
   bubbleIncomingText: '#0F172A',
   bubbleIncomingMeta: '#5B6476',
@@ -83,10 +85,12 @@ export const darkColors = {
   danger: '#F87171',
   info: '#38BDF8',
 
-  bubbleOutgoing: '#3730A3',
+  // Mine: a muted (less saturated) accent with white text, so it does not glare in the dark.
+  bubbleOutgoing: '#34307A',
   bubbleOutgoingText: '#FFFFFF',
   bubbleOutgoingMeta: '#C7D2FE',
   bubbleOutgoingRead: '#5EEAD4',
+  bubbleOutgoingAccent: '#FFFFFF',
   bubbleIncoming: '#1A1E36',
   bubbleIncomingText: '#E8EAF6',
   bubbleIncomingMeta: '#9AA3C0',

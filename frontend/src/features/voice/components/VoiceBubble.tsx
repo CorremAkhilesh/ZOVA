@@ -49,7 +49,7 @@ export function VoiceBubble({ message }: { message: ChatMessage }) {
   const toggle = () => (active ? togglePlaying() : start());
   const seek = (seconds: number) => (active ? seekTo(seconds) : start(seconds));
   const barClasses = mine
-    ? { playedClass: 'bg-bubble-outgoing-text', restClass: 'bg-bubble-outgoing-text/40' }
+    ? { playedClass: 'bg-bubble-outgoing-accent', restClass: 'bg-bubble-outgoing-accent/35' }
     : { playedClass: 'bg-brand', restClass: 'bg-text-muted/40' };
 
   return (
@@ -65,7 +65,8 @@ export function VoiceBubble({ message }: { message: ChatMessage }) {
             aria-label={playing ? t('voice.pause') : t('voice.play')}
             className={cn(
               'flex size-10 items-center justify-center rounded-full',
-              mine ? 'bg-black/20' : 'bg-brand text-white',
+              // Mine: the accent on its soft tint (light), white on the muted accent (dark).
+              mine ? 'bg-bubble-outgoing-accent text-bubble-outgoing' : 'bg-brand text-white',
             )}
           >
             <PlayIcon playing={playing} loading={loading} className="size-5" />

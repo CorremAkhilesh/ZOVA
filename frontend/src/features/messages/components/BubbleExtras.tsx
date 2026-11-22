@@ -64,7 +64,7 @@ export function QuoteBlock({ message, mine }: { message: ChatMessage; mine: bool
   const style = cn(
     'mb-1 flex w-full items-center gap-2 rounded-lg border-l-4 px-2 py-1 text-left text-xs',
     mine
-      ? 'border-bubble-outgoing-meta bg-black/15 text-bubble-outgoing-text'
+      ? 'border-bubble-outgoing-accent bg-black/5 text-bubble-outgoing-text dark:border-bubble-outgoing-meta dark:bg-black/15'
       : 'border-brand bg-background text-bubble-incoming-text',
   );
   if (!jumpable) return <div className={style}>{content}</div>;
