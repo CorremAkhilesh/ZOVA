@@ -2,7 +2,7 @@ import type { PublicProfile, Status, StatusReply } from '@zuvo/protocol';
 import { chatsApi } from '@/features/chats/api';
 import { applyChats } from '@/features/sync/apply';
 import { useSyncStore } from '@/features/sync/store';
-import { patchFeed, refreshStatuses, statusApi } from './feed';
+import { ignoreClosed, patchFeed, refreshStatuses, statusApi } from './feed';
 
 const dbOf = () => useSyncStore.getState().client?.db ?? null;
 
@@ -36,7 +36,8 @@ export function markViewed(status: Status): void {
           item.id === status.id ? { ...item, viewed: true } : item,
         ),
       })),
-    }));
+      // Signed out with the viewer open: the database is closed and there is nothing to keep.
+    })).catch(ignoreClosed);
   }
   void statusApi.view(status.id).catch(() => told.delete(status.id));
 }

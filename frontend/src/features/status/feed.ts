@@ -60,7 +60,7 @@ async function storeFeed(db: LocalDb, feed: StatusFeedResponse) {
  * Signed out (or the account changed) while the feed was on its way: this device's database is
  * closed for good and nothing is kept. Anything else is a real failure and is reported.
  */
-function ignoreClosed(error: unknown) {
+export function ignoreClosed(error: unknown) {
   if ((error as { name?: string } | null)?.name === 'DatabaseClosedError') return;
   console.error('[status] could not keep the feed', error);
 }
